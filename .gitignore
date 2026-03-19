@@ -96,6 +96,9 @@ __pypackages__/
 # Environments
 .env
 .env.*
+# Allow development and production env files (private repo)
+!.env.development
+!.env.production
 .venv
 env/
 venv/
