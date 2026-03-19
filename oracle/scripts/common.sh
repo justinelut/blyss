@@ -7,6 +7,7 @@ export DOMAIN="server.blyss.co.ke"
 export APP_DIR="/opt/blyss"
 export APP_USER="blyss"
 export GITHUB_TOKEN="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"
+export SKIP_MIGRATIONS="${SKIP_MIGRATIONS:-false}"  # Set to true to skip migrations
 
 # Colors
 RED='\033[0;31m'

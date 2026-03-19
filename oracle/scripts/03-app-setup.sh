@@ -49,19 +49,23 @@ else
     log_info "Email renderer binary already exists"
 fi
 
-# Run database migrations
-log_info "Running database migrations..."
-su - $APP_USER -c "cd $APP_DIR/blyss/server && /home/$APP_USER/.local/bin/uv run task db_migrate"
+# Run database migrations (optional - skip if using pre-migrated database)
+if [ "${SKIP_MIGRATIONS:-false}" = "false" ]; then
+    log_info "Running database migrations..."
+    su - $APP_USER -c "cd $APP_DIR/blyss/server && /home/$APP_USER/.local/bin/uv run task db_migrate"
 
-# Verify migrations ran
-log_info "Verifying database migrations..."
-MIGRATION_CHECK=$(su - $APP_USER -c "cd $APP_DIR/blyss/server && /home/$APP_USER/.local/bin/uv run alembic current 2>&1" || echo "FAILED")
-if [[ "$MIGRATION_CHECK" == *"FAILED"* ]] || [[ "$MIGRATION_CHECK" == *"error"* ]]; then
-    log_error "Database migrations may have failed!"
-    log_error "Output: $MIGRATION_CHECK"
-    log_warn "Continuing anyway, but check database manually"
+    # Verify migrations ran
+    log_info "Verifying database migrations..."
+    MIGRATION_CHECK=$(su - $APP_USER -c "cd $APP_DIR/blyss/server && /home/$APP_USER/.local/bin/uv run alembic current 2>&1" || echo "FAILED")
+    if [[ "$MIGRATION_CHECK" == *"FAILED"* ]] || [[ "$MIGRATION_CHECK" == *"error"* ]]; then
+        log_error "Database migrations may have failed!"
+        log_error "Output: $MIGRATION_CHECK"
+        log_warn "Continuing anyway, but check database manually"
+    else
+        log_info "Current migration: $MIGRATION_CHECK"
+    fi
 else
-    log_info "Current migration: $MIGRATION_CHECK"
+    log_info "Skipping database migrations (using pre-migrated database)"
 fi
 
 # Create log directory

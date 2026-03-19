@@ -22,6 +22,7 @@ SKIP_SYSTEMD=false
 SKIP_NGINX=false
 SKIP_SSL=false
 SKIP_START=false
+export SKIP_MIGRATIONS=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -35,6 +36,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --skip-app)
             SKIP_APP=true
+            shift
+            ;;
+        --skip-migrations)
+            export SKIP_MIGRATIONS=true
             shift
             ;;
         --skip-systemd)
@@ -57,19 +62,20 @@ while [[ $# -gt 0 ]]; do
             echo "Usage: sudo ./setup.sh [OPTIONS]"
             echo ""
             echo "Options:"
-            echo "  --skip-system    Skip system setup (packages, swap, firewall)"
-            echo "  --skip-user      Skip user setup"
-            echo "  --skip-app       Skip application setup (repo, dependencies)"
-            echo "  --skip-systemd   Skip systemd service creation"
-            echo "  --skip-nginx     Skip Nginx configuration"
-            echo "  --skip-ssl       Skip SSL certificate setup"
-            echo "  --skip-start     Skip starting services"
-            echo "  --help           Show this help message"
+            echo "  --skip-system      Skip system setup (packages, swap, firewall)"
+            echo "  --skip-user        Skip user setup"
+            echo "  --skip-app         Skip application setup (repo, dependencies)"
+            echo "  --skip-migrations  Skip database migrations (use pre-migrated DB)"
+            echo "  --skip-systemd     Skip systemd service creation"
+            echo "  --skip-nginx       Skip Nginx configuration"
+            echo "  --skip-ssl         Skip SSL certificate setup"
+            echo "  --skip-start       Skip starting services"
+            echo "  --help             Show this help message"
             echo ""
             echo "Examples:"
-            echo "  sudo ./setup.sh                    # Full deployment"
-            echo "  sudo ./setup.sh --skip-system      # Skip system setup"
-            echo "  sudo ./setup.sh --skip-ssl         # Skip SSL (for testing)"
+            echo "  sudo ./setup.sh                      # Full deployment"
+            echo "  sudo ./setup.sh --skip-migrations    # Skip migrations (recommended)"
+            echo "  sudo ./setup.sh --skip-ssl           # Skip SSL (for testing)"
             exit 0
             ;;
         *)
