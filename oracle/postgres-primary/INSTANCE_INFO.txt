@@ -1,0 +1,104 @@
+========================================
+POSTGRESQL PRIMARY INSTANCE (Instance 2)
+========================================
+
+Deployment Date: 2026-03-19
+Public IP: [Your Instance IP]
+Tailscale IP: 100.114.146.100
+
+SERVICES:
+---------
+PostgreSQL 16: Port 5432 (Tailscale only)
+PgBouncer: Port 6432 (Tailscale only) - RECOMMENDED
+Node Exporter: Port 9100 (Tailscale only)
+
+DATABASE CREDENTIALS:
+---------------------
+Superuser: postgres / ChangeMeInProduction123!
+App User: blyss / BlyssDB2024Secure!
+Replication User: replicator / ReplicateSecure2024!
+Database: blyss
+
+CONNECTION STRINGS:
+-------------------
+Direct PostgreSQL:
+  postgresql://blyss:BlyssDB2024Secure!@100.114.146.100:5432/blyss
+
+Via PgBouncer (RECOMMENDED):
+  postgresql://blyss:BlyssDB2024Secure!@100.114.146.100:6432/blyss
+
+FOR BACKEND .ENV:
+-----------------
+POLAR_POSTGRES_HOST=100.114.146.100
+POLAR_POSTGRES_PORT=6432
+POLAR_POSTGRES_USER=blyss
+POLAR_POSTGRES_PWD=BlyssDB2024Secure!
+POLAR_POSTGRES_DATABASE=blyss
+POLAR_POSTGRES_SSL_MODE=prefer
+
+TAILSCALE:
+----------
+Network: 100.x.x.x
+This Instance: 100.114.146.100
+
+IMPORTANT COMMANDS:
+-------------------
+Check PostgreSQL: sudo systemctl status postgresql
+Check PgBouncer: sudo systemctl status pgbouncer
+Check Node Exporter: sudo systemctl status node_exporter
+
+View PostgreSQL logs: sudo tail -f /var/log/postgresql/postgresql-16-main.log
+View PgBouncer logs: sudo journalctl -u pgbouncer -f
+
+Restart PostgreSQL: sudo systemctl restart postgresql
+Restart PgBouncer: sudo systemctl restart pgbouncer
+
+Connect to database: sudo -u postgres psql
+Connect to blyss db: sudo -u postgres psql blyss
+
+Check replication status: sudo -u postgres psql -c "SELECT * FROM pg_stat_replication;"
+
+FIREWALL PORTS:
+---------------
+22/tcp    - SSH
+41641/udp - Tailscale VPN
+(PostgreSQL 5432 and PgBouncer 6432 only accessible via Tailscale)
+
+POSTGRESQL CONFIGURATION:
+-------------------------
+Max Connections: 100
+Shared Buffers: 256MB
+Effective Cache: 512MB
+Work Mem: 4MB
+Maintenance Work Mem: 64MB
+WAL Level: replica (for replication)
+
+PGBOUNCER CONFIGURATION:
+------------------------
+Pool Mode: transaction
+Max Client Connections: 100
+Default Pool Size: 25
+
+FILE LOCATIONS:
+---------------
+PostgreSQL Data: /var/lib/postgresql/16/main/
+PostgreSQL Config: /etc/postgresql/16/main/postgresql.conf
+PgBouncer Config: /etc/pgbouncer/pgbouncer.ini
+Logs: /var/log/postgresql/
+Backups: /var/backups/postgresql/
+
+NEXT STEPS:
+-----------
+1. Deploy Instance 3 (PostgreSQL Standby) - needs this IP
+2. Test connection from backend via Tailscale
+3. Migrate data from Neon to this database
+4. Update backend .env with this IP
+5. Monitor replication status after standby is deployed
+
+NOTES:
+------
+- Database only accessible via Tailscale VPN (secure)
+- No public internet exposure
+- Streaming replication enabled for standby
+- Swap: 2GB at /swapfile (swappiness=10)
+- Optimized for 1GB RAM

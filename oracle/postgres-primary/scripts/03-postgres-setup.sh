@@ -165,7 +165,7 @@ systemctl restart postgresql
 # Verify PostgreSQL is running
 if systemctl is-active --quiet postgresql; then
     log_info "PostgreSQL is running successfully"
-    
+
     # Show connection info
     log_info "PostgreSQL connection details:"
     log_info "  Host: $TAILSCALE_IP"

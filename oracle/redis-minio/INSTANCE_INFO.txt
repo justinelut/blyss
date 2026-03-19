@@ -1,0 +1,149 @@
+========================================
+REDIS + MINIO INSTANCE (Instance 4)
+========================================
+
+Deployment Date: 2026-03-19
+Public IP: [Your Instance IP - run: curl ifconfig.me]
+Tailscale IP: 100.117.231.42
+
+SERVICES:
+---------
+Redis 7: Port 6379 (Tailscale only)
+MinIO API: Port 9000 (Tailscale only)
+MinIO Console: Port 9001 (internal)
+Nginx: Port 80/443 (public, for MinIO console)
+Node Exporter: Port 9100 (Tailscale only)
+
+REDIS CONFIGURATION:
+--------------------
+Host: 100.117.231.42
+Port: 6379
+Password: RedisSecure2024!
+Database: 0
+Max Memory: 512MB
+Eviction Policy: allkeys-lru
+Persistence: AOF + RDB snapshots
+
+FOR BACKEND .ENV (REDIS):
+-------------------------
+POLAR_REDIS_HOST=100.117.231.42
+POLAR_REDIS_PORT=6379
+POLAR_REDIS_DB=0
+POLAR_REDIS_PASSWORD=RedisSecure2024!
+
+MINIO CONFIGURATION:
+--------------------
+API Endpoint: http://100.117.231.42:9000
+Console: http://100.117.231.42:9001 (internal)
+Web Console: https://storage.blyss.co.ke (after SSL setup)
+Root User: minioadmin
+Root Password: minioadmin123
+Buckets: blyss-files, blyss-public
+
+FOR BACKEND .ENV (MINIO/S3):
+----------------------------
+POLAR_AWS_ACCESS_KEY_ID=minioadmin
+POLAR_AWS_SECRET_ACCESS_KEY=minioadmin123
+POLAR_S3_ENDPOINT_URL=http://100.117.231.42:9000
+POLAR_AWS_REGION=us-east-1
+POLAR_S3_FILES_BUCKET_NAME=blyss-files
+POLAR_S3_FILES_PUBLIC_BUCKET_NAME=blyss-public
+POLAR_S3_CUSTOMER_INVOICES_BUCKET_NAME=blyss-files
+POLAR_S3_PAYOUT_INVOICES_BUCKET_NAME=blyss-files
+
+DNS RECORD NEEDED:
+------------------
+Type: A
+Name: storage
+Value: [Instance 4 Public IP]
+Result: storage.blyss.co.ke → [Public IP]
+
+IMPORTANT COMMANDS:
+-------------------
+Check Redis: sudo systemctl status redis-server
+Check MinIO: sudo systemctl status minio
+Check Nginx: sudo systemctl status nginx
+
+Restart Redis: sudo systemctl restart redis-server
+Restart MinIO: sudo systemctl restart minio
+
+Redis CLI: redis-cli -h 100.117.231.42 -a RedisSecure2024!
+Test Redis: redis-cli -a RedisSecure2024! ping
+
+MinIO Client (mc):
+  mc alias set local http://100.117.231.42:9000 minioadmin minioadmin123
+  mc ls local
+  mc mb local/new-bucket
+
+View Redis logs: sudo tail -f /var/log/redis/redis-server.log
+View MinIO logs: sudo journalctl -u minio -f
+
+Redis info: redis-cli -a RedisSecure2024! info
+Redis memory: redis-cli -a RedisSecure2024! info memory
+
+TAILSCALE:
+----------
+Network: 100.x.x.x
+This Instance: 100.117.231.42
+
+FIREWALL PORTS:
+---------------
+22/tcp    - SSH
+80/tcp    - HTTP (Nginx for MinIO console)
+443/tcp   - HTTPS (Nginx for MinIO console with SSL)
+41641/udp - Tailscale VPN
+(Redis 6379 and MinIO 9000 only accessible via Tailscale)
+
+FILE LOCATIONS:
+---------------
+Redis Config: /etc/redis/redis.conf
+Redis Data: /var/lib/redis/
+MinIO Data: /mnt/minio/data/
+MinIO Config: /etc/default/minio
+Nginx Config: /etc/nginx/sites-available/minio
+
+ORACLE CLOUD SECURITY LIST:
+----------------------------
+You need to open these ports in Oracle Cloud Console:
+1. Port 80/tcp (HTTP)
+2. Port 443/tcp (HTTPS)
+
+Steps:
+1. Go to Oracle Cloud Console
+2. Compute → Instances → Click this instance
+3. Click Subnet → Security List
+4. Add Ingress Rules for ports 80 and 443
+
+SSL SETUP:
+----------
+After adding DNS record and opening ports:
+  sudo certbot --nginx -d storage.blyss.co.ke
+
+MINIO WEB CONSOLE ACCESS:
+--------------------------
+After SSL setup: https://storage.blyss.co.ke
+Login: minioadmin / minioadmin123
+
+MONITORING:
+-----------
+Redis metrics: http://100.117.231.42:9100/metrics
+MinIO health: curl http://100.117.231.42:9000/minio/health/live
+
+NEXT STEPS:
+-----------
+1. Get public IP: curl ifconfig.me
+2. Add DNS: storage.blyss.co.ke → [Public IP]
+3. Open ports 80/443 in Oracle Cloud Security List
+4. Setup SSL: sudo certbot --nginx -d storage.blyss.co.ke
+5. Access MinIO console: https://storage.blyss.co.ke
+6. Add Tailscale to Instance 1 (Backend)
+7. Update backend .env with Redis and MinIO settings
+8. Migrate files from R2 to MinIO
+
+NOTES:
+------
+- Redis and MinIO API only accessible via Tailscale (secure)
+- MinIO console accessible via HTTPS with SSL
+- Redis persistence enabled (data survives restarts)
+- MinIO buckets already created
+- Swap: 2GB at /swapfile (swappiness=10)

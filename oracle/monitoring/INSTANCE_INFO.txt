@@ -1,0 +1,65 @@
+========================================
+MONITORING INSTANCE (Instance 5)
+========================================
+
+Deployment Date: 2026-03-19
+Public IP: 157.151.141.130
+Tailscale IP: 100.82.175.24
+
+SERVICES:
+---------
+Grafana Web UI: https://monitor.blyss.co.ke
+  Username: admin
+  Password: admin (CHANGE THIS AFTER FIRST LOGIN!)
+
+Prometheus: http://100.82.175.24:9090 (Tailscale only)
+
+Node Exporter: http://100.82.175.24:9100/metrics (Tailscale only)
+
+DNS RECORD:
+-----------
+Type: A
+Name: monitor
+Value: 157.151.141.130
+Result: monitor.blyss.co.ke → 157.151.141.130
+
+TAILSCALE:
+----------
+Network: 100.x.x.x
+This Instance: 100.82.175.24
+
+IMPORTANT COMMANDS:
+-------------------
+Check Grafana: sudo systemctl status grafana-server
+Check Prometheus: sudo systemctl status prometheus
+Check Node Exporter: sudo systemctl status node_exporter
+View Grafana logs: sudo journalctl -u grafana-server -f
+View Prometheus logs: sudo journalctl -u prometheus -f
+
+Restart Grafana: sudo systemctl restart grafana-server
+Restart Prometheus: sudo systemctl restart prometheus
+
+Check Tailscale: sudo tailscale status
+Get Tailscale IP: sudo tailscale ip -4
+
+FIREWALL PORTS:
+---------------
+22/tcp   - SSH
+80/tcp   - HTTP (Nginx)
+443/tcp  - HTTPS (Nginx with SSL)
+41641/udp - Tailscale VPN
+
+NEXT STEPS:
+-----------
+1. Add DNS record: monitor.blyss.co.ke → 157.151.141.130
+2. Setup SSL: sudo certbot --nginx -d monitor.blyss.co.ke
+3. Access Grafana and change admin password
+4. Deploy other instances (PostgreSQL, Redis, MinIO)
+5. Update Prometheus config with other instance IPs
+
+NOTES:
+------
+- All monitoring data stored in /var/lib/prometheus
+- Grafana data in /var/lib/grafana
+- Logs in /var/log/syslog and journalctl
+- Swap: 2GB at /swapfile (swappiness=10)
