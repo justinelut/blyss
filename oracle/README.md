@@ -242,15 +242,29 @@ The setup includes several optimizations for 1GB RAM:
 - Connection pooling for PostgreSQL (Neon pooler)
 - Redis for caching
 
+## Multi-Instance Deployment
+
+This backend (Instance 1) is part of a 5-instance architecture. To eliminate external service costs ($34+/month), deploy additional instances:
+
+- **Instance 2**: PostgreSQL Primary + PgBouncer
+- **Instance 3**: PostgreSQL Standby + Backups
+- **Instance 4**: Redis + MinIO (S3-compatible storage)
+- **Instance 5**: Prometheus + Grafana monitoring
+
+See complete guides:
+- `oracle/DEPLOYMENT_GUIDE.md` - Complete 5-instance deployment
+- `oracle/DEPLOYMENT_CHECKLIST.md` - Step-by-step checklist
+- `oracle/BACKEND_MIGRATION_GUIDE.md` - Migrate from Neon/Upstash/R2 to self-hosted
+- `oracle/TAILSCALE_NETWORK_MAP.md` - Network reference
+
 ## Next Steps
 
 After deployment:
 1. Test the health endpoint: `curl https://server.blyss.co.ke/healthz`
 2. Create your first user account
 3. Configure Paystack production keys (currently using test keys)
-4. Set up monitoring (optional)
-5. Configure backups (database is managed by Neon)
-6. Deploy frontend to Vercel
+4. Deploy additional instances (see guides above) to save $34+/month
+5. Deploy frontend to Vercel
 
 ## Support
 

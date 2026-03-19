@@ -9,6 +9,10 @@ export APP_USER="blyss"
 export GITHUB_TOKEN="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"
 export SKIP_MIGRATIONS="${SKIP_MIGRATIONS:-false}"  # Set to true to skip migrations
 
+# Tailscale Configuration (for backend instance)
+# Auth key expires: 90 days from creation
+export TAILSCALE_AUTH_KEY="${TAILSCALE_AUTH_KEY:-tskey-auth-kD3Ykw1dpn11CNTRL-iT4yBCuaiycedwCuPWBYycXdzybzVeFN6}"
+
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
