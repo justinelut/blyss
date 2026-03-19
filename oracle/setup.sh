@@ -11,6 +11,7 @@ REPO_URL="https://github.com/justinelut/blyss.git"
 DOMAIN="server.blyss.co.ke"
 APP_DIR="/opt/blyss"
 APP_USER="blyss"
+GITHUB_TOKEN="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"
 
 # Colors
 RED='\033[0;31m'
@@ -90,7 +91,6 @@ ufw --force enable
 ufw allow 22/tcp
 ufw allow 80/tcp
 ufw allow 443/tcp
-ufw status
 
 # Step 5: Create application user
 log_info "Creating application user..."
@@ -98,50 +98,80 @@ if ! id "$APP_USER" &>/dev/null; then
     useradd -m -s /bin/bash $APP_USER
     log_info "User $APP_USER created"
 else
-    log_warn "User $APP_USER already exists"
+    log_info "User $APP_USER already exists"
 fi
 
-# Step 6: Install uv
+# Step 6: Install uv for Python dependency management
 log_info "Installing uv..."
-su - $APP_USER -c "curl -LsSf https://astral.sh/uv/install.sh | sh"
+if ! su - $APP_USER -c "command -v uv" &>/dev/null; then
+    su - $APP_USER -c "curl -LsSf https://astral.sh/uv/install.sh | sh"
+    log_info "uv installed successfully"
+else
+    log_info "uv already installed"
+fi
 
 # Step 7: Create app directory
 log_info "Setting up application directory..."
 mkdir -p $APP_DIR
 chown -R $APP_USER:$APP_USER $APP_DIR
 
-# Step 8: Clone repository
-log_info "Cloning repository..."
+# Step 8: Clone or update repository
+log_info "Setting up repository..."
 if [ ! -d "$APP_DIR/blyss" ]; then
-    su - $APP_USER -c "cd $APP_DIR && git clone https://justinelut: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@github.com/justinelut/blyss.git"
+    log_info "Cloning repository..."
+    su - $APP_USER -c "cd $APP_DIR && git clone https://justinelut:$GITHUB_TOKEN@github.com/justinelut/blyss.git"
 else
-    log_info "Repository already exists, pulling latest changes..."
-    su - $APP_USER -c "cd $APP_DIR/blyss && git pull"
+    log_info "Repository exists, pulling latest changes..."
+    su - $APP_USER -c "cd $APP_DIR/blyss && git remote set-url origin https://justinelut:$GITHUB_TOKEN@github.com/justinelut/blyss.git && git pull"
 fi
 
-# Step 9: Copy production .env file
-log_info "Setting up .env file from .env.production..."
-cp $APP_DIR/blyss/server/.env.production $APP_DIR/blyss/server/.env
-chown $APP_USER:$APP_USER $APP_DIR/blyss/server/.env
-chmod 600 $APP_DIR/blyss/server/.env
-log_info ".env file created successfully"
+# Step 9: Setup .env file
+log_info "Setting up .env file..."
+if [ ! -f "$APP_DIR/blyss/server/.env" ]; then
+    cp $APP_DIR/blyss/server/.env.production $APP_DIR/blyss/server/.env
+    chown $APP_USER:$APP_USER $APP_DIR/blyss/server/.env
+    chmod 600 $APP_DIR/blyss/server/.env
+    log_info ".env file created from .env.production"
+else
+    log_info ".env file already exists, skipping"
+fi
 
-# Step 10: Install dependencies
-log_info "Installing Python dependencies..."
+# Step 10: Install Python dependencies
+log_info "Installing Python dependencies (this may take a while)..."
 su - $APP_USER -c "cd $APP_DIR/blyss/server && /home/$APP_USER/.local/bin/uv sync"
 
-# Step 11: Run migrations
+# Step 11: Generate JWKS (required for JWT authentication)
+log_info "Generating JWKS file..."
+if [ ! -f "$APP_DIR/blyss/server/.jwks.json" ]; then
+    su - $APP_USER -c "cd $APP_DIR/blyss/server && /home/$APP_USER/.local/bin/uv run task generate_dev_jwks"
+    log_info "JWKS file generated"
+else
+    log_info "JWKS file already exists"
+fi
+
+# Step 12: Build email renderer binary
+log_info "Building email renderer binary..."
+if [ ! -f "$APP_DIR/blyss/server/emails/bin/react-email-pkg" ]; then
+    su - $APP_USER -c "cd $APP_DIR/blyss/server && /home/$APP_USER/.local/bin/uv run task emails"
+    log_info "Email renderer binary built"
+else
+    log_info "Email renderer binary already exists"
+fi
+
+# Step 13: Run database migrations
 log_info "Running database migrations..."
 su - $APP_USER -c "cd $APP_DIR/blyss/server && /home/$APP_USER/.local/bin/uv run task db_migrate"
 
-# Step 12: Create log directory
+# Step 14: Create log directory
+log_info "Creating log directory..."
 mkdir -p /var/log/blyss
 chown -R $APP_USER:$APP_USER /var/log/blyss
 
-# Step 13: Create systemd services
+# Step 15: Create systemd services
 log_info "Creating systemd services..."
 
-cat > /etc/systemd/system/blyss-api.service << 'EOF'
+# API Service
+cat > /etc/systemd/system/blyss-api.service << 'APISERVICE'
 [Unit]
 Description=Blyss API Server
 After=network.target
@@ -162,9 +192,10 @@ CPUQuota=80%
 
 [Install]
 WantedBy=multi-user.target
-EOF
+APISERVICE
 
-cat > /etc/systemd/system/blyss-worker.service << 'EOF'
+# Worker Service
+cat > /etc/systemd/system/blyss-worker.service << 'WORKERSERVICE'
 [Unit]
 Description=Blyss Background Worker
 After=network.target blyss-api.service
@@ -185,16 +216,16 @@ CPUQuota=50%
 
 [Install]
 WantedBy=multi-user.target
-EOF
+WORKERSERVICE
 
 systemctl daemon-reload
 systemctl enable blyss-api
 systemctl enable blyss-worker
 
-# Step 14: Configure Nginx
+# Step 16: Configure Nginx
 log_info "Configuring Nginx..."
 
-cat > /etc/nginx/sites-available/blyss << 'EOF'
+cat > /etc/nginx/sites-available/blyss << 'NGINXCONF'
 server {
     listen 80;
     server_name server.blyss.co.ke;
@@ -211,10 +242,8 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_cache_bypass $http_upgrade;
-
-        proxy_connect_timeout 60s;
-        proxy_send_timeout 60s;
-        proxy_read_timeout 60s;
+        proxy_read_timeout 300s;
+        proxy_connect_timeout 75s;
     }
 
     location /healthz {
@@ -222,32 +251,60 @@ server {
         access_log off;
     }
 }
-EOF
+NGINXCONF
 
-ln -sf /etc/nginx/sites-available/blyss /etc/nginx/sites-enabled/
-rm -f /etc/nginx/sites-enabled/default
+# Enable site
+if [ ! -L /etc/nginx/sites-enabled/blyss ]; then
+    ln -s /etc/nginx/sites-available/blyss /etc/nginx/sites-enabled/
+fi
 
+# Remove default site
+if [ -L /etc/nginx/sites-enabled/default ]; then
+    rm /etc/nginx/sites-enabled/default
+fi
+
+# Test nginx configuration
 nginx -t
-systemctl restart nginx
-systemctl enable nginx
 
-# Step 15: Start services
+# Reload nginx
+systemctl reload nginx
+
+# Step 17: Start services
 log_info "Starting services..."
 systemctl start blyss-api
 systemctl start blyss-worker
 
-# Step 16: Setup SSL
-log_info "Setting up SSL..."
-certbot --nginx -d $DOMAIN --non-interactive --agree-tos --email admin@blyss.co.ke || log_warn "SSL setup skipped"
+# Step 18: Setup SSL with Let's Encrypt
+log_info "Setting up SSL certificate..."
+if [ ! -d "/etc/letsencrypt/live/$DOMAIN" ]; then
+    certbot --nginx -d $DOMAIN --non-interactive --agree-tos --email admin@blyss.co.ke
+    log_info "SSL certificate obtained"
+else
+    log_info "SSL certificate already exists"
+fi
 
-# Display status
+# Step 19: Display status
 echo ""
 echo "=========================================="
-log_info "Deployment Complete!"
+echo "  Deployment Complete!"
 echo "=========================================="
 echo ""
-systemctl status blyss-api --no-pager | head -5
+echo "Services Status:"
+systemctl status blyss-api --no-pager -l | head -n 10
 echo ""
-echo "API: http://$DOMAIN"
-echo "Logs: sudo journalctl -u blyss-api -f"
-echo "=========================================="
+systemctl status blyss-worker --no-pager -l | head -n 10
+echo ""
+echo "Access your application at:"
+echo "  https://$DOMAIN"
+echo ""
+echo "Useful commands:"
+echo "  sudo systemctl status blyss-api     - Check API status"
+echo "  sudo systemctl status blyss-worker  - Check worker status"
+echo "  sudo systemctl restart blyss-api    - Restart API"
+echo "  sudo systemctl restart blyss-worker - Restart worker"
+echo "  sudo tail -f /var/log/blyss/api.log - View API logs"
+echo "  sudo tail -f /var/log/blyss/worker.log - View worker logs"
+echo ""
+echo "Health check:"
+echo "  curl https://$DOMAIN/healthz"
+echo ""
