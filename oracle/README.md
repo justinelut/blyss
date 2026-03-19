@@ -39,23 +39,48 @@ sudo chmod +x setup.sh
 sudo ./setup.sh
 ```
 
-The script will automatically:
-- Update system packages
-- Install Python 3.12, Nginx, and dependencies
-- Create 2GB swap memory (critical for 1GB RAM)
-- Configure firewall (ports 22, 80, 443)
-- Create application user
-- Install uv (Python package manager)
-- Clone/update repository
-- Setup .env from .env.production
-- Install Python dependencies
-- Generate JWKS file (for JWT authentication)
-- Build email renderer binary
-- Run database migrations
-- Create systemd services (API + Worker)
-- Configure Nginx reverse proxy
-- Setup SSL with Let's Encrypt
-- Start all services
+The setup script orchestrates 7 modular scripts:
+
+1. **01-system-setup.sh** - System packages, swap, firewall
+2. **02-user-setup.sh** - Application user and uv installation
+3. **03-app-setup.sh** - Repository, dependencies, JWKS, email renderer, migrations
+4. **04-systemd-setup.sh** - Systemd service files
+5. **05-nginx-setup.sh** - Nginx reverse proxy configuration
+6. **06-ssl-setup.sh** - Let's Encrypt SSL certificate
+7. **07-start-services.sh** - Start API and worker services
+
+### Selective Deployment
+
+You can skip specific steps if needed:
+
+```bash
+# Skip SSL setup (for testing)
+sudo ./setup.sh --skip-ssl
+
+# Skip system setup (if already done)
+sudo ./setup.sh --skip-system
+
+# Skip starting services (manual start later)
+sudo ./setup.sh --skip-start
+
+# See all options
+sudo ./setup.sh --help
+```
+
+### Run Individual Scripts
+
+You can also run individual scripts for specific tasks:
+
+```bash
+# Update application only
+sudo ./scripts/update.sh
+
+# Reconfigure Nginx only
+sudo ./scripts/05-nginx-setup.sh
+
+# Restart services only
+sudo ./scripts/07-start-services.sh
+```
 
 ## What Gets Deployed
 
@@ -106,6 +131,22 @@ curl https://server.blyss.co.ke/healthz
 ```
 
 ## Updating the Application
+
+Use the dedicated update script:
+
+```bash
+cd /opt/blyss/blyss/oracle
+sudo ./scripts/update.sh
+```
+
+This will:
+- Pull latest code from GitHub
+- Update Python dependencies
+- Run database migrations
+- Rebuild email renderer if needed
+- Restart services
+
+Or manually:
 
 ```bash
 cd /opt/blyss/blyss
@@ -167,6 +208,21 @@ sudo certbot certificates
 - **Systemd services**: `/etc/systemd/system/blyss-*.service`
 - **Nginx config**: `/etc/nginx/sites-available/blyss`
 - **SSL certificates**: `/etc/letsencrypt/live/server.blyss.co.ke/`
+- **Deployment scripts**: `/opt/blyss/blyss/oracle/scripts/`
+
+## Script Reference
+
+All deployment scripts are in the `oracle/scripts/` directory:
+
+- **common.sh** - Shared configuration and functions
+- **01-system-setup.sh** - System packages, swap, firewall
+- **02-user-setup.sh** - User creation and uv installation
+- **03-app-setup.sh** - Repository, dependencies, JWKS, migrations
+- **04-systemd-setup.sh** - Systemd service creation
+- **05-nginx-setup.sh** - Nginx configuration
+- **06-ssl-setup.sh** - SSL certificate setup
+- **07-start-services.sh** - Service startup
+- **update.sh** - Application update helper
 
 ## Security Notes
 
