@@ -7,7 +7,7 @@ echo "  Oracle Cloud - 1GB RAM / 1 OCPU"
 echo "=========================================="
 
 # Configuration
-REPO_URL="https://github.com/YOUR_USERNAME/YOUR_REPO.git"  # Update this
+REPO_URL="https://github.com/justinelut/blyss.git"
 DOMAIN="server.blyss.co.ke"
 APP_DIR="/opt/blyss"
 APP_USER="blyss"
@@ -16,7 +16,7 @@ APP_USER="blyss"
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
 log_info() {
     echo -e "${GREEN}[INFO]${NC} $1"
@@ -70,16 +70,16 @@ else
     log_warn "Swap file already exists"
 fi
 
-# Configure swappiness for better performance
+# Configure swappiness
 sysctl vm.swappiness=10
 echo 'vm.swappiness=10' >> /etc/sysctl.conf
 
 # Step 4: Configure firewall
 log_info "Configuring firewall..."
 ufw --force enable
-ufw allow 22/tcp    # SSH
-ufw allow 80/tcp    # HTTP
-ufw allow 443/tcp   # HTTPS
+ufw allow 22/tcp
+ufw allow 80/tcp
+ufw allow 443/tcp
 ufw status
 
 # Step 5: Create application user
@@ -91,45 +91,23 @@ else
     log_warn "User $APP_USER already exists"
 fi
 
-# Step 6: Install uv for the app user
-log_info "Installing uv (Python package manager)..."
+# Step 6: Install uv
+log_info "Installing uv..."
 su - $APP_USER -c "curl -LsSf https://astral.sh/uv/install.sh | sh"
 
-# Step 7: Create application directory
+# Step 7: Create app directory
 log_info "Setting up application directory..."
 mkdir -p $APP_DIR
-chown -R $APP_USER:$APP_USER $APP_DIR
+ch
+KIP_EMAIL_RENDERER_CHECK=1
 
-# Step 8: Clone repository
-log_info "Cloning repository..."
-if [ -d "$APP_DIR/server" ]; then
-    log_warn "Repository already exists, pulling latest changes..."
-    su - $APP_USER -c "cd $APP_DIR && git pull"
-else
-    log_info "Enter your GitHub repository URL:"
-    read -p "Repository URL: " REPO_URL
-    su - $APP_USER -c "git clone $REPO_URL $APP_DIR"
-fi
-
-# Step 9: Create production .env file
-log_info "Creating production environment file..."
-cat > $APP_DIR/server/.env.production << 'EOF'
-POLAR_ENV=production
-POLAR_LOG_LEVEL=INFO
-POLAR_TESTING=0
-POLAR_SQLALCHEMY_DEBUG=0
-POLAR_POSTHOG_DEBUG=0
-POLAR_SKIP_EMAIL_RENDERER_CHECK=1
-
-# CORS - Update with your frontend domain
-POLAR_CORS_ORIGINS='["https://blyss.co.ke", "https://www.blyss.co.ke"]'
+POLAR_CORS_ORIGINS='["https://blyss.co.ke", "https://www.blyss.co.ke", "http://localhost:3000"]'
 POLAR_ALLOWED_HOSTS='["server.blyss.co.ke", "blyss.co.ke"]'
 POLAR_FRONTEND_BASE_URL="https://blyss.co.ke"
 POLAR_CHECKOUT_BASE_URL="https://server.blyss.co.ke/v1/checkout-links/{client_secret}/redirect"
-
 POLAR_USER_SESSION_COOKIE_DOMAIN="blyss.co.ke"
 
-# Neon PostgreSQL (from your existing .env)
+# Neon PostgreSQL
 POLAR_POSTGRES_USER=neondb_owner
 POLAR_POSTGRES_PWD=npg_hsol3R5TamPZ
 POLAR_POSTGRES_HOST=ep-solitary-sea-adx0qsi6-pooler.c-2.us-east-1.aws.neon.tech
@@ -150,17 +128,17 @@ POLAR_REDIS_PORT=6379
 POLAR_REDIS_DB=0
 POLAR_REDIS_PASSWORD=ARq4AAImcDIxNjQ0OWQ5MGY0NzU0N2YyOTZhZDFhOGRiMmEyOTAwY3AyNjg0MA
 
-# GitHub - Not needed
+# GitHub
 POLAR_GITHUB_CLIENT_ID="__UNSET__"
 POLAR_GITHUB_CLIENT_SECRET="__UNSET__"
 
-# Stripe - Dummy keys
+# Stripe
 POLAR_STRIPE_SECRET_KEY="sk_test_51DummyKeyForLocalDevOnly123456789"
 POLAR_STRIPE_PUBLISHABLE_KEY="pk_test_51DummyKeyForLocalDevOnly123456789"
 POLAR_STRIPE_WEBHOOK_SECRET="whsec_DummyWebhookSecretForLocalDevOnly123"
 POLAR_STRIPE_CONNECT_WEBHOOK_SECRET="whsec_DummyConnectWebhookSecretForLocalDev"
 
-# Paystack - Production keys (UPDATE THESE!)
+# Paystack
 POLAR_PAYSTACK_SECRET_KEY="sk_test_93099bfa358a6754554dcdfb1c1da1f8f01a8210"
 POLAR_PAYSTACK_PUBLIC_KEY="pk_test_1e298a9b7cf0509d128be4c8dc7aaacecac54f80"
 POLAR_PAYSTACK_WEBHOOK_SECRET="paystack_webhook_secret_placeholder"
@@ -194,29 +172,69 @@ POLAR_NUMERAL_API_KEY="__UNSET__"
 POLAR_CHARGEBACK_STOP_WEBHOOK_SECRET=""
 EOF
 
-chown $APP_USER:$APP_USER $APP_DIR/server/.env.production
-chmod 600 $APP_DIR/server/.env.production
+chown $APP_USER:$APP_USER $APP_DIR/server/.env
+chmod 600 $APP_DIR/server/.env
 
-# Link production env
-su - $APP_USER -c "ln -sf $APP_DIR/server/.env.production $APP_DIR/server/.env"
-
-# Step 10: Install Python dependencies
+# Step 10: Install dependencies
 log_info "Installing Python dependencies..."
 su - $APP_USER -c "cd $APP_DIR/server && /home/$APP_USER/.local/bin/uv sync"
 
-# Step 11: Run database migrations
+# Step 11: Run migrations
 log_info "Running database migrations..."
 su - $APP_USER -c "cd $APP_DIR/server && /home/$APP_USER/.local/bin/uv run task db_migrate"
 
 # Step 12: Create log directory
-log_info "Creating log directory..."
 mkdir -p /var/log/blyss
 chown -R $APP_USER:$APP_USER /var/log/blyss
 
-# Step 13: Install systemd services
-log_info "Installing systemd services..."
-cp $APP_DIR/server/deploy/blyss-api.service /etc/systemd/system/
-cp $APP_DIR/server/deploy/blyss-worker.service /etc/systemd/system/
+# Step 13: Create systemd services
+log_info "Creating systemd services..."
+
+cat > /etc/systemd/system/blyss-api.service << 'EOF'
+[Unit]
+Description=Blyss API Server
+After=network.target
+
+[Service]
+Type=simple
+User=blyss
+Group=blyss
+WorkingDirectory=/opt/blyss/server
+Environment="PATH=/home/blyss/.local/bin:/usr/local/bin:/usr/bin:/bin"
+ExecStart=/home/blyss/.local/bin/uv run task api
+Restart=always
+RestartSec=10
+StandardOutput=append:/var/log/blyss/api.log
+StandardError=append:/var/log/blyss/api-error.log
+MemoryMax=512M
+CPUQuota=80%
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+cat > /etc/systemd/system/blyss-worker.service << 'EOF'
+[Unit]
+Description=Blyss Background Worker
+After=network.target blyss-api.service
+
+[Service]
+Type=simple
+User=blyss
+Group=blyss
+WorkingDirectory=/opt/blyss/server
+Environment="PATH=/home/blyss/.local/bin:/usr/local/bin:/usr/bin:/bin"
+ExecStart=/home/blyss/.local/bin/uv run task worker
+Restart=always
+RestartSec=10
+StandardOutput=append:/var/log/blyss/worker.log
+StandardError=append:/var/log/blyss/worker-error.log
+MemoryMax=256M
+CPUQuota=50%
+
+[Install]
+WantedBy=multi-user.target
+EOF
 
 systemctl daemon-reload
 systemctl enable blyss-api
@@ -224,7 +242,37 @@ systemctl enable blyss-worker
 
 # Step 14: Configure Nginx
 log_info "Configuring Nginx..."
-cp $APP_DIR/server/deploy/nginx.conf /etc/nginx/sites-available/blyss
+
+cat > /etc/nginx/sites-available/blyss << 'EOF'
+server {
+    listen 80;
+    server_name server.blyss.co.ke;
+
+    client_max_body_size 100M;
+
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+
+    location /healthz {
+        proxy_pass http://127.0.0.1:8000/healthz;
+        access_log off;
+    }
+}
+EOF
+
 ln -sf /etc/nginx/sites-available/blyss /etc/nginx/sites-enabled/
 rm -f /etc/nginx/sites-enabled/default
 
@@ -233,37 +281,22 @@ systemctl restart nginx
 systemctl enable nginx
 
 # Step 15: Start services
-log_info "Starting Blyss services..."
+log_info "Starting services..."
 systemctl start blyss-api
 systemctl start blyss-worker
 
-# Step 16: Setup SSL with Let's Encrypt
-log_info "Setting up SSL certificate..."
-log_warn "Make sure DNS is pointing to this server before continuing!"
-read -p "Press Enter to continue with SSL setup (or Ctrl+C to skip)..."
+# Step 16: Setup SSL
+log_info "Setting up SSL..."
+certbot --nginx -d $DOMAIN --non-interactive --agree-tos --email admin@blyss.co.ke || log_warn "SSL setup skipped"
 
-certbot --nginx -d $DOMAIN --non-interactive --agree-tos --email admin@blyss.co.ke || log_warn "SSL setup failed or skipped"
-
-# Step 17: Display status
+# Display status
 echo ""
 echo "=========================================="
 log_info "Deployment Complete!"
 echo "=========================================="
 echo ""
-echo "Service Status:"
 systemctl status blyss-api --no-pager | head -5
-systemctl status blyss-worker --no-pager | head -5
 echo ""
-echo "Useful Commands:"
-echo "  - View API logs:    sudo journalctl -u blyss-api -f"
-echo "  - View worker logs: sudo journalctl -u blyss-worker -f"
-echo "  - Restart API:      sudo systemctl restart blyss-api"
-echo "  - Restart worker:   sudo systemctl restart blyss-worker"
-echo "  - Check status:     sudo systemctl status blyss-api"
-echo ""
-echo "Your API should be accessible at:"
-echo "  http://$DOMAIN"
-echo "  https://$DOMAIN (if SSL was configured)"
-echo ""
-log_warn "Remember to update Paystack production keys in /opt/blyss/server/.env.production"
+echo "API: http://$DOMAIN"
+echo "Logs: sudo journalctl -u blyss-api -f"
 echo "=========================================="
