@@ -1,8 +1,0 @@
-{
-  "buildCommand": "cd clients && pnpm install && pnpm run build --filter=web",
-  "outputDirectory": "clients/apps/web/.next",
-  "framework": "nextjs",
-  "installCommand": "cd clients && pnpm install",
-  "devCommand": "cd clients && pnpm run dev --filter=web",
-  "ignoreCommand": "git diff --quiet HEAD^ HEAD ./clients"
-}
