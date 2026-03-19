@@ -1,0 +1,22 @@
+[Unit]
+Description=Blyss API Server
+After=network.target
+
+[Service]
+Type=simple
+User=blyss
+Group=blyss
+WorkingDirectory=/opt/blyss/server
+Environment="PATH=/home/blyss/.local/bin:/usr/local/bin:/usr/bin:/bin"
+ExecStart=/home/blyss/.local/bin/uv run task api
+Restart=always
+RestartSec=10
+StandardOutput=append:/var/log/blyss/api.log
+StandardError=append:/var/log/blyss/api-error.log
+
+# Resource limits for 1GB RAM system
+MemoryMax=512M
+CPUQuota=80%
+
+[Install]
+WantedBy=multi-user.target

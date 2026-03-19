@@ -1,0 +1,162 @@
+from functools import partial
+
+import pytest
+
+from polar.models import Account, Organization, Payout, Transaction, User
+from polar.models.transaction import Processor, TransactionType
+from polar.postgres import AsyncSession
+from polar.transaction.service.payout import (
+    payout_transaction as payout_transaction_service,
+)
+from polar.transaction.service.platform_fee import (
+    platform_fee_transaction as platform_fee_transaction_service,
+)
+from polar.transaction.service.transaction import transaction as transaction_service
+from tests.fixtures import random_objects as ro
+from tests.fixtures.database import SaveFixture
+from tests.fixtures.random_objects import create_account
+from tests.fixtures.random_objects import create_payout as _create_payout
+
+create_payment_transaction = partial(ro.create_payment_transaction, amount=10000)
+create_refund_transaction = partial(ro.create_refund_transaction, amount=-10000)
+create_balance_transaction = partial(ro.create_balance_transaction, amount=10000)
+
+
+async def create_payout(
+    save_fixture: SaveFixture,
+    session: AsyncSession,
+    account: Account,
+) -> tuple[Payout, list[tuple[Transaction, Transaction]]]:
+    balance_amount = await transaction_service.get_transactions_sum(session, account.id)
+    (
+        balance_amount_after_fees,
+        payout_fees_balances,
+    ) = await platform_fee_transaction_service.create_payout_fees_balances(
+        session, account=account, balance_amount=balance_amount
+    )
+
+    payout = await _create_payout(
+        save_fixture,
+        account=account,
+        amount=balance_amount_after_fees,
+        account_amount=balance_amount_after_fees,
+        account_currency=account.currency,
+    )
+
+    return payout, payout_fees_balances
+
+
+@pytest.mark.asyncio
+class TestCreate:
+    async def test_stripe(
+        self,
+        save_fixture: SaveFixture,
+        session: AsyncSession,
+        organization: Organization,
+        user: User,
+    ) -> None:
+        account = await create_account(save_fixture, organization, user)
+
+        payment_transaction_1 = await create_payment_transaction(save_fixture)
+        balance_transaction_1 = await create_balance_transaction(
+            save_fixture, account=account, payment_transaction=payment_transaction_1
+        )
+
+        payment_transaction_2 = await create_payment_transaction(save_fixture)
+        balance_transaction_2 = await create_balance_transaction(
+            save_fixture, account=account, payment_transaction=payment_transaction_2
+        )
+
+        payout, fees = await create_payout(save_fixture, session, account=account)
+
+        transaction = await payout_transaction_service.create(session, payout, fees)
+
+        assert transaction.account == account
+        assert transaction.processor == Processor.stripe
+        assert transaction.payout == payout
+        assert transaction.currency == "usd"
+        assert transaction.amount < 0
+        assert transaction.account_currency == "usd"
+        assert transaction.account_amount < 0
+        assert transaction.transfer_id is None
+
+        assert len(transaction.paid_transactions) == 2 + len(
+            transaction.account_incurred_transactions
+        )
+        paid_transaction_ids = {t.id for t in transaction.paid_transactions}
+        assert balance_transaction_1.id in paid_transaction_ids
+        assert balance_transaction_2.id in paid_transaction_ids
+
+        assert len(transaction.incurred_transactions) > 0
+        assert (
+            len(transaction.account_incurred_transactions)
+            == len(transaction.incurred_transactions) / 2
+        )
+
+
+@pytest.mark.asyncio
+class TestReverse:
+    async def test_stripe(
+        self,
+        save_fixture: SaveFixture,
+        session: AsyncSession,
+        organization: Organization,
+        user: User,
+    ) -> None:
+        account = await create_account(save_fixture, organization, user)
+
+        payment_transaction_1 = await create_payment_transaction(save_fixture)
+        balance_transaction_1 = await create_balance_transaction(
+            save_fixture, account=account, payment_transaction=payment_transaction_1
+        )
+        payment_transaction_2 = await create_payment_transaction(save_fixture)
+        balance_transaction_2 = await create_balance_transaction(
+            save_fixture, account=account, payment_transaction=payment_transaction_2
+        )
+
+        payout, _ = await create_payout(save_fixture, session, account=account)
+
+        payout_transaction = Transaction(
+            type=TransactionType.payout,
+            account=account,
+            processor=Processor.stripe,
+            currency=payout.currency,
+            amount=payout.amount,
+            account_currency=payout.account_currency,
+            account_amount=payout.account_amount,
+            tax_amount=0,
+            pledge=None,
+            issue_reward=None,
+            order=None,
+            paid_transactions=[balance_transaction_1, balance_transaction_2],
+            incurred_transactions=[],
+            account_incurred_transactions=[],
+            payout=payout,
+        )
+        await save_fixture(payout_transaction)
+
+        await session.refresh(balance_transaction_1)
+        await session.refresh(balance_transaction_2)
+        assert balance_transaction_1.payout_transaction_id == payout_transaction.id
+        assert balance_transaction_2.payout_transaction_id == payout_transaction.id
+
+        transaction = await payout_transaction_service.reverse(
+            session, payout_transaction
+        )
+
+        assert transaction.type == TransactionType.payout_reversal
+        assert transaction.account == account
+        assert transaction.processor == Processor.stripe
+        assert transaction.payout == payout
+        assert transaction.currency == payout.currency
+        assert transaction.amount == -payout.amount
+        assert transaction.account_currency == payout.account_currency
+        assert transaction.account_amount == -payout.account_amount
+        assert transaction.transfer_reversal_id is None
+
+        assert payout_transaction.payout == payout
+
+        await session.refresh(balance_transaction_1)
+        await session.refresh(balance_transaction_2)
+        assert balance_transaction_1.payout_transaction_id is None
+        assert balance_transaction_2.payout_transaction_id is None

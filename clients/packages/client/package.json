@@ -1,0 +1,40 @@
+{
+  "name": "@polar-sh/client",
+  "description": "Polar Internal API Client",
+  "author": "Polar",
+  "license": "Apache-2.0",
+  "type": "module",
+  "private": true,
+  "version": "0.0.0",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "generate": "uv run --directory ../../../server/ -m scripts.generate_openapi | openapi-typescript --enum-values -o ./src/v1.ts && prettier --write ./src && pnpm run build",
+    "test:ts": "tsc --noEmit",
+    "build": "rm -rf dist/ && tsup",
+    "lint": "prettier -c ."
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "devDependencies": {
+    "@polar-sh/typescript-config": "workspace:*",
+    "openapi-typescript": "^7.10.1",
+    "tsup": "^8.5.1",
+    "typescript": "latest"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "openapi-fetch": "^0.15.0",
+    "openapi-typescript-helpers": "^0.0.15"
+  }
+}
