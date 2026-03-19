@@ -11,7 +11,7 @@
     "directory": "clients/packages/checkout"
   },
   "scripts": {
-    "build": "rm -rf dist/ && tsup",
+    "build": "rimraf dist/ && tsup",
     "lint": "prettier -c .",
     "test": "vitest run"
   },
@@ -72,6 +72,7 @@
     "@vitejs/plugin-react": "^5.1.4",
     "jsdom": "^27.4.0",
     "react": "^19.2.4",
+    "rimraf": "^6.0.1",
     "terser": "^5.46.0",
     "tsup": "^8.5.1",
     "typescript": "latest",
