@@ -198,16 +198,16 @@ POLAR_NUMERAL_API_KEY="__UNSET__"
 POLAR_CHARGEBACK_STOP_WEBHOOK_SECRET=""
 EOF
 
-chown $APP_USER:$APP_USER $APP_DIR/server/.env
-chmod 600 $APP_DIR/server/.env
+chown $APP_USER:$APP_USER $APP_DIR/blyss/server/.env
+chmod 600 $APP_DIR/blyss/server/.env
 
 # Step 10: Install dependencies
 log_info "Installing Python dependencies..."
-su - $APP_USER -c "cd $APP_DIR/server && /home/$APP_USER/.local/bin/uv sync"
+su - $APP_USER -c "cd $APP_DIR/blyss/server && /home/$APP_USER/.local/bin/uv sync"
 
 # Step 11: Run migrations
 log_info "Running database migrations..."
-su - $APP_USER -c "cd $APP_DIR/server && /home/$APP_USER/.local/bin/uv run task db_migrate"
+su - $APP_USER -c "cd $APP_DIR/blyss/server && /home/$APP_USER/.local/bin/uv run task db_migrate"
 
 # Step 12: Create log directory
 mkdir -p /var/log/blyss
@@ -225,7 +225,7 @@ After=network.target
 Type=simple
 User=blyss
 Group=blyss
-WorkingDirectory=/opt/blyss/server
+WorkingDirectory=/opt/blyss/blyss/server
 Environment="PATH=/home/blyss/.local/bin:/usr/local/bin:/usr/bin:/bin"
 ExecStart=/home/blyss/.local/bin/uv run task api
 Restart=always
@@ -248,7 +248,7 @@ After=network.target blyss-api.service
 Type=simple
 User=blyss
 Group=blyss
-WorkingDirectory=/opt/blyss/server
+WorkingDirectory=/opt/blyss/blyss/server
 Environment="PATH=/home/blyss/.local/bin:/usr/local/bin:/usr/bin:/bin"
 ExecStart=/home/blyss/.local/bin/uv run task worker
 Restart=always
