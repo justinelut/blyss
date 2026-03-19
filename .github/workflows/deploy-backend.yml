@@ -1,0 +1,30 @@
+name: Deploy Backend to Oracle Cloud
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'server/**'
+      - '.github/workflows/deploy-backend.yml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to Oracle Cloud
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.ORACLE_HOST }}
+          username: ubuntu
+          key: ${{ secrets.ORACLE_SSH_KEY }}
+          script: |
+            cd /opt/blyss/blyss
+            sudo git pull origin master
+            cd server
+            sudo -u blyss /home/blyss/.local/bin/uv sync
+            sudo -u blyss /home/blyss/.local/bin/uv run task db_migrate
+            sudo systemctl restart blyss-api
+            sudo systemctl restart blyss-worker
+            echo "Deployment completed!"
