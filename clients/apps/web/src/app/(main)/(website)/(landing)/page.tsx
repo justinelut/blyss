@@ -1,16 +1,17 @@
 import { Metadata } from 'next'
 import LandingPage from '../../../../components/Landing/LandingPage'
 export const metadata: Metadata = {
-  title: 'Polar — Monetize your software with ease',
-  description: 'Monetize your software with ease',
+  title: 'Blyss — Sell Digital Products in Kenya',
+  description:
+    'Sell digital products in Kenya with ease. Create your online store, accept M-Pesa payments, and reach customers across Kenya.',
   keywords:
-    'monetization, merchant of record, saas, digital products, platform, developer, open source, funding, open source, economy',
+    'sell digital products kenya, online marketplace kenya, mpesa payments, digital downloads, sell courses online kenya, kenyan creators, digital products platform, online store kenya, e-commerce kenya, sell ebooks kenya',
   openGraph: {
-    siteName: 'Polar',
+    siteName: 'Blyss',
     type: 'website',
     images: [
       {
-        url: 'https://polar.sh/assets/brand/polar_og.jpg',
+        url: 'https://blyss.co.ke/assets/brand/blyss_og.jpg',
         width: 1200,
         height: 630,
       },
@@ -20,10 +21,10 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     images: [
       {
-        url: 'https://polar.sh/assets/brand/polar_og.jpg',
+        url: 'https://blyss.co.ke/assets/brand/blyss_og.jpg',
         width: 1200,
         height: 630,
-        alt: 'Polar',
+        alt: 'Blyss',
       },
     ],
   },

@@ -1,5 +1,7 @@
+'use client'
 import { useRemoveFromCart } from '@/hooks/queries/cart'
 import { schemas } from '@polar-sh/client'
+
 import { formatCurrency } from '@polar-sh/currency'
 import { Button } from '@polar-sh/ui/components/ui/button'
 import { Trash2 } from 'lucide-react'

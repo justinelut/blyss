@@ -97,11 +97,11 @@ async def list_public_products(
         statement = statement.where(Product.name.ilike(f"%{search}%"))
 
     if category:
-        statement = statement.where(Product.metadata["category"].astext == category)
+        statement = statement.where(Product.user_metadata["category"].astext == category)
 
     if is_featured is not None:
         statement = statement.where(
-            Product.metadata["is_featured"].astext == str(is_featured).lower()
+            Product.user_metadata["is_featured"].astext == str(is_featured).lower()
         )
 
     price_join_added = False

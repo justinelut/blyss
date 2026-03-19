@@ -1,12 +1,12 @@
 'use client'
 
 import { ProductCategory } from '@/hooks/queries/products'
-import { cn } from '@/utils/cn'
 import { Label } from '@polar-sh/ui/components/ui/label'
 import {
   RadioGroup,
   RadioGroupItem,
 } from '@polar-sh/ui/components/ui/radio-group'
+import { cn } from '@polar-sh/ui/lib/utils'
 
 interface CategoryFilterProps {
   categories: ProductCategory[]

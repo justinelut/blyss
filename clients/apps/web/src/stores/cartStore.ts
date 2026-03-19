@@ -51,24 +51,21 @@ export const useCartStore = create<CartStore>((set, get) => ({
       // Ensure session token exists for guest users
       ensureSessionToken()
 
-      const result = await api.POST('/v1/cart/items', {
-        body: {
-          product_id: productId,
-          quantity,
-        },
-      })
-
-      if (result.error) {
-        set({
-          isLoading: false,
-          error: result.error.detail || 'Failed to add item to cart',
-        })
-        return
-      }
+      await unwrap(
+        api.POST('/v1/cart/items', {
+          body: {
+            product_id: productId,
+            quantity,
+          },
+        }),
+      )
 
       await get().refreshCart()
-    } catch (error) {
-      set({ isLoading: false, error: 'Failed to add item to cart' })
+    } catch (error: any) {
+      set({
+        isLoading: false,
+        error: error.message || 'Failed to add item to cart',
+      })
     }
   },
 
@@ -78,21 +75,18 @@ export const useCartStore = create<CartStore>((set, get) => ({
       // Ensure session token exists for guest users
       ensureSessionToken()
 
-      const result = await api.DELETE('/v1/cart/items/{item_id}', {
-        params: { path: { item_id: itemId } },
-      })
-
-      if (result.error) {
-        set({
-          isLoading: false,
-          error: result.error.detail || 'Failed to remove item from cart',
-        })
-        return
-      }
+      await unwrap(
+        api.DELETE('/v1/cart/items/{item_id}', {
+          params: { path: { item_id: itemId } },
+        }),
+      )
 
       await get().refreshCart()
-    } catch (error) {
-      set({ isLoading: false, error: 'Failed to remove item from cart' })
+    } catch (error: any) {
+      set({
+        isLoading: false,
+        error: error.message || 'Failed to remove item from cart',
+      })
     }
   },
 
@@ -102,15 +96,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
       // Ensure session token exists for guest users
       ensureSessionToken()
 
-      const result = await api.DELETE('/v1/cart')
-
-      if (result.error) {
-        set({
-          isLoading: false,
-          error: result.error.detail || 'Failed to clear cart',
-        })
-        return
-      }
+      await unwrap(api.DELETE('/v1/cart'))
 
       set({
         items: [],
@@ -121,8 +107,8 @@ export const useCartStore = create<CartStore>((set, get) => ({
         isLoading: false,
         error: null,
       })
-    } catch (error) {
-      set({ isLoading: false, error: 'Failed to clear cart' })
+    } catch (error: any) {
+      set({ isLoading: false, error: error.message || 'Failed to clear cart' })
     }
   },
 
@@ -132,17 +118,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
       // Ensure session token exists for guest users
       ensureSessionToken()
 
-      const result = await api.GET('/v1/cart')
-
-      if (result.error) {
-        set({
-          isLoading: false,
-          error: result.error.detail || 'Failed to fetch cart',
-        })
-        return
-      }
-
-      const cart = unwrap(result)
+      const cart = await unwrap(api.GET('/v1/cart'))
 
       set({
         items: cart.items,
@@ -153,8 +129,8 @@ export const useCartStore = create<CartStore>((set, get) => ({
         isLoading: false,
         error: null,
       })
-    } catch (error) {
-      set({ isLoading: false, error: 'Failed to fetch cart' })
+    } catch (error: any) {
+      set({ isLoading: false, error: error.message || 'Failed to fetch cart' })
     }
   },
 }))

@@ -1,15 +1,19 @@
 'use client'
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useMarketplaceAnalytics } from '@/hooks/queries/analytics'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@polar-sh/ui/components/ui/card'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { Skeleton } from '@/components/ui/skeleton'
-import { useMarketplaceAnalytics } from '@/hooks/queries/analytics'
+} from '@polar-sh/ui/components/ui/select'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
@@ -41,10 +45,10 @@ export function MarketplaceAnalyticsDashboard({
         {[...Array(6)].map((_, i) => (
           <Card key={i}>
             <CardHeader>
-              <Skeleton className="h-4 w-32" />
+              <div className="h-4 w-32 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
             </CardHeader>
             <CardContent>
-              <Skeleton className="h-8 w-24" />
+              <div className="h-8 w-24 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
             </CardContent>
           </Card>
         ))}

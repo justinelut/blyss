@@ -1,7 +1,7 @@
 'use client'
 
 import { useCategories } from '@/hooks/queries/categories'
-import { cn } from '@/utils/cn'
+import { cn } from '@polar-sh/ui/lib/utils'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 

@@ -1,5 +1,6 @@
 import { ProductDetailView } from '@/components/Product/ProductDetailView'
-import { createServerSideAPI } from '@/utils/client/serverside'
+import { createServerSideAPI } from '@/utils/client'
+// import { createServerSideAPI } from '@/utils/client/serverside'
 import { unwrap } from '@polar-sh/client'
 import { cookies, headers } from 'next/headers'
 import { notFound } from 'next/navigation'

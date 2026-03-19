@@ -1,6 +1,7 @@
 'use client'
 
 import { usePublicProducts } from '@/hooks/queries/products'
+import { initPerformanceMonitoring } from '@/utils/performance'
 import { schemas } from '@polar-sh/client'
 import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs'
 import { useCallback, useEffect } from 'react'
@@ -92,9 +93,6 @@ export function MarketplaceClientWrapper({
       keepPreviousData: true,
       // Stale time of 5 minutes
       staleTime: 5 * 60 * 1000,
-      // Reduce refetch frequency for better performance
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: false,
     },
   )
 

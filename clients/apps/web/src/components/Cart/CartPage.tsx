@@ -1,5 +1,8 @@
+'use client'
 import Spinner from '@/components/Shared/Spinner'
 import { useCart } from '@/hooks/queries/cart'
+
+
 import { formatCurrency } from '@polar-sh/currency'
 import { Button } from '@polar-sh/ui/components/ui/button'
 import { useRouter } from 'next/navigation'

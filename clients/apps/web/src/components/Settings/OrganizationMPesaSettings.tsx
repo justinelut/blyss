@@ -12,7 +12,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@polar-sh/ui/components/atoms/Select'
-import { Badge } from '@polar-sh/ui/components/ui/badge'
 import {
   Form,
   FormControl,
@@ -106,7 +105,7 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
         toast({
           title: 'Configuration Failed',
           description: error.message || 'Failed to configure M-Pesa number',
-          variant: 'destructive',
+          variant: 'error',
         })
       } finally {
         setIsConfiguring(false)
@@ -185,52 +184,49 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
     switch (subaccountStatus) {
       case 'active':
         return (
-          <Badge variant="default" className="bg-green-100 text-green-800">
+          <Pill color="green" className="inline-flex items-center">
             <CheckCircle className="mr-1 h-3 w-3" />
             Active
-          </Badge>
+          </Pill>
         )
       case 'pending':
         return (
-          <Badge variant="secondary">
+          <Pill color="gray" className="inline-flex items-center">
             <Loader2 className="mr-1 h-3 w-3 animate-spin" />
             Pending
-          </Badge>
+          </Pill>
         )
       case 'failed':
         return (
-          <Badge variant="destructive">
+          <Pill color="red" className="inline-flex items-center">
             <XCircle className="mr-1 h-3 w-3" />
             Failed
-          </Badge>
+          </Pill>
         )
       default:
-        return <Badge variant="secondary">Unknown</Badge>
+        return <Pill color="gray">Unknown</Pill>
     }
   }
 
   const getMPesaStatusBadge = () => {
     if (!currentMPesaNumber) {
-      return <Badge variant="secondary">Not Configured</Badge>
+      return <Pill color="gray">Not Configured</Pill>
     }
 
     if (mpesaVerified) {
       return (
-        <Badge variant="default" className="bg-green-100 text-green-800">
+        <Pill color="green" className="inline-flex items-center">
           <CheckCircle className="mr-1 h-3 w-3" />
           Verified
-        </Badge>
+        </Pill>
       )
     }
 
     return (
-      <Badge
-        variant="outline"
-        className="border-amber-200 bg-amber-50 text-amber-800"
-      >
+      <Pill color="yellow" className="inline-flex items-center">
         <Phone className="mr-1 h-3 w-3" />
         Pending Verification
-      </Badge>
+      </Pill>
     )
   }
 

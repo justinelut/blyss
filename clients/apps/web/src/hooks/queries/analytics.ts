@@ -1,4 +1,5 @@
-import { api } from '@/utils/client/api'
+
+import { api } from '@/utils/client'
 import { useQuery } from '@tanstack/react-query'
 
 export interface ProductViewCount {
