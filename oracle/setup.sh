@@ -64,15 +64,25 @@ if [ ! -f /swapfile ]; then
     chmod 600 /swapfile
     mkswap /swapfile
     swapon /swapfile
-    echo '/swapfile none swap sw 0 0' >> /etc/fstab
+    # Add to fstab only if not already present
+    if ! grep -q '/swapfile' /etc/fstab; then
+        echo '/swapfile none swap sw 0 0' >> /etc/fstab
+    fi
     log_info "Swap created and enabled"
 else
-    log_warn "Swap file already exists"
+    log_info "Swap file already exists, skipping creation"
+    # Ensure swap is enabled
+    if ! swapon --show | grep -q '/swapfile'; then
+        swapon /swapfile
+        log_info "Swap enabled"
+    fi
 fi
 
 # Configure swappiness
+if ! grep -q 'vm.swappiness=10' /etc/sysctl.conf; then
+    echo 'vm.swappiness=10' >> /etc/sysctl.conf
+fi
 sysctl vm.swappiness=10
-echo 'vm.swappiness=10' >> /etc/sysctl.conf
 
 # Step 4: Configure firewall
 log_info "Configuring firewall..."
