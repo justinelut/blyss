@@ -98,8 +98,24 @@ su - $APP_USER -c "curl -LsSf https://astral.sh/uv/install.sh | sh"
 # Step 7: Create app directory
 log_info "Setting up application directory..."
 mkdir -p $APP_DIR
-ch
-KIP_EMAIL_RENDERER_CHECK=1
+chown -R $APP_USER:$APP_USER $APP_DIR
+
+# Step 8: Clone repository
+log_info "Cloning repository..."
+if [ ! -d "$APP_DIR/blyss" ]; then
+    su - $APP_USER -c "cd $APP_DIR && git clone https://justinelut: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@github.com/justinelut/blyss.git"
+else
+    log_info "Repository already exists, pulling latest changes..."
+    su - $APP_USER -c "cd $APP_DIR/blyss && git pull"
+fi
+
+# Step 9: Create .env file
+log_info "Creating .env file..."
+cat > $APP_DIR/blyss/server/.env << 'EOF'
+# Environment Configuration
+POLAR_ENV=production
+POLAR_SECRET=your-secret-key-change-this
+SKIP_EMAIL_RENDERER_CHECK=1
 
 POLAR_CORS_ORIGINS='["https://blyss.co.ke", "https://www.blyss.co.ke", "http://localhost:3000"]'
 POLAR_ALLOWED_HOSTS='["server.blyss.co.ke", "blyss.co.ke"]'
