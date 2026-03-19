@@ -27,6 +27,25 @@ apt install -y \
     htop \
     ufw
 
+# Install Node.js 20 (required for email renderer)
+log_info "Installing Node.js 20..."
+if ! command -v node &> /dev/null; then
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+    apt install -y nodejs
+    log_info "Node.js installed: $(node --version)"
+else
+    log_info "Node.js already installed: $(node --version)"
+fi
+
+# Install pnpm (required for email renderer)
+log_info "Installing pnpm..."
+if ! command -v pnpm &> /dev/null; then
+    npm install -g pnpm
+    log_info "pnpm installed: $(pnpm --version)"
+else
+    log_info "pnpm already installed: $(pnpm --version)"
+fi
+
 # Create swap (critical for 1GB RAM)
 log_info "Setting up 2GB swap file..."
 if [ ! -f /swapfile ]; then
