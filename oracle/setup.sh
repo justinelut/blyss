@@ -119,87 +119,12 @@ else
     su - $APP_USER -c "cd $APP_DIR/blyss && git pull"
 fi
 
-# Step 9: Create .env file
-log_info "Creating .env file..."
-cat > $APP_DIR/blyss/server/.env << 'EOF'
-# Environment Configuration
-POLAR_ENV=production
-POLAR_SECRET=your-secret-key-change-this
-SKIP_EMAIL_RENDERER_CHECK=1
-
-POLAR_CORS_ORIGINS='["https://blyss.co.ke", "https://www.blyss.co.ke", "http://localhost:3000"]'
-POLAR_ALLOWED_HOSTS='["server.blyss.co.ke", "blyss.co.ke"]'
-POLAR_FRONTEND_BASE_URL="https://blyss.co.ke"
-POLAR_CHECKOUT_BASE_URL="https://server.blyss.co.ke/v1/checkout-links/{client_secret}/redirect"
-POLAR_USER_SESSION_COOKIE_DOMAIN="blyss.co.ke"
-
-# Neon PostgreSQL
-POLAR_POSTGRES_USER=neondb_owner
-POLAR_POSTGRES_PWD=npg_hsol3R5TamPZ
-POLAR_POSTGRES_HOST=ep-solitary-sea-adx0qsi6-pooler.c-2.us-east-1.aws.neon.tech
-POLAR_POSTGRES_PORT=5432
-POLAR_POSTGRES_DATABASE=neondb
-POLAR_POSTGRES_SSL_MODE=require
-
-POLAR_POSTGRES_READ_USER=neondb_owner
-POLAR_POSTGRES_READ_PWD=npg_hsol3R5TamPZ
-POLAR_POSTGRES_READ_HOST=ep-solitary-sea-adx0qsi6-pooler.c-2.us-east-1.aws.neon.tech
-POLAR_POSTGRES_READ_PORT=5432
-POLAR_POSTGRES_READ_DATABASE=neondb
-POLAR_POSTGRES_READ_SSL_MODE=require
-
-# Upstash Redis
-POLAR_REDIS_HOST=good-salmon-6840.upstash.io
-POLAR_REDIS_PORT=6379
-POLAR_REDIS_DB=0
-POLAR_REDIS_PASSWORD=ARq4AAImcDIxNjQ0OWQ5MGY0NzU0N2YyOTZhZDFhOGRiMmEyOTAwY3AyNjg0MA
-
-# GitHub
-POLAR_GITHUB_CLIENT_ID="__UNSET__"
-POLAR_GITHUB_CLIENT_SECRET="__UNSET__"
-
-# Stripe
-POLAR_STRIPE_SECRET_KEY="sk_test_51DummyKeyForLocalDevOnly123456789"
-POLAR_STRIPE_PUBLISHABLE_KEY="pk_test_51DummyKeyForLocalDevOnly123456789"
-POLAR_STRIPE_WEBHOOK_SECRET="whsec_DummyWebhookSecretForLocalDevOnly123"
-POLAR_STRIPE_CONNECT_WEBHOOK_SECRET="whsec_DummyConnectWebhookSecretForLocalDev"
-
-# Paystack
-POLAR_PAYSTACK_SECRET_KEY="sk_test_93099bfa358a6754554dcdfb1c1da1f8f01a8210"
-POLAR_PAYSTACK_PUBLIC_KEY="pk_test_1e298a9b7cf0509d128be4c8dc7aaacecac54f80"
-POLAR_PAYSTACK_WEBHOOK_SECRET="paystack_webhook_secret_placeholder"
-
-# Cloudflare R2
-POLAR_AWS_ACCESS_KEY_ID=16f5c03beef33ec3dd9be9cbef6b85ad
-POLAR_AWS_SECRET_ACCESS_KEY=444862c047614b43c7971baaed16e0c0cb6e5a5ecd6bad015e3c2327d3fd22f6
-POLAR_S3_FILES_BUCKET_NAME="blyss-platform"
-POLAR_S3_FILES_PUBLIC_BUCKET_NAME="blyss-platform"
-POLAR_S3_CUSTOMER_INVOICES_BUCKET_NAME="blyss-platform"
-POLAR_S3_PAYOUT_INVOICES_BUCKET_NAME="blyss-platform"
-POLAR_S3_ENDPOINT_URL="https://c1eaaa292b9dddcb67f9592bb5bc1948.r2.cloudflarestorage.com"
-POLAR_AWS_REGION="auto"
-
-# Loops
-POLAR_LOOPS_API_KEY="ea35cb0243c0e62ecb4eacfa96dee99c"
-
-# Optional
-POLAR_GITHUB_REPOSITORY_BENEFITS_APP_NAMESPACE="__UNSET__"
-POLAR_GITHUB_REPOSITORY_BENEFITS_APP_IDENTIFIER="__UNSET__"
-POLAR_GITHUB_REPOSITORY_BENEFITS_APP_PRIVATE_KEY="__UNSET__"
-POLAR_GITHUB_REPOSITORY_BENEFITS_CLIENT_ID="__UNSET__"
-POLAR_GITHUB_REPOSITORY_BENEFITS_CLIENT_SECRET="__UNSET__"
-POLAR_DISCORD_CLIENT_ID="__UNSET__"
-POLAR_DISCORD_CLIENT_SECRET="__UNSET__"
-POLAR_DISCORD_BOT_TOKEN="__UNSET__"
-POLAR_GOOGLE_CLIENT_ID="546804944768-sc9g9u2ufbg4jgfmettkc646vfdu6q21.apps.googleusercontent.com"
-POLAR_GOOGLE_CLIENT_SECRET="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"
-POLAR_OPENAI_API_KEY="__UNSET__"
-POLAR_NUMERAL_API_KEY="__UNSET__"
-POLAR_CHARGEBACK_STOP_WEBHOOK_SECRET=""
-EOF
-
+# Step 9: Copy production .env file
+log_info "Setting up .env file from .env.production..."
+cp $APP_DIR/blyss/server/.env.production $APP_DIR/blyss/server/.env
 chown $APP_USER:$APP_USER $APP_DIR/blyss/server/.env
 chmod 600 $APP_DIR/blyss/server/.env
+log_info ".env file created successfully"
 
 # Step 10: Install dependencies
 log_info "Installing Python dependencies..."
