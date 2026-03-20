@@ -42,53 +42,43 @@ done
 echo "[INFO] Setting public policy for blyss-public..."
 mc anonymous set download myminio/blyss-public
 
-# Create CORS configuration file
-cat > /tmp/minio-cors.json <<'EOFCORS'
-{
-  "CORSRules": [
-    {
-      "AllowedOrigins": [
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "https://blyss.co.ke",
-        "https://www.blyss.co.ke",
-        "https://*.vercel.app"
-      ],
-      "AllowedMethods": [
-        "GET",
-        "PUT",
-        "POST",
-        "DELETE",
-        "HEAD"
-      ],
-      "AllowedHeaders": [
-        "*"
-      ],
-      "ExposeHeaders": [
-        "ETag",
-        "x-amz-request-id",
-        "x-amz-id-2",
-        "x-amz-checksum-sha256",
-        "x-amz-sdk-checksum-algorithm"
-      ],
-      "MaxAgeSeconds": 3600
-    }
-  ]
-}
+# Create CORS configuration file (XML format for MinIO)
+cat > /tmp/minio-cors.xml <<'EOFCORS'
+<CORSConfiguration>
+  <CORSRule>
+    <AllowedOrigin>http://localhost:3000</AllowedOrigin>
+    <AllowedOrigin>http://127.0.0.1:3000</AllowedOrigin>
+    <AllowedOrigin>https://blyss.co.ke</AllowedOrigin>
+    <AllowedOrigin>https://www.blyss.co.ke</AllowedOrigin>
+    <AllowedOrigin>https://*.vercel.app</AllowedOrigin>
+    <AllowedMethod>GET</AllowedMethod>
+    <AllowedMethod>PUT</AllowedMethod>
+    <AllowedMethod>POST</AllowedMethod>
+    <AllowedMethod>DELETE</AllowedMethod>
+    <AllowedMethod>HEAD</AllowedMethod>
+    <AllowedHeader>*</AllowedHeader>
+    <ExposeHeader>ETag</ExposeHeader>
+    <ExposeHeader>x-amz-request-id</ExposeHeader>
+    <ExposeHeader>x-amz-id-2</ExposeHeader>
+    <ExposeHeader>x-amz-checksum-sha256</ExposeHeader>
+    <ExposeHeader>x-amz-sdk-checksum-algorithm</ExposeHeader>
+    <MaxAgeSeconds>3600</MaxAgeSeconds>
+  </CORSRule>
+</CORSConfiguration>
 EOFCORS
 
 # Apply CORS to each bucket
 for BUCKET in "${BUCKETS[@]}"; do
     echo "[INFO] Setting CORS for bucket: $BUCKET"
-    
+
     # Verify bucket exists
     if ! mc ls myminio/$BUCKET &> /dev/null; then
         echo "[ERROR] Bucket $BUCKET does not exist!"
         continue
     fi
-    
-    # Apply CORS configuration
-    if mc cors set /tmp/minio-cors.json myminio/${BUCKET}; then
+
+    # Apply CORS configuration (XML file, alias/bucket)
+    if mc cors set myminio/${BUCKET} /tmp/minio-cors.xml; then
         echo "✅ CORS configured for $BUCKET"
         # Verify CORS was set
         echo "[INFO] Current CORS configuration for $BUCKET:"
