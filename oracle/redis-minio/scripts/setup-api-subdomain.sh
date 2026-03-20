@@ -76,8 +76,8 @@ server {
 
         proxy_pass http://$TAILSCALE_IP:9000;
 
-        # Minimal headers - don't modify the request
-        proxy_pass_request_headers on;
+        # Pass through the Host header for signature validation
+        proxy_set_header Host \$host;
         proxy_http_version 1.1;
         proxy_set_header Connection "";
 
@@ -187,8 +187,8 @@ server {
         # Proxy to MinIO API (port 9000)
         proxy_pass http://$TAILSCALE_IP:9000;
 
-        # Minimal headers - don't modify the request
-        proxy_pass_request_headers on;
+        # Pass through the Host header for signature validation
+        proxy_set_header Host \$host;
         proxy_http_version 1.1;
         proxy_set_header Connection "";
 
