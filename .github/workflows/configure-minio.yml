@@ -19,6 +19,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Copy script to MinIO server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.MINIO_HOST }}
+          username: ubuntu
+          key: ${{ secrets.MINIO_SSH_KEY }}
+          source: "oracle/scripts/configure-minio-cors.sh"
+          target: "/tmp/blyss-minio/"
+          strip_components: 2
+
       - name: Configure MinIO CORS
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -28,12 +38,7 @@ jobs:
           script: |
             echo "🚀 Configuring MinIO CORS..."
 
-            # Create temp directory
-            mkdir -p /tmp/blyss-minio
             cd /tmp/blyss-minio
-
-            # Download the CORS configuration script
-            curl -sL https://raw.githubusercontent.com/justinelut/blyss/master/oracle/scripts/configure-minio-cors.sh -o configure-minio-cors.sh
             chmod +x configure-minio-cors.sh
 
             # Run the configuration script
