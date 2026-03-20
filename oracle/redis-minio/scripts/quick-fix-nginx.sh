@@ -79,12 +79,12 @@ server {
         # Proxy to MinIO API (port 9000)
         proxy_pass http://100.117.231.42:9000;
 
-        # Only pass Host header - it's the only one in the signature
-        proxy_set_header Host $host;
+        # CRITICAL: Use $http_host to preserve original Host header exactly as sent by client
+        # This is required for presigned URL signature validation
+        proxy_set_header Host $http_host;
 
-        # Strip browser headers that break presigned URL signatures
-        proxy_set_header Referer "";
-        proxy_set_header Origin "";
+        # Pass all request headers unchanged - required for presigned URLs
+        proxy_pass_request_headers on;
 
         # HTTP/1.1 for persistent connections
         proxy_http_version 1.1;
