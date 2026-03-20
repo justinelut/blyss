@@ -1,0 +1,207 @@
+import { toast } from '@/components/Toast/use-toast'
+import { getQueryClient } from '@/utils/api/query'
+import { api } from '@/utils/client'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { defaultRetry } from './retry'
+
+export const useWishlist = () => {
+  return useQuery({
+    queryKey: ['wishlist'],
+    queryFn: async () => {
+      const result = await api.GET('/v1/wishlist/')
+
+      if (result.error) {
+        throw result.error
+      }
+
+      return result.data
+    },
+    retry: defaultRetry,
+  })
+}
+
+export const useIsInWishlist = (productId: string) => {
+  return useQuery({
+    queryKey: ['wishlist', 'check', productId],
+    queryFn: async () => {
+      const result = await api.GET('/v1/wishlist/check/{product_id}', {
+        params: { path: { product_id: productId } },
+      })
+
+      if (result.error) {
+        throw result.error
+      }
+
+      return result.data
+    },
+    retry: defaultRetry,
+    enabled: !!productId,
+  })
+}
+
+export const useAddToWishlist = () => {
+  const queryClient = getQueryClient()
+
+  return useMutation({
+    mutationFn: (productId: string) =>
+      api.POST('/v1/wishlist/', {
+        body: {
+          product_id: productId,
+        },
+      }),
+    onMutate: async (productId) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['wishlist'] })
+      await queryClient.cancelQueries({
+        queryKey: ['wishlist', 'check', productId],
+      })
+
+      // Snapshot previous values
+      const previousWishlist = queryClient.getQueryData(['wishlist'])
+      const previousCheck = queryClient.getQueryData([
+        'wishlist',
+        'check',
+        productId,
+      ])
+
+      // Optimistically update check status
+      queryClient.setQueryData(['wishlist', 'check', productId], {
+        is_in_wishlist: true,
+      })
+
+      return { previousWishlist, previousCheck }
+    },
+    onError: (error: any, productId, context) => {
+      // Rollback on error
+      if (context?.previousWishlist) {
+        queryClient.setQueryData(['wishlist'], context.previousWishlist)
+      }
+      if (context?.previousCheck) {
+        queryClient.setQueryData(
+          ['wishlist', 'check', productId],
+          context.previousCheck,
+        )
+      }
+
+      // Show error toast
+      const errorMessage =
+        error?.body?.detail || error?.message || 'Failed to add to wishlist'
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'error',
+      })
+    },
+    onSuccess: (result, productId) => {
+      if (result.error) {
+        toast({
+          title: 'Error',
+          description: result.error.detail || 'Failed to add to wishlist',
+          variant: 'error',
+        })
+        return
+      }
+
+      // Invalidate and refetch wishlist
+      queryClient.invalidateQueries({ queryKey: ['wishlist'] })
+      queryClient.invalidateQueries({
+        queryKey: ['wishlist', 'check', productId],
+      })
+
+      toast({
+        title: 'Success',
+        description: 'Added to wishlist',
+        variant: 'success',
+      })
+    },
+  })
+}
+
+export const useRemoveFromWishlist = () => {
+  const queryClient = getQueryClient()
+
+  return useMutation({
+    mutationFn: (productId: string) =>
+      api.DELETE('/v1/wishlist/{product_id}', {
+        params: { path: { product_id: productId } },
+      }),
+    onMutate: async (productId) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['wishlist'] })
+      await queryClient.cancelQueries({
+        queryKey: ['wishlist', 'check', productId],
+      })
+
+      // Snapshot previous values
+      const previousWishlist = queryClient.getQueryData(['wishlist'])
+      const previousCheck = queryClient.getQueryData([
+        'wishlist',
+        'check',
+        productId,
+      ])
+
+      // Optimistically update check status
+      queryClient.setQueryData(['wishlist', 'check', productId], {
+        is_in_wishlist: false,
+      })
+
+      // Optimistically remove from wishlist
+      queryClient.setQueryData(['wishlist'], (old: any) => {
+        if (!old) return old
+        return {
+          ...old,
+          items:
+            old.items?.filter((item: any) => item.product_id !== productId) ||
+            [],
+        }
+      })
+
+      return { previousWishlist, previousCheck }
+    },
+    onError: (error: any, productId, context) => {
+      // Rollback on error
+      if (context?.previousWishlist) {
+        queryClient.setQueryData(['wishlist'], context.previousWishlist)
+      }
+      if (context?.previousCheck) {
+        queryClient.setQueryData(
+          ['wishlist', 'check', productId],
+          context.previousCheck,
+        )
+      }
+
+      // Show error toast
+      const errorMessage =
+        error?.body?.detail ||
+        error?.message ||
+        'Failed to remove from wishlist'
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'error',
+      })
+    },
+    onSuccess: (result, productId) => {
+      if (result.error) {
+        toast({
+          title: 'Error',
+          description: result.error.detail || 'Failed to remove from wishlist',
+          variant: 'error',
+        })
+        return
+      }
+
+      // Invalidate and refetch wishlist
+      queryClient.invalidateQueries({ queryKey: ['wishlist'] })
+      queryClient.invalidateQueries({
+        queryKey: ['wishlist', 'check', productId],
+      })
+
+      toast({
+        title: 'Success',
+        description: 'Removed from wishlist',
+        variant: 'success',
+      })
+    },
+  })
+}
