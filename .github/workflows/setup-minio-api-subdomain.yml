@@ -1,0 +1,23 @@
+name: Setup MinIO API Subdomain
+
+on:
+  workflow_dispatch: # Manual trigger only
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Setup s3.blyss.co.ke for MinIO API
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 129.80.136.152
+          username: ubuntu
+          key: ${{ secrets.ORACLE_SSH_KEY }}
+          port: 22
+          script: |
+            echo "🚀 Setting up MinIO API subdomain..."
+            cd /opt/blyss/blyss/oracle/redis-minio/scripts
+            sudo chmod +x setup-api-subdomain.sh
+            sudo bash setup-api-subdomain.sh
+            echo "✅ Setup complete!"

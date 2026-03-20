@@ -140,12 +140,29 @@ class S3Service:
     def _rewrite_url_to_public_endpoint(self, url: str) -> str:
         """Rewrite internal endpoint URL to public endpoint URL in presigned URLs."""
         if not self.public_endpoint_url:
+            log.debug(
+                "s3_url_rewrite_skipped",
+                reason="no_public_endpoint_configured",
+                url=url[:100],
+            )
             return url
 
         from polar.config import settings
         if settings.S3_ENDPOINT_URL:
             # Replace internal endpoint with public endpoint
-            return url.replace(settings.S3_ENDPOINT_URL, self.public_endpoint_url)
+            rewritten_url = url.replace(settings.S3_ENDPOINT_URL, self.public_endpoint_url)
+            log.info(
+                "s3_url_rewrite_applied",
+                internal_endpoint=settings.S3_ENDPOINT_URL,
+                public_endpoint=self.public_endpoint_url,
+                url_changed=url != rewritten_url,
+            )
+            return rewritten_url
+
+        log.debug(
+            "s3_url_rewrite_skipped",
+            reason="no_s3_endpoint_url_configured",
+        )
         return url
 
     def generate_presigned_upload_parts(
@@ -155,6 +172,15 @@ class S3Service:
         parts: list[S3FileCreatePart],
         upload_id: str,
     ) -> list[S3FileUploadPart]:
+        log.info(
+            "s3_generating_presigned_parts",
+            path=path,
+            upload_id=upload_id,
+            parts_count=len(parts),
+            bucket=self.bucket,
+            public_endpoint_url=self.public_endpoint_url,
+        )
+
         ret = []
         expires_in = self.presign_ttl
         for part in parts:
@@ -168,8 +194,25 @@ class S3Service:
                 ),
                 ExpiresIn=expires_in,
             )
+
+            # Log original URL before rewrite
+            original_url = signed_post_url
+            log.info(
+                "s3_presigned_url_generated",
+                part_number=part.number,
+                original_url=original_url[:150],
+            )
+
             # Rewrite URL to use public endpoint
             signed_post_url = self._rewrite_url_to_public_endpoint(signed_post_url)
+
+            if original_url != signed_post_url:
+                log.info(
+                    "s3_url_rewritten",
+                    part_number=part.number,
+                    from_url=original_url[:100],
+                    to_url=signed_post_url[:100],
+                )
 
             presign_expires_at = utc_now() + timedelta(seconds=expires_in)
             headers = S3FileUploadPart.generate_headers(part.checksum_sha256_base64)
@@ -184,6 +227,13 @@ class S3Service:
                     headers=headers,
                 )
             )
+
+        log.info(
+            "s3_presigned_parts_complete",
+            parts_count=len(ret),
+            first_part_url=ret[0].url[:150] if ret else None,
+        )
+
         return ret
 
     def get_object_or_raise(self, path: str, s3_version_id: str = "") -> dict[str, Any]:

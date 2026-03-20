@@ -75,14 +75,44 @@ async def create(
     session: AsyncSession = Depends(get_db_session),
 ) -> FileUpload:
     """Create a file."""
+    import structlog
+    log = structlog.get_logger()
+
+    log.info(
+        "file_upload_request_received",
+        file_name=file_create.name,
+        file_size=file_create.size,
+        mime_type=file_create.mime_type,
+        service=file_create.service,
+        organization_id=file_create.organization_id,
+    )
+
     organization = await get_payload_organization(session, auth_subject, file_create)
 
+    log.info(
+        "file_upload_organization_resolved",
+        organization_id=organization.id,
+        organization_name=organization.name,
+    )
+
     file_create.organization_id = organization.id
-    return await file_service.generate_presigned_upload(
+
+    upload_response = await file_service.generate_presigned_upload(
         session,
         organization=organization,
         create_schema=file_create,
     )
+
+    log.info(
+        "file_upload_presigned_url_generated",
+        file_id=upload_response.id,
+        upload_id=upload_response.upload.id,
+        path=upload_response.path,
+        parts_count=len(upload_response.upload.parts),
+        first_part_url=upload_response.upload.parts[0].url[:100] if upload_response.upload.parts else None,
+    )
+
+    return upload_response
 
 
 @router.post(
