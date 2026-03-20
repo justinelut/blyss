@@ -1,7 +1,13 @@
 name: Test MinIO Connectivity
 
 on:
-  workflow_dispatch: # Manual trigger only
+  workflow_dispatch: # Manual trigger
+  push:
+    branches:
+      - master
+    paths:
+      - 'oracle/redis-minio/scripts/test-connectivity.sh'
+      - '.github/workflows/minio-test-connectivity.yml'
 
 jobs:
   test-connectivity:

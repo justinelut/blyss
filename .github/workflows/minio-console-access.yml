@@ -1,7 +1,13 @@
 name: Enable MinIO Console Access
 
 on:
-  workflow_dispatch: # Manual trigger only
+  workflow_dispatch: # Manual trigger
+  push:
+    branches:
+      - master
+    paths:
+      - 'oracle/redis-minio/scripts/enable-console-access.sh'
+      - '.github/workflows/minio-console-access.yml'
 
 jobs:
   enable-console:
