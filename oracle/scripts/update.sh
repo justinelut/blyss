@@ -14,8 +14,8 @@ echo ""
 log_info "Fixing repository permissions..."
 chown -R $APP_USER:$APP_USER "$APP_DIR/blyss"
 
-log_info "Pulling latest code..."
-su - $APP_USER -c "cd $APP_DIR/blyss && git fetch origin && git reset --hard origin/master"
+log_info "Pulling latest code (force overwrite)..."
+su - $APP_USER -c "cd $APP_DIR/blyss && git fetch origin && git clean -fd && git reset --hard origin/master"
 
 log_info "Syncing .env.production to .env..."
 if [ -f "$APP_DIR/blyss/server/.env.production" ]; then
