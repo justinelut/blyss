@@ -1,0 +1,28 @@
+name: Fix MinIO Server URL
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fix-minio:
+    name: Configure MinIO Server URL
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.ORACLE_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.ORACLE_MINIO_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy fix to MinIO server
+        run: |
+          ssh -i ~/.ssh/id_rsa ubuntu@${{ secrets.ORACLE_MINIO_HOST }} 'bash -s' < oracle/redis-minio/scripts/fix-minio-server-url.sh
+
+      - name: Cleanup
+        if: always()
+        run: rm -f ~/.ssh/id_rsa
