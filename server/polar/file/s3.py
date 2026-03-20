@@ -7,6 +7,7 @@ def _get_s3_service(bucket: str) -> S3Service:
     return S3Service(
         bucket=bucket,
         presign_ttl=settings.S3_FILES_PRESIGN_TTL,
+        public_endpoint_url=settings.S3_PUBLIC_ENDPOINT_URL,
     )
 
 

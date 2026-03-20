@@ -316,6 +316,9 @@ class Settings(BaseSettings):
     S3_FILES_DOWNLOAD_SALT: str = "saltysalty"
     # Override to http://127.0.0.1:9000 in .env during development
     S3_ENDPOINT_URL: str | None = None
+    # Public endpoint URL for presigned URLs (e.g., https://storage.blyss.co.ke)
+    # If not set, uses S3_ENDPOINT_URL
+    S3_PUBLIC_ENDPOINT_URL: str | None = None
 
     MINIO_USER: str = "polar"
     MINIO_PWD: str = "polarpolar"

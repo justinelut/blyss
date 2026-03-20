@@ -34,11 +34,18 @@ class S3Service:
         bucket: str,
         presign_ttl: int = 600,
         client: "S3Client" = client,
+        public_endpoint_url: str | None = None,
     ):
         self.bucket = bucket
         self.presign_ttl = presign_ttl
         self.client = client
+        self.public_endpoint_url = public_endpoint_url
         self._unsigned_client = get_client(signature_version=botocore.UNSIGNED)
+        # Create a separate client for presigned URLs if public endpoint is different
+        if public_endpoint_url:
+            self._presign_client = get_client(endpoint_url=public_endpoint_url)
+        else:
+            self._presign_client = client
 
     def upload(
         self,
@@ -145,7 +152,7 @@ class S3Service:
         ret = []
         expires_in = self.presign_ttl
         for part in parts:
-            signed_post_url = self.client.generate_presigned_url(
+            signed_post_url = self._presign_client.generate_presigned_url(
                 "upload_part",
                 Params=dict(
                     UploadId=upload_id,
@@ -215,7 +222,7 @@ class S3Service:
     ) -> tuple[str, datetime]:
         expires_in = self.presign_ttl
         presign_from = utc_now()
-        signed_download_url = self.client.generate_presigned_url(
+        signed_download_url = self._presign_client.generate_presigned_url(
             "get_object",
             Params=dict(
                 Bucket=self.bucket,
