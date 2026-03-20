@@ -21,6 +21,7 @@ jobs:
           host: ${{ secrets.ORACLE_HOST }}
           username: ubuntu
           key: ${{ secrets.ORACLE_SSH_KEY }}
+          port: 22
           script: |
             echo "🚀 Starting deployment..."
             cd /opt/blyss/blyss/oracle/scripts
