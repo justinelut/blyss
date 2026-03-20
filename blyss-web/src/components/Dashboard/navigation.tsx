@@ -15,7 +15,6 @@ import TrendingUp from '@mui/icons-material/TrendingUp'
 import TuneOutlined from '@mui/icons-material/TuneOutlined'
 import { schemas } from '@/lib/api'
 import { Status } from '@/components/atoms/Status'
-import { ShoppingCart } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { useMemo } from 'react'
 
@@ -262,11 +261,6 @@ const generalRoutesList = (org?: schemas['Organization']): Route[] => [
         title: 'Subscriptions',
         link: `/dashboard/${org?.slug}/sales/subscriptions`,
         icon: <AllInclusiveOutlined fontSize="inherit" />,
-      },
-      {
-        title: 'Checkouts',
-        link: `/dashboard/${org?.slug}/sales/checkouts`,
-        icon: <ShoppingCart />,
       },
     ],
   },
