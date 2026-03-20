@@ -50,18 +50,12 @@ cat > /tmp/minio-cors.xml <<'EOFCORS'
     <AllowedOrigin>http://127.0.0.1:3000</AllowedOrigin>
     <AllowedOrigin>https://blyss.co.ke</AllowedOrigin>
     <AllowedOrigin>https://www.blyss.co.ke</AllowedOrigin>
-    <AllowedOrigin>https://*.vercel.app</AllowedOrigin>
     <AllowedMethod>GET</AllowedMethod>
     <AllowedMethod>PUT</AllowedMethod>
     <AllowedMethod>POST</AllowedMethod>
     <AllowedMethod>DELETE</AllowedMethod>
     <AllowedMethod>HEAD</AllowedMethod>
     <AllowedHeader>*</AllowedHeader>
-    <ExposeHeader>ETag</ExposeHeader>
-    <ExposeHeader>x-amz-request-id</ExposeHeader>
-    <ExposeHeader>x-amz-id-2</ExposeHeader>
-    <ExposeHeader>x-amz-checksum-sha256</ExposeHeader>
-    <ExposeHeader>x-amz-sdk-checksum-algorithm</ExposeHeader>
     <MaxAgeSeconds>3600</MaxAgeSeconds>
   </CORSRule>
 </CORSConfiguration>

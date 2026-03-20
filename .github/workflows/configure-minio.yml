@@ -7,7 +7,6 @@ on:
       - master
     paths:
       - 'oracle/redis-minio/**'
-      - 'oracle/scripts/configure-minio-cors.sh'
       - '.github/workflows/configure-minio.yml'
 
 jobs:
@@ -25,9 +24,9 @@ jobs:
           host: ${{ secrets.MINIO_HOST }}
           username: ubuntu
           key: ${{ secrets.MINIO_SSH_KEY }}
-          source: "oracle/scripts/configure-minio-cors.sh"
+          source: "oracle/redis-minio/scripts/configure-cors.sh"
           target: "/tmp/blyss-minio/"
-          strip_components: 2
+          strip_components: 3
 
       - name: Configure MinIO CORS
         uses: appleboy/ssh-action@v1.0.3
@@ -39,9 +38,9 @@ jobs:
             echo "🚀 Configuring MinIO CORS..."
 
             cd /tmp/blyss-minio
-            chmod +x configure-minio-cors.sh
+            chmod +x configure-cors.sh
 
             # Run the configuration script
-            sudo bash configure-minio-cors.sh
+            sudo bash configure-cors.sh
 
             echo "✅ MinIO CORS configuration completed!"

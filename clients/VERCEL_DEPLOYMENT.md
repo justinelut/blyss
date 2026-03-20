@@ -26,19 +26,23 @@ git push
 ## Step 3: Configure Project Settings
 
 ### Framework Preset
+
 - Select: **Next.js**
 
 ### Root Directory
+
 - Click "Edit" next to Root Directory
 - Set to: `clients/apps/web`
 - This tells Vercel where your Next.js app is in the monorepo
 
 ### Build Settings
+
 - **Build Command**: `cd ../.. && cd clients && pnpm install && pnpm run build --filter=web`
 - **Output Directory**: `.next` (default)
 - **Install Command**: `cd ../.. && cd clients && pnpm install`
 
 Or use the simpler approach:
+
 - Leave build settings as default
 - Vercel will use the `vercel.json` in the root
 
@@ -71,6 +75,7 @@ Click "Deploy" and wait for the build to complete.
 4. Vercel will provide DNS records. Add these to your domain DNS:
 
 For `blyss.co.ke`:
+
 ```
 Type: A
 Name: @
@@ -78,6 +83,7 @@ Value: 76.76.21.21
 ```
 
 For `www.blyss.co.ke`:
+
 ```
 Type: CNAME
 Name: www
@@ -87,14 +93,16 @@ Value: cname.vercel-dns.com
 ## Step 7: Update Backend CORS (Already Done)
 
 The backend `.env.production` already includes:
+
 ```
 POLAR_CORS_ORIGINS='["https://blyss.co.ke", "https://www.blyss.co.ke", "https://*.vercel.app", "http://localhost:3000"]'
 POLAR_USER_SESSION_COOKIE_DOMAIN=".blyss.co.ke"
 ```
 
 After updating, restart the backend:
+
 ```bash
-ssh -i oracle/ssh-key-2026-03-17.key ubuntu@92.4.130.9
+ssh -i oracle/backend/ssh-key-2026-03-17.key ubuntu@92.4.130.9
 cd /opt/blyss/blyss/oracle
 sudo ./scripts/update.sh
 ```
@@ -110,21 +118,25 @@ sudo ./scripts/update.sh
 ## Troubleshooting
 
 ### CORS Errors
+
 - Check backend logs: `sudo tail -f /var/log/blyss/api.log`
 - Verify CORS origins include your Vercel domain
 - Restart backend after CORS changes
 
 ### API Connection Issues
+
 - Verify `NEXT_PUBLIC_API_URL` is set correctly
 - Check if backend is accessible: `curl https://server.blyss.co.ke/healthz`
 - Check browser Network tab for failed requests
 
 ### Cookie/Session Issues
+
 - Verify `POLAR_USER_SESSION_COOKIE_DOMAIN=".blyss.co.ke"`
 - Ensure both frontend and backend use same root domain
 - Check browser cookies in DevTools
 
 ### Build Failures
+
 - Check Vercel build logs
 - Verify all dependencies are in `package.json`
 - Test build locally: `cd clients && pnpm run build --filter=web`
@@ -132,6 +144,7 @@ sudo ./scripts/update.sh
 ## Monorepo Considerations
 
 Since this is a monorepo:
+
 - Vercel needs to know the root directory (`clients/apps/web`)
 - Build commands must navigate to the correct directory
 - Shared packages in `clients/packages/` are automatically included
@@ -140,10 +153,12 @@ Since this is a monorepo:
 ## Automatic Deployments
 
 Vercel will automatically deploy:
+
 - **Production**: Every push to `master` branch
 - **Preview**: Every pull request
 
 To disable auto-deploy for backend changes:
+
 - The `vercel.json` includes `ignoreCommand` to only deploy when `clients/` changes
 
 ## Environment-Specific Builds
@@ -167,6 +182,7 @@ To disable auto-deploy for backend changes:
 ## Updating the Deployment
 
 To deploy updates:
+
 ```bash
 git add -A
 git commit -m "Update frontend"
@@ -178,6 +194,7 @@ Vercel will automatically build and deploy.
 ## Manual Deployment
 
 If you need to manually trigger a deployment:
+
 1. Go to Vercel dashboard
 2. Select your project
 3. Click "Deployments"
@@ -186,6 +203,7 @@ If you need to manually trigger a deployment:
 ## Cost
 
 Vercel Free Tier includes:
+
 - Unlimited deployments
 - 100GB bandwidth/month
 - Automatic HTTPS

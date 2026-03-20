@@ -6,7 +6,9 @@ on:
       - master
     paths:
       - 'server/**'
-      - 'oracle/scripts/**'
+      - 'oracle/backend/scripts/update.sh'
+      - 'oracle/backend/scripts/common.sh'
+      - 'oracle/backend/**'
       - '.github/workflows/deploy-backend.yml'
   workflow_dispatch: # Allow manual trigger
 
@@ -24,7 +26,7 @@ jobs:
           port: 22
           script: |
             echo "🚀 Starting deployment..."
-            cd /opt/blyss/blyss/oracle/scripts
+            cd /opt/blyss/blyss/oracle/backend/scripts
             sudo bash update.sh
             echo "✅ Deployment completed!"
 
