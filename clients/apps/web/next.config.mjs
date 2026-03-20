@@ -563,8 +563,10 @@ const createConfig = async () => {
     // Upload a larger set of source maps for prettier stack traces (increases build time)
     widenClientFileUpload: true,
 
-    reactComponentAnnotation: {
-      enabled: false,
+    webpack: {
+      reactComponentAnnotation: {
+        enabled: false,
+      },
     },
 
     // Route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.

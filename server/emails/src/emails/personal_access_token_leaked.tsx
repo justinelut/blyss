@@ -1,7 +1,7 @@
 import { Link, Preview, Section, Text } from '@react-email/components'
 import Footer from '../components/Footer'
 import InfoBox from '../components/InfoBox'
-import WrapperPolar from '../components/WrapperPolar'
+import WrapperBlyss from '../components/WrapperBlyss'
 import type { schemas } from '../types'
 
 export function PersonalAccessTokenLeaked({
@@ -11,7 +11,7 @@ export function PersonalAccessTokenLeaked({
   personal_access_token,
 }: schemas['PersonalAccessTokenLeakedProps']) {
   return (
-    <WrapperPolar>
+    <WrapperBlyss>
       <Preview>
         Important security notice: Your personal access token has been leaked
       </Preview>
@@ -56,7 +56,7 @@ export function PersonalAccessTokenLeaked({
         <Text className="m-0 text-sm text-gray-600">
           You can read more about why you received this alert in our{' '}
           <Link
-            href="https://polar.sh/docs/documentation/integration-guides/authenticating-with-polar#security"
+            href="https://blyss.co.ke/docs/documentation/integration-guides/authenticating-with-polar#security"
             className="text-blue-600 underline"
           >
             FAQ
@@ -65,7 +65,7 @@ export function PersonalAccessTokenLeaked({
         </Text>
       </Section>
       <Footer email={email} />
-    </WrapperPolar>
+    </WrapperBlyss>
   )
 }
 

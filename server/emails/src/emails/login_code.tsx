@@ -2,7 +2,7 @@ import { Preview, Text } from '@react-email/components'
 import Footer from '../components/Footer'
 import Intro from '../components/Intro'
 import OTPCode from '../components/OTPCode'
-import WrapperPolar from '../components/WrapperPolar'
+import WrapperBlyss from '../components/WrapperBlyss'
 import type { schemas } from '../types'
 
 export function LoginCode({
@@ -12,7 +12,7 @@ export function LoginCode({
   domain,
 }: schemas['LoginCodeProps']) {
   return (
-    <WrapperPolar>
+    <WrapperBlyss>
       <Preview>
         Your code to sign in is {code}. It is valid for the next{' '}
         {code_lifetime_minutes.toFixed()} minutes.
@@ -28,7 +28,7 @@ export function LoginCode({
         If you didn't request this email, you can safely ignore it.
       </Text>
       <Footer email={email} />
-    </WrapperPolar>
+    </WrapperBlyss>
   )
 }
 
@@ -36,7 +36,7 @@ LoginCode.PreviewProps = {
   email: 'john@example.com',
   code: 'ABC123',
   code_lifetime_minutes: 30,
-  domain: 'polar.sh',
+  domain: 'blyss.co.ke',
 }
 
 export default LoginCode

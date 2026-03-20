@@ -2,7 +2,7 @@ import { Link, Preview, Section, Text } from '@react-email/components'
 import BodyText from '../components/BodyText'
 import Footer from '../components/Footer'
 import Intro from '../components/Intro'
-import WrapperPolar from '../components/WrapperPolar'
+import WrapperPolar from '../components/WrapperBlyss'
 import type { schemas } from '../types'
 
 export function OrganizationAccountUnlink({

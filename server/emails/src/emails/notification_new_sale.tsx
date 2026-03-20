@@ -1,7 +1,7 @@
 import { Hr, Img, Preview, Section, Text } from '@react-email/components'
 import Button from '../components/Button'
 import Footer from '../components/Footer'
-import WrapperPolar from '../components/WrapperPolar'
+import WrapperBlyss from '../components/WrapperBlyss'
 import type { schemas } from '../types'
 
 export function NotificationNewSale({
@@ -33,7 +33,7 @@ export function NotificationNewSale({
     addressParts.length > 0 ? addressParts.join(', ') : null
 
   return (
-    <WrapperPolar>
+    <WrapperBlyss>
       <Preview>
         {displayName} placed an order for {product_name}
       </Preview>
@@ -116,7 +116,7 @@ export function NotificationNewSale({
       </Section>
 
       <Footer email={null} />
-    </WrapperPolar>
+    </WrapperBlyss>
   )
 }
 
@@ -135,7 +135,7 @@ NotificationNewSale.PreviewProps = {
   order_id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
   order_date: '2024-11-05T20:41:00Z',
   order_url:
-    'https://polar.sh/dashboard/acme-inc/sales/a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+    'https://blyss.co.ke/dashboard/acme-inc/sales/a1b2c3d4-e5f6-7890-abcd-ef1234567890',
   organization_name: 'Acme Inc.',
   organization_slug: 'acme-inc',
   billing_reason: 'purchase',

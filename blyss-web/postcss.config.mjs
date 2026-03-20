@@ -2,6 +2,7 @@ export default {
   plugins: {
     '@stylexjs/postcss-plugin': {
       include: ['src/**/*.{js,jsx,ts,tsx}'],
+      exclude: ['**/datatable_temp/**', '**/*_temp/**'],
       babelConfig: {
         babelrc: false,
         parserOpts: { plugins: ['typescript', 'jsx'] },

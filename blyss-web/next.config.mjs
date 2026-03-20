@@ -76,6 +76,9 @@ const nextConfig = {
   transpilePackages: ['shiki'],
   pageExtensions: ['js', 'jsx', 'md', 'mdx', 'ts', 'tsx'],
 
+  // Allow dev origins for HMR
+  allowedDevOrigins: ['127.0.0.1', 'localhost'],
+
   // Ignore TypeScript errors during build
   typescript: {
     ignoreBuildErrors: true,

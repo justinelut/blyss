@@ -1,7 +1,7 @@
 import { Link, Preview, Section, Text } from '@react-email/components'
 import Footer from '../components/Footer'
 import InfoBox from '../components/InfoBox'
-import WrapperPolar from '../components/WrapperPolar'
+import WrapperBlyss from '../components/WrapperBlyss'
 import type { schemas } from '../types'
 
 export function OrganizationAccessTokenLeaked({
@@ -11,7 +11,7 @@ export function OrganizationAccessTokenLeaked({
   organization_access_token,
 }: schemas['OrganizationAccessTokenLeakedProps']) {
   return (
-    <WrapperPolar>
+    <WrapperBlyss>
       <Preview>
         Important security notice: Your organization access token has been
         leaked
@@ -57,7 +57,7 @@ export function OrganizationAccessTokenLeaked({
         <Text className="m-0 text-sm text-gray-600">
           You can read more about why you received this alert in our{' '}
           <Link
-            href="https://polar.sh/docs/documentation/integration-guides/authenticating-with-polar#security"
+            href="https://blyss.co.ke/docs/documentation/integration-guides/authenticating-with-polar#security"
             className="text-blue-600 underline"
           >
             FAQ
@@ -66,7 +66,7 @@ export function OrganizationAccessTokenLeaked({
         </Text>
       </Section>
       <Footer email={email} />
-    </WrapperPolar>
+    </WrapperBlyss>
   )
 }
 

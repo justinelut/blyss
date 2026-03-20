@@ -2,7 +2,7 @@ import { Preview, Section } from '@react-email/components'
 import BodyText from '../components/BodyText'
 import Footer from '../components/Footer'
 import Intro from '../components/Intro'
-import WrapperPolar from '../components/WrapperPolar'
+import WrapperBlyss from '../components/WrapperBlyss'
 import type { schemas } from '../types'
 
 export function OrganizationReviewed({
@@ -10,7 +10,7 @@ export function OrganizationReviewed({
   organization,
 }: schemas['OrganizationReviewedProps']) {
   return (
-    <WrapperPolar>
+    <WrapperBlyss>
       <Preview>
         Great news! Your organization has been approved and you&apos;re ready to
         start selling
@@ -39,7 +39,7 @@ export function OrganizationReviewed({
         </BodyText>
       </Section>
       <Footer email={email} />
-    </WrapperPolar>
+    </WrapperBlyss>
   )
 }
 

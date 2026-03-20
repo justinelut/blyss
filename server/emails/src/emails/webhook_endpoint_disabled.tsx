@@ -3,7 +3,7 @@ import Button from '../components/Button'
 import Footer from '../components/Footer'
 import InfoBox from '../components/InfoBox'
 import Intro from '../components/Intro'
-import WrapperPolar from '../components/WrapperPolar'
+import WrapperBlyss from '../components/WrapperBlyss'
 import type { schemas } from '../types'
 
 export function WebhookEndpointDisabled({
@@ -13,7 +13,7 @@ export function WebhookEndpointDisabled({
   dashboard_url,
 }: schemas['WebhookEndpointDisabledProps']) {
   return (
-    <WrapperPolar>
+    <WrapperBlyss>
       <Preview>
         Webhook endpoint disabled for {organization.name} due to continuous
         failures
@@ -50,7 +50,7 @@ export function WebhookEndpointDisabled({
         <Button href={dashboard_url}>Manage webhooks</Button>
       </Section>
       <Footer email={email} />
-    </WrapperPolar>
+    </WrapperBlyss>
   )
 }
 
@@ -63,7 +63,7 @@ WebhookEndpointDisabled.PreviewProps = {
     avatar_url: 'https://avatars.githubusercontent.com/u/105373340?s=200&v=4',
   },
   webhook_endpoint_url: 'https://api.example.com/webhooks/polar',
-  dashboard_url: 'https://polar.sh/dashboard/acme-inc/settings/webhooks',
+  dashboard_url: 'https://blyss.co.ke/dashboard/acme-inc/settings/webhooks',
 }
 
 export default WebhookEndpointDisabled

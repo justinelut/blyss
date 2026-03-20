@@ -3,7 +3,7 @@ import BodyText from '../components/BodyText'
 import Button from '../components/Button'
 import Footer from '../components/Footer'
 import Intro from '../components/Intro'
-import WrapperPolar from '../components/WrapperPolar'
+import WrapperBlyss from '../components/WrapperBlyss'
 import type { schemas } from '../types'
 
 export function OrganizationUnderReview({
@@ -11,7 +11,7 @@ export function OrganizationUnderReview({
   organization,
 }: schemas['OrganizationUnderReviewProps']) {
   return (
-    <WrapperPolar>
+    <WrapperBlyss>
       <Preview>
         Your organization is under review - a standard part of our onboarding
         process
@@ -42,7 +42,7 @@ export function OrganizationUnderReview({
           complete.
         </BodyText>
         <BodyText>
-          <Button href="https://polar.sh/docs/merchant-of-record/account-reviews">
+          <Button href="https://blyss.co.ke/docs/merchant-of-record/account-reviews">
             Read more about our review process
           </Button>
         </BodyText>
@@ -52,7 +52,7 @@ export function OrganizationUnderReview({
         </BodyText>
       </Section>
       <Footer email={email} />
-    </WrapperPolar>
+    </WrapperBlyss>
   )
 }
 

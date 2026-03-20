@@ -2,7 +2,7 @@ import { Preview, Section } from '@react-email/components'
 import Button from '../components/Button'
 import Footer from '../components/Footer'
 import Intro from '../components/Intro'
-import WrapperPolar from '../components/WrapperPolar'
+import WrapperBlyss from '../components/WrapperBlyss'
 import type { schemas } from '../types'
 
 export function EmailUpdate({
@@ -11,7 +11,7 @@ export function EmailUpdate({
   url,
 }: schemas['EmailUpdateProps']) {
   return (
-    <WrapperPolar>
+    <WrapperBlyss>
       <Preview>Here is the verification link to update your email</Preview>
       <Intro>
         Here is the verification link to update your email. Click the button
@@ -26,14 +26,14 @@ export function EmailUpdate({
       </Section>
 
       <Footer email={email} />
-    </WrapperPolar>
+    </WrapperBlyss>
   )
 }
 
 EmailUpdate.PreviewProps = {
   email: 'john@example.com',
   token_lifetime_minutes: 30,
-  url: 'https://polar.sh/settings/account/email/update?token=abc123',
+  url: 'https://blyss.co.ke/settings/account/email/update?token=abc123',
 }
 
 export default EmailUpdate

@@ -39,7 +39,7 @@ SubscriptionUncanceled.PreviewProps = {
     id: '12345',
     status: 'active',
   },
-  url: 'https://polar.sh/acme-inc/portal/subscriptions/12345',
+  url: 'https://blyss.co.ke/acme-inc/portal/subscriptions/12345',
 }
 
 export default SubscriptionUncanceled

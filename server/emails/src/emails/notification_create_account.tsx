@@ -3,7 +3,7 @@ import BodyText from '../components/BodyText'
 import Button from '../components/Button'
 import Footer from '../components/Footer'
 import Intro from '../components/Intro'
-import WrapperPolar from '../components/WrapperPolar'
+import WrapperBlyss from '../components/WrapperBlyss'
 import type { schemas } from '../types'
 
 export function NotificationCreateAccount({
@@ -11,7 +11,7 @@ export function NotificationCreateAccount({
   url,
 }: schemas['MaintainerCreateAccountNotificationPayload']) {
   return (
-    <WrapperPolar>
+    <WrapperBlyss>
       <Preview>Your Blyss account is being reviewed</Preview>
       <Intro>
         Now that you got your first payment to {organization_name}, you should
@@ -24,13 +24,13 @@ export function NotificationCreateAccount({
       <Button href={url}>Create payout account</Button>
 
       <Footer email={null} />
-    </WrapperPolar>
+    </WrapperBlyss>
   )
 }
 
 NotificationCreateAccount.PreviewProps = {
   organization_name: 'Acme Inc.',
-  url: 'https://polar.sh',
+  url: 'https://blyss.co.ke',
 }
 
 export default NotificationCreateAccount

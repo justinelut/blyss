@@ -2,8 +2,8 @@ import { Column, Img, Link, Row, Section, Text } from '@react-email/components'
 import type { schemas } from '../types'
 
 const S3_TO_CDN: Record<string, string> = {
-  'polar-public-files.s3.amazonaws.com': 'uploads.polar.sh',
-  'polar-public-sandbox-files.s3.amazonaws.com': 'sandbox-uploads.polar.sh',
+  'polar-public-files.s3.amazonaws.com': 'uploads.blyss.co.ke',
+  'polar-public-sandbox-files.s3.amazonaws.com': 'sandbox-uploads.blyss.co.ke',
 }
 
 const getResizedAvatarUrl = (url: string): string => {

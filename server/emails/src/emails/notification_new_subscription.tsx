@@ -1,7 +1,7 @@
 import { Preview } from '@react-email/components'
 import Footer from '../components/Footer'
 import Intro from '../components/Intro'
-import WrapperPolar from '../components/WrapperPolar'
+import WrapperBlyss from '../components/WrapperBlyss'
 import type { schemas } from '../types'
 
 export function NotificationNewSubscription({
@@ -13,7 +13,7 @@ export function NotificationNewSubscription({
   tier_organization_name,
 }: schemas['MaintainerNewPaidSubscriptionNotificationPayload']) {
   return (
-    <WrapperPolar>
+    <WrapperBlyss>
       <Preview>New {tier_name} subscriber</Preview>
       <Intro headline="Congratulations!">
         {subscriber_name} is now subscribing to <strong>{tier_name}</strong> for{' '}
@@ -21,7 +21,7 @@ export function NotificationNewSubscription({
         {tier_price_recurring_interval}.
       </Intro>
       <Footer email={null} />
-    </WrapperPolar>
+    </WrapperBlyss>
   )
 }
 

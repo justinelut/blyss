@@ -46,7 +46,7 @@ OrderConfirmation.PreviewProps = {
   organization,
   product,
   order,
-  url: 'https://polar.sh/acme-inc/portal/orders/12345',
+  url: 'https://blyss.co.ke/acme-inc/portal/orders/12345',
 }
 
 export default OrderConfirmation
