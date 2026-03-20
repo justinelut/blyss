@@ -1,6 +1,5 @@
 #!/bin/bash
 # Configure MinIO CORS for file uploads
-# Run this on the MinIO server (Instance 4)
 
 set -e
 
@@ -34,6 +33,8 @@ for BUCKET in "${BUCKETS[@]}"; do
     if ! mc ls myminio/$BUCKET &> /dev/null; then
         echo "[INFO] Creating bucket: $BUCKET"
         mc mb myminio/$BUCKET
+    else
+        echo "[INFO] Bucket $BUCKET already exists"
     fi
 done
 
@@ -41,11 +42,8 @@ done
 echo "[INFO] Setting public policy for blyss-public..."
 mc anonymous set download myminio/blyss-public
 
-for BUCKET in "${BUCKETS[@]}"; do
-    echo "[INFO] Setting CORS for bucket: $BUCKET"
-
-    # Create CORS configuration
-    cat > /tmp/cors-config-${BUCKET}.json <<'EOFCORS'
+# Create CORS configuration file
+cat > /tmp/minio-cors.json <<'EOFCORS'
 {
   "CORSRules": [
     {
@@ -79,17 +77,26 @@ for BUCKET in "${BUCKETS[@]}"; do
 }
 EOFCORS
 
-    # Apply CORS configuration using mc command
-    mc cors set /tmp/cors-config-${BUCKET}.json myminio/$BUCKET
-
-    echo "✅ CORS configured for $BUCKET"
+# Apply CORS to each bucket
+for BUCKET in "${BUCKETS[@]}"; do
+    echo "[INFO] Setting CORS for bucket: $BUCKET"
+    
+    # Verify bucket exists
+    if ! mc ls myminio/$BUCKET &> /dev/null; then
+        echo "[ERROR] Bucket $BUCKET does not exist!"
+        continue
+    fi
+    
+    # Apply CORS configuration
+    if mc cors set /tmp/minio-cors.json myminio/${BUCKET}; then
+        echo "✅ CORS configured for $BUCKET"
+        # Verify CORS was set
+        echo "[INFO] Current CORS configuration for $BUCKET:"
+        mc cors get myminio/${BUCKET} || echo "[WARN] Could not retrieve CORS config"
+    else
+        echo "[ERROR] Failed to set CORS for $BUCKET"
+    fi
 done
 
 echo ""
 echo "✅ MinIO CORS configuration complete!"
-echo ""
-echo "Configured buckets:"
-for BUCKET in "${BUCKETS[@]}"; do
-    echo "  - $BUCKET"
-    mc cors get myminio/$BUCKET
-done
