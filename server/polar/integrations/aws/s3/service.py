@@ -304,9 +304,12 @@ class S3Service:
         # This is apparently the *only* way to get a public URL with boto3,
         # apart from building a URL manually 🙄
         # Ref: https://stackoverflow.com/a/48197923
-        return self._unsigned_client.generate_presigned_url(
+        url = self._unsigned_client.generate_presigned_url(
             "get_object", ExpiresIn=0, Params=dict(Bucket=self.bucket, Key=path)
         )
+
+        # Rewrite URL to use public endpoint
+        return self._rewrite_url_to_public_endpoint(url)
 
     def delete_file(self, path: str) -> bool:
         deleted = self.client.delete_object(Bucket=self.bucket, Key=path)
