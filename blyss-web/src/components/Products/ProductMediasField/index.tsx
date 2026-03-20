@@ -1,6 +1,6 @@
 import AddPhotoAlternateOutlined from '@mui/icons-material/AddPhotoAlternateOutlined'
 import { schemas } from '@/lib/api'
-import { ReactNode, useCallback, useState } from 'react'
+import { ReactNode, useCallback, useEffect, useState } from 'react'
 import { FileRejection } from 'react-dropzone'
 import { twMerge } from 'tailwind-merge'
 import { FileObject, useFileUpload } from '../../FileUpload'
@@ -51,14 +51,18 @@ const ProductMediasField = ({
   value,
   onChange,
 }: ProductMediasFieldProps) => {
+  const [filesRejected, setFilesRejected] = useState<FileRejection[]>([])
+
   const onFilesUpdated = useCallback(
     (files: FileObject<schemas['ProductMediaFileRead']>[]) => {
-      onChange(files.filter((file) => file.is_uploaded).map((file) => file))
+      const uploadedFiles = files.filter((file) => file.is_uploaded).map((file) => file)
+      // Use setTimeout to defer the state update to avoid updating during render
+      setTimeout(() => {
+        onChange(uploadedFiles)
+      }, 0)
     },
     [onChange],
   )
-
-  const [filesRejected, setFilesRejected] = useState<FileRejection[]>([])
 
   const {
     files,

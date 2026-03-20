@@ -1,0 +1,42 @@
+name: Configure MinIO
+
+on:
+  workflow_dispatch: # Manual trigger
+  push:
+    branches:
+      - master
+    paths:
+      - 'oracle/redis-minio/**'
+      - 'oracle/scripts/configure-minio-cors.sh'
+      - '.github/workflows/configure-minio.yml'
+
+jobs:
+  configure-minio:
+    name: Configure MinIO CORS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure MinIO CORS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.MINIO_HOST }}
+          username: ubuntu
+          key: ${{ secrets.MINIO_SSH_KEY }}
+          script: |
+            echo "🚀 Configuring MinIO CORS..."
+
+            # Create temp directory
+            mkdir -p /tmp/blyss-minio
+            cd /tmp/blyss-minio
+
+            # Download the CORS configuration script
+            curl -sL https://raw.githubusercontent.com/justinelut/blyss/master/oracle/scripts/configure-minio-cors.sh -o configure-minio-cors.sh
+            chmod +x configure-minio-cors.sh
+
+            # Run the configuration script
+            sudo bash configure-minio-cors.sh
+
+            echo "✅ MinIO CORS configuration completed!"
