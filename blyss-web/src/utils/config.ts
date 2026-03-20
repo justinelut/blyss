@@ -34,7 +34,7 @@ const defaults = {
     'http://127.0.0.1:3000',
   CHECKOUT_EMBED_SCRIPT_SRC:
     process.env.NEXT_PUBLIC_CHECKOUT_EMBED_SCRIPT_SRC ||
-    'node_modules/@/components/checkout/dist/embed.global.js',
+    '/checkout/embed.global.js',
   CHECKOUT_EXTERNAL_WEBHOOKS_WAITING_LIMIT_MS: stringToNumber(
     process.env.NEXT_PUBLIC_CHECKOUT_EXTERNAL_WEBHOOKS_WAITING_LIMIT_MS,
     30000,

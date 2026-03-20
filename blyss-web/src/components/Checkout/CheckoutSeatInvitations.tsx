@@ -2,7 +2,7 @@
 
 import { useAssignSeatFromCheckout } from '@/hooks/queries'
 import { validateEmail } from '@/utils/validation'
-import { hasProductCheckout } from '@/components/checkout/guards'
+import { hasProductCheckout } from '@/components/Checkout/guards'
 import type { schemas } from '@/lib/api'
 import Button from '@/components/atoms/Button'
 import Input from '@/components/atoms/Input'

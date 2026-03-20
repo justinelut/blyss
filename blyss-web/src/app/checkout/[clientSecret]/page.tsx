@@ -3,7 +3,7 @@ import { resolveLocale } from '@/utils/i18n'
 import {
   CheckoutFormProvider,
   CheckoutProvider,
-} from '@/components/checkout/providers'
+} from '@/components/Checkout/providers'
 import {
   ClientResponseError,
   NotFoundResponseError,

@@ -1,7 +1,7 @@
 import { useCustomerBenefitGrants } from '@/hooks/queries/customerPortal'
 import { useCustomerSSE } from '@/hooks/sse'
 import { createClientSideAPI } from '@/utils/client'
-import type { ProductCheckoutPublic } from '@/components/checkout/guards'
+import type { ProductCheckoutPublic } from '@/components/Checkout/guards'
 import {
   DEFAULT_LOCALE,
   useTranslations,

@@ -1,6 +1,6 @@
 'use client'
 
-import { PolarEmbedCheckout } from '@/components/checkout/embed'
+import { PolarEmbedCheckout } from '@/components/Checkout/embed'
 import type { schemas } from '@/lib/api'
 import { useEffect } from 'react'
 

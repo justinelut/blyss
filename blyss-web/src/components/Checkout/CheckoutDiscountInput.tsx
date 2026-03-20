@@ -1,6 +1,6 @@
 'use client'
 
-import { useCheckoutForm } from '@/components/checkout/providers'
+import { useCheckoutForm } from '@/components/Checkout/providers'
 import type { schemas } from '@/lib/api'
 import {
   DEFAULT_LOCALE,

@@ -1,4 +1,4 @@
-import { PolarEmbedCheckout } from '@/components/checkout/embed'
+import { PolarEmbedCheckout } from '@/components/Checkout/embed'
 import type { schemas } from '@/lib/api'
 import { useRouter } from 'next/navigation'
 import { useCallback } from 'react'

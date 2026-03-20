@@ -3,7 +3,7 @@
 import { useCheckoutConfirmedRedirect } from '@/hooks/checkout'
 import { useCheckoutClientSSE } from '@/hooks/sse'
 import { getServerURL } from '@/utils/api'
-import { hasProductCheckout } from '@/components/checkout/guards'
+import { hasProductCheckout } from '@/components/Checkout/guards'
 import { createClient, unwrap, type schemas } from '@/lib/api'
 import {
   DEFAULT_LOCALE,

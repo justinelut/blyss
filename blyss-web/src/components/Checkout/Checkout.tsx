@@ -17,13 +17,13 @@ import {
   CheckoutProductSwitcher,
   CheckoutPWYWForm,
   CheckoutSeatSelector,
-} from '@/components/checkout/components'
+} from '@/components/Checkout/components'
 import {
   hasProductCheckout,
   type ProductCheckoutPublic,
-} from '@/components/checkout/guards'
-import { useCheckoutFulfillmentListener } from '@/components/checkout/hooks'
-import { useCheckout, useCheckoutForm } from '@/components/checkout/providers'
+} from '@/components/Checkout/guards'
+import { useCheckoutFulfillmentListener } from '@/components/Checkout/hooks'
+import { useCheckout, useCheckoutForm } from '@/components/Checkout/providers'
 import { ClientResponseError, type schemas } from '@/lib/api'
 import { AcceptedLocale, useTranslations } from '@/lib/i18n'
 import Alert from '@/components/atoms/Alert'
