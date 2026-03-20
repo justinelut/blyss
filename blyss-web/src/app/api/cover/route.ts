@@ -4,11 +4,11 @@ import path from 'path'
 
 const DIRS: Record<string, string> = {
   blog: path.join(
-    process.cwd(),
+    /*turbopackIgnore: true*/ process.cwd(),
     'src/app/(main)/(website)/(landing)/(mdx)/blog/(header)/_posts',
   ),
   story: path.join(
-    process.cwd(),
+    /*turbopackIgnore: true*/ process.cwd(),
     'src/app/(main)/(website)/(landing)/customers/(stories)',
   ),
 }
