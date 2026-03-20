@@ -398,6 +398,11 @@ export const DiscordBenefitForm = () => {
 const BenefitTypeSelect = () => {
   const { control } = useFormContext<schemas['BenefitCustomCreate']>()
 
+  // Filter out GitHub and Feature Flag benefits for Kenyan creators marketplace
+  const availableBenefitTypes = enums.benefitTypeValues.filter(
+    (value) => value !== 'github_repository' && value !== 'feature_flag'
+  )
+
   return (
     <FormField
       control={control}
@@ -415,7 +420,7 @@ const BenefitTypeSelect = () => {
                   <SelectValue placeholder="Select a benefit type" />
                 </SelectTrigger>
                 <SelectContent>
-                  {enums.benefitTypeValues.map((value) => (
+                  {availableBenefitTypes.map((value) => (
                     <SelectItem key={value} value={value}>
                       {benefitsDisplayNames[value]}
                     </SelectItem>
