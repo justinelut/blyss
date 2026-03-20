@@ -1,0 +1,15 @@
+{
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "blyss.co.ke"
+        }
+      ],
+      "destination": "https://www.blyss.co.ke/:path*",
+      "permanent": true
+    }
+  ]
+}
