@@ -1,0 +1,46 @@
+name: Setup MinIO SSL
+
+on:
+  workflow_dispatch: # Manual trigger
+  push:
+    branches:
+      - master
+    paths:
+      - 'oracle/redis-minio/scripts/setup-ssl.sh'
+      - '.github/workflows/minio-setup-ssl.yml'
+
+jobs:
+  setup-ssl:
+    name: Setup SSL for MinIO
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Copy script to MinIO server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.MINIO_HOST }}
+          username: ubuntu
+          key: ${{ secrets.MINIO_SSH_KEY }}
+          source: "oracle/redis-minio/scripts/setup-ssl.sh"
+          target: "/tmp/blyss-minio/"
+          strip_components: 3
+
+      - name: Setup SSL Certificate
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.MINIO_HOST }}
+          username: ubuntu
+          key: ${{ secrets.MINIO_SSH_KEY }}
+          script: |
+            echo "🚀 Setting up SSL for MinIO..."
+
+            cd /tmp/blyss-minio
+            chmod +x setup-ssl.sh
+
+            # Run the SSL setup script
+            sudo bash setup-ssl.sh
+
+            echo "✅ SSL setup completed!"
