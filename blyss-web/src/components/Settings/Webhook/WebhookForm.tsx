@@ -1,21 +1,21 @@
-import { enums, schemas } from '@polar-sh/client'
-import Button from '@polar-sh/ui/components/atoms/Button'
-import Input from '@polar-sh/ui/components/atoms/Input'
+import { enums, schemas } from '@/lib/api'
+import Button from '@/components/atoms/Button'
+import Input from '@/components/atoms/Input'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@polar-sh/ui/components/atoms/Select'
-import { Checkbox } from '@polar-sh/ui/components/ui/checkbox'
+} from '@/components/atoms/Select'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   FormControl,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
-} from '@polar-sh/ui/components/ui/form'
+} from '@/components/ui/form'
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, type MouseEvent } from 'react'
 import { useFormContext } from 'react-hook-form'

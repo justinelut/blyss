@@ -1,5 +1,5 @@
 import { useCreators } from '@/hooks/queries/creators'
-import { schemas } from '@polar-sh/client'
+import { schemas } from '@/lib/api'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { CreatorsDirectory } from '../CreatorsDirectory'
@@ -14,7 +14,7 @@ vi.mock('../CreatorCard', () => ({
   ),
 }))
 
-vi.mock('@polar-sh/ui/components/atoms/Input', () => ({
+vi.mock('@/components/atoms/Input', () => ({
   default: ({ value, onChange, ...props }: any) => (
     <input
       data-testid="search-input"

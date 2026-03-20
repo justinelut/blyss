@@ -1,7 +1,7 @@
 'use client'
 
-import { schemas } from '@polar-sh/client'
-import Avatar from '@polar-sh/ui/components/atoms/Avatar'
+import { schemas } from '@/lib/api'
+import Avatar from '@/components/atoms/Avatar'
 import { useRouter } from 'next/navigation'
 
 interface CreatorCardProps {

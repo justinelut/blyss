@@ -11,7 +11,7 @@ import {
   getAPIParams,
   serializeSearchParams,
 } from '@/utils/datatable'
-import { ClientResponseError, schemas } from '@polar-sh/client'
+import { ClientResponseError, schemas } from '@/lib/api'
 import { usePathname, useRouter } from 'next/navigation'
 
 export default function ClientPage({

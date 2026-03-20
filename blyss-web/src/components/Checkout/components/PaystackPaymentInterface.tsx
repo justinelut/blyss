@@ -1,9 +1,9 @@
 'use client'
 
-import type { schemas } from '@polar-sh/client'
+import type { schemas } from '@/lib/api'
 import { useTranslations, type AcceptedLocale } from '@polar-sh/i18n'
-import Button from '@polar-sh/ui/components/atoms/Button'
-import { cn } from '@polar-sh/ui/lib/utils'
+import Button from '@/components/atoms/Button'
+import { cn } from '@/lib/utils'
 import { useState } from 'react'
 
 // Simple icon components to avoid external dependencies

@@ -21,14 +21,14 @@ import * as React from 'react'
 
 import { OrganizationContext } from '@/providers/maintainerOrganization'
 import CalendarMonthOutlined from '@mui/icons-material/CalendarMonthOutlined'
-import { schemas } from '@polar-sh/client'
-import FormattedInterval from '@polar-sh/ui/components/atoms/FormattedInterval'
-import { Calendar } from '@polar-sh/ui/components/ui/calendar'
+import { schemas } from '@/lib/api'
+import FormattedInterval from '@/components/atoms/FormattedInterval'
+import { Calendar } from '@/components/ui/calendar'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@polar-sh/ui/components/ui/popover'
+} from '@/components/ui/popover'
 import { useContext } from 'react'
 import { twMerge } from 'tailwind-merge'
 

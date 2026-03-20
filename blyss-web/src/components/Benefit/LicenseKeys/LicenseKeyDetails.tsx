@@ -1,12 +1,12 @@
 import { unreachable } from '@/utils/unreachable'
-import { schemas } from '@polar-sh/client'
+import { schemas } from '@/lib/api'
 import {
   DEFAULT_LOCALE,
   useTranslations,
   type AcceptedLocale,
 } from '@polar-sh/i18n'
-import FormattedDateTime from '@polar-sh/ui/components/atoms/FormattedDateTime'
-import ShadowBox from '@polar-sh/ui/components/atoms/ShadowBox'
+import FormattedDateTime from '@/components/atoms/FormattedDateTime'
+import ShadowBox from '@/components/atoms/ShadowBox'
 import { twMerge } from 'tailwind-merge'
 
 export interface LicenseKeyDetails {

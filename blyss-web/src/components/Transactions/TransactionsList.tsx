@@ -3,15 +3,15 @@ import {
   DataTablePaginationState,
   DataTableSortingState,
 } from '@/utils/datatable'
-import { schemas } from '@polar-sh/client'
-import { formatCurrency } from '@polar-sh/currency'
+import { schemas } from '@/lib/api'
+import { formatCurrency } from '@/lib/currency'
 import {
   DataTable,
   DataTableColumnDef,
   DataTableColumnHeader,
   ReactQueryLoading,
-} from '@polar-sh/ui/components/atoms/DataTable'
-import FormattedDateTime from '@polar-sh/ui/components/atoms/FormattedDateTime'
+} from '@/components/atoms/DataTable'
+import FormattedDateTime from '@/components/atoms/FormattedDateTime'
 import { useMemo } from 'react'
 
 const getTransactionMeta = (transaction: schemas['Transaction']) => {

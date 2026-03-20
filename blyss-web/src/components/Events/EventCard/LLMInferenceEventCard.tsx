@@ -1,4 +1,4 @@
-import { schemas } from '@polar-sh/client'
+import { schemas } from '@/lib/api'
 import { EventCardBase } from './EventCardBase'
 import { UserEventCard } from './UserEventCard'
 

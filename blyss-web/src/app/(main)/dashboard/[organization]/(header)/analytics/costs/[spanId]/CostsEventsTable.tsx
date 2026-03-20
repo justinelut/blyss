@@ -2,8 +2,8 @@
 
 import { useEventHierarchyStats } from '@/hooks/queries/events'
 import { fromISODate } from '@/utils/metrics'
-import { schemas } from '@polar-sh/client'
-import FormattedInterval from '@polar-sh/ui/components/atoms/FormattedInterval'
+import { schemas } from '@/lib/api'
+import FormattedInterval from '@/components/atoms/FormattedInterval'
 import { endOfDay, subMonths } from 'date-fns'
 import { parseAsString, useQueryState } from 'nuqs'
 import { useMemo } from 'react'

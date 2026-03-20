@@ -6,21 +6,21 @@ import { InlineModal } from '@/components/Modal/InlineModal'
 import { useModal } from '@/components/Modal/useModal'
 import { SpinnerNoMargin } from '@/components/Shared/Spinner'
 import { useMeters } from '@/hooks/queries/meters'
-import { schemas } from '@polar-sh/client'
-import Button from '@polar-sh/ui/components/atoms/Button'
-import MoneyInput from '@polar-sh/ui/components/atoms/MoneyInput'
+import { schemas } from '@/lib/api'
+import Button from '@/components/atoms/Button'
+import MoneyInput from '@/components/atoms/MoneyInput'
 import {
   FormControl,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
-} from '@polar-sh/ui/components/ui/form'
+} from '@/components/ui/form'
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from '@polar-sh/ui/components/ui/tooltip'
+} from '@/components/ui/tooltip'
 import { InfoIcon, PlusIcon } from 'lucide-react'
 import React, { useCallback } from 'react'
 import { useFormContext } from 'react-hook-form'

@@ -1,6 +1,6 @@
 'use client'
 
-import Button from '@polar-sh/ui/components/atoms/Button'
+import Button from '@/components/atoms/Button'
 import { useRouter } from 'next/navigation'
 
 interface HeroSectionProps {

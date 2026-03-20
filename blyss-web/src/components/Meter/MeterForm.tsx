@@ -3,8 +3,8 @@
 import MeterFilterInput from '@/components/Meter/MeterFilterInput'
 import MeterFilterReadOnlyConfiguration from '@/components/Meter/MeterFilterReadOnlyConfiguration'
 import MeterFormAggregation from '@/components/Meter/MeterFormAggregation'
-import { schemas } from '@polar-sh/client'
-import Input from '@polar-sh/ui/components/atoms/Input'
+import { schemas } from '@/lib/api'
+import Input from '@/components/atoms/Input'
 import {
   FormControl,
   FormDescription,
@@ -12,7 +12,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@polar-sh/ui/components/ui/form'
+} from '@/components/ui/form'
 import { useFormContext } from 'react-hook-form'
 
 const MeterForm = ({

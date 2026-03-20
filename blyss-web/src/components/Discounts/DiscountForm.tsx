@@ -2,27 +2,27 @@
 
 import AutorenewOutlined from '@mui/icons-material/AutorenewOutlined'
 import ClearOutlined from '@mui/icons-material/ClearOutlined'
-import { SegmentedControl } from '@polar-sh/orbit'
+import { SegmentedControl } from '@/lib/orbit'
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from '@polar-sh/ui/components/atoms/Accordion'
-import Button from '@polar-sh/ui/components/atoms/Button'
-import Input from '@polar-sh/ui/components/atoms/Input'
-import MoneyInput from '@polar-sh/ui/components/atoms/MoneyInput'
-import PercentageInput from '@polar-sh/ui/components/atoms/PercentageInput'
+} from '@/components/atoms/Accordion'
+import Button from '@/components/atoms/Button'
+import Input from '@/components/atoms/Input'
+import MoneyInput from '@/components/atoms/MoneyInput'
+import PercentageInput from '@/components/atoms/PercentageInput'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@polar-sh/ui/components/atoms/Select'
+} from '@/components/atoms/Select'
 
-import { schemas } from '@polar-sh/client'
-import DateTimePicker from '@polar-sh/ui/components/atoms/DateTimePicker'
+import { schemas } from '@/lib/api'
+import DateTimePicker from '@/components/atoms/DateTimePicker'
 import {
   FormControl,
   FormDescription,
@@ -30,7 +30,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@polar-sh/ui/components/ui/form'
+} from '@/components/ui/form'
 import React, { useCallback, useMemo } from 'react'
 import { useFieldArray, useFormContext } from 'react-hook-form'
 import { CurrencySelector } from '../CurrencySelector'

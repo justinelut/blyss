@@ -5,10 +5,10 @@ import {
   useListOrganizations,
   usePersonalAccessTokens,
 } from '@/hooks/queries'
-import { schemas } from '@polar-sh/client'
-import Button from '@polar-sh/ui/components/atoms/Button'
-import FormattedDateTime from '@polar-sh/ui/components/atoms/FormattedDateTime'
-import ShadowListGroup from '@polar-sh/ui/components/atoms/ShadowListGroup'
+import { schemas } from '@/lib/api'
+import Button from '@/components/atoms/Button'
+import FormattedDateTime from '@/components/atoms/FormattedDateTime'
+import ShadowListGroup from '@/components/atoms/ShadowListGroup'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,7 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@polar-sh/ui/components/ui/alert-dialog'
+} from '@/components/ui/alert-dialog'
 import Link from 'next/link'
 import { useCallback } from 'react'
 import { toast } from '../Toast/use-toast'

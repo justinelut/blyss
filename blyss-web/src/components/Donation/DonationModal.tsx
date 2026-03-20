@@ -2,15 +2,15 @@
 
 import { useInitiateDonation } from '@/hooks/queries/donations'
 import { setValidationErrors } from '@/utils/api/errors'
-import Button from '@polar-sh/ui/components/atoms/Button'
-import Input from '@polar-sh/ui/components/atoms/Input'
+import Button from '@/components/atoms/Button'
+import Input from '@/components/atoms/Input'
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@polar-sh/ui/components/ui/dialog'
+} from '@/components/ui/dialog'
 import {
   Form,
   FormControl,
@@ -18,8 +18,8 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@polar-sh/ui/components/ui/form'
-import { Textarea } from '@polar-sh/ui/components/ui/textarea'
+} from '@/components/ui/form'
+import { Textarea } from '@/components/ui/textarea'
 import { useState } from 'react'
 import { SubmitHandler, useForm } from 'react-hook-form'
 

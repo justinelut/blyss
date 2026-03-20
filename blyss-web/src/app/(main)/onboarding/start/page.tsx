@@ -3,8 +3,8 @@
 import LogoIcon from '@/components/Brand/logos/LogoIcon'
 import { useOnboardingData } from '@/components/Onboarding/v2/OnboardingContext'
 import { CONFIG } from '@/utils/config'
-import { Box } from '@polar-sh/orbit/Box'
-import Button from '@polar-sh/ui/components/atoms/Button'
+import { Box } from '@/lib/orbit/Box'
+import Button from '@/components/atoms/Button'
 import { redirect, useRouter } from 'next/navigation'
 
 export default function Page() {

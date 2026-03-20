@@ -1,7 +1,7 @@
 'use client'
 
 import { ParsedMetricsResponse } from '@/hooks/queries'
-import { schemas } from '@polar-sh/client'
+import { schemas } from '@/lib/api'
 import { useMemo, useState } from 'react'
 import {
   CANCELLATION_REASONS,

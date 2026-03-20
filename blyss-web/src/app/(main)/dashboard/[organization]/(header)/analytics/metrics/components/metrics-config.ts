@@ -1,4 +1,4 @@
-import { schemas } from '@polar-sh/client'
+import { schemas } from '@/lib/api'
 
 export const METRIC_TYPES = [
   'subscriptions',

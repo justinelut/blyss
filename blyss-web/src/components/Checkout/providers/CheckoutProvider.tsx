@@ -7,7 +7,7 @@ import {
   type Client,
   type operations,
   type schemas,
-} from '@polar-sh/client'
+} from '@/lib/api'
 
 import {
   createContext,

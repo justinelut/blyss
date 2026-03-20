@@ -1,5 +1,5 @@
 import { useProduct } from '@/hooks/queries'
-import { schemas } from '@polar-sh/client'
+import { schemas } from '@/lib/api'
 import { DashboardBody } from '../Layout/DashboardLayout'
 import { CreateProductPage } from './CreateProductPage'
 

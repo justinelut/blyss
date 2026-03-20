@@ -1,19 +1,19 @@
-import type { schemas } from '@polar-sh/client'
-import { formatCurrency } from '@polar-sh/currency'
+import type { schemas } from '@/lib/api'
+import { formatCurrency } from '@/lib/currency'
 import {
   DEFAULT_LOCALE,
   useTranslations,
   type AcceptedLocale,
 } from '@polar-sh/i18n'
-import MoneyInput from '@polar-sh/ui/components/atoms/MoneyInput'
+import MoneyInput from '@/components/atoms/MoneyInput'
 import {
   Form,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
-} from '@polar-sh/ui/components/ui/form'
-import { ThemingPresetProps } from '@polar-sh/ui/hooks/theming'
+} from '@/components/ui/form'
+import { ThemingPresetProps } from '@/components/ui/hooks/theming'
 import { useCallback, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import useDebouncedCallback from '../hooks/debounce'

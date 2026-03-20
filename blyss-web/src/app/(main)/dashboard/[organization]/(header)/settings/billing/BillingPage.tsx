@@ -6,7 +6,7 @@ import OrganizationCustomerEmailSettings from '@/components/Settings/Organizatio
 import OrganizationCustomerPortalSettings from '@/components/Settings/OrganizationCustomerPortalSettings'
 import OrganizationSubscriptionSettings from '@/components/Settings/OrganizationSubscriptionSettings'
 import { Section, SectionDescription } from '@/components/Settings/Section'
-import { schemas } from '@polar-sh/client'
+import { schemas } from '@/lib/api'
 
 export default function BillingPage({
   organization,

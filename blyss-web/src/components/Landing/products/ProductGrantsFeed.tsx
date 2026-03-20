@@ -1,6 +1,6 @@
 'use client'
 
-import Switch from '@polar-sh/ui/components/atoms/Switch'
+import Switch from '@/components/atoms/Switch'
 import { AnimatePresence, motion } from 'framer-motion'
 import { memo, useEffect, useRef, useState } from 'react'
 

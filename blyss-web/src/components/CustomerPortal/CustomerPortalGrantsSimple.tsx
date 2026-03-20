@@ -1,7 +1,7 @@
 'use client'
 
-import { Client, schemas } from '@polar-sh/client'
-import { List, ListItem } from '@polar-sh/ui/components/atoms/List'
+import { Client, schemas } from '@/lib/api'
+import { List, ListItem } from '@/components/atoms/List'
 import { BenefitGrant } from '../Benefit/BenefitGrant'
 
 export interface CustomerPortalGrantsSimpleProps {

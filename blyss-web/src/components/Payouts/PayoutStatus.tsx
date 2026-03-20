@@ -1,10 +1,10 @@
-import { schemas } from '@polar-sh/client'
-import { Status } from '@polar-sh/ui/components/atoms/Status'
+import { schemas } from '@/lib/api'
+import { Status } from '@/components/atoms/Status'
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from '@polar-sh/ui/components/ui/tooltip'
+} from '@/components/ui/tooltip'
 import { useMemo } from 'react'
 import { twMerge } from 'tailwind-merge'
 

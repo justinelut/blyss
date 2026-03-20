@@ -2,8 +2,8 @@
 
 import { ProductCard } from '@/components/Products/ProductCard'
 import { useProductCategories } from '@/hooks/queries/products'
-import { schemas } from '@polar-sh/client'
-import { PriceRangeFilter } from '@polar-sh/ui/components/molecules/PriceRangeFilter'
+import { schemas } from '@/lib/api'
+import { PriceRangeFilter } from '@/components/molecules/PriceRangeFilter'
 import { useRouter } from 'next/navigation'
 import { CategoryFilter } from './components/CategoryFilter'
 import { EmptyState } from './components/EmptyState'

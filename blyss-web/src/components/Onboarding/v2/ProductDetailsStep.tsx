@@ -1,8 +1,8 @@
 'use client'
 
-import { Box } from '@polar-sh/orbit/Box'
-import Button from '@polar-sh/ui/components/atoms/Button'
-import Input from '@polar-sh/ui/components/atoms/Input'
+import { Box } from '@/lib/orbit/Box'
+import Button from '@/components/atoms/Button'
+import Input from '@/components/atoms/Input'
 import {
   Form,
   FormControl,
@@ -10,7 +10,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@polar-sh/ui/components/ui/form'
+} from '@/components/ui/form'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo } from 'react'
 import { useForm } from 'react-hook-form'

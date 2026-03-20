@@ -1,10 +1,10 @@
 import { InlineModal } from '@/components/Modal/InlineModal'
-import { enums, type schemas } from '@polar-sh/client'
-import Button from '@polar-sh/ui/components/atoms/Button'
-import CountryPicker from '@polar-sh/ui/components/atoms/CountryPicker'
-import CountryStatePicker from '@polar-sh/ui/components/atoms/CountryStatePicker'
-import Input from '@polar-sh/ui/components/atoms/Input'
-import { DropdownMenuItem } from '@polar-sh/ui/components/ui/dropdown-menu'
+import { enums, type schemas } from '@/lib/api'
+import Button from '@/components/atoms/Button'
+import CountryPicker from '@/components/atoms/CountryPicker'
+import CountryStatePicker from '@/components/atoms/CountryStatePicker'
+import Input from '@/components/atoms/Input'
+import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import {
   Form,
   FormControl,
@@ -13,8 +13,8 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@polar-sh/ui/components/ui/form'
-import { Textarea } from '@polar-sh/ui/components/ui/textarea'
+} from '@/components/ui/form'
+import { Textarea } from '@/components/ui/textarea'
 import { useCallback } from 'react'
 import { usePayoutContext } from './PayoutContext'
 import { useInvoiceDownload } from './useInvoiceDownload'

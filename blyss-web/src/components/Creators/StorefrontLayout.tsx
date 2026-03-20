@@ -1,7 +1,7 @@
 'use client'
 
 import { NewsletterSubscriptionForm } from '@/components/Newsletter/NewsletterSubscriptionForm'
-import { schemas } from '@polar-sh/client'
+import { schemas } from '@/lib/api'
 import { StorefrontSidebar } from './StorefrontSidebar'
 import { StorefrontTabs } from './StorefrontTabs'
 import { TabContent } from './TabContent'

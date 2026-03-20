@@ -1,8 +1,8 @@
 'use client'
 
-import { schemas } from '@polar-sh/client'
-import Avatar from '@polar-sh/ui/components/atoms/Avatar'
-import Button from '@polar-sh/ui/components/atoms/Button'
+import { schemas } from '@/lib/api'
+import Avatar from '@/components/atoms/Avatar'
+import Button from '@/components/atoms/Button'
 import { SocialLinks } from './SocialLinks'
 
 interface StorefrontSidebarProps {

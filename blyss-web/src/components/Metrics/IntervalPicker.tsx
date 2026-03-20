@@ -1,11 +1,11 @@
-import { enums, schemas } from '@polar-sh/client'
+import { enums, schemas } from '@/lib/api'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@polar-sh/ui/components/atoms/Select'
+} from '@/components/atoms/Select'
 import { differenceInDays } from 'date-fns'
 import { useMemo } from 'react'
 

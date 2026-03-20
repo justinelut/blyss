@@ -1,5 +1,5 @@
 import { StaticImage } from '@/components/Image/StaticImage'
-import Avatar from '@polar-sh/ui/components/atoms/Avatar'
+import Avatar from '@/components/atoms/Avatar'
 import Link from 'next/link'
 import { JSX } from 'react'
 import { twMerge } from 'tailwind-merge'

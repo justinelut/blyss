@@ -1,16 +1,16 @@
 'use client'
 
-import { schemas } from '@polar-sh/client'
-import Input from '@polar-sh/ui/components/atoms/Input'
+import { schemas } from '@/lib/api'
+import Input from '@/components/atoms/Input'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@polar-sh/ui/components/atoms/Select'
-import Switch from '@polar-sh/ui/components/atoms/Switch'
-import { Checkbox } from '@polar-sh/ui/components/ui/checkbox'
+} from '@/components/atoms/Select'
+import Switch from '@/components/atoms/Switch'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   FormControl,
   FormDescription,
@@ -18,7 +18,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@polar-sh/ui/components/ui/form'
+} from '@/components/ui/form'
 import { useState } from 'react'
 import { useFormContext } from 'react-hook-form'
 

@@ -1,8 +1,8 @@
 import { toast } from '@/components/Toast/use-toast'
 import { useDeleteCustomerPaymentMethod } from '@/hooks/queries'
-import type { Client, operations, schemas } from '@polar-sh/client'
-import Button from '@polar-sh/ui/components/atoms/Button'
-import { Status } from '@polar-sh/ui/components/atoms/Status'
+import type { Client, operations, schemas } from '@/lib/api'
+import Button from '@/components/atoms/Button'
+import { Status } from '@/components/atoms/Status'
 import { X } from 'lucide-react'
 import CreditCardBrandIcon from '../CreditCardBrandIcon'
 

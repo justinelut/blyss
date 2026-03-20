@@ -1,4 +1,4 @@
-import { Button } from '@polar-sh/ui/components/ui/button'
+import { Button } from '@/components/ui/button'
 import { ShoppingCart } from 'lucide-react'
 import Link from 'next/link'
 

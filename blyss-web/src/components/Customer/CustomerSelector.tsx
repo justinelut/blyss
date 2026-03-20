@@ -5,15 +5,15 @@ import { useCustomers } from '@/hooks/queries'
 import { useInViewport } from '@/hooks/utils'
 import Close from '@mui/icons-material/Close'
 import Search from '@mui/icons-material/Search'
-import Avatar from '@polar-sh/ui/components/atoms/Avatar'
-import Button from '@polar-sh/ui/components/atoms/Button'
-import Input from '@polar-sh/ui/components/atoms/Input'
-import { List, ListItem } from '@polar-sh/ui/components/atoms/List'
+import Avatar from '@/components/atoms/Avatar'
+import Button from '@/components/atoms/Button'
+import Input from '@/components/atoms/Input'
+import { List, ListItem } from '@/components/atoms/List'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@polar-sh/ui/components/ui/popover'
+} from '@/components/ui/popover'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 interface CustomerSelectorProps {

@@ -1,6 +1,6 @@
 import { ParsedMetricPeriod } from '@/hooks/queries'
 import { getFormattedMetricValue, getTimestampFormatter } from '@/utils/metrics'
-import { schemas } from '@polar-sh/client'
+import { schemas } from '@/lib/api'
 import { useTheme } from 'next-themes'
 import { useMemo } from 'react'
 import type { AxisTick } from 'recharts/types/util/types'

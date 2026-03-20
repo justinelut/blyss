@@ -10,7 +10,7 @@ import React, {
 } from 'react'
 import { twMerge } from 'tailwind-merge'
 
-// ─── Currency utilities (mirrors @polar-sh/currency) ─────────────────────────
+// ─── Currency utilities (mirrors @/lib/currency) ─────────────────────────
 
 const ZERO_DECIMAL_CURRENCIES = new Set([
   'BIF',

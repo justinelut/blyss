@@ -7,10 +7,10 @@ import { usePostHog } from '@/hooks/posthog'
 import { useCreateOrganization } from '@/hooks/queries'
 import { setValidationErrors } from '@/utils/api/errors'
 import { CONFIG } from '@/utils/config'
-import { schemas } from '@polar-sh/client'
-import Button from '@polar-sh/ui/components/atoms/Button'
-import Input from '@polar-sh/ui/components/atoms/Input'
-import { Checkbox } from '@polar-sh/ui/components/ui/checkbox'
+import { schemas } from '@/lib/api'
+import Button from '@/components/atoms/Button'
+import Input from '@/components/atoms/Input'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Form,
   FormControl,
@@ -19,7 +19,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@polar-sh/ui/components/ui/form'
+} from '@/components/ui/form'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'

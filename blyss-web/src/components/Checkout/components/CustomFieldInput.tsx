@@ -1,23 +1,23 @@
-import type { schemas } from '@polar-sh/client'
+import type { schemas } from '@/lib/api'
 
-import Input from '@polar-sh/ui/components/atoms/Input'
+import Input from '@/components/atoms/Input'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@polar-sh/ui/components/atoms/Select'
-import TextArea from '@polar-sh/ui/components/atoms/TextArea'
-import { Checkbox } from '@polar-sh/ui/components/ui/checkbox'
+} from '@/components/atoms/Select'
+import TextArea from '@/components/atoms/TextArea'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   FormControl,
   FormDescription,
   FormItem,
   FormLabel,
   FormMessage,
-} from '@polar-sh/ui/components/ui/form'
-import { ThemingPresetProps } from '@polar-sh/ui/hooks/theming'
+} from '@/components/ui/form'
+import { ThemingPresetProps } from '@/components/ui/hooks/theming'
 import type { MarkdownToJSX } from 'markdown-to-jsx'
 import Markdown from 'markdown-to-jsx'
 import type { ControllerRenderProps } from 'react-hook-form'

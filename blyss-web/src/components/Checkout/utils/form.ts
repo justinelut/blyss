@@ -1,4 +1,4 @@
-import type { schemas } from '@polar-sh/client'
+import type { schemas } from '@/lib/api'
 import type { FieldPath, FieldValues, UseFormSetError } from 'react-hook-form'
 
 export const setValidationErrors = <TFieldValues extends FieldValues>(

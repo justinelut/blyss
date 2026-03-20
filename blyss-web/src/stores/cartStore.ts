@@ -1,6 +1,6 @@
 import { api } from '@/utils/client'
 import { ensureSessionToken } from '@/utils/session-token'
-import { schemas, unwrap } from '@polar-sh/client'
+import { schemas, unwrap } from '@/lib/api'
 import { create } from 'zustand'
 
 interface CartItem {

@@ -1,9 +1,9 @@
 import { useMetrics } from '@/hooks/queries'
 import { useOrders } from '@/hooks/queries/orders'
 import { getTimestampFormatter } from '@/utils/metrics'
-import { schemas } from '@polar-sh/client'
-import { formatCurrency } from '@polar-sh/currency'
-import ShadowBox from '@polar-sh/ui/components/atoms/ShadowBox'
+import { schemas } from '@/lib/api'
+import { formatCurrency } from '@/lib/currency'
+import ShadowBox from '@/components/atoms/ShadowBox'
 import { startOfDay, subDays } from 'date-fns'
 import {
   CircleDollarSignIcon,

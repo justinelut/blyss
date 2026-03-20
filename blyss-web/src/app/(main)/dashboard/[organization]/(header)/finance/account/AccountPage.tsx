@@ -15,9 +15,9 @@ import {
 } from '@/hooks/queries'
 import { useOrganizationReviewStatus } from '@/hooks/queries/org'
 import { api } from '@/utils/client'
-import { ClientResponseError, schemas, unwrap } from '@polar-sh/client'
-import { ShadowBoxOnMd } from '@polar-sh/ui/components/atoms/ShadowBox'
-import { Separator } from '@polar-sh/ui/components/ui/separator'
+import { ClientResponseError, schemas, unwrap } from '@/lib/api'
+import { ShadowBoxOnMd } from '@/components/atoms/ShadowBox'
+import { Separator } from '@/components/ui/separator'
 import { loadStripe } from '@stripe/stripe-js'
 import React, { useCallback, useState } from 'react'
 

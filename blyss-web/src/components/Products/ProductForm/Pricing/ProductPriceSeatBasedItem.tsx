@@ -1,16 +1,16 @@
 'use client'
 
 import CloseOutlined from '@mui/icons-material/CloseOutlined'
-import Button from '@polar-sh/ui/components/atoms/Button'
-import Input from '@polar-sh/ui/components/atoms/Input'
-import MoneyInput from '@polar-sh/ui/components/atoms/MoneyInput'
+import Button from '@/components/atoms/Button'
+import Input from '@/components/atoms/Input'
+import MoneyInput from '@/components/atoms/MoneyInput'
 import {
   FormControl,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
-} from '@polar-sh/ui/components/ui/form'
+} from '@/components/ui/form'
 import React, { useCallback } from 'react'
 import { useFieldArray, useFormContext } from 'react-hook-form'
 import { twMerge } from 'tailwind-merge'

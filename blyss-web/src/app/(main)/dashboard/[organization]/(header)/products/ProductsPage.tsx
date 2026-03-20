@@ -14,18 +14,18 @@ import {
 import AddOutlined from '@mui/icons-material/AddOutlined'
 import HiveOutlined from '@mui/icons-material/HiveOutlined'
 import Search from '@mui/icons-material/Search'
-import { schemas } from '@polar-sh/client'
-import Button from '@polar-sh/ui/components/atoms/Button'
-import Input from '@polar-sh/ui/components/atoms/Input'
-import { List } from '@polar-sh/ui/components/atoms/List'
+import { schemas } from '@/lib/api'
+import Button from '@/components/atoms/Button'
+import Input from '@/components/atoms/Input'
+import { List } from '@/components/atoms/List'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@polar-sh/ui/components/atoms/Select'
-import { ShadowBoxOnMd } from '@polar-sh/ui/components/atoms/ShadowBox'
+} from '@/components/atoms/Select'
+import { ShadowBoxOnMd } from '@/components/atoms/ShadowBox'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useQueryState } from 'nuqs'

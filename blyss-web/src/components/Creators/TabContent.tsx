@@ -1,7 +1,7 @@
 'use client'
 
 import { ProductCard } from '@/components/Products/ProductCard'
-import { schemas } from '@polar-sh/client'
+import { schemas } from '@/lib/api'
 
 interface TabContentProps {
   creator: schemas['CreatorStorefrontSchema']

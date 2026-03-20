@@ -1,11 +1,11 @@
 import { formatHumanFriendlyScalar, formatPercentage } from '@/utils/formatters'
-import { schemas } from '@polar-sh/client'
-import { formatCurrency } from '@polar-sh/currency'
+import { schemas } from '@/lib/api'
+import { formatCurrency } from '@/lib/currency'
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from '@polar-sh/ui/components/ui/tooltip'
+} from '@/components/ui/tooltip'
 import { ArrowDownRight, ArrowUpRight } from 'lucide-react'
 import { PropsWithChildren, useMemo } from 'react'
 import { CustomerStatBox, CustomerStatBoxProps } from './CustomerStatBox'

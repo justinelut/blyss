@@ -1,21 +1,21 @@
 'use client'
 
-import { useCheckoutForm } from '@polar-sh/checkout/providers'
-import type { schemas } from '@polar-sh/client'
+import { useCheckoutForm } from '@/components/checkout/providers'
+import type { schemas } from '@/lib/api'
 import {
   DEFAULT_LOCALE,
   useTranslations,
   type AcceptedLocale,
 } from '@polar-sh/i18n'
-import Button from '@polar-sh/ui/components/atoms/Button'
-import Input from '@polar-sh/ui/components/atoms/Input'
+import Button from '@/components/atoms/Button'
+import Input from '@/components/atoms/Input'
 import {
   Form,
   FormControl,
   FormField,
   FormItem,
   FormMessage,
-} from '@polar-sh/ui/components/ui/form'
+} from '@/components/ui/form'
 import { useCallback, useState } from 'react'
 
 const XIcon = ({ className }: { className?: string }) => {

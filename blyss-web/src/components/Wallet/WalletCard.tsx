@@ -1,6 +1,6 @@
 import { UploadImage } from '@/components/Image/Image'
-import { schemas } from '@polar-sh/client'
-import { formatCurrency } from '@polar-sh/currency'
+import { schemas } from '@/lib/api'
+import { formatCurrency } from '@/lib/currency'
 
 interface WalletCardProps {
   organization: schemas['CustomerOrganization']

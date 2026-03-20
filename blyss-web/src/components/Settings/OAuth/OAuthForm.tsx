@@ -1,12 +1,12 @@
-import Button from '@polar-sh/ui/components/atoms/Button'
-import Input from '@polar-sh/ui/components/atoms/Input'
+import Button from '@/components/atoms/Button'
+import Input from '@/components/atoms/Input'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@polar-sh/ui/components/atoms/Select'
+} from '@/components/atoms/Select'
 import {
   FormControl,
   FormDescription,
@@ -14,14 +14,14 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@polar-sh/ui/components/ui/form'
+} from '@/components/ui/form'
 import { type MouseEvent } from 'react'
 
 import ImageUpload from '@/components/Form/ImageUpload'
 import AddOutlined from '@mui/icons-material/AddOutlined'
 import ClearOutlined from '@mui/icons-material/ClearOutlined'
-import { enums } from '@polar-sh/client'
-import { Checkbox } from '@polar-sh/ui/components/ui/checkbox'
+import { enums } from '@/lib/api'
+import { Checkbox } from '@/components/ui/checkbox'
 import Link from 'next/link'
 import { useCallback, useMemo } from 'react'
 import { useFieldArray, useFormContext } from 'react-hook-form'

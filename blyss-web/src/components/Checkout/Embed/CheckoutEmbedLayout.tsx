@@ -1,4 +1,4 @@
-import type { schemas } from '@polar-sh/client'
+import type { schemas } from '@/lib/api'
 import CheckoutEmbedClose from './CheckoutEmbedClose'
 import CheckoutEmbedLoaded from './CheckoutEmbedLoaded'
 

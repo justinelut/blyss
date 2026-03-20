@@ -1,4 +1,4 @@
-import type { schemas } from '@polar-sh/client'
+import type { schemas } from '@/lib/api'
 
 export const isDisplayedField = (
   mode: schemas['BillingAddressFieldMode'],

@@ -5,15 +5,15 @@ import { useDiscounts } from '@/hooks/queries'
 import { useOrders } from '@/hooks/queries/orders'
 import { useSubscriptions } from '@/hooks/queries/subscriptions'
 import { getDiscountDisplay } from '@/utils/discount'
-import { schemas } from '@polar-sh/client'
-import { formatCurrency } from '@polar-sh/currency'
-import Avatar from '@polar-sh/ui/components/atoms/Avatar'
-import Button from '@polar-sh/ui/components/atoms/Button'
+import { schemas } from '@/lib/api'
+import { formatCurrency } from '@/lib/currency'
+import Avatar from '@/components/atoms/Avatar'
+import Button from '@/components/atoms/Button'
 import {
   DataTable,
   DataTableColumnHeader,
-} from '@polar-sh/ui/components/atoms/DataTable'
-import FormattedDateTime from '@polar-sh/ui/components/atoms/FormattedDateTime'
+} from '@/components/atoms/DataTable'
+import FormattedDateTime from '@/components/atoms/FormattedDateTime'
 import Link from 'next/link'
 
 export interface ProductOverviewProps {

@@ -1,6 +1,6 @@
 'use client'
 
-import Input from '@polar-sh/ui/components/atoms/Input'
+import Input from '@/components/atoms/Input'
 import { useEffect, useState } from 'react'
 
 interface SearchInputProps {

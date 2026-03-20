@@ -2,23 +2,23 @@
 
 import { useAuth } from '@/hooks'
 import { api } from '@/utils/client'
-import { schemas, unwrap } from '@polar-sh/client'
-import Button from '@polar-sh/ui/components/atoms/Button'
-import Input from '@polar-sh/ui/components/atoms/Input'
+import { schemas, unwrap } from '@/lib/api'
+import Button from '@/components/atoms/Button'
+import Input from '@/components/atoms/Input'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@polar-sh/ui/components/atoms/Select'
+} from '@/components/atoms/Select'
 import {
   Form,
   FormControl,
   FormField,
   FormItem,
   FormMessage,
-} from '@polar-sh/ui/components/ui/form'
+} from '@/components/ui/form'
 import { CheckCircle, Loader2, Phone, RefreshCw, XCircle } from 'lucide-react'
 import React, { useCallback, useState } from 'react'
 import { useForm } from 'react-hook-form'

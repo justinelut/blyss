@@ -1,19 +1,19 @@
 'use client'
 
 import { CONFIG } from '@/utils/config'
-import Button from '@polar-sh/ui/components/atoms/Button'
+import Button from '@/components/atoms/Button'
 import {
   InputOTP,
   InputOTPGroup,
   InputOTPSlot,
-} from '@polar-sh/ui/components/atoms/InputOTP'
+} from '@/components/atoms/InputOTP'
 import {
   Form,
   FormControl,
   FormField,
   FormItem,
   FormMessage,
-} from '@polar-sh/ui/components/ui/form'
+} from '@/components/ui/form'
 import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 

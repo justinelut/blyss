@@ -1,6 +1,6 @@
 'use client'
 
-import { Box } from '@polar-sh/orbit/Box'
+import { Box } from '@/lib/orbit/Box'
 
 export function AUPBlocker() {
   return (

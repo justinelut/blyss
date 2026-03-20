@@ -12,15 +12,15 @@ import {
   getAPIParams,
   serializeSearchParams,
 } from '@/utils/datatable'
-import { schemas } from '@polar-sh/client'
-import Avatar from '@polar-sh/ui/components/atoms/Avatar'
+import { schemas } from '@/lib/api'
+import Avatar from '@/components/atoms/Avatar'
 import {
   DataTable,
   DataTableColumnDef,
   DataTableColumnHeader,
-} from '@polar-sh/ui/components/atoms/DataTable'
-import FormattedDateTime from '@polar-sh/ui/components/atoms/FormattedDateTime'
-import Input from '@polar-sh/ui/components/atoms/Input'
+} from '@/components/atoms/DataTable'
+import FormattedDateTime from '@/components/atoms/FormattedDateTime'
+import Input from '@/components/atoms/Input'
 import { useRouter } from 'next/navigation'
 import React from 'react'
 

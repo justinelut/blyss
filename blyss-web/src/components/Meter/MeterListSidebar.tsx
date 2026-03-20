@@ -9,16 +9,16 @@ import ArrowUpward from '@mui/icons-material/ArrowUpward'
 import CheckOutlined from '@mui/icons-material/CheckOutlined'
 import FilterList from '@mui/icons-material/FilterList'
 import Search from '@mui/icons-material/Search'
-import { schemas } from '@polar-sh/client'
-import Button from '@polar-sh/ui/components/atoms/Button'
-import Input from '@polar-sh/ui/components/atoms/Input'
-import { Status } from '@polar-sh/ui/components/atoms/Status'
+import { schemas } from '@/lib/api'
+import Button from '@/components/atoms/Button'
+import Input from '@/components/atoms/Input'
+import { Status } from '@/components/atoms/Status'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@polar-sh/ui/components/ui/dropdown-menu'
+} from '@/components/ui/dropdown-menu'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { parseAsStringLiteral, useQueryState } from 'nuqs'

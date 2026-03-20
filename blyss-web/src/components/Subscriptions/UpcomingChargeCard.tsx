@@ -3,9 +3,9 @@
 import { DetailRow } from '@/components/Shared/DetailRow'
 import { useProduct } from '@/hooks/queries'
 import { useSubscriptionChargePreview } from '@/hooks/queries/subscriptions'
-import { schemas } from '@polar-sh/client'
-import { formatCurrency } from '@polar-sh/currency'
-import ShadowBox from '@polar-sh/ui/components/atoms/ShadowBox'
+import { schemas } from '@/lib/api'
+import { formatCurrency } from '@/lib/currency'
+import ShadowBox from '@/components/atoms/ShadowBox'
 import { useMemo } from 'react'
 
 const UpcomingChargeCard = ({

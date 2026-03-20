@@ -7,11 +7,11 @@ import { useAuth } from '@/hooks'
 import { useCreateOrganization } from '@/hooks/queries'
 import { getServerURL } from '@/utils/api'
 import { setValidationErrors } from '@/utils/api/errors'
-import { schemas } from '@polar-sh/client'
-import Avatar from '@polar-sh/ui/components/atoms/Avatar'
-import Button from '@polar-sh/ui/components/atoms/Button'
-import Input from '@polar-sh/ui/components/atoms/Input'
-import { Checkbox } from '@polar-sh/ui/components/ui/checkbox'
+import { schemas } from '@/lib/api'
+import Avatar from '@/components/atoms/Avatar'
+import Button from '@/components/atoms/Button'
+import Input from '@/components/atoms/Input'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Form,
   FormControl,
@@ -19,8 +19,8 @@ import {
   FormField,
   FormItem,
   FormMessage,
-} from '@polar-sh/ui/components/ui/form'
-import { Label } from '@polar-sh/ui/components/ui/label'
+} from '@/components/ui/form'
+import { Label } from '@/components/ui/label'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'

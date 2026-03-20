@@ -7,12 +7,12 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@polar-sh/ui/components/ui/form'
-import { Label } from '@polar-sh/ui/components/ui/label'
+} from '@/components/ui/form'
+import { Label } from '@/components/ui/label'
 import {
   RadioGroup,
   RadioGroupItem,
-} from '@polar-sh/ui/components/ui/radio-group'
+} from '@/components/ui/radio-group'
 import { useFormContext } from 'react-hook-form'
 import { ProductFormType } from './ProductForm'
 

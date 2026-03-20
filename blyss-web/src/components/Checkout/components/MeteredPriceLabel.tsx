@@ -1,5 +1,5 @@
-import type { schemas } from '@polar-sh/client'
-import { formatCurrency } from '@polar-sh/currency'
+import type { schemas } from '@/lib/api'
+import { formatCurrency } from '@/lib/currency'
 import {
   DEFAULT_LOCALE,
   useTranslations,

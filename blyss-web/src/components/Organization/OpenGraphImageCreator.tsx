@@ -1,5 +1,5 @@
 import LogoIcon from '@/components/Brand/logos/LogoIcon'
-import { schemas } from '@polar-sh/client'
+import { schemas } from '@/lib/api'
 
 const generatePostOGFallbackPath = (slug: string, maxInt: number) => {
   let sum = 0

@@ -9,18 +9,18 @@ import { ParsedMetricPeriod } from '@/hooks/queries/metrics'
 import { OrganizationContext } from '@/providers/maintainerOrganization'
 import { dateRangeToInterval } from '@/utils/metrics'
 import { UTCDate } from '@date-fns/utc'
-import { schemas } from '@polar-sh/client'
+import { schemas } from '@/lib/api'
 import {
   Card,
   CardContent,
   CardHeader,
-} from '@polar-sh/ui/components/atoms/Card'
+} from '@/components/atoms/Card'
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
-} from '@polar-sh/ui/components/atoms/Tabs'
+} from '@/components/atoms/Tabs'
 import { endOfMonth, startOfMonth, subMonths } from 'date-fns'
 import { useCallback, useContext, useMemo, useState } from 'react'
 import DateRangePicker from '../Metrics/DateRangePicker'

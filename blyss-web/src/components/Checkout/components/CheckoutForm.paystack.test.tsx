@@ -9,17 +9,17 @@ vi.mock('react-hook-form', () => ({
 }))
 
 // Mock the UI components
-vi.mock('@polar-sh/ui/components/atoms/Button', () => ({
+vi.mock('@/components/atoms/Button', () => ({
   default: ({ children, ...props }: any) => (
     <button {...props}>{children}</button>
   ),
 }))
 
-vi.mock('@polar-sh/ui/components/atoms/Input', () => ({
+vi.mock('@/components/atoms/Input', () => ({
   default: (props: any) => <input {...props} />,
 }))
 
-vi.mock('@polar-sh/ui/components/ui/form', () => ({
+vi.mock('@/components/ui/form', () => ({
   Form: ({ children }: any) => <form>{children}</form>,
   FormControl: ({ children }: any) => <div>{children}</div>,
   FormField: ({ render }: any) =>

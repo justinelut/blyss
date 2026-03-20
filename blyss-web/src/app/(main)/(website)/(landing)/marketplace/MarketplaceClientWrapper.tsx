@@ -2,7 +2,7 @@
 
 import { usePublicProducts } from '@/hooks/queries/products'
 import { initPerformanceMonitoring } from '@/utils/performance'
-import { schemas } from '@polar-sh/client'
+import { schemas } from '@/lib/api'
 import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs'
 import { useCallback, useEffect } from 'react'
 import { MarketplaceContent } from './MarketplaceContent'

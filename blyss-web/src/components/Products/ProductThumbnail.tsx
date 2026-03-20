@@ -1,6 +1,6 @@
 import { UploadImage } from '@/components/Image/Image'
 import TextureOutlined from '@mui/icons-material/TextureOutlined'
-import { schemas } from '@polar-sh/client'
+import { schemas } from '@/lib/api'
 import { twMerge } from 'tailwind-merge'
 
 export const ProductThumbnail = ({

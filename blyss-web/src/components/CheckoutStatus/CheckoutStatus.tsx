@@ -2,8 +2,8 @@ import {
   CheckoutStatusDisplayColor,
   CheckoutStatusDisplayTitle,
 } from '@/utils/checkout'
-import { schemas } from '@polar-sh/client'
-import { Status } from '@polar-sh/ui/components/atoms/Status'
+import { schemas } from '@/lib/api'
+import { Status } from '@/components/atoms/Status'
 import { twMerge } from 'tailwind-merge'
 
 const CheckoutStatus = ({

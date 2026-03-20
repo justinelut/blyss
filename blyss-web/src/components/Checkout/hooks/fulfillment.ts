@@ -1,6 +1,6 @@
 'use client'
 
-import type { Client, schemas } from '@polar-sh/client'
+import type { Client, schemas } from '@/lib/api'
 import { useCallback, useState } from 'react'
 
 import { hasProductCheckout, isLegacyRecurringProductPrice } from '../guards'

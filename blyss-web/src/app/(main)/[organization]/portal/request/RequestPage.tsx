@@ -2,25 +2,25 @@
 
 import { useCustomerPortalSessionRequest } from '@/hooks/queries'
 import { setValidationErrors } from '@/utils/api/errors'
-import Button from '@polar-sh/ui/components/atoms/Button'
-import Input from '@polar-sh/ui/components/atoms/Input'
-import ShadowBox from '@polar-sh/ui/components/atoms/ShadowBox'
+import Button from '@/components/atoms/Button'
+import Input from '@/components/atoms/Input'
+import ShadowBox from '@/components/atoms/ShadowBox'
 import { useRouter } from 'next/navigation'
 
 import { api } from '@/utils/client'
-import { schemas } from '@polar-sh/client'
+import { schemas } from '@/lib/api'
 import {
   Form,
   FormControl,
   FormField,
   FormItem,
   FormMessage,
-} from '@polar-sh/ui/components/ui/form'
-import { Label } from '@polar-sh/ui/components/ui/label'
+} from '@/components/ui/form'
+import { Label } from '@/components/ui/label'
 import {
   RadioGroup,
   RadioGroupItem,
-} from '@polar-sh/ui/components/ui/radio-group'
+} from '@/components/ui/radio-group'
 import { useCallback, useState } from 'react'
 import { useForm } from 'react-hook-form'
 

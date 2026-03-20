@@ -2,7 +2,7 @@
 
 import { ProductCard } from '@/components/Products/ProductCard'
 import { useRelatedProducts } from '@/hooks/queries/products'
-import { schemas } from '@polar-sh/client'
+import { schemas } from '@/lib/api'
 
 interface RelatedProductsProps {
   productId: string

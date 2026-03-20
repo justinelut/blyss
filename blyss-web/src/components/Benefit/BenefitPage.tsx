@@ -6,11 +6,11 @@ import {
   parseSearchParams,
   serializeSearchParams,
 } from '@/utils/datatable'
-import { schemas } from '@polar-sh/client'
-import Avatar from '@polar-sh/ui/components/atoms/Avatar'
-import Button from '@polar-sh/ui/components/atoms/Button'
-import { DataTable } from '@polar-sh/ui/components/atoms/DataTable'
-import FormattedDateTime from '@polar-sh/ui/components/atoms/FormattedDateTime'
+import { schemas } from '@/lib/api'
+import Avatar from '@/components/atoms/Avatar'
+import Button from '@/components/atoms/Button'
+import { DataTable } from '@/components/atoms/DataTable'
+import FormattedDateTime from '@/components/atoms/FormattedDateTime'
 import { ColumnDef } from '@tanstack/react-table'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'

@@ -1,5 +1,5 @@
 import { getPublicServerURL } from '@/utils/api'
-import { operations } from '@polar-sh/client'
+import { operations } from '@/lib/api'
 
 export const getGitHubAuthorizeLoginURL = (
   params: NonNullable<

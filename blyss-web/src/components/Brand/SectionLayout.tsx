@@ -1,4 +1,4 @@
-import { Headline } from '@polar-sh/orbit'
+import { Headline } from '@/lib/orbit'
 import React from 'react'
 import { twMerge } from 'tailwind-merge'
 

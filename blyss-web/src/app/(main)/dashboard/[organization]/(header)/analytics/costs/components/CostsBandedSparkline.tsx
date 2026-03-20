@@ -5,7 +5,7 @@ import {
   ChartContainer,
   ComposedChart,
   Line,
-} from '@polar-sh/ui/components/ui/chart'
+} from '@/components/ui/chart'
 import { useTheme } from 'next-themes'
 import { useMemo } from 'react'
 

@@ -6,7 +6,7 @@ import {
   useIsInWishlist,
   useRemoveFromWishlist,
 } from '@/hooks/queries/wishlist'
-import Button from '@polar-sh/ui/components/atoms/Button'
+import Button from '@/components/atoms/Button'
 import { Heart } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'

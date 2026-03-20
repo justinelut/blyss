@@ -1,7 +1,7 @@
 'use client'
 
-import { PolarEmbedCheckout } from '@polar-sh/checkout/embed'
-import type { schemas } from '@polar-sh/client'
+import { PolarEmbedCheckout } from '@/components/checkout/embed'
+import type { schemas } from '@/lib/api'
 import { X } from 'lucide-react'
 import { useCallback, useEffect } from 'react'
 

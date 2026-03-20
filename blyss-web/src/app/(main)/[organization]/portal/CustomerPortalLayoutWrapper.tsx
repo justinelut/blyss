@@ -1,7 +1,7 @@
 'use client'
 
 import { CustomerPortalProvider } from '@/components/CustomerPortal/CustomerPortalProvider'
-import { schemas } from '@polar-sh/client'
+import { schemas } from '@/lib/api'
 import { useSearchParams } from 'next/navigation'
 
 interface CustomerPortalLayoutWrapperProps {

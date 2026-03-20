@@ -10,24 +10,24 @@ import { useUpdateSubscription } from '@/hooks/queries/subscriptions'
 import { setValidationErrors } from '@/utils/api/errors'
 import { getDiscountDisplay } from '@/utils/discount'
 import { hasLegacyRecurringPrices } from '@/utils/product'
-import { isValidationError, schemas } from '@polar-sh/client'
-import Button from '@polar-sh/ui/components/atoms/Button'
-import { Combobox } from '@polar-sh/ui/components/atoms/Combobox'
-import DateTimePicker from '@polar-sh/ui/components/atoms/DateTimePicker'
-import Pill from '@polar-sh/ui/components/atoms/Pill'
+import { isValidationError, schemas } from '@/lib/api'
+import Button from '@/components/atoms/Button'
+import { Combobox } from '@/components/atoms/Combobox'
+import DateTimePicker from '@/components/atoms/DateTimePicker'
+import Pill from '@/components/atoms/Pill'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@polar-sh/ui/components/atoms/Select'
+} from '@/components/atoms/Select'
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
-} from '@polar-sh/ui/components/atoms/Tabs'
+} from '@/components/atoms/Tabs'
 import {
   Form,
   FormControl,
@@ -36,7 +36,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@polar-sh/ui/components/ui/form'
+} from '@/components/ui/form'
 import { XIcon } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'

@@ -1,11 +1,11 @@
 import { useMetrics } from '@/hooks/queries'
 import { OrganizationContext } from '@/providers/maintainerOrganization'
-import Button from '@polar-sh/ui/components/atoms/Button'
+import Button from '@/components/atoms/Button'
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from '@polar-sh/ui/components/ui/tooltip'
+} from '@/components/ui/tooltip'
 import {
   addMonths,
   endOfMonth,

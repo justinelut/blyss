@@ -1,4 +1,4 @@
-import type { schemas } from '@polar-sh/client'
+import type { schemas } from '@/lib/api'
 import type { ProductCheckoutPublic } from '../guards'
 
 const now = new Date()

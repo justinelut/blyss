@@ -1,7 +1,7 @@
 'use client'
 
-import Button from '@polar-sh/ui/components/atoms/Button'
-import { Card } from '@polar-sh/ui/components/ui/card'
+import Button from '@/components/atoms/Button'
+import { Card } from '@/components/ui/card'
 import { ArrowRight, CheckCircle } from 'lucide-react'
 import React from 'react'
 

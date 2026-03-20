@@ -1,4 +1,4 @@
-import { Stack, Text } from '@polar-sh/orbit'
+import { Stack, Text } from '@/lib/orbit'
 import { OrbitPageHeader, OrbitSectionHeader } from '../../OrbitPageHeader'
 
 // ─── Examples data ────────────────────────────────────────────────────────────

@@ -3,7 +3,7 @@
 import { useAuth } from '@/hooks/auth'
 import { useCreateReview } from '@/hooks/queries/reviews'
 import { setValidationErrors } from '@/utils/api/errors'
-import Button from '@polar-sh/ui/components/atoms/Button'
+import Button from '@/components/atoms/Button'
 import {
   Form,
   FormControl,
@@ -11,8 +11,8 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@polar-sh/ui/components/ui/form'
-import { Textarea } from '@polar-sh/ui/components/ui/textarea'
+} from '@/components/ui/form'
+import { Textarea } from '@/components/ui/textarea'
 import { Star } from 'lucide-react'
 import { useState } from 'react'
 import { SubmitHandler, useForm } from 'react-hook-form'

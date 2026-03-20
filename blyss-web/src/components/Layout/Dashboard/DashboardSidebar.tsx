@@ -7,8 +7,8 @@ import ArrowOutwardOutlined from '@mui/icons-material/ArrowOutwardOutlined'
 import KeyboardArrowDown from '@mui/icons-material/KeyboardArrowDown'
 import Search from '@mui/icons-material/Search'
 import SupportIcon from '@mui/icons-material/Support'
-import { schemas } from '@polar-sh/client'
-import Avatar from '@polar-sh/ui/components/atoms/Avatar'
+import { schemas } from '@/lib/api'
+import Avatar from '@/components/atoms/Avatar'
 import {
   Sidebar,
   SidebarContent,
@@ -19,15 +19,15 @@ import {
   SidebarMenuItem,
   SidebarTrigger,
   useSidebar,
-} from '@polar-sh/ui/components/atoms/Sidebar'
+} from '@/components/atoms/Sidebar'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@polar-sh/ui/components/ui/dropdown-menu'
-import { Separator } from '@polar-sh/ui/components/ui/separator'
+} from '@/components/ui/dropdown-menu'
+import { Separator } from '@/components/ui/separator'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'

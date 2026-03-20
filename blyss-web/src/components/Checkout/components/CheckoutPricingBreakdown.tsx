@@ -1,14 +1,14 @@
 'use client'
 
-import { schemas } from '@polar-sh/client'
-import { formatCurrency } from '@polar-sh/currency'
+import { schemas } from '@/lib/api'
+import { formatCurrency } from '@/lib/currency'
 import {
   DEFAULT_LOCALE,
   useTranslations,
   type AcceptedLocale,
 } from '@polar-sh/i18n'
 import { formatDate } from '@polar-sh/i18n/formatters/date'
-import { cn } from '@polar-sh/ui/lib/utils'
+import { cn } from '@/lib/utils'
 import { PropsWithChildren, useMemo } from 'react'
 import { hasProductCheckout, isLegacyRecurringProductPrice } from '../guards'
 import { getDiscountDisplay } from '../utils/discount'

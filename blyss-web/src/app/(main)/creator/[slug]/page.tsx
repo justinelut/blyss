@@ -1,6 +1,6 @@
 import { StorefrontLayout } from '@/components/Creators/StorefrontLayout'
 import { getServerSideAPI } from '@/utils/client/serverside'
-import { unwrap } from '@polar-sh/client'
+import { unwrap } from '@/lib/api'
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 

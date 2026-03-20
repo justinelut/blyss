@@ -1,6 +1,6 @@
 'use client'
 
-import { Box } from '@polar-sh/orbit/Box'
+import { Box } from '@/lib/orbit/Box'
 import { motion } from 'framer-motion'
 import { ArrowLeft } from 'lucide-react'
 import { useRouter } from 'next/navigation'

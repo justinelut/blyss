@@ -3,14 +3,14 @@
 import { useUpdateOrganization } from '@/hooks/queries'
 import { useAutoSave } from '@/hooks/useAutoSave'
 import { setValidationErrors } from '@/utils/api/errors'
-import { isValidationError, schemas } from '@polar-sh/client'
+import { isValidationError, schemas } from '@/lib/api'
 import {
   Form,
   FormControl,
   FormField,
   FormItem,
   FormMessage,
-} from '@polar-sh/ui/components/ui/form'
+} from '@/components/ui/form'
 import React from 'react'
 import { useForm } from 'react-hook-form'
 import { CurrencySelector } from '../CurrencySelector'

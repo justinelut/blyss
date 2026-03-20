@@ -1,12 +1,12 @@
 'use client'
 
-import { enums } from '@polar-sh/client'
-import { Checkbox } from '@polar-sh/ui/components/ui/checkbox'
+import { enums } from '@/lib/api'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@polar-sh/ui/components/ui/popover'
+} from '@/components/ui/popover'
 import { ChevronDown } from 'lucide-react'
 import { useCallback, useMemo, useState } from 'react'
 

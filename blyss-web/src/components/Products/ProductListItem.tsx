@@ -11,23 +11,23 @@ import {
   isSeatBasedPrice,
 } from '@/utils/product'
 import MoreVertOutlined from '@mui/icons-material/MoreVertOutlined'
-import { schemas } from '@polar-sh/client'
-import Button from '@polar-sh/ui/components/atoms/Button'
-import { ListItem } from '@polar-sh/ui/components/atoms/List'
-import Pill from '@polar-sh/ui/components/atoms/Pill'
-import { Status } from '@polar-sh/ui/components/atoms/Status'
+import { schemas } from '@/lib/api'
+import Button from '@/components/atoms/Button'
+import { ListItem } from '@/components/atoms/List'
+import Pill from '@/components/atoms/Pill'
+import { Status } from '@/components/atoms/Status'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@polar-sh/ui/components/ui/dropdown-menu'
+} from '@/components/ui/dropdown-menu'
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from '@polar-sh/ui/components/ui/tooltip'
+} from '@/components/ui/tooltip'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCallback } from 'react'

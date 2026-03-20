@@ -4,13 +4,13 @@ import {
   Card,
   CardFooter,
   CardHeader,
-} from '@polar-sh/ui/components/atoms/Card'
+} from '@/components/atoms/Card'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '@polar-sh/ui/components/ui/tooltip'
+} from '@/components/ui/tooltip'
 import { useContext } from 'react'
 import { twMerge } from 'tailwind-merge'
 

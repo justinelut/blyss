@@ -1,9 +1,9 @@
-import { Text } from '@polar-sh/orbit'
+import { Text } from '@/lib/orbit'
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
-} from '@polar-sh/ui/components/ui/sidebar'
+} from '@/components/ui/sidebar'
 import type { ReactNode } from 'react'
 import { OrbitNav } from './OrbitNav'
 

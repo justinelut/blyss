@@ -1,9 +1,9 @@
 'use client'
 
 import { useCustomerBenefitGrants } from '@/hooks/queries/customerPortal'
-import { Client } from '@polar-sh/client'
-import Input from '@polar-sh/ui/components/atoms/Input'
-import { List, ListItem } from '@polar-sh/ui/components/atoms/List'
+import { Client } from '@/lib/api'
+import Input from '@/components/atoms/Input'
+import { List, ListItem } from '@/components/atoms/List'
 import { Loader2, Search } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { BenefitGrant } from '../Benefit/BenefitGrant'

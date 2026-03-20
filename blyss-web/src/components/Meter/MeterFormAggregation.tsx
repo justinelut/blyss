@@ -1,7 +1,7 @@
 'use client'
 
-import { enums, schemas } from '@polar-sh/client'
-import Input from '@polar-sh/ui/components/atoms/Input'
+import { enums, schemas } from '@/lib/api'
+import Input from '@/components/atoms/Input'
 import {
   FormControl,
   FormDescription,
@@ -9,12 +9,12 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@polar-sh/ui/components/ui/form'
-import { Label } from '@polar-sh/ui/components/ui/label'
+} from '@/components/ui/form'
+import { Label } from '@/components/ui/label'
 import {
   RadioGroup,
   RadioGroupItem,
-} from '@polar-sh/ui/components/ui/radio-group'
+} from '@/components/ui/radio-group'
 import { useFormContext } from 'react-hook-form'
 
 const AGGREGATION_FUNCTIONS = [

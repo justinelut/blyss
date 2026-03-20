@@ -9,22 +9,22 @@ import {
 } from '@/hooks/queries'
 import { validateEmail } from '@/utils/validation'
 import MoreVertOutlined from '@mui/icons-material/MoreVertOutlined'
-import { Client } from '@polar-sh/client'
-import Button from '@polar-sh/ui/components/atoms/Button'
+import { Client } from '@/lib/api'
+import Button from '@/components/atoms/Button'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@polar-sh/ui/components/atoms/DropdownMenu'
-import Input from '@polar-sh/ui/components/atoms/Input'
+} from '@/components/atoms/DropdownMenu'
+import Input from '@/components/atoms/Input'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@polar-sh/ui/components/atoms/Select'
+} from '@/components/atoms/Select'
 import { useState } from 'react'
 import { ConfirmModal } from '../Modal/ConfirmModal'
 import { toast } from '../Toast/use-toast'

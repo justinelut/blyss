@@ -1,21 +1,21 @@
 'use client'
 
-import { schemas } from '@polar-sh/client'
-import Button from '@polar-sh/ui/components/atoms/Button'
+import { schemas } from '@/lib/api'
+import Button from '@/components/atoms/Button'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@polar-sh/ui/components/atoms/Select'
-import ShadowBox from '@polar-sh/ui/components/atoms/ShadowBox'
+} from '@/components/atoms/Select'
+import ShadowBox from '@/components/atoms/ShadowBox'
 import {
   FormControl,
   FormField,
   FormItem,
   FormMessage,
-} from '@polar-sh/ui/components/ui/form'
+} from '@/components/ui/form'
 import { PlusIcon, TrashIcon, XIcon } from 'lucide-react'
 import { useFieldArray, useFormContext } from 'react-hook-form'
 import { twMerge } from 'tailwind-merge'

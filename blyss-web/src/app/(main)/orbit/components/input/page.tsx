@@ -1,6 +1,6 @@
 'use client'
 
-import { Headline, Input, Stack, Text } from '@polar-sh/orbit'
+import { Headline, Input, Stack, Text } from '@/lib/orbit'
 import { OrbitPageHeader, OrbitSectionHeader } from '../../OrbitPageHeader'
 
 const props = [

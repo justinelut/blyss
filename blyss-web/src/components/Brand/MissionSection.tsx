@@ -1,4 +1,4 @@
-import { Headline } from '@polar-sh/orbit'
+import { Headline } from '@/lib/orbit'
 import { PolarLogotype } from '../Layout/Public/PolarLogotype'
 import { SectionLayout } from './SectionLayout'
 import { ShaderCanvas } from './ShaderCanvas'

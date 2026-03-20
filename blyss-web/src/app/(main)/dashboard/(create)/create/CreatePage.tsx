@@ -2,7 +2,7 @@
 
 import { OrganizationStep } from '@/components/Onboarding/OrganizationStep'
 import { useExperiment } from '@/experiments/client'
-import { schemas } from '@polar-sh/client'
+import { schemas } from '@/lib/api'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 

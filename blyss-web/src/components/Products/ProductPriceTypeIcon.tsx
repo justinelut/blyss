@@ -1,6 +1,6 @@
 import LoopOutlined from '@mui/icons-material/LoopOutlined'
 import ShoppingCartOutlined from '@mui/icons-material/ShoppingCartOutlined'
-import { schemas } from '@polar-sh/client'
+import { schemas } from '@/lib/api'
 import React from 'react'
 
 interface ProductPriceTypeIconProps {

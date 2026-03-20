@@ -6,7 +6,7 @@ vi.mock('@/hooks/queries/cart', () => ({
   useRemoveFromCart: vi.fn(),
 }))
 
-vi.mock('@polar-sh/currency', () => ({
+vi.mock('@/lib/currency', () => ({
   formatCurrency: (amount: number, currency: string) =>
     `$${(amount / 100).toFixed(2)}`,
 }))

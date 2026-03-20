@@ -4,12 +4,12 @@ import { Logo } from '@/components/Brand/Logo'
 import { useAuth } from '@/hooks/auth'
 import { OrganizationContext } from '@/providers/maintainerOrganization'
 import { setLastVisitedOrg } from '@/utils/cookies'
-import { schemas } from '@polar-sh/client'
+import { schemas } from '@/lib/api'
 import {
   SidebarTrigger,
   useSidebar,
-} from '@polar-sh/ui/components/atoms/Sidebar'
-import { Tabs, TabsList, TabsTrigger } from '@polar-sh/ui/components/atoms/Tabs'
+} from '@/components/atoms/Sidebar'
+import { Tabs, TabsList, TabsTrigger } from '@/components/atoms/Tabs'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'

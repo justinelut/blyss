@@ -3,7 +3,7 @@
 import { UploadImage } from '@/components/Image/Image'
 import { getResizedImage } from '@/utils/getResizedImage'
 import { markdownOptions } from '@/utils/markdown'
-import type { schemas } from '@polar-sh/client'
+import type { schemas } from '@/lib/api'
 import {
   DEFAULT_LOCALE,
   useTranslations,
@@ -16,7 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@polar-sh/ui/components/ui/dialog'
+} from '@/components/ui/dialog'
 import Markdown from 'markdown-to-jsx'
 import { useEffect, useRef, useState } from 'react'
 import { Slideshow } from '../Products/Slideshow'

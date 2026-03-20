@@ -1,7 +1,7 @@
 import LogoType from '@/components/Brand/logos/LogoType'
 import { UploadImage } from '@/components/Image/Image'
 import AddOutlined from '@mui/icons-material/AddOutlined'
-import { schemas } from '@polar-sh/client'
+import { schemas } from '@/lib/api'
 
 export default function SharedLayout({
   client,

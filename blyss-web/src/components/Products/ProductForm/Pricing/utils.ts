@@ -1,4 +1,4 @@
-import { schemas } from '@polar-sh/client'
+import { schemas } from '@/lib/api'
 import { ProductFormType } from '../ProductForm'
 
 export type ProductPrice = schemas['ProductPrice']

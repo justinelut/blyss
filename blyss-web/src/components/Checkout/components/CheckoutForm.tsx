@@ -1,13 +1,13 @@
 'use client'
 
-import type { schemas } from '@polar-sh/client'
-import { enums } from '@polar-sh/client'
+import type { schemas } from '@/lib/api'
+import { enums } from '@/lib/api'
 import { useTranslations, type AcceptedLocale } from '@polar-sh/i18n'
-import Button from '@polar-sh/ui/components/atoms/Button'
-import CountryPicker from '@polar-sh/ui/components/atoms/CountryPicker'
-import CountryStatePicker from '@polar-sh/ui/components/atoms/CountryStatePicker'
-import Input from '@polar-sh/ui/components/atoms/Input'
-import { Checkbox } from '@polar-sh/ui/components/ui/checkbox'
+import Button from '@/components/atoms/Button'
+import CountryPicker from '@/components/atoms/CountryPicker'
+import CountryStatePicker from '@/components/atoms/CountryStatePicker'
+import Input from '@/components/atoms/Input'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Form,
   FormControl,
@@ -15,9 +15,9 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@polar-sh/ui/components/ui/form'
-import { ThemingPresetProps } from '@polar-sh/ui/hooks/theming'
-import { cn } from '@polar-sh/ui/lib/utils'
+} from '@/components/ui/form'
+import { ThemingPresetProps } from '@/components/ui/hooks/theming'
+import { cn } from '@/lib/utils'
 import {
   Elements,
   ElementsConsumer,

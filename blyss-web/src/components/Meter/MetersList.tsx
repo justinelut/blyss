@@ -1,12 +1,12 @@
 import { DataTableSortingState } from '@/utils/datatable'
-import { schemas } from '@polar-sh/client'
+import { schemas } from '@/lib/api'
 import {
   DataTable,
   DataTableColumnDef,
   DataTableColumnHeader,
-} from '@polar-sh/ui/components/atoms/DataTable'
-import FormattedDateTime from '@polar-sh/ui/components/atoms/FormattedDateTime'
-import { Status } from '@polar-sh/ui/components/atoms/Status'
+} from '@/components/atoms/DataTable'
+import FormattedDateTime from '@/components/atoms/FormattedDateTime'
+import { Status } from '@/components/atoms/Status'
 import {
   OnChangeFn,
   PaginationState,

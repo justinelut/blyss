@@ -5,14 +5,14 @@ import {
   CreatableBenefit,
   resolveBenefitIcon,
 } from '@/components/Benefit/utils'
-import { enums, schemas } from '@polar-sh/client'
-import Button from '@polar-sh/ui/components/atoms/Button'
+import { enums, schemas } from '@/lib/api'
+import Button from '@/components/atoms/Button'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@polar-sh/ui/components/ui/dropdown-menu'
+} from '@/components/ui/dropdown-menu'
 import { Plus } from 'lucide-react'
 import { parseAsBoolean, useQueryState } from 'nuqs'
 import { useEffect, useState } from 'react'

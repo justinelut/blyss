@@ -13,16 +13,16 @@ import {
   useRemoveOrganizationMember,
 } from '@/hooks/queries/org'
 import Add from '@mui/icons-material/Add'
-import { schemas } from '@polar-sh/client'
-import Avatar from '@polar-sh/ui/components/atoms/Avatar'
-import Button from '@polar-sh/ui/components/atoms/Button'
+import { schemas } from '@/lib/api'
+import Avatar from '@/components/atoms/Avatar'
+import Button from '@/components/atoms/Button'
 import {
   DataTable,
   DataTableColumnDef,
   DataTableColumnHeader,
-} from '@polar-sh/ui/components/atoms/DataTable'
-import FormattedDateTime from '@polar-sh/ui/components/atoms/FormattedDateTime'
-import Input from '@polar-sh/ui/components/atoms/Input'
+} from '@/components/atoms/DataTable'
+import FormattedDateTime from '@/components/atoms/FormattedDateTime'
+import Input from '@/components/atoms/Input'
 import { useRouter } from 'next/navigation'
 import { useCallback, useMemo, useState } from 'react'
 

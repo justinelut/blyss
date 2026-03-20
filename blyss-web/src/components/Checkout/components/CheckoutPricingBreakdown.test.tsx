@@ -1,4 +1,4 @@
-import { schemas } from '@polar-sh/client'
+import { schemas } from '@/lib/api'
 import { render, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import {

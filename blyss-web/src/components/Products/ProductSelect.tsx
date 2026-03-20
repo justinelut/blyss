@@ -1,7 +1,7 @@
 import { useProducts, useSelectedProducts } from '@/hooks/queries'
 import ExpandMoreOutlined from '@mui/icons-material/ExpandMoreOutlined'
-import { operations, schemas } from '@polar-sh/client'
-import Button from '@polar-sh/ui/components/atoms/Button'
+import { operations, schemas } from '@/lib/api'
+import Button from '@/components/atoms/Button'
 import {
   Command,
   CommandEmpty,
@@ -10,12 +10,12 @@ import {
   CommandItem,
   CommandList,
   CommandSeparator,
-} from '@polar-sh/ui/components/ui/command'
+} from '@/components/ui/command'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@polar-sh/ui/components/ui/popover'
+} from '@/components/ui/popover'
 import { CheckIcon } from 'lucide-react'
 import React, { useCallback, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'

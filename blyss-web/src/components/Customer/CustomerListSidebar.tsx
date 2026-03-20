@@ -13,16 +13,16 @@ import ArrowDownward from '@mui/icons-material/ArrowDownward'
 import ArrowUpward from '@mui/icons-material/ArrowUpward'
 import MoreVert from '@mui/icons-material/MoreVert'
 import Search from '@mui/icons-material/Search'
-import { schemas } from '@polar-sh/client'
-import Avatar from '@polar-sh/ui/components/atoms/Avatar'
-import Button from '@polar-sh/ui/components/atoms/Button'
-import Input from '@polar-sh/ui/components/atoms/Input'
+import { schemas } from '@/lib/api'
+import Avatar from '@/components/atoms/Avatar'
+import Button from '@/components/atoms/Button'
+import Input from '@/components/atoms/Input'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@polar-sh/ui/components/ui/dropdown-menu'
+} from '@/components/ui/dropdown-menu'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { parseAsString, parseAsStringLiteral, useQueryState } from 'nuqs'

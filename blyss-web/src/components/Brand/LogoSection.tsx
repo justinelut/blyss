@@ -1,7 +1,7 @@
 'use client'
 
 import ArrowDownwardOutlined from '@mui/icons-material/ArrowDownwardOutlined'
-import { Headline } from '@polar-sh/orbit'
+import { Headline } from '@/lib/orbit'
 import { useTheme } from 'next-themes'
 import React, { useCallback, useState } from 'react'
 import { PolarLogotype } from '../Layout/Public/PolarLogotype'

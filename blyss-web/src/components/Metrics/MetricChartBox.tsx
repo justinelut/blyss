@@ -4,24 +4,24 @@ import Spinner from '@/components/Shared/Spinner'
 import { ParsedMetricsResponse } from '@/hooks/queries'
 import { getFormattedMetricValue } from '@/utils/metrics'
 import ArrowOutwardOutlined from '@mui/icons-material/ArrowOutwardOutlined'
-import { schemas } from '@polar-sh/client'
-import Button from '@polar-sh/ui/components/atoms/Button'
-import FormattedDateTime from '@polar-sh/ui/components/atoms/FormattedDateTime'
-import FormattedInterval from '@polar-sh/ui/components/atoms/FormattedInterval'
+import { schemas } from '@/lib/api'
+import Button from '@/components/atoms/Button'
+import FormattedDateTime from '@/components/atoms/FormattedDateTime'
+import FormattedInterval from '@/components/atoms/FormattedInterval'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@polar-sh/ui/components/atoms/Select'
-import ShadowBox from '@polar-sh/ui/components/atoms/ShadowBox'
-import { Status } from '@polar-sh/ui/components/atoms/Status'
+} from '@/components/atoms/Select'
+import ShadowBox from '@/components/atoms/ShadowBox'
+import { Status } from '@/components/atoms/Status'
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from '@polar-sh/ui/components/ui/tooltip'
+} from '@/components/ui/tooltip'
 import React, { useMemo } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Modal } from '../Modal'

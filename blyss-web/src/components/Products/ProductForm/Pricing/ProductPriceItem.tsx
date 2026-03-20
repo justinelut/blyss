@@ -2,21 +2,21 @@
 
 import { isStaticPrice } from '@/utils/product'
 import CloseOutlined from '@mui/icons-material/CloseOutlined'
-import { schemas } from '@polar-sh/client'
-import Button from '@polar-sh/ui/components/atoms/Button'
+import { schemas } from '@/lib/api'
+import Button from '@/components/atoms/Button'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@polar-sh/ui/components/atoms/Select'
+} from '@/components/atoms/Select'
 import {
   FormControl,
   FormField,
   FormItem,
   FormMessage,
-} from '@polar-sh/ui/components/ui/form'
+} from '@/components/ui/form'
 import React from 'react'
 import { useFormContext } from 'react-hook-form'
 import { ProductFormType } from '../ProductForm'

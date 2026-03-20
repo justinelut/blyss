@@ -6,7 +6,7 @@ import {
   useCategoryBySlug,
   useCategoryProducts,
 } from '@/hooks/queries/categories'
-import { cn } from '@polar-sh/ui/lib/utils'
+import { cn } from '@/lib/utils'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'

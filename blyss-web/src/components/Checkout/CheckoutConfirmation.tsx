@@ -3,16 +3,16 @@
 import { useCheckoutConfirmedRedirect } from '@/hooks/checkout'
 import { useCheckoutClientSSE } from '@/hooks/sse'
 import { getServerURL } from '@/utils/api'
-import { hasProductCheckout } from '@polar-sh/checkout/guards'
-import { createClient, unwrap, type schemas } from '@polar-sh/client'
+import { hasProductCheckout } from '@/components/checkout/guards'
+import { createClient, unwrap, type schemas } from '@/lib/api'
 import {
   DEFAULT_LOCALE,
   useTranslations,
   type AcceptedLocale,
 } from '@polar-sh/i18n'
-import Avatar from '@polar-sh/ui/components/atoms/Avatar'
-import Button from '@polar-sh/ui/components/atoms/Button'
-import ShadowBox from '@polar-sh/ui/components/atoms/ShadowBox'
+import Avatar from '@/components/atoms/Avatar'
+import Button from '@/components/atoms/Button'
+import ShadowBox from '@/components/atoms/ShadowBox'
 import { Elements, ElementsConsumer } from '@stripe/react-stripe-js'
 import { Stripe, loadStripe } from '@stripe/stripe-js'
 import { useRouter } from 'next/navigation'

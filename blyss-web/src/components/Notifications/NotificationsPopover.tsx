@@ -3,15 +3,15 @@ import { useOutsideClick } from '@/utils/useOutsideClick'
 import BoltOutlined from '@mui/icons-material/BoltOutlined'
 import InfoOutlined from '@mui/icons-material/InfoOutlined'
 import ShoppingBagOutlined from '@mui/icons-material/ShoppingBagOutlined'
-import { schemas } from '@polar-sh/client'
-import { formatCurrency } from '@polar-sh/currency'
-import Button from '@polar-sh/ui/components/atoms/Button'
-import PolarTimeAgo from '@polar-sh/ui/components/atoms/PolarTimeAgo'
+import { schemas } from '@/lib/api'
+import { formatCurrency } from '@/lib/currency'
+import Button from '@/components/atoms/Button'
+import PolarTimeAgo from '@/components/atoms/PolarTimeAgo'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@polar-sh/ui/components/ui/popover'
+} from '@/components/ui/popover'
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'

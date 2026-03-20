@@ -1,4 +1,4 @@
-import { Client, schemas, unwrap } from '@polar-sh/client'
+import { Client, schemas, unwrap } from '@/lib/api'
 import { notFound } from 'next/navigation'
 import { cache } from 'react'
 

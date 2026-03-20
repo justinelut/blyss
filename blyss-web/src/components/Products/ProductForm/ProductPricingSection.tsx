@@ -2,28 +2,28 @@
 
 import { TrialConfigurationForm } from '@/components/TrialConfiguration/TrialConfigurationForm'
 import { isLegacyRecurringPrice, isMeteredPrice } from '@/utils/product'
-import { schemas } from '@polar-sh/client'
-import Button from '@polar-sh/ui/components/atoms/Button'
-import Input from '@polar-sh/ui/components/atoms/Input'
+import { schemas } from '@/lib/api'
+import Button from '@/components/atoms/Button'
+import Input from '@/components/atoms/Input'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@polar-sh/ui/components/atoms/Select'
-import ShadowBox from '@polar-sh/ui/components/atoms/ShadowBox'
+} from '@/components/atoms/Select'
+import ShadowBox from '@/components/atoms/ShadowBox'
 import {
   FormControl,
   FormField,
   FormItem,
   FormMessage,
-} from '@polar-sh/ui/components/ui/form'
-import { Label } from '@polar-sh/ui/components/ui/label'
+} from '@/components/ui/form'
+import { Label } from '@/components/ui/label'
 import {
   RadioGroup,
   RadioGroupItem,
-} from '@polar-sh/ui/components/ui/radio-group'
+} from '@/components/ui/radio-group'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useFieldArray, useFormContext } from 'react-hook-form'
 import { twMerge } from 'tailwind-merge'

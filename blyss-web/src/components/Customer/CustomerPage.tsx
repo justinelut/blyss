@@ -17,19 +17,19 @@ import { useOrders } from '@/hooks/queries/orders'
 import { useMemberModelEnabled } from '@/hooks/useMemberModelEnabled'
 import { formatPercentage, formatScalar } from '@/utils/formatters'
 import { getPreviousDateRange } from '@/utils/metrics'
-import { schemas } from '@polar-sh/client'
-import { formatCurrency } from '@polar-sh/currency'
-import Button from '@polar-sh/ui/components/atoms/Button'
-import { DataTable } from '@polar-sh/ui/components/atoms/DataTable'
-import FormattedDateTime from '@polar-sh/ui/components/atoms/FormattedDateTime'
-import ShadowBox from '@polar-sh/ui/components/atoms/ShadowBox'
-import { Status } from '@polar-sh/ui/components/atoms/Status'
+import { schemas } from '@/lib/api'
+import { formatCurrency } from '@/lib/currency'
+import Button from '@/components/atoms/Button'
+import { DataTable } from '@/components/atoms/DataTable'
+import FormattedDateTime from '@/components/atoms/FormattedDateTime'
+import ShadowBox from '@/components/atoms/ShadowBox'
+import { Status } from '@/components/atoms/Status'
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
-} from '@polar-sh/ui/components/atoms/Tabs'
+} from '@/components/atoms/Tabs'
 import Link from 'next/link'
 import React, { useMemo } from 'react'
 import { twMerge } from 'tailwind-merge'

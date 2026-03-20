@@ -2,8 +2,8 @@
 
 import { useOrganizationPaymentStatus } from '@/hooks/queries/org'
 import ArrowOutwardOutlined from '@mui/icons-material/ArrowOutwardOutlined'
-import { schemas } from '@polar-sh/client'
-import Button from '@polar-sh/ui/components/atoms/Button'
+import { schemas } from '@/lib/api'
+import Button from '@/components/atoms/Button'
 import { AlertCircle, Building2, Code2, Package } from 'lucide-react'
 import Link from 'next/link'
 import React from 'react'

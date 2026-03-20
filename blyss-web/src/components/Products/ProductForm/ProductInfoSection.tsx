@@ -1,14 +1,14 @@
 'use client'
 
 import { Section } from '@/components/Layout/Section'
-import Input from '@polar-sh/ui/components/atoms/Input'
+import Input from '@/components/atoms/Input'
 import {
   FormControl,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
-} from '@polar-sh/ui/components/ui/form'
+} from '@/components/ui/form'
 import { useFormContext } from 'react-hook-form'
 import { ProductFormType } from './ProductForm'
 

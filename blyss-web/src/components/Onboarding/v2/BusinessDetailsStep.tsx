@@ -2,14 +2,14 @@
 
 import { useAuth, useOnboardingTracking } from '@/hooks'
 import { useCreateOrganization } from '@/hooks/queries'
-import { enums, schemas } from '@polar-sh/client'
-import { Box } from '@polar-sh/orbit/Box'
-import Button from '@polar-sh/ui/components/atoms/Button'
-import CountryPicker from '@polar-sh/ui/components/atoms/CountryPicker'
-import Input from '@polar-sh/ui/components/atoms/Input'
-import Switch from '@polar-sh/ui/components/atoms/Switch'
-import { Tabs, TabsList, TabsTrigger } from '@polar-sh/ui/components/atoms/Tabs'
-import { Checkbox } from '@polar-sh/ui/components/ui/checkbox'
+import { enums, schemas } from '@/lib/api'
+import { Box } from '@/lib/orbit/Box'
+import Button from '@/components/atoms/Button'
+import CountryPicker from '@/components/atoms/CountryPicker'
+import Input from '@/components/atoms/Input'
+import Switch from '@/components/atoms/Switch'
+import { Tabs, TabsList, TabsTrigger } from '@/components/atoms/Tabs'
+import { Checkbox } from '@/components/ui/checkbox'
 
 import {
   Form,
@@ -18,7 +18,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@polar-sh/ui/components/ui/form'
+} from '@/components/ui/form'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'

@@ -1,6 +1,6 @@
 import { CreatorsDirectory } from '@/components/Creators/CreatorsDirectory'
 import { getServerSideAPI } from '@/utils/client/serverside'
-import { unwrap } from '@polar-sh/client'
+import { unwrap } from '@/lib/api'
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {

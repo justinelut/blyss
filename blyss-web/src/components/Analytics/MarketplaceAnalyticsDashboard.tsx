@@ -6,14 +6,14 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-} from '@polar-sh/ui/components/ui/card'
+} from '@/components/ui/card'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@polar-sh/ui/components/ui/select'
+} from '@/components/ui/select'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 

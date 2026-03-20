@@ -1,6 +1,6 @@
 'use client'
 
-import { Button, Headline, Stack, Text } from '@polar-sh/orbit'
+import { Button, Headline, Stack, Text } from '@/lib/orbit'
 import { OrbitPageHeader, OrbitSectionHeader } from '../../OrbitPageHeader'
 
 const variants = [

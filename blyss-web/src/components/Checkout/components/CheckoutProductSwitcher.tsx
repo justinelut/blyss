@@ -1,6 +1,6 @@
 'use client'
 
-import type { schemas } from '@polar-sh/client'
+import type { schemas } from '@/lib/api'
 import {
   DEFAULT_LOCALE,
   useTranslations,
@@ -9,9 +9,9 @@ import {
 import {
   RadioGroup,
   RadioGroupItem,
-} from '@polar-sh/ui/components/ui/radio-group'
-import { ThemingPresetProps } from '@polar-sh/ui/hooks/theming'
-import { cn } from '@polar-sh/ui/lib/utils'
+} from '@/components/ui/radio-group'
+import { ThemingPresetProps } from '@/components/ui/hooks/theming'
+import { cn } from '@/lib/utils'
 import { useCallback, useMemo } from 'react'
 import type { ProductCheckoutPublic } from '../guards'
 import { isLegacyRecurringProductPrice } from '../guards'

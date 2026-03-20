@@ -2,13 +2,13 @@
 
 import ArrowOutwardOutlined from '@mui/icons-material/ArrowOutwardOutlined'
 import Check from '@mui/icons-material/Check'
-import Button from '@polar-sh/ui/components/atoms/Button'
+import Button from '@/components/atoms/Button'
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
-} from '@polar-sh/ui/components/atoms/Tabs'
+} from '@/components/atoms/Tabs'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { useMemo } from 'react'

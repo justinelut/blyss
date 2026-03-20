@@ -1,7 +1,7 @@
 'use client'
 
 import { CreateProductPageWrapper } from '@/components/Products/CreateProductPageWrapper'
-import { schemas } from '@polar-sh/client'
+import { schemas } from '@/lib/api'
 import { useSearchParams } from 'next/navigation'
 
 export default function Page({

@@ -1,18 +1,18 @@
 'use client'
 
 import { useAuth } from '@/hooks'
-import { enums } from '@polar-sh/client'
-import { Box } from '@polar-sh/orbit/Box'
-import Button from '@polar-sh/ui/components/atoms/Button'
-import CountryPicker from '@polar-sh/ui/components/atoms/CountryPicker'
-import Input from '@polar-sh/ui/components/atoms/Input'
+import { enums } from '@/lib/api'
+import { Box } from '@/lib/orbit/Box'
+import Button from '@/components/atoms/Button'
+import CountryPicker from '@/components/atoms/CountryPicker'
+import Input from '@/components/atoms/Input'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@polar-sh/ui/components/atoms/Select'
+} from '@/components/atoms/Select'
 import {
   Form,
   FormControl,
@@ -20,7 +20,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@polar-sh/ui/components/ui/form'
+} from '@/components/ui/form'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'

@@ -1,8 +1,8 @@
 'use client'
 
 import { useCreators } from '@/hooks/queries/creators'
-import { schemas } from '@polar-sh/client'
-import Input from '@polar-sh/ui/components/atoms/Input'
+import { schemas } from '@/lib/api'
+import Input from '@/components/atoms/Input'
 import { useState } from 'react'
 import { CreatorCard } from './CreatorCard'
 

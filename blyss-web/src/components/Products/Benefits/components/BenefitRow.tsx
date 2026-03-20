@@ -5,15 +5,15 @@ import {
   resolveBenefitIcon,
 } from '@/components/Benefit/utils'
 import { useDeleteBenefit } from '@/hooks/queries'
-import { schemas } from '@polar-sh/client'
-import Button from '@polar-sh/ui/components/atoms/Button'
-import { Checkbox } from '@polar-sh/ui/components/ui/checkbox'
+import { schemas } from '@/lib/api'
+import Button from '@/components/atoms/Button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@polar-sh/ui/components/ui/dropdown-menu'
+} from '@/components/ui/dropdown-menu'
 import { MoreVertical } from 'lucide-react'
 import { useCallback, useRef } from 'react'
 import { twMerge } from 'tailwind-merge'

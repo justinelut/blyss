@@ -1,4 +1,4 @@
-import { Stack } from '@polar-sh/orbit'
+import { Stack } from '@/lib/orbit'
 import { OrbitPageHeader } from '../../OrbitPageHeader'
 
 export default function BoxPage() {

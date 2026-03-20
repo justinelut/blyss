@@ -2,7 +2,7 @@
 
 import AIValidationResult from '@/components/Organization/AIValidationResult'
 import OrganizationProfileSettings from '@/components/Settings/OrganizationProfileSettings'
-import { schemas } from '@polar-sh/client'
+import { schemas } from '@/lib/api'
 import {
   Check,
   CheckCircle,

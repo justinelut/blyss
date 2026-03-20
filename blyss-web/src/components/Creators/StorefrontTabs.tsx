@@ -1,6 +1,6 @@
 'use client'
 
-import { cn } from '@polar-sh/ui/lib/utils'
+import { cn } from '@/lib/utils'
 import { usePathname, useRouter } from 'next/navigation'
 
 interface StorefrontTabsProps {

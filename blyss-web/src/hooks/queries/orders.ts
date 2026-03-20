@@ -1,5 +1,5 @@
 import { api } from '@/utils/client'
-import { operations, schemas, unwrap } from '@polar-sh/client'
+import { operations, schemas, unwrap } from '@/lib/api'
 import { useQuery } from '@tanstack/react-query'
 import { defaultRetry } from './retry'
 

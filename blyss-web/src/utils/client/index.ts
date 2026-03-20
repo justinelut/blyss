@@ -7,7 +7,7 @@ import {
   createClient as baseCreateClient,
   Client,
   Middleware,
-} from '@polar-sh/client'
+} from '@/lib/api'
 import { ReadonlyRequestCookies } from 'next/dist/server/web/spec-extension/adapters/request-cookies'
 import { NextRequest } from 'next/server'
 

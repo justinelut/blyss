@@ -1,8 +1,8 @@
 'use client'
 
 import { usePostHog } from '@/hooks/posthog'
-import Button from '@polar-sh/ui/components/atoms/Button'
-import Switch from '@polar-sh/ui/components/atoms/Switch'
+import Button from '@/components/atoms/Button'
+import Switch from '@/components/atoms/Switch'
 import { useState } from 'react'
 import { InlineModalHeader } from '../Modal/InlineModal'
 import { cookieConsentGiven } from './CookieConsent'

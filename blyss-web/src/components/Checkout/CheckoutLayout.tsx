@@ -1,5 +1,5 @@
 import { PolarThemeProvider } from '@/app/providers'
-import type { schemas } from '@polar-sh/client'
+import type { schemas } from '@/lib/api'
 import CheckoutEmbedLayout from './Embed/CheckoutEmbedLayout'
 
 const CheckoutLayout = ({

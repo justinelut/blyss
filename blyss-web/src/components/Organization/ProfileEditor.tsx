@@ -2,16 +2,16 @@
 
 import { useUpdateProfile } from '@/hooks/queries/creators'
 import { setValidationErrors } from '@/utils/api/errors'
-import { isValidationError, schemas } from '@polar-sh/client'
-import Button from '@polar-sh/ui/components/atoms/Button'
-import Input from '@polar-sh/ui/components/atoms/Input'
-import TextArea from '@polar-sh/ui/components/atoms/TextArea'
+import { isValidationError, schemas } from '@/lib/api'
+import Button from '@/components/atoms/Button'
+import Input from '@/components/atoms/Input'
+import TextArea from '@/components/atoms/TextArea'
 import {
   Form,
   FormControl,
   FormField,
   FormMessage,
-} from '@polar-sh/ui/components/ui/form'
+} from '@/components/ui/form'
 import { useForm } from 'react-hook-form'
 import { toast } from '../Toast/use-toast'
 

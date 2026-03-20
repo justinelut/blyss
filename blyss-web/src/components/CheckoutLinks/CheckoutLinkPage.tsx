@@ -1,15 +1,15 @@
 import { OrganizationContext } from '@/providers/maintainerOrganization'
 import { CONFIG } from '@/utils/config'
-import { schemas } from '@polar-sh/client'
-import CopyToClipboardInput from '@polar-sh/ui/components/atoms/CopyToClipboardInput'
+import { schemas } from '@/lib/api'
+import CopyToClipboardInput from '@/components/atoms/CopyToClipboardInput'
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
-} from '@polar-sh/ui/components/atoms/Tabs'
-import { Checkbox } from '@polar-sh/ui/components/ui/checkbox'
-import { Label } from '@polar-sh/ui/components/ui/label'
+} from '@/components/atoms/Tabs'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
 import { useContext, useMemo, useState } from 'react'
 import { toast } from '../Toast/use-toast'
 import { CheckoutLinkForm } from './CheckoutLinkForm'

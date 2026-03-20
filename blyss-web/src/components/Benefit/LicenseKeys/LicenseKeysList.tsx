@@ -1,12 +1,12 @@
 import { DataTableSortingState } from '@/utils/datatable'
-import { schemas } from '@polar-sh/client'
-import Avatar from '@polar-sh/ui/components/atoms/Avatar'
+import { schemas } from '@/lib/api'
+import Avatar from '@/components/atoms/Avatar'
 import {
   DataTable,
   DataTableColumnDef,
   DataTableColumnHeader,
-} from '@polar-sh/ui/components/atoms/DataTable'
-import { Status } from '@polar-sh/ui/components/atoms/Status'
+} from '@/components/atoms/DataTable'
+import { Status } from '@/components/atoms/Status'
 import {
   OnChangeFn,
   PaginationState,

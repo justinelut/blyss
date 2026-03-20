@@ -13,27 +13,27 @@ import LinkedIn from '@mui/icons-material/LinkedIn'
 import Public from '@mui/icons-material/Public'
 import X from '@mui/icons-material/X'
 import YouTube from '@mui/icons-material/YouTube'
-import { isValidationError, schemas } from '@polar-sh/client'
-import Avatar from '@polar-sh/ui/components/atoms/Avatar'
-import Button from '@polar-sh/ui/components/atoms/Button'
-import CopyToClipboardInput from '@polar-sh/ui/components/atoms/CopyToClipboardInput'
-import Input from '@polar-sh/ui/components/atoms/Input'
-import MoneyInput from '@polar-sh/ui/components/atoms/MoneyInput'
+import { isValidationError, schemas } from '@/lib/api'
+import Avatar from '@/components/atoms/Avatar'
+import Button from '@/components/atoms/Button'
+import CopyToClipboardInput from '@/components/atoms/CopyToClipboardInput'
+import Input from '@/components/atoms/Input'
+import MoneyInput from '@/components/atoms/MoneyInput'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@polar-sh/ui/components/atoms/Select'
-import TextArea from '@polar-sh/ui/components/atoms/TextArea'
-import { Checkbox } from '@polar-sh/ui/components/ui/checkbox'
+} from '@/components/atoms/Select'
+import TextArea from '@/components/atoms/TextArea'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Form,
   FormControl,
   FormField,
   FormMessage,
-} from '@polar-sh/ui/components/ui/form'
+} from '@/components/ui/form'
 import { AlertTriangle, CheckCircle, Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import React, { useCallback } from 'react'

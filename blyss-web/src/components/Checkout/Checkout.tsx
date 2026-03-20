@@ -17,18 +17,18 @@ import {
   CheckoutProductSwitcher,
   CheckoutPWYWForm,
   CheckoutSeatSelector,
-} from '@polar-sh/checkout/components'
+} from '@/components/checkout/components'
 import {
   hasProductCheckout,
   type ProductCheckoutPublic,
-} from '@polar-sh/checkout/guards'
-import { useCheckoutFulfillmentListener } from '@polar-sh/checkout/hooks'
-import { useCheckout, useCheckoutForm } from '@polar-sh/checkout/providers'
-import { ClientResponseError, type schemas } from '@polar-sh/client'
+} from '@/components/checkout/guards'
+import { useCheckoutFulfillmentListener } from '@/components/checkout/hooks'
+import { useCheckout, useCheckoutForm } from '@/components/checkout/providers'
+import { ClientResponseError, type schemas } from '@/lib/api'
 import { AcceptedLocale, useTranslations } from '@polar-sh/i18n'
-import Alert from '@polar-sh/ui/components/atoms/Alert'
-import Avatar from '@polar-sh/ui/components/atoms/Avatar'
-import ShadowBox from '@polar-sh/ui/components/atoms/ShadowBox'
+import Alert from '@/components/atoms/Alert'
+import Avatar from '@/components/atoms/Avatar'
+import ShadowBox from '@/components/atoms/ShadowBox'
 import {
   Dialog,
   DialogContent,
@@ -36,8 +36,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@polar-sh/ui/components/ui/dialog'
-import { getThemePreset } from '@polar-sh/ui/hooks/theming'
+} from '@/components/ui/dialog'
+import { getThemePreset } from '@/components/ui/hooks/theming'
 import type { Stripe, StripeElements } from '@stripe/stripe-js'
 import Markdown from 'markdown-to-jsx'
 import { useTheme } from 'next-themes'

@@ -1,4 +1,4 @@
-import { Headline, Stack, Text } from '@polar-sh/orbit'
+import { Headline, Stack, Text } from '@/lib/orbit'
 import { OrbitPageHeader } from '../OrbitPageHeader'
 
 const sections = [

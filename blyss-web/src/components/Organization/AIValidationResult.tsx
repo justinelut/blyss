@@ -1,9 +1,9 @@
 'use client'
 
 import { useOrganizationReviewStatus } from '@/hooks/queries/org'
-import { schemas } from '@polar-sh/client'
-import Button from '@polar-sh/ui/components/atoms/Button'
-import { Card } from '@polar-sh/ui/components/ui/card'
+import { schemas } from '@/lib/api'
+import Button from '@/components/atoms/Button'
+import { Card } from '@/components/ui/card'
 import {
   AlertTriangle,
   ArrowRight,

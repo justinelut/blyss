@@ -1,5 +1,5 @@
 import { createClientSideAPI } from '@/utils/client'
-import { schemas } from '@polar-sh/client'
+import { schemas } from '@/lib/api'
 import WalletCard from '../Wallet/WalletCard'
 
 export interface CustomerPortalWalletProps {

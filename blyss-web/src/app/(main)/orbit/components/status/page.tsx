@@ -1,4 +1,4 @@
-import { Stack, Status, Text } from '@polar-sh/orbit'
+import { Stack, Status, Text } from '@/lib/orbit'
 import { OrbitPageHeader, OrbitSectionHeader } from '../../OrbitPageHeader'
 
 const variants = [

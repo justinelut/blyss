@@ -1,4 +1,4 @@
-import { schemas } from '@polar-sh/client'
+import { schemas } from '@/lib/api'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { useRouter } from 'next/navigation'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -6,7 +6,7 @@ import { CreatorCard } from '../CreatorCard'
 
 vi.mock('next/navigation')
 
-vi.mock('@polar-sh/ui/components/atoms/Avatar', () => ({
+vi.mock('@/components/atoms/Avatar', () => ({
   default: ({ name, avatar_url }: any) => (
     <div data-testid="avatar" data-name={name} data-avatar-url={avatar_url}>
       {name}

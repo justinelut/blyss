@@ -1,4 +1,4 @@
-import Button from '@polar-sh/ui/components/atoms/Button'
+import Button from '@/components/atoms/Button'
 import { CheckCircle2Icon } from 'lucide-react'
 import Link from 'next/link'
 

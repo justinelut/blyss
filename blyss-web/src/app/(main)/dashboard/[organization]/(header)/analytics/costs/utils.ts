@@ -1,5 +1,5 @@
 import { toISODate } from '@/utils/metrics'
-import { schemas } from '@polar-sh/client'
+import { schemas } from '@/lib/api'
 import { endOfToday, subMonths } from 'date-fns'
 
 export const DEFAULT_INTERVAL: schemas['TimeInterval'] = 'day'

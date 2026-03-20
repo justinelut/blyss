@@ -8,7 +8,7 @@ import OrganizationMPesaSettings from '@/components/Settings/OrganizationMPesaSe
 import OrganizationNotificationSettings from '@/components/Settings/OrganizationNotificationSettings'
 import OrganizationProfileSettings from '@/components/Settings/OrganizationProfileSettings'
 import { Section, SectionDescription } from '@/components/Settings/Section'
-import { schemas } from '@polar-sh/client'
+import { schemas } from '@/lib/api'
 
 export default function ClientPage({
   organization: org,

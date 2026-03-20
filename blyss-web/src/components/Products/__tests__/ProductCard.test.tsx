@@ -1,5 +1,5 @@
 import { useAddToCart } from '@/hooks/queries/cart'
-import { schemas } from '@polar-sh/client'
+import { schemas } from '@/lib/api'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { useRouter } from 'next/navigation'
 import { beforeEach, describe, expect, it, vi } from 'vitest'

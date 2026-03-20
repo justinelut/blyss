@@ -3,8 +3,8 @@
 import ProductPriceLabel from '@/components/Products/ProductPriceLabel'
 import { ProductThumbnail } from '@/components/Products/ProductThumbnail'
 import { useAddToCart } from '@/hooks/queries/cart'
-import { schemas } from '@polar-sh/client'
-import Button from '@polar-sh/ui/components/atoms/Button'
+import { schemas } from '@/lib/api'
+import Button from '@/components/atoms/Button'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 

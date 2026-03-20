@@ -1,7 +1,7 @@
 'use client'
 
 import { usePostHog, type EventName } from '@/hooks/posthog'
-import { schemas } from '@polar-sh/client'
+import { schemas } from '@/lib/api'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo } from 'react'
 import LoginCodeForm from '../Auth/LoginCodeForm'

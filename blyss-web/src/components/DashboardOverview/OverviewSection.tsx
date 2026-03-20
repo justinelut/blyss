@@ -11,9 +11,9 @@ import {
   DEFAULT_OVERVIEW_METRICS,
   getChartRangeParams,
 } from '@/utils/metrics'
-import { schemas } from '@polar-sh/client'
-import { SegmentedControl } from '@polar-sh/orbit'
-import Button from '@polar-sh/ui/components/atoms/Button'
+import { schemas } from '@/lib/api'
+import { SegmentedControl } from '@/lib/orbit'
+import Button from '@/components/atoms/Button'
 import { Settings2 } from 'lucide-react'
 import React from 'react'
 import {

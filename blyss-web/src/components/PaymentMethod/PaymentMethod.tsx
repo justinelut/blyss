@@ -1,5 +1,5 @@
 import { isCardPayment } from '@/utils/payment'
-import { schemas } from '@polar-sh/client'
+import { schemas } from '@/lib/api'
 import CreditCardBrandIcon from '../CreditCardBrandIcon'
 
 const CardPaymentMethod = ({

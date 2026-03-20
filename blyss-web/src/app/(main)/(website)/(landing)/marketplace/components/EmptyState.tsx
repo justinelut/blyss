@@ -1,6 +1,6 @@
 'use client'
 
-import Button from '@polar-sh/ui/components/atoms/Button'
+import Button from '@/components/atoms/Button'
 
 interface EmptyStateProps {
   title: string

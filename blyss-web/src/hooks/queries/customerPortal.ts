@@ -1,6 +1,6 @@
 import { useCustomerPortalContext } from '@/components/CustomerPortal/CustomerPortalProvider'
 import { getQueryClient } from '@/utils/api/query'
-import { Client, operations, schemas, unwrap } from '@polar-sh/client'
+import { Client, operations, schemas, unwrap } from '@/lib/api'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { defaultRetry } from './retry'
 

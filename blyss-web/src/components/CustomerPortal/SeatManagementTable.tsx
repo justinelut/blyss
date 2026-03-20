@@ -8,16 +8,16 @@ import {
 } from '@/hooks/queries'
 import { validateEmail } from '@/utils/validation'
 import MoreVertOutlined from '@mui/icons-material/MoreVertOutlined'
-import { Client, schemas } from '@polar-sh/client'
-import Button from '@polar-sh/ui/components/atoms/Button'
+import { Client, schemas } from '@/lib/api'
+import Button from '@/components/atoms/Button'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@polar-sh/ui/components/atoms/DropdownMenu'
-import Input from '@polar-sh/ui/components/atoms/Input'
-import { Status } from '@polar-sh/ui/components/atoms/Status'
+} from '@/components/atoms/DropdownMenu'
+import Input from '@/components/atoms/Input'
+import { Status } from '@/components/atoms/Status'
 import { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { toast } from '../Toast/use-toast'

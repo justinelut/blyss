@@ -1,11 +1,11 @@
 'use client'
 
-import { Headline, Text } from '@polar-sh/orbit'
+import { Headline, Text } from '@/lib/orbit'
 import {
   Sidebar,
   SidebarContent,
   SidebarHeader,
-} from '@polar-sh/ui/components/ui/sidebar'
+} from '@/components/ui/sidebar'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { twMerge } from 'tailwind-merge'

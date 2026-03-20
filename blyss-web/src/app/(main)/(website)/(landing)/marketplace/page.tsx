@@ -1,5 +1,5 @@
 import { api } from '@/utils/client'
-import { unwrap } from '@polar-sh/client'
+import { unwrap } from '@/lib/api'
 import { Metadata } from 'next'
 import { MarketplaceClientWrapper } from './MarketplaceClientWrapper'
 

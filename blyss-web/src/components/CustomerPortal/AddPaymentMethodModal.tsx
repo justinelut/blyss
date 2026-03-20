@@ -2,9 +2,9 @@ import {
   useAddCustomerPaymentMethod,
   useConfirmCustomerPaymentMethod,
 } from '@/hooks/queries'
-import { type Client } from '@polar-sh/client'
-import Button from '@polar-sh/ui/components/atoms/Button'
-import { ThemingPresetProps } from '@polar-sh/ui/hooks/theming'
+import { type Client } from '@/lib/api'
+import Button from '@/components/atoms/Button'
+import { ThemingPresetProps } from '@/components/ui/hooks/theming'
 import {
   Elements,
   ElementsConsumer,
