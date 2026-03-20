@@ -43,7 +43,7 @@ server {
     client_max_body_size 500M;
     client_body_timeout 300s;
     client_header_timeout 300s;
-    
+
     # Increase proxy timeouts
     proxy_connect_timeout 300s;
     proxy_send_timeout 300s;
@@ -78,12 +78,18 @@ server {
 
         # Proxy to MinIO API (port 9000)
         proxy_pass http://100.117.231.42:9000;
-        
-        # Pass through the Host header for signature validation
+
+        # Only pass Host header - it's the only one in the signature
         proxy_set_header Host $host;
+
+        # Strip browser headers that break presigned URL signatures
+        proxy_set_header Referer "";
+        proxy_set_header Origin "";
+
+        # HTTP/1.1 for persistent connections
         proxy_http_version 1.1;
         proxy_set_header Connection "";
-        
+
         # Disable buffering for large uploads
         proxy_buffering off;
         proxy_request_buffering off;
