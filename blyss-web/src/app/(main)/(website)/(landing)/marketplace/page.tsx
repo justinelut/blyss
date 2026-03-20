@@ -19,8 +19,8 @@ export const metadata: Metadata = {
   },
 }
 
-// Revalidate every 5 minutes for fresh content while maintaining performance
-export const revalidate = 300
+// Force dynamic rendering to avoid build-time API calls that timeout
+export const dynamic = 'force-dynamic'
 
 interface SearchParams {
   search?: string
