@@ -17,25 +17,38 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Copy script to MinIO server
+      - name: Copy scripts to MinIO server
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.MINIO_HOST }}
           username: ubuntu
           key: ${{ secrets.MINIO_SSH_KEY }}
-          source: "oracle/redis-minio/scripts/quick-fix-nginx.sh"
+          source: "oracle/redis-minio/scripts/*.sh"
           target: "/tmp/"
           strip_components: 3
 
-      - name: Apply quick fix
+      - name: Apply fixes
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.MINIO_HOST }}
           username: ubuntu
           key: ${{ secrets.MINIO_SSH_KEY }}
           script: |
-            echo "🚀 Applying quick fix..."
+            echo "🚀 Applying fixes..."
             cd /tmp
-            chmod +x quick-fix-nginx.sh
-            sudo bash quick-fix-nginx.sh
-            echo "✅ Done!"
+
+            # Fix 1: Update Nginx configuration
+            if [ -f "quick-fix-nginx.sh" ]; then
+              echo "Applying Nginx fix..."
+              chmod +x quick-fix-nginx.sh
+              sudo bash quick-fix-nginx.sh
+            fi
+
+            # Fix 2: Set MINIO_SERVER_URL
+            if [ -f "fix-minio-server-url.sh" ]; then
+              echo "Applying MinIO Server URL fix..."
+              chmod +x fix-minio-server-url.sh
+              sudo bash fix-minio-server-url.sh
+            fi
+
+            echo "✅ All fixes applied!"
