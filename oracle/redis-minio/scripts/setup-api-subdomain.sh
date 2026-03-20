@@ -34,6 +34,17 @@ server {
     listen 80;
     server_name $API_DOMAIN;
 
+    # Increase limits and timeouts for file uploads
+    client_max_body_size 500M;
+    client_body_timeout 300s;
+    client_header_timeout 300s;
+
+    # Increase proxy timeouts
+    proxy_connect_timeout 300s;
+    proxy_send_timeout 300s;
+    proxy_read_timeout 300s;
+    send_timeout 300s;
+
     location /.well-known/acme-challenge/ {
         root /var/www/html;
     }
@@ -73,7 +84,6 @@ server {
         # Disable buffering for large uploads
         proxy_buffering off;
         proxy_request_buffering off;
-        client_max_body_size 100M;
     }
 }
 EOF
@@ -137,8 +147,16 @@ server {
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers HIGH:!aNULL:!MD5;
     ssl_prefer_server_ciphers on;
+    # Increase limits and timeouts for file uploads
+    client_max_body_size 500M;
+    client_body_timeout 300s;
+    client_header_timeout 300s;
 
-    client_max_body_size 100M;
+    # Increase proxy timeouts
+    proxy_connect_timeout 300s;
+    proxy_send_timeout 300s;
+    proxy_read_timeout 300s;
+    send_timeout 300s;
 
     location / {
         # Remove any CORS headers from MinIO to avoid duplicates
@@ -177,7 +195,6 @@ server {
         # Disable buffering for large uploads
         proxy_buffering off;
         proxy_request_buffering off;
-        client_max_body_size 100M;
     }
 }
 EOF
