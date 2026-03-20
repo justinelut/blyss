@@ -2,7 +2,7 @@ import { Link, Preview, Section, Text } from '@react-email/components'
 import BodyText from '../components/BodyText'
 import Footer from '../components/Footer'
 import Intro from '../components/Intro'
-import WrapperPolar from '../components/WrapperBlyss'
+import WrapperBlyss from '../components/WrapperBlyss'
 import type { schemas } from '../types'
 
 export function OrganizationAccountUnlink({
@@ -11,7 +11,7 @@ export function OrganizationAccountUnlink({
   organizations_unlinked,
 }: schemas['OrganizationAccountUnlinkProps']) {
   return (
-    <WrapperPolar>
+    <WrapperBlyss>
       <Preview>
         Important: Organization Account Update for {organization_kept_name}
       </Preview>
@@ -48,9 +48,9 @@ export function OrganizationAccountUnlink({
                 <li key={org} className="mt-2">
                   <span className="font-bold">{org}</span> at{' '}
                   <Link
-                    href={`https://polar.com/dashboard/${org}/finance/account`}
+                    href={`https://blyss.co.ke/dashboard/${org}/finance/account`}
                   >
-                    https://polar.com/dashboard/{org}/finance/account
+                    https://blyss.co.ke/dashboard/{org}/finance/account
                   </Link>
                 </li>
               ))}
@@ -87,7 +87,7 @@ export function OrganizationAccountUnlink({
         </BodyText>
       </Section>
       <Footer email={email} />
-    </WrapperPolar>
+    </WrapperBlyss>
   )
 }
 
