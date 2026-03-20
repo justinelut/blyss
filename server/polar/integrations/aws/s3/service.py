@@ -41,11 +41,6 @@ class S3Service:
         self.client = client
         self.public_endpoint_url = public_endpoint_url
         self._unsigned_client = get_client(signature_version=botocore.UNSIGNED)
-        # Create a separate client for presigned URLs if public endpoint is different
-        if public_endpoint_url:
-            self._presign_client = get_client(endpoint_url=public_endpoint_url)
-        else:
-            self._presign_client = client
 
     def upload(
         self,
@@ -142,6 +137,17 @@ class S3Service:
         )
         return upload
 
+    def _rewrite_url_to_public_endpoint(self, url: str) -> str:
+        """Rewrite internal endpoint URL to public endpoint URL in presigned URLs."""
+        if not self.public_endpoint_url:
+            return url
+
+        from polar.config import settings
+        if settings.S3_ENDPOINT_URL:
+            # Replace internal endpoint with public endpoint
+            return url.replace(settings.S3_ENDPOINT_URL, self.public_endpoint_url)
+        return url
+
     def generate_presigned_upload_parts(
         self,
         *,
@@ -152,7 +158,7 @@ class S3Service:
         ret = []
         expires_in = self.presign_ttl
         for part in parts:
-            signed_post_url = self._presign_client.generate_presigned_url(
+            signed_post_url = self.client.generate_presigned_url(
                 "upload_part",
                 Params=dict(
                     UploadId=upload_id,
@@ -162,6 +168,9 @@ class S3Service:
                 ),
                 ExpiresIn=expires_in,
             )
+            # Rewrite URL to use public endpoint
+            signed_post_url = self._rewrite_url_to_public_endpoint(signed_post_url)
+
             presign_expires_at = utc_now() + timedelta(seconds=expires_in)
             headers = S3FileUploadPart.generate_headers(part.checksum_sha256_base64)
             ret.append(
@@ -222,7 +231,7 @@ class S3Service:
     ) -> tuple[str, datetime]:
         expires_in = self.presign_ttl
         presign_from = utc_now()
-        signed_download_url = self._presign_client.generate_presigned_url(
+        signed_download_url = self.client.generate_presigned_url(
             "get_object",
             Params=dict(
                 Bucket=self.bucket,
@@ -234,6 +243,9 @@ class S3Service:
             ),
             ExpiresIn=expires_in,
         )
+
+        # Rewrite URL to use public endpoint
+        signed_download_url = self._rewrite_url_to_public_endpoint(signed_download_url)
 
         presign_expires_at = presign_from + timedelta(seconds=expires_in)
         return (signed_download_url, presign_expires_at)
