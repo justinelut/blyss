@@ -11,6 +11,9 @@ echo "  Blyss Application Update"
 echo "=========================================="
 echo ""
 
+log_info "Fixing git directory permissions..."
+chown -R $APP_USER:$APP_USER "$APP_DIR/blyss/.git"
+
 log_info "Pulling latest code..."
 su - $APP_USER -c "cd $APP_DIR/blyss && git pull"
 
