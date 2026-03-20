@@ -6,7 +6,9 @@ on:
       - master
     paths:
       - 'server/**'
+      - 'oracle/scripts/**'
       - '.github/workflows/deploy-backend.yml'
+  workflow_dispatch: # Allow manual trigger
 
 jobs:
   deploy:
@@ -14,17 +16,14 @@ jobs:
 
     steps:
       - name: Deploy to Oracle Cloud
-        uses: appleboy/ssh-action@v1.0.0
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.ORACLE_HOST }}
           username: ubuntu
           key: ${{ secrets.ORACLE_SSH_KEY }}
           script: |
-            cd /opt/blyss/blyss
-            sudo git pull origin master
-            cd server
-            sudo -u blyss /home/blyss/.local/bin/uv sync
-            sudo -u blyss /home/blyss/.local/bin/uv run task db_migrate
-            sudo systemctl restart blyss-api
-            sudo systemctl restart blyss-worker
-            echo "Deployment completed!"
+            echo "🚀 Starting deployment..."
+            cd /opt/blyss/blyss/oracle/scripts
+            sudo bash update.sh
+            echo "✅ Deployment completed!"
+
