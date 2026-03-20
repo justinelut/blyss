@@ -186,6 +186,11 @@ export class Upload {
       }
 
       xhr.open('PUT', part.url, true)
+
+      // Set referrer policy to prevent browser from sending Referer header
+      // This is critical for presigned URLs which don't include Referer in signature
+      xhr.referrerPolicy = 'no-referrer'
+
       if (part.headers) {
         for (const [header, value] of Object.entries(part.headers)) {
           xhr.setRequestHeader(header, value)
