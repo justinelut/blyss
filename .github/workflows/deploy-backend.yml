@@ -27,6 +27,18 @@ jobs:
           script: |
             echo "🚀 Starting deployment..."
             cd /opt/blyss/blyss/oracle/backend/scripts
-            sudo bash update.sh
+
+            # Ensure scripts are executable
+            sudo chmod +x *.sh
+
+            # Run comprehensive fix to ensure everything is configured
+            echo "Running comprehensive fix and update..."
+            sudo bash fix-all.sh
+
             echo "✅ Deployment completed!"
+
+            # Show final status
+            echo ""
+            echo "Service Status:"
+            sudo systemctl status blyss-api --no-pager -l | head -n 8
 

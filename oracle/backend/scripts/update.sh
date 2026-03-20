@@ -28,8 +28,18 @@ if [ -f "$APP_DIR/blyss/server/.env.production" ]; then
     cp "$APP_DIR/blyss/server/.env.production" "$APP_DIR/blyss/server/.env"
     chown $APP_USER:$APP_USER "$APP_DIR/blyss/server/.env"
     chmod 600 "$APP_DIR/blyss/server/.env"
-    log_info ".env updated from .env.production"
+    log_success ".env updated from .env.production"
+else
+    log_error ".env.production not found!"
+    exit 1
 fi
+
+# Verify .env exists and is readable
+if [ ! -f "$APP_DIR/blyss/server/.env" ]; then
+    log_error ".env file missing after sync! Cannot proceed."
+    exit 1
+fi
+log_info ".env file verified: $(ls -lh $APP_DIR/blyss/server/.env | awk '{print $5, $9}')"
 
 log_info "Installing/updating Python dependencies..."
 su - $APP_USER -c "cd $APP_DIR/blyss/server && /home/$APP_USER/.local/bin/uv sync"
@@ -54,7 +64,18 @@ else
     log_info "Email templates unchanged, skipping rebuild"
 fi
 
+log_info "Verifying service configuration..."
+# Ensure service file has correct WorkingDirectory
+SERVICE_FILE="/etc/systemd/system/blyss-api.service"
+if ! grep -q "WorkingDirectory=$APP_DIR/blyss/server" "$SERVICE_FILE" 2>/dev/null; then
+    log_warning "Service file needs update, fixing..."
+    bash "$(dirname "$0")/fix-service-config.sh"
+else
+    log_info "Service configuration is correct"
+fi
+
 log_info "Restarting services..."
+systemctl daemon-reload
 systemctl restart blyss-api
 systemctl restart blyss-worker
 

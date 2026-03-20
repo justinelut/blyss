@@ -1,4 +1,4 @@
-name: Setup MinIO SSL
+name: Configure MinIO (Complete)
 
 on:
   workflow_dispatch: # Manual trigger
@@ -6,12 +6,12 @@ on:
     branches:
       - master
     paths:
-      - 'oracle/redis-minio/scripts/setup-ssl.sh'
-      - '.github/workflows/minio-setup-ssl.yml'
+      - 'oracle/redis-minio/scripts/configure-minio.sh'
+      - '.github/workflows/configure-minio-complete.yml'
 
 jobs:
-  setup-ssl:
-    name: Setup SSL for MinIO
+  configure-minio:
+    name: Complete MinIO Configuration (SSL + CORS + Console)
     runs-on: ubuntu-latest
 
     steps:
@@ -24,23 +24,23 @@ jobs:
           host: ${{ secrets.MINIO_HOST }}
           username: ubuntu
           key: ${{ secrets.MINIO_SSH_KEY }}
-          source: "oracle/redis-minio/scripts/setup-ssl.sh"
+          source: "oracle/redis-minio/scripts/configure-minio.sh"
           target: "/tmp/blyss-minio/"
           strip_components: 3
 
-      - name: Setup SSL Certificate
+      - name: Run Complete MinIO Configuration
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.MINIO_HOST }}
           username: ubuntu
           key: ${{ secrets.MINIO_SSH_KEY }}
           script: |
-            echo "🚀 Setting up SSL for MinIO..."
+            echo "🚀 Running complete MinIO configuration..."
 
             cd /tmp/blyss-minio
-            chmod +x setup-ssl.sh
+            chmod +x configure-minio.sh
 
-            # Run the SSL setup script
-            sudo bash setup-ssl.sh
+            # Run the complete configuration script
+            sudo bash configure-minio.sh
 
-            echo "✅ SSL setup completed!"
+            echo "✅ MinIO configuration completed!"

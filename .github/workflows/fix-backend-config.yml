@@ -1,0 +1,22 @@
+name: Fix Backend Configuration
+
+on:
+  workflow_dispatch: # Manual trigger only
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Fix Backend Service Configuration
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.ORACLE_HOST }}
+          username: ubuntu
+          key: ${{ secrets.ORACLE_SSH_KEY }}
+          port: 22
+          script: |
+            echo "🔧 Fixing backend configuration..."
+            cd /opt/blyss/blyss/oracle/backend/scripts
+            sudo bash fix-service-config.sh
+            echo "✅ Configuration fixed!"
