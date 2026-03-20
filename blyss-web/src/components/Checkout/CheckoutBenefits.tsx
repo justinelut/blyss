@@ -6,7 +6,7 @@ import {
   DEFAULT_LOCALE,
   useTranslations,
   type AcceptedLocale,
-} from '@polar-sh/i18n'
+} from '@/lib/i18n'
 import { List, ListItem } from '@/components/atoms/List'
 import { useEffect } from 'react'
 import { BenefitGrant } from '../Benefit/BenefitGrant'

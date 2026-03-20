@@ -5,7 +5,7 @@ import {
   DEFAULT_LOCALE,
   useTranslations,
   type AcceptedLocale,
-} from '@polar-sh/i18n'
+} from '@/lib/i18n'
 import CopyToClipboardInput from '@/components/atoms/CopyToClipboardInput'
 import { LicenseKeyActivations } from './LicenseKeyActivations'
 import { LicenseKeyDetails } from './LicenseKeyDetails'

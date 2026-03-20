@@ -1,6 +1,6 @@
 'use client'
 
-import type { AcceptedLocale } from '@polar-sh/i18n'
+import type { AcceptedLocale } from '@/lib/i18n'
 import type { ProductCheckoutPublic } from '../guards'
 import { isLegacyRecurringPrice } from '../utils/product'
 import AmountLabel from './AmountLabel'

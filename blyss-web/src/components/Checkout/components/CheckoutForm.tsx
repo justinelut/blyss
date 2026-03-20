@@ -2,7 +2,7 @@
 
 import type { schemas } from '@/lib/api'
 import { enums } from '@/lib/api'
-import { useTranslations, type AcceptedLocale } from '@polar-sh/i18n'
+import { useTranslations, type AcceptedLocale } from '@/lib/i18n'
 import Button from '@/components/atoms/Button'
 import CountryPicker from '@/components/atoms/CountryPicker'
 import CountryStatePicker from '@/components/atoms/CountryStatePicker'

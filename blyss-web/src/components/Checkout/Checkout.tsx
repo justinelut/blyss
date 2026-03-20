@@ -25,7 +25,7 @@ import {
 import { useCheckoutFulfillmentListener } from '@/components/checkout/hooks'
 import { useCheckout, useCheckoutForm } from '@/components/checkout/providers'
 import { ClientResponseError, type schemas } from '@/lib/api'
-import { AcceptedLocale, useTranslations } from '@polar-sh/i18n'
+import { AcceptedLocale, useTranslations } from '@/lib/i18n'
 import Alert from '@/components/atoms/Alert'
 import Avatar from '@/components/atoms/Avatar'
 import ShadowBox from '@/components/atoms/ShadowBox'

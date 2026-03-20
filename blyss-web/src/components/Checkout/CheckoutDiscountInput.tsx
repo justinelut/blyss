@@ -6,7 +6,7 @@ import {
   DEFAULT_LOCALE,
   useTranslations,
   type AcceptedLocale,
-} from '@polar-sh/i18n'
+} from '@/lib/i18n'
 import Button from '@/components/atoms/Button'
 import Input from '@/components/atoms/Input'
 import {

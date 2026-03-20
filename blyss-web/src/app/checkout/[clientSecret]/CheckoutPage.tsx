@@ -3,7 +3,7 @@
 import Checkout from '@/components/Checkout/Checkout'
 import CheckoutLayout from '@/components/Checkout/CheckoutLayout'
 import { useCheckout } from '@/components/checkout/providers'
-import { AcceptedLocale } from '@polar-sh/i18n'
+import { AcceptedLocale } from '@/lib/i18n'
 
 const ClientPage = ({
   embed,

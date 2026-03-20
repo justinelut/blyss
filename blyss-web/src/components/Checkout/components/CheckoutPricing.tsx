@@ -2,7 +2,7 @@
 
 import type { schemas } from '@/lib/api'
 import { formatCurrency } from '@/lib/currency'
-import type { AcceptedLocale } from '@polar-sh/i18n'
+import type { AcceptedLocale } from '@/lib/i18n'
 
 import { ProductCheckoutPublic } from '../guards'
 import { getDiscountDisplay } from '../utils/discount'

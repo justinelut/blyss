@@ -9,7 +9,7 @@ import {
   DEFAULT_LOCALE,
   useTranslations,
   type AcceptedLocale,
-} from '@polar-sh/i18n'
+} from '@/lib/i18n'
 import Avatar from '@/components/atoms/Avatar'
 import Button from '@/components/atoms/Button'
 import ShadowBox from '@/components/atoms/ShadowBox'

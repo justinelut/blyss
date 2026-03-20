@@ -30,7 +30,7 @@ vi.mock('@/components/ui/form', () => ({
 }))
 
 // Mock translations
-vi.mock('@polar-sh/i18n', () => ({
+vi.mock('@/lib/i18n', () => ({
   useTranslations: () => (key: string) => key,
 }))
 

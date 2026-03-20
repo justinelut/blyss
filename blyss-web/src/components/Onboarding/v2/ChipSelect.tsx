@@ -1,6 +1,6 @@
 'use client'
 
-import { Box } from '@/lib/orbit/Box'
+import { Box } from '@/lib/orbit/components/Box'
 
 interface ChipSelectProps {
   options: readonly string[]

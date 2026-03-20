@@ -4,7 +4,7 @@ import {
   DEFAULT_LOCALE,
   useTranslations,
   type AcceptedLocale,
-} from '@polar-sh/i18n'
+} from '@/lib/i18n'
 import FormattedDateTime from '@/components/atoms/FormattedDateTime'
 import ShadowBox from '@/components/atoms/ShadowBox'
 import { twMerge } from 'tailwind-merge'

@@ -3,7 +3,7 @@
 import LogoIcon from '@/components/Brand/logos/LogoIcon'
 import { useOnboardingData } from '@/components/Onboarding/v2/OnboardingContext'
 import { CONFIG } from '@/utils/config'
-import { Box } from '@/lib/orbit/Box'
+import { Box } from '@/lib/orbit/components/Box'
 import Button from '@/components/atoms/Button'
 import { redirect, useRouter } from 'next/navigation'
 

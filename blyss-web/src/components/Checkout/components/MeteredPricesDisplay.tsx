@@ -4,7 +4,7 @@ import {
   DEFAULT_LOCALE,
   useTranslations,
   type AcceptedLocale,
-} from '@polar-sh/i18n'
+} from '@/lib/i18n'
 import { useMemo } from 'react'
 import { ProductCheckoutPublic } from '../guards'
 import { getMeteredPrices } from '../utils/product'

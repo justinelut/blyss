@@ -4,7 +4,7 @@ import {
   DEFAULT_LOCALE,
   useTranslations,
   type AcceptedLocale,
-} from '@polar-sh/i18n'
+} from '@/lib/i18n'
 
 interface MeteredPriceLabelProps {
   price: schemas['ProductPriceMeteredUnit']

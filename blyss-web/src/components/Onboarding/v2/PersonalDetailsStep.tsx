@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/hooks'
 import { enums } from '@/lib/api'
-import { Box } from '@/lib/orbit/Box'
+import { Box } from '@/lib/orbit/components/Box'
 import Button from '@/components/atoms/Button'
 import CountryPicker from '@/components/atoms/CountryPicker'
 import Input from '@/components/atoms/Input'

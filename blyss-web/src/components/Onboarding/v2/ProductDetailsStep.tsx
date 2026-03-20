@@ -1,6 +1,6 @@
 'use client'
 
-import { Box } from '@/lib/orbit/Box'
+import { Box } from '@/lib/orbit/components/Box'
 import Button from '@/components/atoms/Button'
 import Input from '@/components/atoms/Input'
 import {

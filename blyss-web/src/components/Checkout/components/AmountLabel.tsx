@@ -1,8 +1,8 @@
 import type { schemas } from '@/lib/api'
 import { formatCurrency } from '@/lib/currency'
-import type { AcceptedLocale } from '@polar-sh/i18n'
-import { getTranslations } from '@polar-sh/i18n'
-import { formatOrdinal } from '@polar-sh/i18n/formatters/ordinal'
+import type { AcceptedLocale } from '@/lib/i18n'
+import { getTranslations } from '@/lib/i18n'
+import { formatOrdinal } from '@/lib/i18n/formatters/ordinal'
 import { useMemo } from 'react'
 
 interface AmountLabelProps {

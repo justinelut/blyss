@@ -2,7 +2,7 @@ import {
   type AcceptedLocale,
   DEFAULT_LOCALE,
   isAcceptedLocale,
-} from '@polar-sh/i18n'
+} from '@/lib/i18n'
 import { headers } from 'next/headers'
 
 function getLocaleFromAcceptLanguage(

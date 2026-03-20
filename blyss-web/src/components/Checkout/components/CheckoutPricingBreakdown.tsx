@@ -6,8 +6,8 @@ import {
   DEFAULT_LOCALE,
   useTranslations,
   type AcceptedLocale,
-} from '@polar-sh/i18n'
-import { formatDate } from '@polar-sh/i18n/formatters/date'
+} from '@/lib/i18n'
+import { formatDate } from '@/lib/i18n/formatters/date'
 import { cn } from '@/lib/utils'
 import { PropsWithChildren, useMemo } from 'react'
 import { hasProductCheckout, isLegacyRecurringProductPrice } from '../guards'

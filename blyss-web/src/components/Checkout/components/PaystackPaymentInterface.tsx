@@ -1,7 +1,7 @@
 'use client'
 
 import type { schemas } from '@/lib/api'
-import { useTranslations, type AcceptedLocale } from '@polar-sh/i18n'
+import { useTranslations, type AcceptedLocale } from '@/lib/i18n'
 import Button from '@/components/atoms/Button'
 import { cn } from '@/lib/utils'
 import { useState } from 'react'

@@ -73,7 +73,7 @@ const docsCSP = `
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  transpilePackages: ['shiki', '@polar-sh/checkout', '@polar-sh/orbit'],
+  transpilePackages: ['shiki'],
   pageExtensions: ['js', 'jsx', 'md', 'mdx', 'ts', 'tsx'],
 
   // Ignore TypeScript errors during build
