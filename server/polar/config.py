@@ -175,6 +175,7 @@ class Settings(BaseSettings):
     REDIS_PORT: int = 6379
     REDIS_DB: int = 0
     REDIS_PASSWORD: str | None = None
+    REDIS_SSL: bool = True  # Set to False for self-hosted Redis without SSL
 
     # Emails
     EMAIL_RENDERER_BINARY_PATH: Annotated[
@@ -437,9 +438,12 @@ class Settings(BaseSettings):
     @property
     def redis_url(self) -> str:
         # Support Upstash Redis with SSL and password
-        if self.REDIS_PASSWORD:
+        if self.REDIS_PASSWORD and self.REDIS_SSL:
             # Use rediss:// for SSL connections (Upstash)
             return f"rediss://default:{self.REDIS_PASSWORD}@{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
+        elif self.REDIS_PASSWORD:
+            # Use redis:// for non-SSL connections with password (self-hosted)
+            return f"redis://default:{self.REDIS_PASSWORD}@{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
         return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
 
     def get_postgres_dsn(self, driver: Literal["asyncpg", "psycopg2"]) -> str:

@@ -1,24 +1,24 @@
 {
   "folders": [
     {
-      "path": "clients",
-      "name": "clients"
+      "name": "clients",
+      "path": "clients"
     },
     {
-      "path": "server",
-      "name": "server"
+      "name": "server",
+      "path": "server"
     },
     {
-      "path": "terraform",
-      "name": "terraform"
+      "name": "terraform",
+      "path": "terraform"
     },
     {
-      "path": ".",
-      "name": "root"
+      "name": "root",
+      "path": "."
     },
     {
-      "path": "docs",
-      "name": "docs"
+      "name": "docs",
+      "path": "docs"
     }
   ],
   "settings": {
