@@ -1,7 +1,13 @@
 name: Setup MinIO API Subdomain
 
 on:
-  workflow_dispatch: # Manual trigger only
+  push:
+    branches:
+      - master
+    paths:
+      - 'oracle/redis-minio/scripts/setup-api-subdomain.sh'
+      - '.github/workflows/setup-minio-api-subdomain.yml'
+  workflow_dispatch: # Also allow manual trigger
 
 jobs:
   setup:
