@@ -65,6 +65,7 @@ ln -sf /etc/nginx/sites-available/minio /etc/nginx/sites-enabled/
 echo "[INFO] Testing Nginx configuration..."
 if nginx -t; then
     echo "[INFO] Reloading Nginx..."
+    systemctl daemon-reload
     systemctl reload nginx
     echo "✅ Nginx CORS configuration applied successfully!"
 else
