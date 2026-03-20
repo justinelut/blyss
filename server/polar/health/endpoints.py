@@ -24,4 +24,4 @@ async def healthz(
     except RedisError as e:
         raise HTTPException(status_code=503, detail="Redis is not available") from e
 
-    return {"status": "ok"}
+    return {"status": "ok", "message": "Blyss API - Automated Deployment Active"}
