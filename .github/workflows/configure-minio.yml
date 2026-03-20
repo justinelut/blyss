@@ -1,4 +1,4 @@
-name: Configure MinIO
+name: Configure MinIO CORS
 
 on:
   workflow_dispatch: # Manual trigger
@@ -11,7 +11,7 @@ on:
 
 jobs:
   configure-minio:
-    name: Configure MinIO CORS
+    name: Configure MinIO CORS via Nginx
     runs-on: ubuntu-latest
 
     steps:
@@ -24,23 +24,23 @@ jobs:
           host: ${{ secrets.MINIO_HOST }}
           username: ubuntu
           key: ${{ secrets.MINIO_SSH_KEY }}
-          source: "oracle/redis-minio/scripts/configure-cors.sh"
+          source: "oracle/redis-minio/scripts/configure-nginx-cors.sh"
           target: "/tmp/blyss-minio/"
           strip_components: 3
 
-      - name: Configure MinIO CORS
+      - name: Configure MinIO CORS via Nginx
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.MINIO_HOST }}
           username: ubuntu
           key: ${{ secrets.MINIO_SSH_KEY }}
           script: |
-            echo "🚀 Configuring MinIO CORS..."
+            echo "🚀 Configuring MinIO CORS via Nginx..."
 
             cd /tmp/blyss-minio
-            chmod +x configure-cors.sh
+            chmod +x configure-nginx-cors.sh
 
             # Run the configuration script
-            sudo bash configure-cors.sh
+            sudo bash configure-nginx-cors.sh
 
             echo "✅ MinIO CORS configuration completed!"
