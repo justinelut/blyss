@@ -26,14 +26,44 @@ jobs:
           port: 22
           script: |
             echo "🚀 Starting deployment..."
-            cd /opt/blyss/blyss/oracle/backend/scripts
 
-            # Ensure scripts are executable
-            sudo chmod +x *.sh
+            # Navigate to repository root
+            cd /opt/blyss/blyss
 
-            # Run comprehensive fix to ensure everything is configured
-            echo "Running comprehensive fix and update..."
-            sudo bash fix-all.sh
+            # Pull latest changes
+            echo "Pulling latest code..."
+            sudo -u blyss git fetch origin
+            sudo -u blyss git reset --hard origin/master
+
+            # Sync .env.production to .env
+            echo "Syncing .env.production to .env..."
+            if [ -f "server/.env.production" ]; then
+                sudo cp server/.env.production server/.env
+                sudo chown blyss:blyss server/.env
+                sudo chmod 600 server/.env
+                echo "✅ .env updated from .env.production"
+            else
+                echo "❌ .env.production not found!"
+                exit 1
+            fi
+
+            # Install/update dependencies
+            echo "Updating Python dependencies..."
+            cd server
+            sudo -u blyss /home/blyss/.local/bin/uv sync
+
+            # Run migrations
+            echo "Running database migrations..."
+            sudo -u blyss /home/blyss/.local/bin/uv run task db_migrate
+
+            # Restart services
+            echo "Restarting services..."
+            sudo systemctl daemon-reload
+            sudo systemctl restart blyss-api
+            sudo systemctl restart blyss-worker
+
+            # Wait for services to start
+            sleep 5
 
             echo "✅ Deployment completed!"
 
