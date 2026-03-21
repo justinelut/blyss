@@ -1338,60 +1338,6 @@ class OrganizationService:
         """
         return organization.subaccount_code is not None
 
-    async def get_creators_directory(
-        self,
-        session: AsyncReadSession,
-        search: str | None = None,
-        limit: int = 100,
-        offset: int = 0,
-    ) -> Sequence[Organization]:
-        """Get creators for directory page with product counts.
-
-        Args:
-            session: Database session
-            search: Optional search term to filter by organization name
-            limit: Maximum number of results to return
-            offset: Number of results to skip
-
-        Returns:
-            List of organizations that have products
-        """
-        repository = OrganizationRepository.from_session(session)
-        organizations = await repository.get_creators_with_products(
-            limit=limit, offset=offset
-        )
-
-        if search:
-            search_lower = search.lower()
-            organizations = [
-                org for org in organizations if search_lower in org.name.lower()
-            ]
-
-        return organizations
-
-    async def get_creator_storefront(
-        self,
-        session: AsyncReadSession,
-        slug: str,
-    ) -> Organization | None:
-        """Get complete creator profile with products for storefront.
-
-        Args:
-            session: Database session
-            slug: Organization slug
-
-        Returns:
-            Organization with products eager loaded, or None if not found
-        """
-        repository = OrganizationRepository.from_session(session)
-        product_repository = ProductRepository.from_session(session)
-
-        organization = await repository.get_by_slug_public(slug)
-        if not organization:
-            return None
-
-        return organization
-
     async def update_creator_profile(
         self,
         session: AsyncSession,
@@ -1433,6 +1379,81 @@ class OrganizationService:
         )
 
         return updated_org
+
+    async def get_creators_directory(
+        self,
+        session: AsyncReadSession,
+        *,
+        search: str | None = None,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> Sequence[Organization]:
+        """Get list of creators for the directory page.
+
+        Args:
+            session: Database session
+            search: Optional search query
+            limit: Maximum number of results
+            offset: Number of results to skip
+
+        Returns:
+            List of organizations with products
+        """
+        from sqlalchemy import select
+        from sqlalchemy.orm import selectinload
+
+        from polar.models import Product
+
+        statement = (
+            select(Organization)
+            .where(
+                Organization.is_deleted.is_(False),
+                Organization.blocked_at.is_(None),
+            )
+            .options(selectinload(Organization.products))
+        )
+
+        if search:
+            statement = statement.where(
+                Organization.name.ilike(f"%{search}%")
+                | Organization.slug.ilike(f"%{search}%")
+            )
+
+        statement = statement.order_by(Organization.created_at.desc())
+        statement = statement.limit(limit).offset(offset)
+
+        result = await session.execute(statement)
+        return result.scalars().unique().all()
+
+    async def get_creator_storefront(
+        self,
+        session: AsyncReadSession,
+        slug: str,
+    ) -> Organization | None:
+        """Get creator storefront data by slug.
+
+        Args:
+            session: Database session
+            slug: Organization slug
+
+        Returns:
+            Organization with products or None if not found
+        """
+        from sqlalchemy import select
+        from sqlalchemy.orm import selectinload
+
+        statement = (
+            select(Organization)
+            .where(
+                Organization.slug == slug,
+                Organization.is_deleted.is_(False),
+                Organization.blocked_at.is_(None),
+            )
+            .options(selectinload(Organization.products))
+        )
+
+        result = await session.execute(statement)
+        return result.scalar_one_or_none()
 
 
 organization = OrganizationService()

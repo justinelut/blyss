@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Creators Directory | The Modern Curator</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@400;700;800;900&amp;family=Inter:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "background": "#fcf9f7",
+              "on-secondary-fixed": "#001f23",
+              "surface-container-low": "#f6f3f1",
+              "surface-bright": "#fcf9f7",
+              "surface-container": "#f0edeb",
+              "primary-fixed": "#ffdbcf",
+              "error-container": "#ffdad6",
+              "inverse-on-surface": "#f3f0ee",
+              "outline-variant": "#e1bfb4",
+              "secondary-container": "#9ff0fb",
+              "on-surface": "#1b1c1b",
+              "surface-dim": "#dcd9d8",
+              "tertiary-fixed-dim": "#fbbc00",
+              "primary-fixed-dim": "#ffb59c",
+              "surface-container-high": "#eae8e6",
+              "surface-tint": "#ab3600",
+              "error": "#ba1a1a",
+              "secondary": "#006972",
+              "tertiary-fixed": "#ffdfa0",
+              "on-primary": "#ffffff",
+              "on-tertiary": "#ffffff",
+              "tertiary": "#765700",
+              "on-primary-container": "#fffbff",
+              "on-error": "#ffffff",
+              "on-primary-fixed-variant": "#822700",
+              "secondary-fixed-dim": "#82d3de",
+              "surface-container-highest": "#e5e2e0",
+              "secondary-fixed": "#9ff0fb",
+              "on-surface-variant": "#594139",
+              "on-tertiary-container": "#fffbff",
+              "on-secondary-container": "#066f79",
+              "on-tertiary-fixed-variant": "#5c4300",
+              "inverse-surface": "#30302f",
+              "tertiary-container": "#956e00",
+              "surface-variant": "#e5e2e0",
+              "inverse-primary": "#ffb59c",
+              "outline": "#8d7168",
+              "on-error-container": "#93000a",
+              "on-secondary-fixed-variant": "#004f56",
+              "primary": "#a73400",
+              "surface": "#fcf9f7",
+              "on-secondary": "#ffffff",
+              "on-primary-fixed": "#390c00",
+              "on-tertiary-fixed": "#261a00",
+              "surface-container-lowest": "#ffffff",
+              "primary-container": "#cc4911",
+              "on-background": "#1b1c1b"
+            },
+            fontFamily: {
+              "headline": ["Epilogue"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      .glass-nav {
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+      }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-[#fcf9f7] dark:bg-stone-950/80 backdrop-blur-xl">
+<nav class="flex justify-between items-center px-8 h-20 max-w-screen-2xl mx-auto">
+<div class="text-2xl font-bold text-[#1b1c1b] dark:text-[#fcf9f7] font-headline tracking-tight">
+                The Modern Curator
+            </div>
+<div class="hidden md:flex items-center space-x-8 font-label text-sm uppercase tracking-widest">
+<a class="text-[#594139] dark:text-stone-400 hover:text-[#a73400] transition-colors duration-200" href="#">Explore</a>
+<a class="text-[#a73400] border-b-2 border-[#a73400] pb-1 transition-colors duration-200" href="#">Creators</a>
+<a class="text-[#594139] dark:text-stone-400 hover:text-[#a73400] transition-colors duration-200" href="#">Subscriptions</a>
+</div>
+<div class="flex items-center space-x-5">
+<button class="text-on-surface-variant hover:text-primary transition-all duration-300">
+<span class="material-symbols-outlined" data-icon="shopping_cart">shopping_cart</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-all duration-300">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+</button>
+</div>
+</nav>
+</header>
+<main class="pt-32 pb-20">
+<!-- Hero Search Section -->
+<section class="max-w-screen-2xl mx-auto px-8 mb-20">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-8">
+<div class="max-w-2xl">
+<h1 class="text-6xl md:text-7xl font-headline font-black tracking-tighter text-on-surface leading-none mb-6">
+                        Meet the <span class="text-primary">Makers.</span>
+</h1>
+<p class="text-xl text-on-surface-variant font-body leading-relaxed">
+                        Discover Kenya's most visionary digital artisans. From Nairobi's pixel-perfect illustrators to coastal code-crafters.
+                    </p>
+</div>
+<div class="w-full md:w-96">
+<div class="relative group">
+<label class="block text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2 ml-1">Find a creator</label>
+<input class="w-full bg-surface-container-high border-none rounded-lg px-6 py-4 focus:ring-2 focus:ring-secondary text-on-surface placeholder:text-outline transition-all" placeholder="Search by name or skill..." type="text"/>
+<span class="material-symbols-outlined absolute right-4 bottom-4 text-on-surface-variant" data-icon="search">search</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Featured Spotlight (Creator of the Week) -->
+<section class="max-w-screen-2xl mx-auto px-8 mb-24">
+<div class="relative overflow-hidden rounded-xl bg-surface-container-low group">
+<div class="flex flex-col lg:flex-row items-stretch min-h-[500px]">
+<div class="lg:w-3/5 relative">
+<img class="w-full h-full object-cover" data-alt="Modern studio portrait of a digital artist" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB-kCHawyzOidwUue7UtkQT5wqT3eVwoX--zHfMqkRUjSMDvx8tpAtiFN3LlIMNcmeCjgSu1YTKMC4Id6b5KXgOxVkz6Ub3KkMWfDpiryphFAFqLVUwqmyLuBenA_NuYjxdI6Jih0vlJeppW2YNLnMmO2XTvwhD5Jz6xa479Cgl1ICeXwn23C-gU0h-gfs1Ev9WFb26vgnU86XcBsqvrh08xAE0uod9Y8Gu1hBDfR-Rk0P32RfaY7KI1pOsmUAwcZy_2P48MSQSK7A"/>
+<div class="absolute inset-0 bg-gradient-to-r from-primary/20 to-transparent"></div>
+</div>
+<div class="lg:w-2/5 p-12 flex flex-col justify-center bg-surface-container-lowest">
+<div class="inline-flex items-center px-3 py-1 bg-tertiary-fixed text-on-tertiary-fixed text-[10px] font-black uppercase tracking-[0.2em] rounded-full mb-8 w-fit">
+                            Creator of the Week
+                        </div>
+<h2 class="text-5xl font-headline font-bold text-on-surface mb-4 leading-tight">Wanjiku K. Studio</h2>
+<p class="text-lg text-on-surface-variant mb-8 leading-relaxed italic">"Blending traditional Kikuyu patterns with futuristic 3D architectural renders."</p>
+<div class="flex gap-3 mb-10">
+<span class="px-4 py-1.5 bg-surface-container-highest text-on-surface-variant text-xs font-semibold rounded-full uppercase tracking-wider">3D Artist</span>
+<span class="px-4 py-1.5 bg-surface-container-highest text-on-surface-variant text-xs font-semibold rounded-full uppercase tracking-wider">Architect</span>
+</div>
+<button class="bg-primary text-on-primary px-8 py-4 rounded-lg font-bold text-sm uppercase tracking-widest hover:bg-primary-container transition-all duration-300 shadow-xl shadow-primary/10 flex items-center justify-center gap-2 group/btn">
+                            Visit Gallery
+                            <span class="material-symbols-outlined text-sm group-hover/btn:translate-x-1 transition-transform" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Main Directory Grid (Asymmetric) -->
+<section class="max-w-screen-2xl mx-auto px-8">
+<div class="flex items-baseline justify-between mb-12">
+<h3 class="text-3xl font-headline font-bold">Community Talent</h3>
+<div class="flex gap-4">
+<button class="text-xs font-black uppercase tracking-widest text-primary border-b-2 border-primary pb-1">All</button>
+<button class="text-xs font-black uppercase tracking-widest text-on-surface-variant hover:text-primary transition-colors">Illustrators</button>
+<button class="text-xs font-black uppercase tracking-widest text-on-surface-variant hover:text-primary transition-colors">Developers</button>
+<button class="text-xs font-black uppercase tracking-widest text-on-surface-variant hover:text-primary transition-colors">Photographers</button>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
+<!-- Creator Card 1 -->
+<div class="group cursor-pointer">
+<div class="relative mb-6">
+<div class="aspect-[4/5] overflow-hidden rounded-lg bg-surface-container-highest">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" data-alt="Digital artist avatar portrait" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD_tYgYIbGOYlyt-BSplfURxgdfC7vAiQdxqo25VE6VfT30C9UCIRHd7QH_EE6NP5g_vVq1rNTSqYvfSbVN10RiCNuQ0QOuTANL9cMXGbe2kWhb806guOiBXewez2zVNnJY6hKM61me_HLxVBuz_omvWqxVaqdgxM96WxwwwcxqfptZ7IvikUJotu8lC9LAwT5JNbye2J4y3malz_UjNb_Ratuc6A5WseXUSpSdwjtSJ-IBB09otI3TTgci6EDEv8_IBZMWGAxLgXo"/>
+</div>
+<div class="absolute -bottom-6 left-6 right-6 bg-surface-container-lowest p-6 rounded-lg shadow-sm group-hover:shadow-md transition-shadow">
+<div class="flex justify-between items-start mb-2">
+<h4 class="text-xl font-headline font-bold text-on-surface">Jabari M.</h4>
+<span class="material-symbols-outlined text-secondary text-lg" data-icon="verified" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<p class="text-sm text-on-surface-variant line-clamp-1 mb-4">Vector storytelling and comic art based in Kisumu.</p>
+<div class="flex flex-wrap gap-2 mb-6">
+<span class="text-[10px] font-bold uppercase tracking-tighter text-on-tertiary-fixed-variant bg-tertiary-fixed px-2 py-0.5 rounded">Illustrator</span>
+</div>
+<button class="w-full py-3 bg-surface-container-low text-primary text-xs font-black uppercase tracking-widest rounded hover:bg-primary hover:text-on-primary transition-colors">View Store</button>
+</div>
+</div>
+</div>
+<!-- Creator Card 2 -->
+<div class="group cursor-pointer md:mt-12">
+<div class="relative mb-6">
+<div class="aspect-[4/5] overflow-hidden rounded-lg bg-surface-container-highest">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" data-alt="Creative developer working at desk" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDtBPEUpQ6RUT1--GPM4-_7JYkueN7WKu2ubNVoQDjRYW0myxBN_loSvVdVqHnPPFU_xi9NsbYvv3FJDa5msqCW5t5a-JAlrbQcIYLXkKtm51prFXaROZqOCuNcAftqInBLW2E8H5-e8J0-JxS4QA1IMag3YqoHFs4eq-yBjc6wbTXPFfbKxqZ1pB3mKdQcrC8N4uWtNaHjBREOkTEOS1q2P24Hc6au4F2JIL8hKbpFrZcztfTus-fRq22O7fByvklZLiMPOPMPJZU"/>
+</div>
+<div class="absolute -bottom-6 left-6 right-6 bg-surface-container-lowest p-6 rounded-lg shadow-sm group-hover:shadow-md transition-shadow">
+<div class="flex justify-between items-start mb-2">
+<h4 class="text-xl font-headline font-bold text-on-surface">Neo Kibera</h4>
+<span class="material-symbols-outlined text-outline-variant text-lg" data-icon="stars" style="font-variation-settings: 'FILL' 1;">stars</span>
+</div>
+<p class="text-sm text-on-surface-variant line-clamp-1 mb-4">UI/UX and accessible React components.</p>
+<div class="flex flex-wrap gap-2 mb-6">
+<span class="text-[10px] font-bold uppercase tracking-tighter text-on-secondary-container bg-secondary-container px-2 py-0.5 rounded">Web Developer</span>
+</div>
+<button class="w-full py-3 bg-surface-container-low text-primary text-xs font-black uppercase tracking-widest rounded hover:bg-primary hover:text-on-primary transition-colors">View Store</button>
+</div>
+</div>
+</div>
+<!-- Creator Card 3 -->
+<div class="group cursor-pointer">
+<div class="relative mb-6">
+<div class="aspect-[4/5] overflow-hidden rounded-lg bg-surface-container-highest">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" data-alt="Portrait of a young Kenyan photographer" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBZ8DvCxIbniHiurtx0reSs1hIkMz3W7hgAZtOyneWuc625ATP0ASG1IAd5AxvCRd6Yf5HoqEYtx2wV_oDbsi9AxtD3Kqv0AdtWbyd5h1wfMMvnNsHU0H23rtO_xfIoI4ABEJxRPbABewx42cX8QJ4lKUBTuprjrgqD0MHgdiKUbxUEKa_gLnNOiJ9X3zTVNAtnQDe1smU07AGii4mGSzdmn328YDvhpp3GWSxm3HUsTRlVu7kxo8JdsQgDS8ugCgxUTDAsZDjgJGc"/>
+</div>
+<div class="absolute -bottom-6 left-6 right-6 bg-surface-container-lowest p-6 rounded-lg shadow-sm group-hover:shadow-md transition-shadow">
+<div class="flex justify-between items-start mb-2">
+<h4 class="text-xl font-headline font-bold text-on-surface">Zuri Lens</h4>
+<span class="material-symbols-outlined text-secondary text-lg" data-icon="verified" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<p class="text-sm text-on-surface-variant line-clamp-1 mb-4">Capturing the soul of Nairobi's urban nightlife.</p>
+<div class="flex flex-wrap gap-2 mb-6">
+<span class="text-[10px] font-bold uppercase tracking-tighter text-on-tertiary-fixed-variant bg-tertiary-fixed px-2 py-0.5 rounded">Photographer</span>
+</div>
+<button class="w-full py-3 bg-surface-container-low text-primary text-xs font-black uppercase tracking-widest rounded hover:bg-primary hover:text-on-primary transition-colors">View Store</button>
+</div>
+</div>
+</div>
+<!-- Creator Card 4 -->
+<div class="group cursor-pointer">
+<div class="relative mb-6">
+<div class="aspect-[4/5] overflow-hidden rounded-lg bg-surface-container-highest">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" data-alt="Female graphic designer portrait" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD7M-HXLGEKwIJVwlqXFjbv6w-t24cN5-rncjQQMe0wcJo4Tx3f-N-kPU4xEW792yU7rE5_1_tISjLFB-ddRKt-5KbcHjIhnq_s53oJzpjfHGCTSk3BJzeyYEd_ZXBaNnAO6sp8eCnr08-Wtu3ERAHOBrWTTGuCyEFsx9WO4zYJ2QRmVIslwEEtzSBN-Ov2r4DPz-Bqv3EeGA218vbTBN9YSAIQc1z-J2G1OFpxww0rHP-s04dl23Ru8SOALF3DAj-1GebtjLhpdRQ"/>
+</div>
+<div class="absolute -bottom-6 left-6 right-6 bg-surface-container-lowest p-6 rounded-lg shadow-sm group-hover:shadow-md transition-shadow">
+<div class="flex justify-between items-start mb-2">
+<h4 class="text-xl font-headline font-bold text-on-surface">Malkia Design</h4>
+<span class="material-symbols-outlined text-outline-variant text-lg" data-icon="stars" style="font-variation-settings: 'FILL' 1;">stars</span>
+</div>
+<p class="text-sm text-on-surface-variant line-clamp-1 mb-4">Branding for the new African renaissance.</p>
+<div class="flex flex-wrap gap-2 mb-6">
+<span class="text-[10px] font-bold uppercase tracking-tighter text-on-tertiary-fixed-variant bg-tertiary-fixed px-2 py-0.5 rounded">Graphic Designer</span>
+</div>
+<button class="w-full py-3 bg-surface-container-low text-primary text-xs font-black uppercase tracking-widest rounded hover:bg-primary hover:text-on-primary transition-colors">View Store</button>
+</div>
+</div>
+</div>
+<!-- Creator Card 5 -->
+<div class="group cursor-pointer md:mt-12">
+<div class="relative mb-6">
+<div class="aspect-[4/5] overflow-hidden rounded-lg bg-surface-container-highest">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" data-alt="Portrait of a creative storyteller" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAAHOo0mKm4Q7nrKR_5OiokuJ6pu6piLb46rRYIctHvSsxIJGYwRTo7ogPYIBBlfXVc230tT_MPm_UQfb2IhCu1fro1ObOa0DgzSc-N9nqD-S2GdUZWua5nc4wnYvcNLXWW0AP09AtncpdNiyLibAQz3lu15IiLC18RuI24dOK9b12zCSrMBV194WS2LEBbEK8G4xeDWTD9mOyzwDv0P_Z5LIC8R-lOXp-eLezxM1733bdNSFPSrGxA2bAsKL-8b-bAjevfScurNEk"/>
+</div>
+<div class="absolute -bottom-6 left-6 right-6 bg-surface-container-lowest p-6 rounded-lg shadow-sm group-hover:shadow-md transition-shadow">
+<div class="flex justify-between items-start mb-2">
+<h4 class="text-xl font-headline font-bold text-on-surface">Odhiambo Ink</h4>
+<span class="material-symbols-outlined text-secondary text-lg" data-icon="verified" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<p class="text-sm text-on-surface-variant line-clamp-1 mb-4">Digital poetry and spoken word visualizers.</p>
+<div class="flex flex-wrap gap-2 mb-6">
+<span class="text-[10px] font-bold uppercase tracking-tighter text-on-secondary-container bg-secondary-container px-2 py-0.5 rounded">Motion Designer</span>
+</div>
+<button class="w-full py-3 bg-surface-container-low text-primary text-xs font-black uppercase tracking-widest rounded hover:bg-primary hover:text-on-primary transition-colors">View Store</button>
+</div>
+</div>
+</div>
+<!-- Creator Card 6 -->
+<div class="group cursor-pointer">
+<div class="relative mb-6">
+<div class="aspect-[4/5] overflow-hidden rounded-lg bg-surface-container-highest">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" data-alt="Portrait of a young male filmmaker" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAYvqdmkXQKLMsGN_r8vMD0wW1CLWyXIMrhIfdksIpEkPbSGllY8FATTg0dPgw-Sfiz8FXKSwicwS5qldf9_wMCrn5rTPnLpv_rjS9Ik_zJbmPdwyIoS6E-J7CffrdHSpH8V4F48LrLOEXdtCPrrbJv7CJ3SZM8vVWBM_g5AD-83jJGagZ5D3z3olitv8u9cJzI5NUr4zhGTSrN9B-B6jC8oGkraD9hFJblBtA_sM32BZym4dloadlX4MvxcC84P5c3pOrwfs1C6W0"/>
+</div>
+<div class="absolute -bottom-6 left-6 right-6 bg-surface-container-lowest p-6 rounded-lg shadow-sm group-hover:shadow-md transition-shadow">
+<div class="flex justify-between items-start mb-2">
+<h4 class="text-xl font-headline font-bold text-on-surface">Kavi Frames</h4>
+<span class="material-symbols-outlined text-outline-variant text-lg" data-icon="stars" style="font-variation-settings: 'FILL' 1;">stars</span>
+</div>
+<p class="text-sm text-on-surface-variant line-clamp-1 mb-4">Short-form cinematic stories for brands.</p>
+<div class="flex flex-wrap gap-2 mb-6">
+<span class="text-[10px] font-bold uppercase tracking-tighter text-on-tertiary-fixed-variant bg-tertiary-fixed px-2 py-0.5 rounded">Filmmaker</span>
+</div>
+<button class="w-full py-3 bg-surface-container-low text-primary text-xs font-black uppercase tracking-widest rounded hover:bg-primary hover:text-on-primary transition-colors">View Store</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Pagination/Load More -->
+<div class="flex justify-center mt-32">
+<button class="flex flex-col items-center gap-4 group">
+<span class="text-xs font-black uppercase tracking-[0.3em] text-on-surface-variant group-hover:text-primary transition-colors">Load more creators</span>
+<div class="h-12 w-[2px] bg-primary-fixed group-hover:h-16 transition-all duration-500"></div>
+</button>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="w-full pt-20 pb-10 bg-[#f6f3f1] dark:bg-stone-900">
+<div class="grid grid-cols-1 md:grid-cols-4 gap-12 px-8 max-w-screen-2xl mx-auto">
+<div class="md:col-span-1">
+<div class="text-xl font-black text-[#1b1c1b] dark:text-[#fcf9f7] font-headline mb-6">The Modern Curator</div>
+<p class="font-body text-sm text-[#594139] dark:text-stone-500 normal-case leading-relaxed">
+                    Supporting the digital economy of East Africa through high-end artisanal commerce and community collaboration.
+                </p>
+</div>
+<div class="space-y-4">
+<div class="font-['Inter'] text-sm uppercase tracking-wider font-bold text-[#a73400]">Marketplace</div>
+<ul class="space-y-3">
+<li><a class="font-['Inter'] text-sm uppercase tracking-wider text-[#594139] dark:text-stone-500 hover:text-[#a73400] underline decoration-2 underline-offset-4 transition-all duration-300" href="#">Sell on Curator</a></li>
+<li><a class="font-['Inter'] text-sm uppercase tracking-wider text-[#594139] dark:text-stone-500 hover:text-[#a73400] underline decoration-2 underline-offset-4 transition-all duration-300" href="#">Licensing</a></li>
+<li><a class="font-['Inter'] text-sm uppercase tracking-wider text-[#594139] dark:text-stone-500 hover:text-[#a73400] underline decoration-2 underline-offset-4 transition-all duration-300" href="#">Creator Resources</a></li>
+</ul>
+</div>
+<div class="space-y-4">
+<div class="font-['Inter'] text-sm uppercase tracking-wider font-bold text-[#a73400]">Community</div>
+<ul class="space-y-3">
+<li><a class="font-['Inter'] text-sm uppercase tracking-wider text-[#594139] dark:text-stone-500 hover:text-[#a73400] underline decoration-2 underline-offset-4 transition-all duration-300" href="#">Community Forums</a></li>
+<li><a class="font-['Inter'] text-sm uppercase tracking-wider text-[#594139] dark:text-stone-500 hover:text-[#a73400] underline decoration-2 underline-offset-4 transition-all duration-300" href="#">Terms of Service</a></li>
+<li><a class="font-['Inter'] text-sm uppercase tracking-wider text-[#594139] dark:text-stone-500 hover:text-[#a73400] underline decoration-2 underline-offset-4 transition-all duration-300" href="#">Privacy Policy</a></li>
+</ul>
+</div>
+<div class="space-y-4">
+<div class="font-['Inter'] text-sm uppercase tracking-wider font-bold text-[#a73400]">Newsletter</div>
+<div class="relative">
+<input class="w-full bg-surface-container border-none text-xs tracking-widest px-4 py-3 rounded focus:ring-1 focus:ring-primary" placeholder="YOUR EMAIL" type="email"/>
+<button class="absolute right-2 top-1.5 text-primary">
+<span class="material-symbols-outlined" data-icon="arrow_right_alt">arrow_right_alt</span>
+</button>
+</div>
+</div>
+</div>
+<div class="max-w-screen-2xl mx-auto px-8 mt-20 text-center">
+<p class="font-['Inter'] text-xs uppercase tracking-widest text-[#594139] dark:text-stone-500">© 2024 The Modern Curator. Kenyan Artistry Digitized.</p>
+</div>
+</footer>
+</body></html>

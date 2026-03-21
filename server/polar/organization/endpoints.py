@@ -19,7 +19,7 @@ from polar.exceptions import (
     ResourceNotFound,
     Unauthorized,
 )
-from polar.kit.pagination import ListResource, Pagination, PaginationParamsQuery
+from polar.kit.pagination import ListResource, Pagination, PaginationParams, PaginationParamsQuery
 from polar.models import Account, Organization
 from polar.openapi import APITag
 from polar.organization.repository import OrganizationReviewRepository
@@ -60,6 +60,51 @@ OrganizationNotFound = {
     "description": "Organization not found.",
     "model": ResourceNotFound.schema(),
 }
+
+
+@router.get(
+    "/public",
+    summary="List Public Organizations",
+    response_model=ListResource[OrganizationSchema],
+    tags=[APITag.public],
+)
+async def list_public_organizations(
+    is_featured: bool | None = Query(None, description="Filter featured organizations"),
+    limit: int = Query(6, ge=1, le=100, description="Items per page"),
+    session: AsyncReadSession = Depends(get_db_read_session),
+) -> ListResource[OrganizationSchema]:
+    """
+    List public organizations without authentication.
+
+    This endpoint is used for the marketplace homepage to display trending creators.
+    """
+    from sqlalchemy import select
+    from sqlalchemy.orm import selectinload
+
+    from polar.models import Organization
+
+    statement = select(Organization).where(
+        Organization.is_deleted.is_(False),
+        Organization.blocked_at.is_(None),
+    )
+
+    # Skip is_featured filter for now since profile_settings might not be set
+    # if is_featured is not None:
+    #     statement = statement.where(
+    #         Organization.profile_settings["is_featured"].astext == str(is_featured).lower()
+    #     )
+
+    statement = statement.order_by(Organization.created_at.desc())
+    statement = statement.limit(limit)
+
+    result = await session.execute(statement)
+    organizations = result.scalars().unique().all()
+
+    return ListResource.from_paginated_results(
+        [OrganizationSchema.model_validate(org) for org in organizations],
+        len(organizations),
+        PaginationParams(limit=limit, page=1),
+    )
 
 
 @router.get(
@@ -664,7 +709,7 @@ async def get_review_status(
 
 
 @router.get(
-    "/v1/creators",
+    "/creators",
     summary="List Creators",
     response_model=builtins.list[CreatorSummarySchema],
     tags=[APITag.public],
@@ -704,7 +749,7 @@ async def list_creators(
 
 
 @router.get(
-    "/v1/creators/{slug}",
+    "/creators/{slug}",
     summary="Get Creator Storefront",
     response_model=CreatorStorefrontSchema,
     responses={404: OrganizationNotFound},
@@ -727,19 +772,36 @@ async def get_creator(
     # Get non-archived products
     products = [p for p in organization.products if not p.is_archived]
 
+    # Convert socials list to SocialLinks format
+    social_links_dict = {}
+    if organization.socials:
+        for social in organization.socials:
+            platform = social.get("platform", "").lower()
+            url = social.get("url", "")
+            if platform and url:
+                # Map platform names to schema fields
+                if platform in ["x", "twitter"]:
+                    social_links_dict["twitter"] = url
+                elif platform == "instagram":
+                    social_links_dict["instagram"] = url
+                elif platform in ["website", "other"]:
+                    if "website" not in social_links_dict:
+                        social_links_dict["website"] = url
+
     return CreatorStorefrontSchema(
         id=organization.id,
         name=organization.name,
         slug=organization.slug,
         avatar_url=organization.avatar_url,
         bio=organization.bio,
-        social_links=organization.social_links,
+        email=organization.email,
+        social_links=social_links_dict if social_links_dict else None,
         products=products,
     )
 
 
 @router.patch(
-    "/v1/organizations/{id}/profile",
+    "/{id}/profile",
     response_model=OrganizationSchema,
     summary="Update Organization Profile",
     responses={

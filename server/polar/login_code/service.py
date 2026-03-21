@@ -66,7 +66,7 @@ class LoginCodeService:
 
         email = login_code.email
         domain = settings.frontend_hostname
-        subject = "Sign in to Polar"
+        subject = "Sign in to Blyss"
         enqueue_email_template(
             LoginCodeEmail(
                 props=LoginCodeProps(

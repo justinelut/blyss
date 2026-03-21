@@ -51,6 +51,64 @@ SubscriptionNotFound = {
 
 
 @router.get(
+    "/public",
+    response_model=ListResource[SubscriptionSchema],
+    summary="List Public Subscriptions",
+)
+async def list_public_subscriptions(
+    is_featured: bool | None = Query(None, description="Filter featured subscriptions"),
+    limit: int = Query(6, ge=1, le=100, description="Items per page"),
+    session: AsyncReadSession = Depends(get_db_read_session),
+) -> ListResource[SubscriptionSchema]:
+    """
+    List public subscriptions without authentication.
+
+    This endpoint is used for the marketplace homepage to display featured subscriptions.
+    """
+    from sqlalchemy import and_, select
+    from sqlalchemy.orm import selectinload
+
+    from polar.models import Product, Subscription
+    from polar.models.product import ProductVisibility
+
+    statement = (
+        select(Subscription)
+        .join(Product, Product.id == Subscription.product_id)
+        .where(
+            Subscription.ended_at.is_(None),
+            Subscription.cancel_at_period_end.is_(False),
+            Product.is_archived.is_(False),
+            Product.is_deleted.is_(False),
+            Product.visibility == ProductVisibility.public,
+        )
+    )
+
+    # Skip is_featured filter for now since metadata might not be set
+    # if is_featured is not None:
+    #     statement = statement.where(
+    #         Product.user_metadata["is_featured"].astext == str(is_featured).lower()
+    #     )
+
+    statement = statement.order_by(Subscription.created_at.desc())
+    statement = statement.limit(limit)
+
+    statement = statement.options(
+        selectinload(Subscription.product).selectinload(Product.organization),
+        selectinload(Subscription.product).selectinload(Product.product_benefits),
+        selectinload(Subscription.subscription_product_prices),
+    )
+
+    result = await session.execute(statement)
+    subscriptions = result.scalars().unique().all()
+
+    return ListResource.from_paginated_results(
+        [SubscriptionSchema.model_validate(sub) for sub in subscriptions],
+        len(subscriptions),
+        PaginationParams(limit=limit, page=1),
+    )
+
+
+@router.get(
     "/",
     response_model=ListResource[SubscriptionSchema],
     summary="List Subscriptions",

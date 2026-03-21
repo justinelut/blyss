@@ -64,6 +64,25 @@ else
     log_info "Email templates unchanged, skipping rebuild"
 fi
 
+log_info "Checking if backoffice needs rebuilding..."
+BACKOFFICE_CHANGED=false
+if [ -d "$APP_DIR/blyss/server/polar/backoffice/.git" ]; then
+    # Check if backoffice files changed in last commit
+    cd "$APP_DIR/blyss"
+    if git diff HEAD~1 HEAD --name-only | grep -q "server/polar/backoffice/"; then
+        BACKOFFICE_CHANGED=true
+    fi
+fi
+
+if [ "$BACKOFFICE_CHANGED" = true ] || [ ! -f "$APP_DIR/blyss/server/polar/backoffice/static/styles.css" ] || [ ! -f "$APP_DIR/blyss/server/polar/backoffice/static/scripts.js" ]; then
+    log_info "Rebuilding backoffice static assets..."
+    su - $APP_USER -c "cd $APP_DIR/blyss/server/polar/backoffice && pnpm install --frozen-lockfile"
+    su - $APP_USER -c "cd $APP_DIR/blyss/server/polar/backoffice && pnpm run build"
+    log_success "Backoffice assets rebuilt"
+else
+    log_info "Backoffice files unchanged, skipping rebuild"
+fi
+
 log_info "Verifying service configuration..."
 # Ensure service file has correct WorkingDirectory
 SERVICE_FILE="/etc/systemd/system/blyss-api.service"

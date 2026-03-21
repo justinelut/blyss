@@ -1,0 +1,511 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@stylex;
+
+@source '../../../../packages/ui/src';
+@source '../../../../packages/checkout/src';
+@source '../../../../packages/orbit/src';
+
+@plugin '@tailwindcss/forms';
+@plugin 'tailwindcss-radix';
+@plugin '@tailwindcss/typography';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --shadow-md: 0 0px 15px rgba(0 0 0 / 0.04), 0 0px 2px rgba(0 0 0 / 0.06);
+  --shadow-lg: 0 0px 20px rgba(0 0 0 / 0.04), 0 0px 5px rgba(0 0 0 / 0.06);
+  --shadow-xl: 0 0px 30px rgba(0 0 0 / 0.04), 0 0px 10px rgba(0 0 0 / 0.06);
+  --shadow-3xl: 0 0 50px rgba(0 0 0 / 0.02), 0 0 50px rgba(0 0 0 / 0.04);
+
+  --font-sans: var(--sans), sans-serif;
+  --font-display: var(--display), sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
+  --font-louize: var(--louize), serif;
+  --font-epilogue: 'Epilogue', var(--display), sans-serif;
+  --font-inter: 'Inter', var(--sans), sans-serif;
+
+  --text-xxs: 0.65rem;
+
+  --color-blue-50: oklch(0.97 0.014 254.604);
+  --color-blue-100: oklch(0.932 0.032 255.585);
+  --color-blue-200: oklch(0.882 0.059 254.128);
+  --color-blue-300: oklch(0.809 0.105 251.813);
+  --color-blue-400: oklch(0.707 0.165 254.624);
+  --color-blue-500: oklch(0.623 0.214 259.815);
+  --color-blue-600: oklch(0.546 0.245 262.881);
+  --color-blue-700: oklch(0.488 0.243 264.376);
+  --color-blue-800: oklch(0.424 0.199 265.638);
+  --color-blue-900: oklch(0.379 0.146 265.522);
+  --color-blue-950: oklch(0.282 0.091 267.935);
+  --color-blue: var(--color-blue-600);
+
+  --color-green-50: oklch(0.979 0.021 166.113);
+  --color-green-100: oklch(0.95 0.052 163.051);
+  --color-green-200: oklch(0.905 0.093 164.15);
+  --color-green-300: oklch(0.845 0.143 164.978);
+  --color-green-400: oklch(0.765 0.177 163.223);
+  --color-green-500: oklch(0.696 0.17 162.48);
+  --color-green-600: oklch(0.596 0.145 163.225);
+  --color-green-700: oklch(0.508 0.118 165.612);
+  --color-green-800: oklch(0.432 0.095 166.913);
+  --color-green-900: oklch(0.378 0.077 168.94);
+  --color-green-950: oklch(0.262 0.051 172.552);
+
+  --color-red-50: oklch(0.971 0.013 17.38);
+  --color-red-100: oklch(0.936 0.032 17.717);
+  --color-red-200: oklch(0.885 0.062 18.334);
+  --color-red-300: oklch(0.808 0.114 19.571);
+  --color-red-400: oklch(0.704 0.191 22.216);
+  --color-red-500: oklch(0.637 0.237 25.331);
+  --color-red-600: oklch(0.577 0.245 27.325);
+  --color-red-700: oklch(0.505 0.213 27.518);
+  --color-red-800: oklch(0.444 0.177 26.899);
+  --color-red-900: oklch(0.396 0.141 25.723);
+  --color-red-950: oklch(0.258 0.092 26.042);
+
+  --color-gray-50: oklch(0.985 0.002 247.839);
+  --color-gray-100: oklch(0.967 0.003 264.542);
+  --color-gray-200: oklch(0.928 0.006 264.531);
+  --color-gray-300: oklch(0.872 0.01 258.338);
+  --color-gray-400: oklch(0.707 0.022 261.325);
+  --color-gray-500: oklch(0.551 0.027 264.364);
+  --color-gray-600: oklch(0.446 0.03 256.802);
+  --color-gray-700: oklch(0.373 0.034 259.733);
+  --color-gray-800: oklch(0.278 0.033 256.848);
+  --color-gray-900: oklch(0.21 0.034 264.665);
+  --color-gray-950: oklch(0.13 0.028 261.692);
+
+  /* Editorial-aligned Polar colors (warmer neutrals) */
+  --color-polar-50: hsl(24, 8%, 88%);
+  --color-polar-100: hsl(24, 8%, 82%);
+  --color-polar-200: hsl(24, 8%, 72%);
+  --color-polar-300: hsl(24, 8%, 64%);
+  --color-polar-400: hsl(24, 8%, 54%);
+  --color-polar-500: hsl(24, 8%, 46%);
+  --color-polar-600: hsl(24, 10%, 18%);
+  --color-polar-700: hsl(24, 12%, 14%);
+  --color-polar-800: hsl(24, 14%, 11%);
+  --color-polar-900: hsl(24, 16%, 8%);
+  --color-polar-950: hsl(24, 18%, 5%);
+
+  /* Etsy Marketplace Colors */
+  --color-orange-50: #fff4ed;
+  --color-orange-100: #ffe5d1;
+  --color-orange-200: #ffc9a3;
+  --color-orange-300: #ffa66a;
+  --color-orange-400: #ff7a2f;
+  --color-orange-500: #f1641e;
+  --color-orange-600: #d9541a;
+  --color-orange-700: #b33d0f;
+  --color-orange-800: #8f2f0a;
+  --color-orange-900: #732508;
+
+  --color-amber-50: #fffbeb;
+  --color-amber-100: #fff4c6;
+  --color-amber-200: #ffe888;
+  --color-amber-300: #ffd64a;
+  --color-amber-400: #ffb400;
+  --color-amber-500: #f59e0b;
+  --color-amber-600: #d97706;
+  --color-amber-700: #b45309;
+  --color-amber-800: #92400e;
+  --color-amber-900: #78350f;
+
+  --color-teal-50: #f0fdfa;
+  --color-teal-100: #ccfbf1;
+  --color-teal-200: #99f6e4;
+  --color-teal-300: #5eead4;
+  --color-teal-400: #2dd4bf;
+  --color-teal-500: #00a699;
+  --color-teal-600: #0d9488;
+  --color-teal-700: #0f766e;
+  --color-teal-800: #115e59;
+  --color-teal-900: #134e4a;
+
+  /* Editorial Design System - Marketplace */
+  --color-primary: #a73400;
+  --color-primary-50: #fef3f0;
+  --color-primary-100: #fde4dc;
+  --color-primary-200: #fbc9b9;
+  --color-primary-300: #f8a88f;
+  --color-primary-400: #f47d5d;
+  --color-primary-500: #ee5a36;
+  --color-primary-600: #dc3f1f;
+  --color-primary-700: #a73400;
+  --color-primary-800: #8a2b00;
+  --color-primary-900: #6f2300;
+  --color-primary-950: #3d1300;
+
+  --color-secondary: #006972;
+  --color-secondary-50: #f0fafb;
+  --color-secondary-100: #d9f2f4;
+  --color-secondary-200: #b8e5e9;
+  --color-secondary-300: #88d2da;
+  --color-secondary-400: #51b6c3;
+  --color-secondary-500: #3599a8;
+  --color-secondary-600: #2e7d8d;
+  --color-secondary-700: #006972;
+  --color-secondary-800: #00545c;
+  --color-secondary-900: #00464c;
+  --color-secondary-950: #002d32;
+
+  --color-tertiary: #765700;
+  --color-tertiary-50: #fefbeb;
+  --color-tertiary-100: #fdf4c7;
+  --color-tertiary-200: #fbe88a;
+  --color-tertiary-300: #f9d64d;
+  --color-tertiary-400: #f7c420;
+  --color-tertiary-500: #e1a50d;
+  --color-tertiary-600: #c17f08;
+  --color-tertiary-700: #765700;
+  --color-tertiary-800: #654a00;
+  --color-tertiary-900: #563e00;
+  --color-tertiary-950: #322300;
+
+  /* Surface Hierarchy */
+  --color-surface: #fcf9f7;
+  --color-surface-container-low: #f6f3f1;
+  --color-surface-container-lowest: #ffffff;
+  --color-on-surface: #1b1c1b;
+  --color-on-surface-variant: #594139;
+  --color-outline-variant: #e1bfb4;
+
+  /* Editorial Shadow */
+  --shadow-editorial: 0 12px 32px rgba(27, 28, 27, 0.06);
+
+  /* shadcn */
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-sidebar: var(--sidebar-background);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-4xl: 2rem;
+
+  /* Editorial Spacing */
+  --spacing-section: 4rem;
+  --spacing-section-lg: 5rem;
+
+  @keyframes accordion-down {
+    0%: {
+      height: 0;
+    }
+    100% {
+      height: 'var(--radix-accordion-content-height)';
+    }
+  }
+
+  @keyframes accordion-up {
+    0% {
+      height: 'var(--radix-accordion-content-height)';
+    }
+    100% {
+      height: 0;
+    }
+  }
+
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+}
+
+@layer base {
+  html {
+    @apply text-gray-900;
+  }
+
+  html.dark {
+    @apply text-gray-200;
+  }
+
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--border);
+  }
+
+  body {
+    color: var(--foreground);
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  img[src$='#gh-dark-mode-only'],
+  img[src$='#only-dark'] {
+    display: none;
+  }
+}
+
+/* ─── Orbit design tokens ──────────────────────────────────────────────────── */
+
+@layer base {
+  :root {
+    --orbit-bg: var(--color-surface-container-lowest, #ffffff);
+    --orbit-bg-surface: var(--color-surface, #fcf9f7);
+    --orbit-bg-elevated: var(--color-surface-container-low, #f6f3f1);
+    --orbit-text: var(--color-on-surface, #1b1c1b);
+    --orbit-text-subtle: var(--color-on-surface-variant, #594139);
+    --orbit-text-disabled: hsl(24, 8%, 54%);
+    --orbit-destructive: var(--color-red-500);
+  }
+
+  .dark {
+    --orbit-bg: var(--color-surface-container-lowest, #0f100f);
+    --orbit-bg-surface: var(--color-surface, #1b1c1b);
+    --orbit-bg-elevated: var(--color-surface-container-low, #252625);
+    --orbit-text: var(--color-on-surface, #f6f3f1);
+    --orbit-text-subtle: var(--color-on-surface-variant, #d4c3bb);
+    --orbit-text-disabled: hsl(24, 8%, 46%);
+    --orbit-destructive: var(--color-red-600);
+  }
+}
+
+/* shadcn/ui */
+
+@layer base {
+  :root {
+    --background: var(--color-gray-50);
+    --foreground: var(--color-gray-900);
+
+    --card: var(--color-white);
+    --card-foreground: var(--color-gray-900);
+
+    --popover: var(--color-white);
+    --popover-foreground: hsl(224 71.4% 4.1%);
+
+    --sidebar-background: var(--color-gray-100);
+    --sidebar-foreground: var(--color-gray-900);
+    --sidebar-primary: var(--color-blue);
+    --sidebar-primary-foreground: var(--color-gray-50);
+    --sidebar-border: var(--color-gray-300);
+
+    --primary: var(--color-orange-500);
+    --primary-foreground: var(--color-white);
+
+    --secondary: var(--color-gray-900);
+    --secondary-foreground: var(--color-white);
+
+    --muted: var(--color-gray-100);
+    --muted-foreground: var(--color-gray-500);
+
+    --accent: var(--color-amber-400);
+    --accent-foreground: var(--color-gray-900);
+
+    --destructive: var(--color-red-500);
+    --destructive-foreground: var(--color-red-600);
+
+    --border: var(--color-gray-200);
+    --input: var(--color-gray-200);
+    --ring: var(--color-gray-200);
+    --radius: 0.6rem;
+  }
+
+  :root.dark {
+    --background: var(--color-polar-800);
+    --foreground: var(--color-polar-500);
+
+    --card: var(--color-polar-800);
+    --card-foreground: var(--color-polar-50);
+
+    --popover: var(--color-polar-900);
+    --popover-foreground: var(--color-polar-50);
+
+    --sidebar-background: var(--color-polar-950);
+    --sidebar-foreground: var(--color-polar-50);
+    --sidebar-primary: var(--color-blue);
+    --sidebar-primary-foreground: var(--color-polar-50);
+    --sidebar-border: var(--color-polar-700);
+
+    --primary: var(--color-orange-500);
+    --primary-foreground: var(--color-white);
+
+    --secondary: var(--color-gray-900);
+    --secondary-foreground: var(--color-white);
+
+    --muted: var(--color-polar-700);
+    --muted-foreground: var(--color-polar-500);
+
+    --accent: var(--color-amber-400);
+    --accent-foreground: var(--color-gray-900);
+
+    --destructive: var(--color-red-500);
+    --destructive-foreground: var(--color-red-500);
+
+    --border: var(--color-polar-700);
+    --input: var(--color-polar-700);
+    --ring: var(--color-polar-700);
+
+    /* Editorial Dark Mode */
+    --color-surface: #1b1c1b;
+    --color-surface-container-low: #252625;
+    --color-surface-container-lowest: #0f100f;
+    --color-on-surface: #f6f3f1;
+    --color-on-surface-variant: #d4c3bb;
+    --color-outline-variant: #594139;
+  }
+}
+
+pre.shiki {
+  overflow: auto;
+  background-color: transparent !important;
+
+  :not(.dark) .prose-pre\:bg-gray-100 & {
+    background-color: var(--color-gray-100) !important;
+  }
+
+  .dark .dark\:prose-pre\:bg-polar-800 & {
+    background-color: var(--color-polar-800) !important;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .shiki,
+  .shiki span {
+    color: var(--shiki-dark) !important;
+    font-style: var(--shiki-dark-font-style) !important;
+    font-weight: var(--shiki-dark-font-weight) !important;
+    text-decoration: var(--shiki-dark-text-decoration) !important;
+  }
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* ─── Accessibility: Focus Indicators ──────────────────────────────────────── */
+
+@layer base {
+  /* Enhanced focus indicators with 3:1 contrast ratio */
+  *:focus-visible {
+    outline: 2px solid var(--color-primary-700);
+    outline-offset: 2px;
+    border-radius: 0.25rem;
+  }
+
+  /* Focus indicators for interactive elements */
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible,
+  [role="button"]:focus-visible,
+  [role="link"]:focus-visible,
+  [role="option"]:focus-visible,
+  [role="tab"]:focus-visible,
+  [role="checkbox"]:focus-visible,
+  [role="radio"]:focus-visible {
+    outline: 2px solid var(--color-primary-700);
+    outline-offset: 2px;
+  }
+
+  /* Dark mode focus indicators */
+  .dark *:focus-visible,
+  .dark a:focus-visible,
+  .dark button:focus-visible,
+  .dark input:focus-visible,
+  .dark textarea:focus-visible,
+  .dark select:focus-visible,
+  .dark [role="button"]:focus-visible,
+  .dark [role="link"]:focus-visible,
+  .dark [role="option"]:focus-visible,
+  .dark [role="tab"]:focus-visible,
+  .dark [role="checkbox"]:focus-visible,
+  .dark [role="radio"]:focus-visible {
+    outline: 2px solid var(--color-primary-400);
+    outline-offset: 2px;
+  }
+
+  /* Skip link styles */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  .sr-only:focus-visible {
+    position: fixed;
+    width: auto;
+    height: auto;
+    padding: 1rem;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+    z-index: 9999;
+  }
+
+  /* Remove default focus outline when using custom focus styles */
+  *:focus {
+    outline: none;
+  }
+
+  /* Ensure focus is visible for keyboard users only */
+  *:focus:not(:focus-visible) {
+    outline: none;
+  }
+}
+
+/* ─── Accessibility: Screen Reader Only ────────────────────────────────────── */
+
+@layer utilities {
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  .not-sr-only {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: 0;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
+}

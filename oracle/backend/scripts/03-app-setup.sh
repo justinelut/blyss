@@ -49,6 +49,20 @@ else
     log_info "Email renderer binary already exists"
 fi
 
+# Build backoffice static assets (CSS and JS)
+log_info "Building backoffice static assets..."
+if [ ! -f "$APP_DIR/blyss/server/polar/backoffice/static/styles.css" ] || [ ! -f "$APP_DIR/blyss/server/polar/backoffice/static/scripts.js" ]; then
+    log_info "Installing backoffice dependencies with pnpm..."
+    su - $APP_USER -c "cd $APP_DIR/blyss/server/polar/backoffice && pnpm install --frozen-lockfile"
+    
+    log_info "Building backoffice assets (CSS + JS)..."
+    su - $APP_USER -c "cd $APP_DIR/blyss/server/polar/backoffice && pnpm run build"
+    
+    log_success "Backoffice static assets built successfully"
+else
+    log_info "Backoffice static assets already exist"
+fi
+
 # Run database migrations (optional - skip if using pre-migrated database)
 if [ "${SKIP_MIGRATIONS:-false}" = "false" ]; then
     log_info "Running database migrations..."

@@ -484,8 +484,9 @@ class CreatorStorefrontSchema(Schema):
     slug: str
     avatar_url: str | None
     bio: str | None
+    email: str | None
     social_links: SocialLinks | None
-    products: list[Any]  # Will be populated with Product schemas
+    products: list[Any]
 
 
 class ProfileUpdateSchema(Schema):
