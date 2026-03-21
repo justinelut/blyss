@@ -1,0 +1,32 @@
+name: Grant Admin Access
+
+on:
+  workflow_dispatch: # Manual trigger only
+
+jobs:
+  grant-admin:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Grant Admin Access to justinequartz@gmail.com
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.ORACLE_HOST }}
+          username: ubuntu
+          key: ${{ secrets.ORACLE_SSH_KEY }}
+          port: 22
+          script: |
+            echo "🔐 Granting admin access to justinequartz@gmail.com..."
+
+            # Navigate to server directory
+            cd /opt/blyss/blyss/server
+
+            # Run the make_admin.py script
+            sudo -u blyss /home/blyss/.local/bin/uv run python make_admin.py
+
+            echo "✅ Admin access granted!"
+            echo ""
+            echo "You can now access the backoffice at:"
+            echo "https://server.blyss.co.ke/backoffice"
+            echo ""
+            echo "Make sure you're logged in with justinequartz@gmail.com first"
