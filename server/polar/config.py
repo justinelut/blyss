@@ -225,9 +225,17 @@ class Settings(BaseSettings):
     APPLE_KEY_ID: str = ""
     APPLE_KEY_VALUE: str = ""
 
-    # OpenAI
+    # AI Provider Configuration (for organization review)
+    # Supported providers: "openai", "gemini"
+    AI_PROVIDER: str = "openai"
+    
+    # OpenAI Configuration
     OPENAI_API_KEY: str = ""
-    OPENAI_MODEL: str = "gpt-5.2-2025-12-11"
+    OPENAI_MODEL: str = "gpt-4o-2024-12-11"
+    
+    # Google Gemini Configuration
+    GOOGLE_AI_API_KEY: str = ""
+    GOOGLE_AI_MODEL: str = "gemini-2.0-flash"  # Free tier: gemini-2.0-flash, gemini-2.5-flash, gemini-2.5-pro
 
     # Stripe
     STRIPE_SECRET_KEY: str = ""

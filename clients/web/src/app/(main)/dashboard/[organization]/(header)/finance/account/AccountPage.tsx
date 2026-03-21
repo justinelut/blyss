@@ -9,16 +9,12 @@ import { useModal } from '@/components/Modal/useModal'
 import { toast } from '@/components/Toast/use-toast'
 import { useAuth } from '@/hooks'
 import {
-  useCreateIdentityVerification,
   useListAccounts,
-  useOrganizationAccount,
 } from '@/hooks/queries'
 import { useOrganizationReviewStatus } from '@/hooks/queries/org'
-import { api } from '@/utils/client'
-import { ClientResponseError, schemas, unwrap } from '@/lib/api'
+import { schemas } from '@/lib/api'
 import { ShadowBoxOnMd } from '@/components/atoms/ShadowBox'
 import { Separator } from '@/components/ui/separator'
-import { loadStripe } from '@stripe/stripe-js'
 import React, { useCallback, useState } from 'react'
 
 export default function ClientPage({
@@ -26,29 +22,29 @@ export default function ClientPage({
 }: {
   organization: schemas['Organization']
 }) {
-  const { currentUser, reloadUser } = useAuth()
+  const { currentUser } = useAuth()
   const { data: accounts } = useListAccounts()
   const {
     isShown: isShownSetupModal,
-    show: showSetupModal,
     hide: hideSetupModal,
   } = useModal()
 
   const [requireDetails, setRequireDetails] = useState(
     !organization.details_submitted_at,
   )
-  const identityVerificationStatus = currentUser?.identity_verification_status
-  const identityVerified = identityVerificationStatus === 'verified'
 
-  const { data: organizationAccount, error: accountError } =
-    useOrganizationAccount(organization.id)
   const { data: reviewStatus } = useOrganizationReviewStatus(organization.id)
 
   const [validationCompleted, setValidationCompleted] = useState(false)
 
-  const isNotAdmin =
-    accountError &&
-    (accountError as ClientResponseError)?.response?.status === 403
+  // Get Paystack subaccount status from organization
+  const subaccountStatus = (organization as any).subaccount_status || 'pending'
+  const payoutMethod = (organization as any).payout_method || 'bank'
+  const mpesaVerified = (organization as any).mpesa_verified || false
+  const mpesaNumber = (organization as any).mpesa_number
+
+  // Check if user is admin (simplified - you may need to adjust based on your auth logic)
+  const isNotAdmin = false // TODO: Implement proper admin check
 
   type Step = 'review' | 'validation' | 'account' | 'identity' | 'complete'
 
@@ -71,72 +67,21 @@ export default function ClientPage({
       return 'validation'
     }
 
-    if (
-      organizationAccount === undefined ||
-      !organizationAccount.stripe_id ||
-      !organizationAccount.is_details_submitted ||
-      !organizationAccount.is_payouts_enabled
-    ) {
+    // Check if payout account is configured
+    const isPayoutConfigured =
+      subaccountStatus === 'active' &&
+      ((payoutMethod === 'mpesa' && mpesaVerified && mpesaNumber) ||
+        payoutMethod === 'bank')
+
+    if (!isPayoutConfigured) {
       return 'account'
     }
-    if (!identityVerified) {
-      return 'identity'
-    }
+
+    // Skip identity verification for now (Paystack doesn't require it)
     return 'complete'
   }
 
   const [step, setStep] = useState<Step>(getInitialStep())
-
-  const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_KEY || '')
-  const createIdentityVerification = useCreateIdentityVerification()
-  const startIdentityVerification = useCallback(async () => {
-    const { data, error } = await createIdentityVerification.mutateAsync()
-    if (error) {
-      // Handle specific error cases
-      const errorDetail = (error as any).detail
-      if (
-        errorDetail?.error === 'IdentityVerificationProcessing' ||
-        errorDetail === 'Your identity verification is still processing.'
-      ) {
-        toast({
-          title: 'Identity verification in progress',
-          description:
-            'Your identity verification is already being processed. Please wait for it to complete.',
-        })
-      } else {
-        toast({
-          title: 'Error starting identity verification',
-          description:
-            typeof errorDetail === 'string'
-              ? errorDetail
-              : errorDetail?.detail ||
-                'Unable to start identity verification. Please try again.',
-        })
-      }
-      return
-    }
-    const stripe = await stripePromise
-    if (!stripe) {
-      toast({
-        title: 'Error loading Stripe',
-        description: 'Unable to load identity verification. Please try again.',
-      })
-      return
-    }
-    const { error: stripeError } = await stripe.verifyIdentity(
-      data.client_secret,
-    )
-    if (stripeError) {
-      toast({
-        title: 'Identity verification error',
-        description:
-          stripeError.message ||
-          'Something went wrong during verification. Please try again.',
-      })
-      return
-    }
-    await reloadUser()
-  }, [createIdentityVerification, stripePromise, reloadUser])
 
   // Auto-advance to next step when details are submitted, appeal is approved, or appeal is submitted
   React.useEffect(() => {
@@ -152,24 +97,26 @@ export default function ClientPage({
 
       if (!skipValidation) {
         setStep('validation')
-      } else if (
-        organizationAccount === undefined ||
-        !organizationAccount.stripe_id ||
-        !organizationAccount.is_details_submitted ||
-        !organizationAccount.is_payouts_enabled
-      ) {
-        setStep('account')
-      } else if (!identityVerified) {
-        setStep('identity')
       } else {
-        setStep('complete')
+        const isPayoutConfigured =
+          subaccountStatus === 'active' &&
+          ((payoutMethod === 'mpesa' && mpesaVerified && mpesaNumber) ||
+            payoutMethod === 'bank')
+
+        if (!isPayoutConfigured) {
+          setStep('account')
+        } else {
+          setStep('complete')
+        }
       }
     }
   }, [
     organization.details_submitted_at,
     validationCompleted,
-    organizationAccount,
-    identityVerified,
+    subaccountStatus,
+    payoutMethod,
+    mpesaVerified,
+    mpesaNumber,
     reviewStatus?.appeal_decision,
     reviewStatus?.appeal_submitted_at,
     reviewStatus?.verdict,
@@ -186,60 +133,26 @@ export default function ClientPage({
     setStep('account')
   }, [])
 
-  const handleStartAccountSetup = useCallback(async () => {
-    // Check if account exists but has no stripe_id (deleted account)
-    if (!organizationAccount || !organizationAccount.stripe_id) {
-      showSetupModal()
-    } else {
-      const link = await unwrap(
-        api.POST('/v1/accounts/{id}/onboarding_link', {
-          params: {
-            path: {
-              id: organizationAccount.id,
-            },
-            query: {
-              return_path: `/dashboard/${organization.slug}/finance/account`,
-            },
-          },
-        }),
-      )
-      window.location.href = link.url
-    }
-  }, [organization.slug, organizationAccount, showSetupModal])
-
-  const handleStartIdentityVerification = useCallback(async () => {
-    await startIdentityVerification()
-  }, [startIdentityVerification])
-
   const handleAppealApproved = useCallback(() => {
-    if (
-      !organizationAccount ||
-      !organizationAccount.stripe_id ||
-      !organizationAccount.is_details_submitted ||
-      !organizationAccount.is_payouts_enabled
-    ) {
+    const isPayoutConfigured =
+      subaccountStatus === 'active' &&
+      ((payoutMethod === 'mpesa' && mpesaVerified && mpesaNumber) ||
+        payoutMethod === 'bank')
+
+    if (!isPayoutConfigured) {
       setValidationCompleted(true)
       setStep('account')
       return
     }
 
-    if (!identityVerified) {
-      setValidationCompleted(true)
-      setStep('identity')
-      return
-    }
-
     setValidationCompleted(true)
     setStep('complete')
-  }, [organizationAccount, identityVerified])
+  }, [subaccountStatus, payoutMethod, mpesaVerified, mpesaNumber])
 
   const handleSkipAccountSetup = useCallback(() => {
-    if (!identityVerified) {
-      setStep('identity')
-    } else {
-      setStep('complete')
-    }
-  }, [identityVerified])
+    // Skip to complete since we don't have identity verification with Paystack
+    setStep('complete')
+  }, [])
 
   const handleAppealSubmitted = useCallback(() => {
     setStep('account')
@@ -256,9 +169,7 @@ export default function ClientPage({
           (validationCompleted ||
             reviewStatus?.verdict === 'PASS' ||
             reviewStatus?.appeal_decision === 'approved' ||
-            reviewStatus?.appeal_submitted_at)) ||
-        (targetStep === 'identity' &&
-          (organizationAccount?.is_details_submitted || isNotAdmin))
+            reviewStatus?.appeal_submitted_at))
 
       if (canNavigate) {
         setStep(targetStep)
@@ -268,8 +179,6 @@ export default function ClientPage({
       organization.details_submitted_at,
       reviewStatus,
       validationCompleted,
-      organizationAccount,
-      isNotAdmin,
     ],
   )
 
@@ -280,15 +189,15 @@ export default function ClientPage({
           organization={organization}
           currentStep={step}
           requireDetails={requireDetails}
-          organizationAccount={organizationAccount}
-          identityVerified={identityVerified}
-          identityVerificationStatus={identityVerificationStatus}
+          organizationAccount={undefined}
+          identityVerified={true}
+          identityVerificationStatus="verified"
           organizationReviewStatus={reviewStatus}
           isNotAdmin={isNotAdmin}
           onDetailsSubmitted={handleDetailsSubmitted}
           onValidationCompleted={handleValidationCompleted}
-          onStartAccountSetup={handleStartAccountSetup}
-          onStartIdentityVerification={handleStartIdentityVerification}
+          onStartAccountSetup={() => {}}
+          onStartIdentityVerification={() => {}}
           onSkipAccountSetup={handleSkipAccountSetup}
           onAppealApproved={handleAppealApproved}
           onAppealSubmitted={handleAppealSubmitted}

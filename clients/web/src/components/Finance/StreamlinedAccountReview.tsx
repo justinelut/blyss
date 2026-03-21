@@ -285,10 +285,19 @@ export default function StreamlinedAccountReview({
   const isAppealSubmitted = organizationReviewStatus?.appeal_submitted_at
   const isValidationCompleted =
     validationCompleted || isAIValidationPassed || isAppealApproved
+
+  // Check if payout account is configured (Paystack subaccount)
+  const subaccountStatus = (organization as any).subaccount_status || 'pending'
+  const payoutMethod = (organization as any).payout_method || 'bank'
+  const mpesaVerified = (organization as any).mpesa_verified || false
+  const mpesaNumber = (organization as any).mpesa_number
+
   const isAccountCompleted =
-    (organizationAccount !== undefined &&
-      organizationAccount.is_details_submitted) ||
+    subaccountStatus === 'active' &&
+    ((payoutMethod === 'mpesa' && mpesaVerified && mpesaNumber) ||
+      payoutMethod === 'bank') ||
     isNotAdmin // Non-admins skip account setup, so consider it "completed"
+
   const isIdentityCompleted = !!identityVerified
 
   const getStepStatus = (
@@ -499,9 +508,8 @@ export default function StreamlinedAccountReview({
 
         {currentStep === 'account' && (
           <AccountStep
-            organizationAccount={organizationAccount}
+            organization={organization}
             isNotAdmin={isNotAdmin}
-            onStartAccountSetup={onStartAccountSetup}
             onSkipAccountSetup={onSkipAccountSetup}
           />
         )}

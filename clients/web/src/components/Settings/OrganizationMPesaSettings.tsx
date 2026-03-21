@@ -5,6 +5,7 @@ import { api } from '@/utils/client'
 import { schemas, unwrap } from '@/lib/api'
 import Button from '@/components/atoms/Button'
 import Input from '@/components/atoms/Input'
+import Pill from '@/components/atoms/Pill'
 import {
   Select,
   SelectContent,

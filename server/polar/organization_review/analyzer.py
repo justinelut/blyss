@@ -2,7 +2,9 @@ import asyncio
 
 import structlog
 from pydantic_ai import Agent
+from pydantic_ai.models.google import GoogleModel
 from pydantic_ai.models.openai import OpenAIChatModel
+from pydantic_ai.providers.google import GoogleProvider
 from pydantic_ai.providers.openai import OpenAIProvider
 
 from polar.config import settings
@@ -344,8 +346,42 @@ def _annotate_domains(domains: list[str]) -> str:
 
 class ReviewAnalyzer:
     def __init__(self) -> None:
-        provider = OpenAIProvider(api_key=settings.OPENAI_API_KEY)
-        self.model = OpenAIChatModel(settings.OPENAI_MODEL, provider=provider)
+        # Select AI provider based on configuration
+        provider_name = settings.AI_PROVIDER.lower()
+        
+        if provider_name == "gemini":
+            # Google Gemini provider
+            if not settings.GOOGLE_AI_API_KEY:
+                raise ValueError(
+                    "GOOGLE_AI_API_KEY is required when AI_PROVIDER is set to 'gemini'. "
+                    "Get your API key from https://aistudio.google.com"
+                )
+            provider = GoogleProvider(api_key=settings.GOOGLE_AI_API_KEY)
+            self.model = GoogleModel(settings.GOOGLE_AI_MODEL, provider=provider)
+            log.info(
+                "review_analyzer.initialized",
+                provider="gemini",
+                model=settings.GOOGLE_AI_MODEL,
+            )
+        elif provider_name == "openai":
+            # OpenAI provider (default)
+            if not settings.OPENAI_API_KEY:
+                raise ValueError(
+                    "OPENAI_API_KEY is required when AI_PROVIDER is set to 'openai'"
+                )
+            provider = OpenAIProvider(api_key=settings.OPENAI_API_KEY)
+            self.model = OpenAIChatModel(settings.OPENAI_MODEL, provider=provider)
+            log.info(
+                "review_analyzer.initialized",
+                provider="openai",
+                model=settings.OPENAI_MODEL,
+            )
+        else:
+            raise ValueError(
+                f"Unsupported AI_PROVIDER: {provider_name}. "
+                f"Supported providers: 'openai', 'gemini'"
+            )
+        
         self.agent = Agent(
             self.model,
             output_type=ReviewAgentReport,
@@ -374,7 +410,9 @@ class ReviewAnalyzer:
                 self.agent.run(prompt, instructions=instructions),
                 timeout=timeout_seconds,
             )
-            usage = UsageInfo.from_agent_usage(result.usage(), self.model.model_name)
+            # Get model name for usage tracking
+            model_name = getattr(self.model, "model_name", settings.AI_PROVIDER)
+            usage = UsageInfo.from_agent_usage(result.usage(), model_name)
             return result.output, usage
         except TimeoutError:
             log.warning(
