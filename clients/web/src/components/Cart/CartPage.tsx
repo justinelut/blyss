@@ -3,7 +3,7 @@ import Spinner from '@/components/Shared/Spinner'
 import { ErrorState } from '@/components/Shared/ErrorState'
 import { useCart } from '@/hooks/queries/cart'
 import { useCurrencyStore } from '@/stores/currencyStore'
-import { formatCurrency } from '@polar-sh/currency'
+import { formatCurrency } from '@/lib/currency'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -76,16 +76,16 @@ export const CartPage = () => {
             <span className="text-[var(--color-on-surface-variant)]">
               Subtotal
             </span>
-            <span className="font-medium text-[var(--color-on-surface)]" aria-label={`Subtotal: ${formatCurrency(cart.subtotal, currency)}`}>
-              {formatCurrency(cart.subtotal, currency)}
+            <span className="font-medium text-[var(--color-on-surface)]" aria-label={`Subtotal: ${formatCurrency('compact')(cart.subtotal, currency)}`}>
+              {formatCurrency('compact')(cart.subtotal, currency)}
             </span>
           </div>
           <div className="font-inter flex items-center justify-between text-sm">
             <span className="text-[var(--color-on-surface-variant)]">
               Estimated Tax
             </span>
-            <span className="font-medium text-[var(--color-on-surface)]" aria-label={`Estimated tax: ${formatCurrency(cart.tax, currency)}`}>
-              {formatCurrency(cart.tax, currency)}
+            <span className="font-medium text-[var(--color-on-surface)]" aria-label={`Estimated tax: ${formatCurrency('compact')(cart.tax, currency)}`}>
+              {formatCurrency('compact')(cart.tax, currency)}
             </span>
           </div>
           <div className="border-opacity-15 border-t border-[var(--color-outline-variant)] pt-3">
@@ -93,8 +93,8 @@ export const CartPage = () => {
               <span className="font-epilogue text-base font-semibold text-[var(--color-on-surface)]">
                 Total
               </span>
-              <span className="font-epilogue text-xl font-bold text-[var(--color-on-surface)]" aria-label={`Total: ${formatCurrency(cart.total, currency)}`}>
-                {formatCurrency(cart.total, currency)}
+              <span className="font-epilogue text-xl font-bold text-[var(--color-on-surface)]" aria-label={`Total: ${formatCurrency('compact')(cart.total, currency)}`}>
+                {formatCurrency('compact')(cart.total, currency)}
               </span>
             </div>
           </div>

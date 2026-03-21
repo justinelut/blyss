@@ -1,7 +1,7 @@
 'use client'
 import { useRemoveFromCart } from '@/hooks/queries/cart'
 import { schemas } from '@/lib/api'
-import { formatCurrency } from '@polar-sh/currency'
+import { formatCurrency } from '@/lib/currency'
 import { Button } from '@/components/ui/button'
 import { Trash2 } from 'lucide-react'
 import Image from 'next/image'
@@ -85,8 +85,8 @@ export const CartItem = ({ item, currency }: CartItemProps) => {
           </p>
         )}
         <div className="font-inter mt-3 flex items-center gap-4 text-sm">
-          <span className="text-[var(--color-on-surface)]" aria-label={`Price: ${formatCurrency(priceAmount, priceCurrency)}`}>
-            {formatCurrency(priceAmount, priceCurrency)}
+          <span className="text-[var(--color-on-surface)]" aria-label={`Price: ${formatCurrency('compact')(priceAmount, priceCurrency)}`}>
+            {formatCurrency('compact')(priceAmount, priceCurrency)}
           </span>
           <span className="text-[var(--color-on-surface-variant)]" aria-label={`Quantity: ${item.quantity}`}>
             Quantity: {item.quantity}
@@ -96,8 +96,8 @@ export const CartItem = ({ item, currency }: CartItemProps) => {
 
       {/* Price and Actions */}
       <div className="flex flex-col items-end gap-3">
-        <div className="font-epilogue text-lg font-medium text-[var(--color-on-surface)]" aria-label={`Subtotal: ${formatCurrency(item.subtotal, currency)}`}>
-          {formatCurrency(item.subtotal, currency)}
+        <div className="font-epilogue text-lg font-medium text-[var(--color-on-surface)]" aria-label={`Subtotal: ${formatCurrency('compact')(item.subtotal, currency)}`}>
+          {formatCurrency('compact')(item.subtotal, currency)}
         </div>
         {showConfirm ? (
           <div className="flex gap-2" role="group" aria-label="Confirm removal">
