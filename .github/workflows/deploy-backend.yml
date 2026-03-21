@@ -56,6 +56,14 @@ jobs:
             echo "Running database migrations..."
             sudo -u blyss /home/blyss/.local/bin/uv run task db_migrate
 
+            # Build backoffice static assets
+            echo "Building backoffice static assets..."
+            cd polar/backoffice
+            sudo -u blyss pnpm install --frozen-lockfile
+            sudo -u blyss pnpm run build
+            cd ../..
+            echo "✅ Backoffice assets built"
+
             # Restart services
             echo "Restarting services..."
             sudo systemctl daemon-reload
