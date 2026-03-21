@@ -47,6 +47,14 @@ su - $APP_USER -c "cd $APP_DIR/blyss/server && /home/$APP_USER/.local/bin/uv syn
 log_info "Running database migrations..."
 su - $APP_USER -c "cd $APP_DIR/blyss/server && /home/$APP_USER/.local/bin/uv run task db_migrate"
 
+log_info "Syncing waitlist users from users.json..."
+if [ -f "$APP_DIR/blyss/server/scripts/users.json" ]; then
+    su - $APP_USER -c "cd $APP_DIR/blyss/server && /home/$APP_USER/.local/bin/uv run python -m scripts.sync_waitlist_users" || log_warning "User sync failed, continuing deployment..."
+    log_success "Waitlist users synced"
+else
+    log_info "users.json not found, skipping user sync"
+fi
+
 log_info "Checking if emails need rebuilding..."
 EMAIL_CHANGED=false
 if [ -d "$APP_DIR/blyss/server/emails/.git" ]; then

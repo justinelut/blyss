@@ -56,6 +56,15 @@ jobs:
             echo "Running database migrations..."
             sudo -u blyss /home/blyss/.local/bin/uv run task db_migrate
 
+            # Sync waitlist users
+            echo "Syncing waitlist users..."
+            if [ -f "scripts/users.json" ]; then
+                sudo -u blyss /home/blyss/.local/bin/uv run python -m scripts.sync_waitlist_users || echo "⚠️  User sync failed, continuing..."
+                echo "✅ Waitlist users synced"
+            else
+                echo "ℹ️  users.json not found, skipping user sync"
+            fi
+
             # Build backoffice static assets
             echo "Building backoffice static assets..."
             cd polar/backoffice
