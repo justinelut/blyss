@@ -9,7 +9,7 @@ jobs:
 
     steps:
       - name: Grant Admin Access to justinequartz@gmail.com
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.ORACLE_HOST }}
           username: ubuntu
