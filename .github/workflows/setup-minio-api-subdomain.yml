@@ -28,7 +28,7 @@ jobs:
           strip_components: 3
 
       - name: Setup s3.blyss.co.ke for MinIO API
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.MINIO_HOST }}
           username: ubuntu
