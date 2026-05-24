@@ -1,4 +1,4 @@
-import { HTMLMotionProps, motion } from 'framer-motion'
+import { HTMLMotionProps, motion } from 'motion/react'
 
 export type FadeUpProps = HTMLMotionProps<'div'>
 

@@ -7,7 +7,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     return []
   }
 
-  const baseUrl = 'https://polar.sh'
+  const baseUrl = 'https://blyss.co.ke'
 
   return [
     {

@@ -114,7 +114,31 @@ class Scope(StrEnum):
 
 
 RESERVED_SCOPES = {Scope.web_read, Scope.web_write}
-SCOPES_SUPPORTED = [s.value for s in Scope if s not in RESERVED_SCOPES]
+
+# DISABLED in Blyss per plan §4.0/§4.4 — these scopes belong to disabled modules
+# and should not be exposed in OAuth consent screens or PAT-creation UI. The enum
+# members stay defined so existing code referencing them still type-checks.
+DISABLED_SCOPES = {
+    Scope.events_read,
+    Scope.events_write,
+    Scope.meters_read,
+    Scope.meters_write,
+    Scope.customer_meters_read,
+    Scope.customer_seats_read,
+    Scope.customer_seats_write,
+    Scope.webhooks_read,
+    Scope.webhooks_write,
+    Scope.license_keys_read,
+    Scope.license_keys_write,
+    Scope.organization_access_tokens_read,
+    Scope.organization_access_tokens_write,
+}
+
+SCOPES_SUPPORTED = [
+    s.value
+    for s in Scope
+    if s not in RESERVED_SCOPES and s not in DISABLED_SCOPES
+]
 SCOPES_SUPPORTED_DISPLAY_NAMES: dict[Scope, str] = {
     Scope.openid: "OpenID",
     Scope.profile: "Read your profile",

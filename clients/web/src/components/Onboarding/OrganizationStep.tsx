@@ -20,7 +20,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import { motion } from 'framer-motion'
+import { motion } from 'motion/react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -308,7 +308,7 @@ export const OrganizationStep = ({
                               <ul className="dark:text-polar-500 flex flex-col gap-y-1 text-sm text-gray-500">
                                 <li>
                                   <a
-                                    href="https://polar.sh/docs/merchant-of-record/account-reviews"
+                                    href="https://blyss.co.ke/help"
                                     className="text-blue-600 hover:underline dark:text-blue-400"
                                     target="_blank"
                                     rel="noreferrer"
@@ -321,7 +321,7 @@ export const OrganizationStep = ({
                                 </li>
                                 <li>
                                   <a
-                                    href="https://polar.sh/legal/terms"
+                                    href="https://blyss.co.ke/terms"
                                     className="text-blue-600 hover:underline dark:text-blue-400"
                                     target="_blank"
                                     rel="noreferrer"
@@ -331,7 +331,7 @@ export const OrganizationStep = ({
                                 </li>
                                 <li>
                                   <a
-                                    href="https://polar.sh/legal/privacy"
+                                    href="https://blyss.co.ke/privacy"
                                     className="text-blue-600 hover:underline dark:text-blue-400"
                                     target="_blank"
                                     rel="noreferrer"

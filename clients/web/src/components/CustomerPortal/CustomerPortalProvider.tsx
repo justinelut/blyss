@@ -42,7 +42,7 @@ export function CustomerPortalProvider({
   children,
 }: CustomerPortalProviderProps) {
   const client = useMemo(
-    () => createClient(baseUrl || 'https://api.polar.sh', token),
+    () => createClient(baseUrl || 'https://api.blyss.co.ke', token),
     [token, baseUrl],
   )
   const customerSSE = useCustomerSSE(token)

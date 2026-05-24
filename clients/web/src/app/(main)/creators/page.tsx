@@ -1,46 +1,110 @@
-import { CreatorsDirectory } from '@/components/Creators/CreatorsDirectory'
+import { Metadata } from 'next'
 import { getServerSideAPI } from '@/utils/client/serverside'
 import { unwrap } from '@/lib/api'
-import { Metadata } from 'next'
+import { JsonLd } from '@/design'
+import { CreatorsDirectoryPage } from '@/components/Marketplace/CreatorsDirectoryPage'
+
+// ISR — regenerate the directory at most once per minute.
+export const revalidate = 60
 
 export const metadata: Metadata = {
-  title: 'Discover Creators | Blyss',
+  title: 'Kenyan Creators · Blyss',
   description:
-    'Browse creators and their products on the Blyss marketplace. Discover digital products, subscriptions, and more from talented creators.',
+    "Meet Kenya's creative class online. Designers, writers, musicians, educators, photographers — discover digital products and subscriptions from independent creators across the country.",
+  alternates: { canonical: 'https://blyss.co.ke/creators' },
   openGraph: {
-    title: 'Discover Creators | Blyss',
+    title: 'Kenyan Creators · Blyss',
     description:
-      'Browse creators and their products on the Blyss marketplace. Discover digital products, subscriptions, and more from talented creators.',
+      "Meet Kenya's creative class online. Discover digital products from independent creators.",
     siteName: 'Blyss',
     type: 'website',
+    locale: 'en_KE',
+    images: [
+      {
+        url: 'https://cdn.blyss.co.ke/brand/og-default.png',
+        width: 1200,
+        height: 630,
+        alt: 'Blyss creators',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Discover Creators | Blyss',
+    title: 'Kenyan Creators · Blyss',
     description:
-      'Browse creators and their products on the Blyss marketplace. Discover digital products, subscriptions, and more from talented creators.',
+      "Meet Kenya's creative class online. Discover digital products from independent creators.",
+    images: ['https://cdn.blyss.co.ke/brand/og-default.png'],
   },
-  alternates: {
-    canonical: '/creators',
-  },
-  robots: {
-    index: true,
-    follow: true,
-  },
+  robots: { index: true, follow: true },
 }
 
 export default async function CreatorsPage() {
   const api = await getServerSideAPI()
 
-  const creators = await unwrap(
+  // Fetch all public creators + try to identify a spotlight candidate.
+  const creatorsResp = await unwrap(
     api.GET('/v1/organizations/public', {
-      params: {
-        query: {
-          limit: 100,
-        },
-      },
+      params: { query: { limit: 100 } as any },
     }),
-  )
+  ).catch(() => ({ items: [] as any[] }))
 
-  return <CreatorsDirectory initialCreators={creators.items || []} />
+  const creators = (creatorsResp.items ?? []) as any[]
+
+  // Spotlight: prefer a creator flagged is_featured_spotlight; fallback to
+  // the first featured creator if no spotlight flag exists yet.
+  const spotlight =
+    creators.find((c) => c.is_featured_spotlight === true) ??
+    creators.find((c) => c.is_featured === true) ??
+    null
+
+  // Try to fetch the spotlight creator's top product (best-selling proxy =
+  // first public product). Non-fatal if unavailable.
+  let spotlightTopProduct = null
+  if (spotlight?.id) {
+    try {
+      const productsResp = await unwrap(
+        api.GET('/v1/products/public', {
+          params: {
+            query: {
+              organization_id: spotlight.id,
+              limit: 1,
+            } as any,
+          },
+        }),
+      )
+      spotlightTopProduct = productsResp.items?.[0] ?? null
+    } catch {
+      spotlightTopProduct = null
+    }
+  }
+
+  return (
+    <>
+      <JsonLd
+        data={{
+          '@context': 'https://schema.org',
+          '@type': 'CollectionPage',
+          name: 'Kenyan Creators · Blyss',
+          url: 'https://blyss.co.ke/creators',
+          description:
+            "Meet Kenya's creative class online. Designers, writers, musicians, educators, photographers.",
+          mainEntity: {
+            '@type': 'ItemList',
+            numberOfItems: creators.length,
+            itemListElement: creators.slice(0, 24).map((c: any, i: number) => ({
+              '@type': 'ListItem',
+              position: i + 1,
+              url: `https://blyss.co.ke/creators/${c.slug ?? c.id}`,
+              name: c.name,
+            })),
+          },
+        }}
+      />
+      <CreatorsDirectoryPage
+        initialCreators={creators}
+        featuredSpotlight={spotlight}
+        spotlightTopProduct={spotlightTopProduct}
+      />
+    </>
+  )
 }

@@ -22,7 +22,7 @@ import { useFormContext } from 'react-hook-form'
 import { ProductFormType } from '../ProductForm'
 import { ProductPriceCustomItem } from './ProductPriceCustomItem'
 import { ProductPriceFixedItem } from './ProductPriceFixedItem'
-import { ProductPriceMeteredUnitItem } from './ProductPriceMeteredUnitItem'
+// ProductPriceMeteredUnitItem deleted — usage-based metering is disabled.
 import { ProductPriceSeatBasedItem } from './ProductPriceSeatBasedItem'
 import { hasPriceCurrency, ProductPrice, ProductPriceCreate } from './utils'
 
@@ -156,13 +156,7 @@ export const ProductPriceItem: React.FC<ProductPriceItemProps> = ({
           {amountType === 'seat_based' && (
             <ProductPriceSeatBasedItem index={index} currency={currency} />
           )}
-          {amountType === 'metered_unit' && (
-            <ProductPriceMeteredUnitItem
-              organization={organization}
-              index={index}
-              currency={currency}
-            />
-          )}
+          {/* metered_unit pricing UI removed in Blyss cleanup (§4.4) */}
         </div>
       )}
     </div>

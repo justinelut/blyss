@@ -1,71 +1,18 @@
-import { getServerURL } from '@/utils/api'
-import { api } from '@/utils/client'
-import { schemas, unwrap } from '@/lib/api'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { defaultRetry } from './retry'
+// Stub for the deleted seats hook (B2B seat-based pricing is disabled in Blyss
+// per plan §4.4 step 1). Returns empty data so consuming components render
+// gracefully. Phase 5 + Phase 6 redesigns will remove call sites entirely.
 
-export const useAssignSeatFromCheckout = (checkoutId: string) => {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: async (
-      variables: Omit<
-        schemas['SeatAssign'],
-        'checkout_id' | 'immediate_claim'
-      > & {
-        immediate_claim?: boolean
-      },
-    ) => {
-      const response = await fetch(`${getServerURL()}/v1/customer-seats`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...variables,
-          checkout_id: checkoutId,
-          immediate_claim: variables.immediate_claim ?? false,
-        }),
-      })
-
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({}))
-        throw new Error(error.detail || 'Failed to assign seat')
-      }
-
-      return response.json()
-    },
-    onSuccess: () => {
-      // Invalidate relevant queries if needed
-      queryClient.invalidateQueries({
-        queryKey: ['checkouts', checkoutId],
-      })
-    },
-  })
+export interface OrganizationSeatsData {
+  total_seats: number
+  available_seats: number
+  seats: never[]
 }
 
-/**
- * Dashboard hook to fetch seats for a subscription or order
- */
-export const useOrganizationSeats = (parameters?: {
-  subscriptionId?: string
-  orderId?: string
-}) =>
-  useQuery({
-    queryKey: ['organization_seats', parameters],
-    queryFn: () =>
-      unwrap(
-        api.GET('/v1/customer-seats', {
-          params: {
-            query: {
-              ...(parameters?.subscriptionId && {
-                subscription_id: parameters.subscriptionId,
-              }),
-              ...(parameters?.orderId && { order_id: parameters.orderId }),
-            },
-          },
-        }),
-      ),
-    retry: defaultRetry,
-    enabled: !!parameters?.subscriptionId || !!parameters?.orderId,
-  })
+export const useOrganizationSeats = (
+  _subscriptionId?: string,
+): { data: OrganizationSeatsData | undefined; isLoading: boolean } => {
+  return {
+    data: { total_seats: 0, available_seats: 0, seats: [] },
+    isLoading: false,
+  }
+}

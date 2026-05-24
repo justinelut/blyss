@@ -1,32 +1,50 @@
+import { Metadata } from 'next'
 import { api } from '@/utils/client'
 import { unwrap } from '@/lib/api'
-import { Metadata } from 'next'
-import { MarketplaceClientWrapper } from './MarketplaceClientWrapper'
+import { JsonLd } from '@/design'
+import { BrowsePage } from '@/components/Marketplace/BrowsePage'
+import type { FilterCategory } from '@/components/Marketplace/BrowseFilterRail'
+
+// ISR — regenerate the marketplace shell at most once per minute. Filtered
+// query results are fetched client-side via TanStack Query so paginated
+// requests don't go through ISR.
+export const revalidate = 60
 
 export const metadata: Metadata = {
-  title: 'Marketplace - Discover Amazing Products from Kenyan Creators',
+  title: 'The Marketplace · Blyss',
   description:
-    'Support local creators and find unique digital products, courses, and more on the Blyss marketplace.',
+    'Browse digital products from Kenyan creators. Filter by category, price, and type. Pay with M-Pesa or card.',
+  alternates: { canonical: 'https://blyss.co.ke/marketplace' },
   openGraph: {
-    title: 'Marketplace - Discover Amazing Products from Kenyan Creators',
+    title: 'The Marketplace · Blyss',
     description:
-      'Support local creators and find unique digital products, courses, and more on the Blyss marketplace.',
+      'Browse digital products from Kenyan creators. Filter by category, price, and type.',
     type: 'website',
+    locale: 'en_KE',
+    images: [
+      {
+        url: 'https://cdn.blyss.co.ke/brand/og-default.png',
+        width: 1200,
+        height: 630,
+        alt: 'Blyss marketplace',
+      },
+    ],
   },
-  other: {
-    // Add resource hints for better performance
-    'x-dns-prefetch-control': 'on',
+  twitter: {
+    card: 'summary_large_image',
+    title: 'The Marketplace · Blyss',
+    description: 'Browse digital products from Kenyan creators.',
+    images: ['https://cdn.blyss.co.ke/brand/og-default.png'],
   },
 }
-
-// Force dynamic rendering to avoid build-time API calls that timeout
-export const dynamic = 'force-dynamic'
 
 interface SearchParams {
   search?: string
   category?: string
   min_price?: string
   max_price?: string
+  type?: string
+  currency?: string
   sort?: string
   page?: string
 }
@@ -34,21 +52,22 @@ interface SearchParams {
 export default async function MarketplacePage({
   searchParams,
 }: {
-  searchParams: SearchParams
+  searchParams: Promise<SearchParams>
 }) {
-  const search = searchParams.search || undefined
-  const category = searchParams.category || undefined
-  const minPrice = searchParams.min_price
-    ? parseInt(searchParams.min_price, 10)
-    : undefined
-  const maxPrice = searchParams.max_price
-    ? parseInt(searchParams.max_price, 10)
-    : undefined
+  const params = await searchParams
+  const search = params.search || undefined
+  const category = params.category || undefined
+  const minPrice = params.min_price ? parseInt(params.min_price, 10) : undefined
+  const maxPrice = params.max_price ? parseInt(params.max_price, 10) : undefined
   const sort =
-    (searchParams.sort as 'newest' | 'price_asc' | 'price_desc') || 'newest'
-  const page = searchParams.page ? parseInt(searchParams.page, 10) : 1
+    (params.sort as 'newest' | 'price_asc' | 'price_desc' | 'trending') ||
+    'newest'
+  const type =
+    (params.type as 'all' | 'one_time' | 'subscription') || 'all'
+  const currency = (params.currency as 'KES' | 'USD') || 'KES'
+  const page = params.page ? parseInt(params.page, 10) : 1
 
-  const [productsData, featuredData] = await Promise.all([
+  const [productsData, categoriesData] = await Promise.all([
     unwrap(
       api.GET('/v1/products/public', {
         params: {
@@ -57,39 +76,67 @@ export default async function MarketplacePage({
             category,
             min_price: minPrice,
             max_price: maxPrice,
-            sort,
+            sort: sort === 'trending' ? 'newest' : sort,
             page,
             limit: 24,
           },
         },
       }),
-    ).catch(() => ({ items: [], pagination: { total_count: 0, max_page: 1 } })),
+    ).catch(() => ({
+      items: [],
+      pagination: { total_count: 0, max_page: 1 },
+    })),
     unwrap(
-      api.GET('/v1/products/public', {
-        params: {
-          query: {
-            is_featured: true,
-            limit: 6,
-          },
-        },
-      }),
-    ).catch(() => ({ items: [], pagination: { total_count: 0, max_page: 1 } })),
+      api.GET('/v1/categories/', { params: { query: { limit: 50 } } }),
+    ).catch(() => ({ items: [] })),
   ])
 
+  const categories: FilterCategory[] = (categoriesData.items ?? []).map(
+    (c: any) => ({
+      id: c.id,
+      name: c.name,
+      slug: c.slug,
+      product_count: c.product_count,
+    }),
+  )
+
   return (
-    <MarketplaceClientWrapper
-      initialProducts={productsData.items}
-      initialTotalCount={productsData.pagination.total_count}
-      initialTotalPages={productsData.pagination.max_page}
-      initialFeaturedProducts={featuredData.items}
-      initialFilters={{
-        search: search || null,
-        category: category || null,
-        min_price: minPrice || null,
-        max_price: maxPrice || null,
-        sort: sort || 'newest',
-        page: page || 1,
-      }}
-    />
+    <>
+      <JsonLd
+        data={{
+          '@context': 'https://schema.org',
+          '@type': 'CollectionPage',
+          name: 'The Marketplace · Blyss',
+          url: 'https://blyss.co.ke/marketplace',
+          mainEntity: {
+            '@type': 'ItemList',
+            numberOfItems: productsData.pagination?.total_count ?? 0,
+            itemListElement: (productsData.items ?? [])
+              .slice(0, 24)
+              .map((p: any, i: number) => ({
+                '@type': 'ListItem',
+                position: i + 1,
+                url: `https://blyss.co.ke/product/${p.id}`,
+                name: p.name,
+              })),
+          },
+        }}
+      />
+      <BrowsePage
+        initialProducts={productsData.items}
+        initialTotalCount={productsData.pagination?.total_count ?? 0}
+        categories={categories}
+        initialFilters={{
+          search: search || null,
+          category: category || null,
+          min_price: minPrice ?? null,
+          max_price: maxPrice ?? null,
+          type,
+          currency,
+          sort,
+          page,
+        }}
+      />
+    </>
   )
 }

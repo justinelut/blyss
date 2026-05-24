@@ -57,7 +57,7 @@ async def transform_webhook_events(
 
                     # Add signed headers to the event
                     event["headers"] = {
-                        "user-agent": "polar.sh webhooks",
+                        "user-agent": "blyss.co.ke webhooks",
                         "content-type": "application/json",
                         "webhook-id": webhook_event_id,
                         "webhook-timestamp": str(int(ts.timestamp())),

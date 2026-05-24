@@ -1,46 +1,84 @@
-'use client'
-
 import { schemas } from '@/lib/api'
-import { useState } from 'react'
-import HeroSection from '@/components/Landing/HeroSection'
-import CategoriesSection from '@/components/Landing/CategoriesSection'
-import ProductsGrid from '@/components/Landing/ProductsGrid'
-import SubscriptionsGrid from '@/components/Landing/SubscriptionsGrid'
-import CreatorsSection from '@/components/Landing/CreatorsSection'
-import TestimonialsSection from '@/components/Landing/TestimonialsSection'
-import { Category } from '@/hooks/queries/categories'
+import { JsonLd } from '@/design'
+import { Hero } from '@/components/Marketplace/Hero'
+import { TrendingProducts } from '@/components/Marketplace/TrendingProducts'
+import { BrowseByCraft, type CategoryTile } from '@/components/Marketplace/BrowseByCraft'
+import { FeaturedCreators } from '@/components/Marketplace/FeaturedCreators'
+import { FeaturedSubscriptions } from '@/components/Marketplace/FeaturedSubscriptions'
+import { NoteFromMakers } from '@/components/Marketplace/NoteFromMakers'
+import { HowItWorks } from '@/components/Marketplace/HowItWorks'
+import { ClosingCtaBand } from '@/components/Marketplace/ClosingCtaBand'
 
 interface HomePageProps {
   featuredProducts: schemas['Product'][]
   featuredSubscriptions: schemas['Subscription'][]
   trendingCreators: schemas['Organization'][]
-  categories: Category[]
-  isLoading?: boolean
+  categories: CategoryTile[]
 }
 
+/**
+ * HomePage — server component composing all home sections per plan §6.1.
+ *
+ * Sections in order: Hero · TrendingProducts · BrowseByCraft · FeaturedCreators
+ * · FeaturedSubscriptions · NoteFromMakers · HowItWorks · ClosingCtaBand.
+ *
+ * No `'use client'` directive — this is a pure RSC. Individual sections that
+ * need motion are themselves client components.
+ *
+ * JSON-LD structured data for SEO injected here once at the page level
+ * (WebSite + Organization). Per plan §8.3.
+ */
 export default function HomePage({
   featuredProducts,
   featuredSubscriptions,
   trendingCreators,
   categories,
-  isLoading = false,
 }: HomePageProps) {
-  const [selectedCategory, setSelectedCategory] = useState('digital-art')
-
   return (
-    <div className="bg-background">
-      <main className="pt-16">
-        <HeroSection featuredProducts={featuredProducts} />
-        <CategoriesSection
-          categories={categories}
-          selectedCategory={selectedCategory}
-          onCategorySelect={setSelectedCategory}
-        />
-        <ProductsGrid products={featuredProducts} isLoading={isLoading} />
-        <SubscriptionsGrid subscriptions={featuredSubscriptions} isLoading={isLoading} />
-        <CreatorsSection creators={trendingCreators} isLoading={isLoading} />
-        <TestimonialsSection />
-      </main>
-    </div>
+    <>
+      {/* SEO structured data */}
+      <JsonLd
+        data={{
+          '@context': 'https://schema.org',
+          '@type': 'WebSite',
+          name: 'Blyss',
+          url: 'https://blyss.co.ke',
+          potentialAction: {
+            '@type': 'SearchAction',
+            target: 'https://blyss.co.ke/search?q={search_term_string}',
+            'query-input': 'required name=search_term_string',
+          },
+        }}
+      />
+      <JsonLd
+        data={{
+          '@context': 'https://schema.org',
+          '@type': 'Organization',
+          name: 'Blyss',
+          url: 'https://blyss.co.ke',
+          logo: 'https://cdn.blyss.co.ke/brand/og-default.png',
+          description:
+            'The modern marketplace for Kenyan creators. Sell digital products and subscriptions, paid via M-Pesa or card.',
+          address: {
+            '@type': 'PostalAddress',
+            addressLocality: 'Nairobi',
+            addressCountry: 'KE',
+          },
+          sameAs: [
+            'https://instagram.com/blyss.co.ke',
+            'https://x.com/blyss_co_ke',
+          ],
+        }}
+      />
+
+      <Hero />
+      <TrendingProducts products={featuredProducts} />
+      <BrowseByCraft categories={categories} />
+      <FeaturedCreators creators={trendingCreators} />
+      <FeaturedSubscriptions subscriptions={featuredSubscriptions} />
+      <NoteFromMakers />
+      <HowItWorks />
+      <ClosingCtaBand />
+    </>
   )
 }

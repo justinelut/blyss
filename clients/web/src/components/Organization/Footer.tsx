@@ -1,21 +1,17 @@
 import ArrowOutwardOutlined from '@mui/icons-material/ArrowOutwardOutlined'
 import Link from 'next/link'
 import { PropsWithChildren } from 'react'
-import { PolarLogotype } from '../Layout/Public/PolarLogotype'
+import { BlyssLogo } from '@/design'
 import { CookiePreferencesButton } from '../Privacy/CookiePreferencesButton'
 
 const Footer = () => {
   return (
-    <footer className="mt-16 flex w-full flex-col items-center gap-y-12 bg-[#f6f3f1] dark:bg-stone-900">
+    <footer className="mt-16 flex w-full flex-col items-center gap-y-12 bg-[var(--surface)] dark:bg-stone-900">
       <div className="flex w-full flex-col items-center px-6 py-16 md:max-w-3xl md:px-0 lg:py-32 xl:max-w-6xl">
         <div className="grid w-full grid-cols-1 gap-12 md:grid-cols-2 md:justify-between md:gap-16 lg:grid-cols-6">
           <div className="flex h-full flex-1 flex-col justify-between gap-y-6 md:col-span-2">
-            <span className="text-[#1b1c1b] dark:text-[#fcf9f7] md:ml-0">
-              <PolarLogotype
-                className="ml-2 md:ml-0"
-                logoVariant="logotype"
-                size={120}
-              />
+            <span className="text-[var(--text-primary)] dark:text-[#fcf9f7] md:ml-0">
+              <BlyssLogo size="lg" className="ml-2 md:ml-0" />
             </span>
             <div className="flex flex-col gap-y-6">
               <Link
@@ -48,7 +44,7 @@ const Footer = () => {
               <FooterLink href="/start">Become a Creator</FooterLink>
               <FooterLink href="/resources">Creator Resources</FooterLink>
               <FooterLink href="/features">Platform Features</FooterLink>
-              <FooterLink href="https://polar.sh/docs">
+              <FooterLink href="https://blyss.co.ke/help">
                 Documentation
               </FooterLink>
             </div>
@@ -60,13 +56,13 @@ const Footer = () => {
               <FooterLink href="/blog">Blog</FooterLink>
               <FooterLink href="/customers">Success Stories</FooterLink>
               <FooterLink href="https://github.com/polarsource">
-                GitHub
+                Polar.sh (upstream)
               </FooterLink>
-              <FooterLink href="https://x.com/polar_sh">X / Twitter</FooterLink>
-              <FooterLink href="https://discord.gg/Pnhfz3UThd">
+              <FooterLink href="https://x.com/blyss_co_ke">X / Twitter</FooterLink>
+              <FooterLink href="https://blyss.co.ke/discord">
                 Discord
               </FooterLink>
-              <FooterLink href="https://polar.sh/assets/brand/polar_brand.zip">
+              <FooterLink href="https://cdn.blyss.co.ke/brand/blyss_brand.zip">
                 Brand Assets
               </FooterLink>
             </div>
@@ -74,15 +70,15 @@ const Footer = () => {
           <div className="flex flex-col gap-y-4 text-sm">
             <h3 className="text-[#594139] dark:text-stone-500">Support</h3>
             <div className="flex flex-col gap-y-3">
-              <FooterLink href="https://polar.sh/docs">Help Center</FooterLink>
-              <FooterLink href="mailto:support@polar.sh">Contact Us</FooterLink>
-              <FooterLink href="https://status.polar.sh">
+              <FooterLink href="https://blyss.co.ke/help">Help Center</FooterLink>
+              <FooterLink href="mailto:support@blyss.co.ke">Contact Us</FooterLink>
+              <FooterLink href="https://status.blyss.co.ke">
                 Service Status
               </FooterLink>
-              <FooterLink href="https://polar.sh/legal/terms">
+              <FooterLink href="https://blyss.co.ke/terms">
                 Terms of Service
               </FooterLink>
-              <FooterLink href="https://polar.sh/legal/privacy">
+              <FooterLink href="https://blyss.co.ke/privacy">
                 Privacy Policy
               </FooterLink>
               <CookiePreferencesButton />

@@ -102,7 +102,7 @@ class Settings(BaseSettings):
     # generate URLs to the backend accessible from the outside.
     BASE_URL: str = "http://127.0.0.1:8000"
     BACKOFFICE_HOST: str | None = None
-    CHECKOUT_LINK_HOST: str | None = None  # e.g., "buy.polar.sh" in production
+    CHECKOUT_LINK_HOST: str | None = None  # e.g., "buy.blyss.co.ke" in production
 
     # URL to frontend app.
     # Update to ngrok domain or similar in case you want
@@ -151,11 +151,11 @@ class Settings(BaseSettings):
     IP_GEOLOCATION_DATABASE_NAME: str = "ip-geolocation.mmdb"
 
     # Database
-    POSTGRES_USER: str = "polar"
-    POSTGRES_PWD: str = "polar"
+    POSTGRES_USER: str = "blyss"
+    POSTGRES_PWD: str = "blyss"
     POSTGRES_HOST: str = "127.0.0.1"
     POSTGRES_PORT: int = 5432
-    POSTGRES_DATABASE: str = "polar"
+    POSTGRES_DATABASE: str = "blyss"
     POSTGRES_SSL_MODE: str | None = None
     DATABASE_POOL_SIZE: int = 5
     DATABASE_SYNC_POOL_SIZE: int = 1  # Specific pool size for sync connection: since we only use it in OAuth2 router, don't waste resources.
@@ -257,8 +257,8 @@ class Settings(BaseSettings):
     SENTRY_DSN: str | None = None
 
     # Discord
-    FAVICON_URL: str = "https://raw.githubusercontent.com/polarsource/polar/2648cf7472b5128704a097cd1eb3ae5f1dd847e5/docs/docs/assets/favicon.png"
-    THUMBNAIL_URL: str = "https://raw.githubusercontent.com/polarsource/polar/4fd899222e200ca70982f437039f549b7a822ecc/clients/apps/web/public/email-logo-dark.png"
+    FAVICON_URL: str = "https://cdn.blyss.co.ke/brand/favicon.png"
+    THUMBNAIL_URL: str = "https://cdn.blyss.co.ke/brand/og-default.png"
 
     # Posthog
     POSTHOG_PROJECT_API_KEY: str = ""
@@ -310,9 +310,9 @@ class Settings(BaseSettings):
     PLAIN_TOKEN: str | None = None
     PLAIN_CHAT_SECRET: str | None = None
 
-    # AWS (File Downloads)
-    AWS_ACCESS_KEY_ID: str = "polar-development"
-    AWS_SECRET_ACCESS_KEY: str = "polar123456789"
+    # AWS (File Downloads)  — defaults match local MinIO docker-compose
+    AWS_ACCESS_KEY_ID: str = "blyssadmin"
+    AWS_SECRET_ACCESS_KEY: str = "blyssadmin"
     AWS_REGION: str = "us-east-2"
     AWS_SIGNATURE_VERSION: str = "v4"
 
@@ -328,8 +328,8 @@ class Settings(BaseSettings):
     # If not set, uses S3_ENDPOINT_URL
     S3_PUBLIC_ENDPOINT_URL: str | None = None
 
-    MINIO_USER: str = "polar"
-    MINIO_PWD: str = "polarpolar"
+    MINIO_USER: str = "blyssadmin"
+    MINIO_PWD: str = "blyssadmin"
 
     # Chargeback Stop
     CHARGEBACK_STOP_WEBHOOK_SECRET: str = ""
@@ -337,17 +337,17 @@ class Settings(BaseSettings):
     # Invoices
     S3_CUSTOMER_INVOICES_BUCKET_NAME: str = "polar-customer-invoices"
     S3_PAYOUT_INVOICES_BUCKET_NAME: str = "polar-payout-invoices"
-    INVOICES_NAME: str = "Polar Software, Inc."
+    INVOICES_NAME: str = "Blyss"
     INVOICES_ADDRESS: Address = Address(
-        line1="548 Market St",
-        line2="PMB 61301",
-        postal_code="94104",
-        city="San Francisco",
-        state="US-CA",
-        country=CountryAlpha2("US"),
+        line1="Nairobi",
+        line2=None,
+        postal_code="00100",
+        city="Nairobi",
+        state="KE-110",
+        country=CountryAlpha2("KE"),
     )
-    INVOICES_ADDITIONAL_INFO: str | None = "[support@polar.sh](mailto:support@polar.sh)"
-    PAYOUT_INVOICES_PREFIX: str = "POLAR-"
+    INVOICES_ADDITIONAL_INFO: str | None = "[support@blyss.co.ke](mailto:support@blyss.co.ke)"
+    PAYOUT_INVOICES_PREFIX: str = "BLYSS-"
 
     # Application behaviours
     API_PAGINATION_MAX_LIMIT: int = 100
@@ -541,7 +541,7 @@ class Settings(BaseSettings):
 
     @property
     def frontend_hostname(self) -> str:
-        return urlparse(self.FRONTEND_BASE_URL).hostname or "polar.sh"
+        return urlparse(self.FRONTEND_BASE_URL).hostname or "blyss.co.ke"
 
     def generate_backoffice_url(self, path: str) -> str:
         if self.BACKOFFICE_HOST is None:

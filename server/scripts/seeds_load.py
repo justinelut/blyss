@@ -848,7 +848,7 @@ async def create_seed_data(session: AsyncSession, redis: Redis) -> None:
                 auth_subject=auth_subject,
             )
             e2e_checkout_link.client_secret = (
-                "polar_cl_e2e_seed_checkout_link_subscription"
+                f"polar_cl_e2e_seed_checkout_link_subscription_{org_data['slug']}"
             )
             session.add(e2e_checkout_link)
             await session.flush()

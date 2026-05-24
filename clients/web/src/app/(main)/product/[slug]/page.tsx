@@ -115,7 +115,7 @@ export default async function ProductDetailPage({
         availability: product.is_archived
           ? 'https://schema.org/Discontinued'
           : 'https://schema.org/InStock',
-        url: `https://polar.sh/product/${params.slug}`,
+        url: `https://blyss.co.ke/product/${params.slug}`,
         seller: product.organization?.name
           ? {
               '@type': 'Organization',

@@ -1,5 +1,5 @@
 const S3_HOST = 'polar-public-files.s3.amazonaws.com'
-const CDN_HOST = 'uploads.polar.sh'
+const CDN_HOST = 'cdn.blyss.co.ke'
 
 // Must match the backend defined list in lambda/image-resizer/handler.py
 const SUPPORTED_WIDTHS = [

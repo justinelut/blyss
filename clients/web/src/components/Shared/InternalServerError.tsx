@@ -30,7 +30,7 @@ export default function InternalServerError({ digest }: { digest?: string }) {
         </li>
         <li>
           <a
-            href="https://polar.sh/docs"
+            href="https://blyss.co.ke/help"
             className="dark:hover:text-polar-300 block p-1 hover:text-gray-700 hover:underline"
           >
             Documentation
@@ -41,7 +41,7 @@ export default function InternalServerError({ digest }: { digest?: string }) {
         </li>
         <li>
           <a
-            href="mailto:support@polar.sh"
+            href="mailto:support@blyss.co.ke"
             className="dark:hover:text-polar-300 block p-1 hover:text-gray-700 hover:underline"
           >
             Support

@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
+@import '../design/tokens.css';
 @stylex;
 
 @source '../../../../packages/ui/src';
@@ -123,56 +124,55 @@
   --color-teal-800: #115e59;
   --color-teal-900: #134e4a;
 
-  /* Editorial Design System - Marketplace */
-  --color-primary: #a73400;
-  --color-primary-50: #fef3f0;
-  --color-primary-100: #fde4dc;
-  --color-primary-200: #fbc9b9;
-  --color-primary-300: #f8a88f;
-  --color-primary-400: #f47d5d;
-  --color-primary-500: #ee5a36;
-  --color-primary-600: #dc3f1f;
-  --color-primary-700: #a73400;
-  --color-primary-800: #8a2b00;
-  --color-primary-900: #6f2300;
-  --color-primary-950: #3d1300;
+  /* Editorial Design System — Blyss palette
+   * Tokens come from src/design/tokens.css (imported above).
+   * Tailwind picks up these --color-* names as utilities (bg-primary, text-primary, etc.) */
+  --color-primary: #C2410C;
+  --color-primary-50: #FFF4ED;
+  --color-primary-100: #FFE3D1;
+  --color-primary-200: #FFC2A3;
+  --color-primary-300: #FF9A6A;
+  --color-primary-400: #FB6F30;
+  --color-primary-500: #DD5818;
+  --color-primary-600: #C2410C;
+  --color-primary-700: #9A2F08;
+  --color-primary-800: #7A2407;
+  --color-primary-900: #631E07;
+  --color-primary-950: #380E04;
 
-  --color-secondary: #006972;
-  --color-secondary-50: #f0fafb;
-  --color-secondary-100: #d9f2f4;
-  --color-secondary-200: #b8e5e9;
-  --color-secondary-300: #88d2da;
-  --color-secondary-400: #51b6c3;
-  --color-secondary-500: #3599a8;
-  --color-secondary-600: #2e7d8d;
-  --color-secondary-700: #006972;
-  --color-secondary-800: #00545c;
-  --color-secondary-900: #00464c;
-  --color-secondary-950: #002d32;
+  --color-secondary: #1A1A17;
+  --color-secondary-50: #F1EFE9;
+  --color-secondary-100: #E8E5DD;
+  --color-secondary-200: #D9D5CB;
+  --color-secondary-300: #BBB5A8;
+  --color-secondary-400: #88857C;
+  --color-secondary-500: #4A4842;
+  --color-secondary-600: #393730;
+  --color-secondary-700: #2B2925;
+  --color-secondary-800: #1F1E1B;
+  --color-secondary-900: #1A1A17;
+  --color-secondary-950: #0F0E0C;
 
-  --color-tertiary: #765700;
-  --color-tertiary-50: #fefbeb;
-  --color-tertiary-100: #fdf4c7;
-  --color-tertiary-200: #fbe88a;
-  --color-tertiary-300: #f9d64d;
-  --color-tertiary-400: #f7c420;
-  --color-tertiary-500: #e1a50d;
-  --color-tertiary-600: #c17f08;
-  --color-tertiary-700: #765700;
-  --color-tertiary-800: #654a00;
-  --color-tertiary-900: #563e00;
-  --color-tertiary-950: #322300;
+  --color-tertiary: #15803D;          /* used only for --success */
+  --color-tertiary-50: #F0FDF4;
+  --color-tertiary-500: #15803D;
+  --color-tertiary-700: #166534;
+  --color-tertiary-900: #14532D;
+  --color-tertiary-950: #052E16;
 
-  /* Surface Hierarchy */
-  --color-surface: #fcf9f7;
-  --color-surface-container-low: #f6f3f1;
-  --color-surface-container-lowest: #ffffff;
-  --color-on-surface: #1b1c1b;
-  --color-on-surface-variant: #594139;
-  --color-outline-variant: #e1bfb4;
+  /* Surface hierarchy — bridges Polar legacy names to Blyss tokens */
+  --color-surface: var(--background);
+  --color-surface-container-low: var(--surface);
+  --color-surface-container-lowest: var(--surface-elevated);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-on-surface: var(--text-primary);
+  --color-on-surface-variant: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-outline-variant: var(--border);
+  --color-outline-strong: var(--border-strong);
 
-  /* Editorial Shadow */
-  --shadow-editorial: 0 12px 32px rgba(27, 28, 27, 0.06);
+  /* Editorial Shadow — used only for dropdowns/modals/sticky-bars per §3.4 */
+  --shadow-editorial: 0 12px 32px rgba(26, 26, 23, 0.06);
 
   /* shadcn */
   --color-border: var(--border);
@@ -287,88 +287,84 @@
   }
 }
 
-/* shadcn/ui */
+/* shadcn/ui — pointed at Blyss design tokens */
 
 @layer base {
   :root {
-    --background: var(--color-gray-50);
-    --foreground: var(--color-gray-900);
+    /* background + foreground come from src/design/tokens.css */
+    --card: var(--surface-elevated);
+    --card-foreground: var(--text-primary);
 
-    --card: var(--color-white);
-    --card-foreground: var(--color-gray-900);
+    --popover: var(--surface-elevated);
+    --popover-foreground: var(--text-primary);
 
-    --popover: var(--color-white);
-    --popover-foreground: hsl(224 71.4% 4.1%);
+    --sidebar-background: var(--surface);
+    --sidebar-foreground: var(--text-primary);
+    --sidebar-primary: var(--accent);
+    --sidebar-primary-foreground: var(--accent-foreground);
+    --sidebar-border: var(--border);
+    --sidebar-accent: var(--surface-sunken);
+    --sidebar-accent-foreground: var(--text-primary);
+    --sidebar-ring: var(--border-strong);
 
-    --sidebar-background: var(--color-gray-100);
-    --sidebar-foreground: var(--color-gray-900);
-    --sidebar-primary: var(--color-blue);
-    --sidebar-primary-foreground: var(--color-gray-50);
-    --sidebar-border: var(--color-gray-300);
+    --primary: var(--accent);
+    --primary-foreground: var(--accent-foreground);
 
-    --primary: var(--color-orange-500);
-    --primary-foreground: var(--color-white);
+    --secondary: var(--surface-sunken);
+    --secondary-foreground: var(--text-primary);
 
-    --secondary: var(--color-gray-900);
-    --secondary-foreground: var(--color-white);
+    --muted: var(--surface-sunken);
+    --muted-foreground: var(--text-muted);
 
-    --muted: var(--color-gray-100);
-    --muted-foreground: var(--color-gray-500);
+    /* shadcn `accent` is hover/active surface, NOT our brand accent.
+     * Brand accent is mapped to --primary above. */
+    --accent: var(--surface-sunken);
+    --accent-foreground: var(--text-primary);
 
-    --accent: var(--color-amber-400);
-    --accent-foreground: var(--color-gray-900);
+    --destructive: var(--danger);
+    --destructive-foreground: var(--accent-foreground);
 
-    --destructive: var(--color-red-500);
-    --destructive-foreground: var(--color-red-600);
-
-    --border: var(--color-gray-200);
-    --input: var(--color-gray-200);
-    --ring: var(--color-gray-200);
-    --radius: 0.6rem;
+    --border: var(--border);
+    --input: var(--border);
+    --ring: var(--accent);
+    --radius: 0.5rem;
   }
 
   :root.dark {
-    --background: var(--color-polar-800);
-    --foreground: var(--color-polar-500);
+    /* background + foreground come from .dark in src/design/tokens.css */
+    --card: var(--surface-elevated);
+    --card-foreground: var(--text-primary);
 
-    --card: var(--color-polar-800);
-    --card-foreground: var(--color-polar-50);
+    --popover: var(--surface-elevated);
+    --popover-foreground: var(--text-primary);
 
-    --popover: var(--color-polar-900);
-    --popover-foreground: var(--color-polar-50);
+    --sidebar-background: var(--surface);
+    --sidebar-foreground: var(--text-primary);
+    --sidebar-primary: var(--accent);
+    --sidebar-primary-foreground: var(--accent-foreground);
+    --sidebar-border: var(--border);
+    --sidebar-accent: var(--surface-sunken);
+    --sidebar-accent-foreground: var(--text-primary);
+    --sidebar-ring: var(--border-strong);
 
-    --sidebar-background: var(--color-polar-950);
-    --sidebar-foreground: var(--color-polar-50);
-    --sidebar-primary: var(--color-blue);
-    --sidebar-primary-foreground: var(--color-polar-50);
-    --sidebar-border: var(--color-polar-700);
+    --primary: var(--accent);
+    --primary-foreground: var(--accent-foreground);
 
-    --primary: var(--color-orange-500);
-    --primary-foreground: var(--color-white);
+    --secondary: var(--surface-sunken);
+    --secondary-foreground: var(--text-primary);
 
-    --secondary: var(--color-gray-900);
-    --secondary-foreground: var(--color-white);
+    --muted: var(--surface-sunken);
+    --muted-foreground: var(--text-muted);
 
-    --muted: var(--color-polar-700);
-    --muted-foreground: var(--color-polar-500);
+    --accent: var(--surface-sunken);
+    --accent-foreground: var(--text-primary);
 
-    --accent: var(--color-amber-400);
-    --accent-foreground: var(--color-gray-900);
+    --destructive: var(--danger);
+    --destructive-foreground: var(--accent-foreground);
 
-    --destructive: var(--color-red-500);
-    --destructive-foreground: var(--color-red-500);
-
-    --border: var(--color-polar-700);
-    --input: var(--color-polar-700);
-    --ring: var(--color-polar-700);
-
-    /* Editorial Dark Mode */
-    --color-surface: #1b1c1b;
-    --color-surface-container-low: #252625;
-    --color-surface-container-lowest: #0f100f;
-    --color-on-surface: #f6f3f1;
-    --color-on-surface-variant: #d4c3bb;
-    --color-outline-variant: #594139;
+    --border: var(--border);
+    --input: var(--border);
+    --ring: var(--accent);
   }
 }
 

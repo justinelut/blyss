@@ -23,6 +23,6 @@ export default function robots(): MetadataRoute.Robots {
         '/wishlist',
       ],
     },
-    sitemap: 'https://polar.sh/sitemap.xml',
+    sitemap: 'https://blyss.co.ke/sitemap.xml',
   }
 }

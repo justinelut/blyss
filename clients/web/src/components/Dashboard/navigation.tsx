@@ -196,11 +196,12 @@ const generalRoutesList = (org?: schemas['Organization']): Route[] => [
         link: `/dashboard/${org?.slug}/products/benefits`,
         icon: <DiamondOutlined fontSize="inherit" />,
       },
-      {
-        title: 'Meters',
-        link: `/dashboard/${org?.slug}/products/meters`,
-        icon: <DonutLargeOutlined fontSize="inherit" />,
-      },
+      // DISABLED — Meters (usage-based metering, plan §4.4 step 1)
+      // {
+      //   title: 'Meters',
+      //   link: `/dashboard/${org?.slug}/products/meters`,
+      //   icon: <DonutLargeOutlined fontSize="inherit" />,
+      // },
     ],
   },
   {
@@ -224,10 +225,11 @@ const generalRoutesList = (org?: schemas['Organization']): Route[] => [
         title: 'Metrics',
         link: `/dashboard/${org?.slug}/analytics/metrics`,
       },
-      {
-        title: 'Events',
-        link: `/dashboard/${org?.slug}/analytics/events`,
-      },
+      // DISABLED — Events (usage-based event ingestion, plan §4.4)
+      // {
+      //   title: 'Events',
+      //   link: `/dashboard/${org?.slug}/analytics/events`,
+      // },
       {
         title: 'Costs',
         link: `/dashboard/${org?.slug}/analytics/costs`,

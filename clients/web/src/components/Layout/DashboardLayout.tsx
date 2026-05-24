@@ -10,7 +10,7 @@ import {
   useSidebar,
 } from '@/components/atoms/Sidebar'
 import { Tabs, TabsList, TabsTrigger } from '@/components/atoms/Tabs'
-import { motion } from 'framer-motion'
+import { motion } from 'motion/react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {

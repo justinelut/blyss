@@ -17,7 +17,7 @@ export function OrganizationAccountUnlink({
       </Preview>
       <Intro>
         We'd like to inform you that some of your Stripe payout accounts
-        associated with organizations in Polar have been detached. This update
+        associated with organizations in Blyss have been detached. This update
         was made as part of our ongoing efforts to enhance security and ensure
         compliance, as sharing the same Stripe account across multiple
         organizations will no longer be permitted going forward.

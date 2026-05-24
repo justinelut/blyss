@@ -1,117 +1,85 @@
-services:
-  redis:
-    image: redis
-    ports:
-      - "${POLAR_REDIS_PORT}:6379"
+# =============================================================================
+# Blyss server — local dev infra
+#
+# Brings up the four services Polar needs in development:
+#   postgres  (port 5436)  — primary database
+#   redis     (port 6380)  — cache + queue
+#   minio     (ports 9000 + 9001) — S3-compatible object storage
+#   minio-init             — one-shot job that creates blyss-public + blyss-private
+#
+# Polar's email path is logger|resend; no SMTP service in dev (Mailhog excluded).
+# Magic-link codes appear in API stdout; run dev/email_login_code_notifier.py
+# to surface them in a friendlier form.
+#
+# All values are read from server/.env via env interpolation.
+# =============================================================================
 
-  db:
-    image: postgres:15.1-bullseye
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: blyss-postgres
     environment:
-      - POSTGRES_USER=${POLAR_POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POLAR_POSTGRES_PWD}
-      - POSTGRES_DB=${POLAR_POSTGRES_DATABASE}
-      - POSTGRES_PORT=${POLAR_POSTGRES_PORT}
-      - POLAR_READ_USER=${POLAR_POSTGRES_READ_USER:-polar_read}
-      - POLAR_READ_PASSWORD=${POLAR_POSTGRES_READ_PWD}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data/
-      - ./init-readonly-user.sql:/docker-entrypoint-initdb.d/init-readonly-user.sql
+      POSTGRES_USER: ${POLAR_POSTGRES_USER:-blyss}
+      POSTGRES_PASSWORD: ${POLAR_POSTGRES_PWD:-blyss}
+      POSTGRES_DB: ${POLAR_POSTGRES_DATABASE:-blyss}
     ports:
-      - "${POLAR_POSTGRES_PORT}:5432"
-    expose:
-      - ${POLAR_POSTGRES_PORT}
+      - "${POLAR_POSTGRES_PORT:-5436}:5432"
+    volumes:
+      - blyss_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test:
-        [
-          "CMD",
-          "pg_isready",
-          "-q",
-          "-d",
-          "${POLAR_POSTGRES_DATABASE}",
-          "-U",
-          "${POLAR_POSTGRES_USER}",
-        ]
-      timeout: 40s
-      interval: 2s
-      retries: 20
+      test: ["CMD-SHELL", "pg_isready -U ${POLAR_POSTGRES_USER:-blyss} -d ${POLAR_POSTGRES_DATABASE:-blyss}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: blyss-redis
+    ports:
+      - "${POLAR_REDIS_PORT:-6380}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   minio:
-    image: bitnamilegacy/minio:2024.5.28
+    image: minio/minio:latest
+    container_name: blyss-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${POLAR_MINIO_USER:-blyssadmin}
+      MINIO_ROOT_PASSWORD: ${POLAR_MINIO_PWD:-blyssadmin}
     ports:
       - "9000:9000"
       - "9001:9001"
     volumes:
-      - "minio_data:/minio"
-    environment:
-      - MINIO_ROOT_USER=${POLAR_MINIO_USER}
-      - MINIO_ROOT_PASSWORD=${POLAR_MINIO_PWD}
+      - blyss_minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
-  minio-setup:
-    image: bitnamilegacy/minio-client:2024.5.24
+  minio-init:
+    # One-shot job: creates the buckets and sets the public-bucket policy,
+    # then exits. Runs once each time `docker compose up` is called.
+    image: minio/mc:latest
+    container_name: blyss-minio-init
     depends_on:
-      - minio
-    volumes:
-      - ./.minio:/tmp/config
-    environment:
-      - MINIO_HOST=minio
-      - MINIO_ROOT_USER=${POLAR_MINIO_USER}
-      - MINIO_ROOT_PASSWORD=${POLAR_MINIO_PWD}
-      - BUCKET_NAME=${POLAR_S3_FILES_BUCKET_NAME}
-      - PUBLIC_BUCKET_NAME=${POLAR_S3_FILES_PUBLIC_BUCKET_NAME}
-      - BUCKET_TESTING_NAME=testing-${POLAR_S3_FILES_BUCKET_NAME}
-      - POLICY_FILE=/tmp/config/policy.json
-      - ACCESS_KEY=${POLAR_AWS_ACCESS_KEY_ID}
-      - SECRET_ACCESS_KEY=${POLAR_AWS_SECRET_ACCESS_KEY}
-    entrypoint:
-      [
-        "bash",
-        "-c",
-        "chmod +x /tmp/config/local.sh && chmod +x /tmp/config/configure.sh && /tmp/config/local.sh /tmp/config/configure.sh",
-      ]
-
-  prometheus:
-    image: prom/prometheus:v3.7.3
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus_data:/prometheus
-    command:
-      - "--config.file=/etc/prometheus/prometheus.yml"
-      - "--storage.tsdb.path=/prometheus"
-      - "--storage.tsdb.retention.time=1d"
-      - "--web.enable-lifecycle"
-      - "--web.enable-remote-write-receiver"
-    profiles:
-      - monitoring
-
-  grafana:
-    image: grafana/grafana:12.3.0
-    ports:
-      - "3001:3000"
-    volumes:
-      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
-      - grafana_data:/var/lib/grafana
-    environment:
-      - GF_SECURITY_ADMIN_USER=polar
-      - GF_SECURITY_ADMIN_PASSWORD=polar
-      - GF_USERS_ALLOW_SIGN_UP=false
-    depends_on:
-      - prometheus
-    profiles:
-      - monitoring
-
-  tinybird:
-    image: tinybirdco/tinybird-local:latest
-    platform: linux/amd64
-    ports:
-      - "7181:7181"
-      - "7182:7182"
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 ${POLAR_MINIO_USER:-blyssadmin} ${POLAR_MINIO_PWD:-blyssadmin} &&
+      mc mb -p local/${POLAR_S3_FILES_PUBLIC_BUCKET_NAME:-blyss-public} &&
+      mc mb -p local/${POLAR_S3_FILES_BUCKET_NAME:-blyss-private} &&
+      mc anonymous set download local/${POLAR_S3_FILES_PUBLIC_BUCKET_NAME:-blyss-public} &&
+      echo 'Buckets created: ${POLAR_S3_FILES_PUBLIC_BUCKET_NAME:-blyss-public} (public) + ${POLAR_S3_FILES_BUCKET_NAME:-blyss-private} (private)'
+      "
 
 volumes:
-  postgres_data:
-  minio_data:
+  blyss_postgres_data:
     driver: local
-  prometheus_data:
-  grafana_data:
+  blyss_minio_data:
+    driver: local

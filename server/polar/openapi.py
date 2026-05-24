@@ -74,10 +74,10 @@ class OpenAPIParameters(TypedDict):
 
 
 OPENAPI_PARAMETERS: OpenAPIParameters = {
-    "title": "Polar API",
-    "summary": "Polar HTTP and Webhooks API",
+    "title": "Blyss API",
+    "summary": "Blyss HTTP and Webhooks API",
     "version": "0.1.0",
-    "description": "Read the docs at https://polar.sh/docs/api-reference",
+    "description": "Internal API for Blyss marketplace.",
     "docs_url": None
     if settings.is_environment({Environment.sandbox, Environment.production})
     else "/docs",
@@ -87,12 +87,12 @@ OPENAPI_PARAMETERS: OpenAPIParameters = {
     "openapi_tags": APITag.metadata(),  # type: ignore
     "servers": [
         {
-            "url": "https://api.polar.sh",
+            "url": "https://api.blyss.co.ke",
             "description": "Production environment",
             "x-speakeasy-server-id": "production",
         },
         {
-            "url": "https://sandbox-api.polar.sh",
+            "url": "https://sandbox-api.blyss.co.ke",
             "description": "Sandbox environment",
             "x-speakeasy-server-id": "sandbox",
         },

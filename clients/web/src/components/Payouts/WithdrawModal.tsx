@@ -106,7 +106,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({
                 </p>
                 <p>
                   <Link
-                    href="https://polar.sh/docs/merchant-of-record/account-reviews"
+                    href="https://blyss.co.ke/help"
                     target="_blank"
                     rel="noopener noreferrer"
                   >

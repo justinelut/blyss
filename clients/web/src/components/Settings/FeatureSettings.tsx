@@ -106,7 +106,7 @@ export default function FeatureSettings({
               <>
                 Show{' '}
                 <a
-                  href="https://polar.sh/docs/features/checkout/localization"
+                  href="https://blyss.co.ke/help"
                   target="_blank"
                   className="underline"
                   rel="noreferrer noopener"
@@ -172,7 +172,7 @@ export default function FeatureSettings({
           <p className="text-sm">
             Please review the{' '}
             <a
-              href="https://polar.sh/docs/guides/seat-based-pricing"
+              href="https://blyss.co.ke/help"
               target="_blank"
               className="underline"
               rel="noreferrer noopener"

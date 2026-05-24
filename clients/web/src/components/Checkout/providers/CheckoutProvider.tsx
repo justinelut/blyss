@@ -180,12 +180,12 @@ export const CheckoutProvider = ({
 
       switch (server) {
         case 'sandbox': {
-          return 'https://sandbox-api.polar.sh/v1/'
+          return 'https://sandbox-api.blyss.co.ke/v1/'
         }
 
         case 'production':
         case undefined: {
-          return 'https://api.polar.sh/v1/'
+          return 'https://api.blyss.co.ke/v1/'
         }
 
         default:
