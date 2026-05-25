@@ -8,6 +8,12 @@ import { FeaturedSubscriptions } from '@/components/Marketplace/FeaturedSubscrip
 import { NoteFromMakers } from '@/components/Marketplace/NoteFromMakers'
 import { HowItWorks } from '@/components/Marketplace/HowItWorks'
 import { ClosingCtaBand } from '@/components/Marketplace/ClosingCtaBand'
+import {
+  SEED_PRODUCTS,
+  SEED_SUBSCRIPTIONS,
+  SEED_CREATORS,
+  SEED_CATEGORIES,
+} from '@/data/seed-marketplace'
 
 interface HomePageProps {
   featuredProducts: schemas['Product'][]
@@ -34,6 +40,12 @@ export default function HomePage({
   trendingCreators,
   categories,
 }: HomePageProps) {
+  // Use seed data as fallback when API is empty so the landing never feels barren.
+  const products = featuredProducts?.length ? featuredProducts : SEED_PRODUCTS
+  const subs = featuredSubscriptions?.length ? featuredSubscriptions : (SEED_SUBSCRIPTIONS as unknown as schemas['Subscription'][])
+  const creators = trendingCreators?.length ? trendingCreators : SEED_CREATORS
+  const cats = categories?.length ? categories : SEED_CATEGORIES
+
   return (
     <>
       {/* SEO structured data */}
@@ -71,11 +83,11 @@ export default function HomePage({
         }}
       />
 
-      <Hero />
-      <TrendingProducts products={featuredProducts} />
-      <BrowseByCraft categories={categories} />
-      <FeaturedCreators creators={trendingCreators} />
-      <FeaturedSubscriptions subscriptions={featuredSubscriptions} />
+      <Hero showcaseProducts={products.slice(0, 4)} />
+      <TrendingProducts products={products} />
+      <BrowseByCraft categories={cats} />
+      <FeaturedCreators creators={creators} />
+      <FeaturedSubscriptions subscriptions={subs} />
       <NoteFromMakers />
       <HowItWorks />
       <ClosingCtaBand />

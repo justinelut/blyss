@@ -1,11 +1,19 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { motion, useReducedMotion, useScroll, useTransform } from 'motion/react'
 import { useRef } from 'react'
 import { ArrowRight } from 'lucide-react'
+import { schemas } from '@/lib/api'
 import { Eyebrow } from '@/design'
 import { cn } from '@/lib/utils'
+
+interface HeroProps {
+  /** Optional showcase products — if provided, renders real product images
+   *  in the mosaic instead of typographic placeholders. */
+  showcaseProducts?: schemas['Product'][]
+}
 
 /**
  * Hero — editorial split-grid homepage opener with cinematic motion.
@@ -22,7 +30,7 @@ import { cn } from '@/lib/utils'
  *
  * Per plan §3 + §6.1 + §17 (Bandcamp/Aimé Leon Dore reference).
  */
-export const Hero = () => {
+export const Hero = ({ showcaseProducts = [] }: HeroProps) => {
   const reduce = useReducedMotion()
   const ref = useRef<HTMLElement>(null)
   const { scrollYProgress } = useScroll({
@@ -131,7 +139,7 @@ export const Hero = () => {
 
         {/* Right — showcase mosaic */}
         <div className="relative lg:col-span-5">
-          <ShowcaseMosaic reduce={reduce ?? false} ease={ease} />
+          <ShowcaseMosaic reduce={reduce ?? false} ease={ease} products={showcaseProducts} />
         </div>
       </div>
     </section>
@@ -139,54 +147,89 @@ export const Hero = () => {
 }
 
 /**
- * ShowcaseMosaic — typographic placeholder tiles styled to evoke real product
- * cards. When real seed data is available, swap to MarketplaceProductCard.
+ * ShowcaseMosaic — renders 4 product tiles. When real products are passed in,
+ * uses their images. Falls back to typographic placeholders.
  */
 function ShowcaseMosaic({
   reduce,
   ease,
+  products,
 }: {
   reduce: boolean
   ease: readonly [number, number, number, number]
+  products: schemas['Product'][]
 }) {
-  const tiles = [
-    {
-      eyebrow: 'Templates',
-      title: 'Notion OS',
-      price: 'KSh 2,400',
-      tone: 'bg-[var(--surface-sunken)]',
-      accent: '#C2410C',
-      span: 'col-span-2 row-span-2',
-    },
-    {
-      eyebrow: 'Beats',
-      title: 'Lagos Drum Kit',
-      price: 'KSh 1,200',
-      tone: 'bg-[var(--surface)]',
-      accent: '#1A1A17',
-      span: 'col-span-2',
-    },
-    {
-      eyebrow: 'Course',
-      title: 'M-Pesa for Devs',
-      price: 'KSh 4,500',
-      tone: 'bg-[#1A1A17] text-[#FAFAF7]',
-      accent: '#FAFAF7',
-      span: 'col-span-2',
-    },
-    {
-      eyebrow: 'Subscription',
-      title: 'Kenyan Type',
-      price: 'KSh 800/mo',
-      tone: 'bg-[var(--accent)] text-[var(--accent-foreground)]',
-      accent: '#FAFAF7',
-      span: 'col-span-2',
-    },
+  const placeholderTiles = [
+    { eyebrow: 'Templates', title: 'Notion OS', price: 'KSh 2,400', tone: 'bg-[var(--surface-sunken)]', accent: '#C2410C', span: 'col-span-2 row-span-2' },
+    { eyebrow: 'Beats', title: 'Lagos Drum Kit', price: 'KSh 1,200', tone: 'bg-[var(--surface)]', accent: '#1A1A17', span: 'col-span-2' },
+    { eyebrow: 'Course', title: 'M-Pesa for Devs', price: 'KSh 4,500', tone: 'bg-[#1A1A17] text-[#FAFAF7]', accent: '#FAFAF7', span: 'col-span-2' },
+    { eyebrow: 'Subscription', title: 'Kenyan Type', price: 'KSh 800/mo', tone: 'bg-[var(--accent)] text-[var(--accent-foreground)]', accent: '#FAFAF7', span: 'col-span-2' },
   ]
 
+  // If real products passed, render image tiles
+  if (products.length >= 4) {
+    return (
+      <div className="grid grid-cols-4 grid-rows-3 gap-3 md:gap-4">
+        {products.slice(0, 4).map((p, i) => {
+          const span = i === 0 ? 'col-span-2 row-span-2' : 'col-span-2'
+          const img = p.medias?.[0]?.public_url
+          const price = p.prices?.[0] as any
+          const priceLabel = price
+            ? `KSh ${(price.price_amount / 100).toLocaleString('en-KE')}`
+            : ''
+          const org = (p as any).organization
+          return (
+            <motion.div
+              key={p.id}
+              {...(reduce
+                ? { initial: false }
+                : {
+                    initial: { opacity: 0, y: 32, scale: 0.96 },
+                    animate: { opacity: 1, y: 0, scale: 1 },
+                    transition: { duration: 0.7, ease, delay: 0.4 + i * 0.08 },
+                  })}
+              whileHover={reduce ? undefined : { y: -4 }}
+              className={cn(
+                'group relative aspect-[4/5] overflow-hidden rounded-md bg-[var(--surface-sunken)]',
+                span,
+              )}
+            >
+              <Link href={`/product/${p.id}`} className="block h-full w-full">
+                {img && (
+                  <Image
+                    src={img}
+                    alt={p.name}
+                    fill
+                    sizes="(max-width: 1024px) 50vw, 25vw"
+                    className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                  />
+                )}
+                <div className="absolute inset-0 bg-[rgba(15,14,12,0.18)]" />
+                <div className="absolute inset-0 flex flex-col justify-between p-4 text-white">
+                  <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-white/85">
+                    {org?.name || 'Blyss'}
+                  </span>
+                  <div>
+                    <h3 className="font-display text-[16px] font-medium leading-tight md:text-[18px]">
+                      {p.name}
+                    </h3>
+                    <p className="mt-1 font-sans text-[12px] tabular-nums text-white/85">
+                      {priceLabel}
+                    </p>
+                  </div>
+                </div>
+              </Link>
+            </motion.div>
+          )
+        })}
+      </div>
+    )
+  }
+
+  // Placeholder typography tiles
   return (
     <div className="grid grid-cols-4 grid-rows-3 gap-3 md:gap-4">
-      {tiles.map((tile, i) => (
+      {placeholderTiles.map((tile, i) => (
         <motion.div
           key={tile.title}
           {...(reduce
@@ -203,28 +246,9 @@ function ShowcaseMosaic({
             tile.span,
           )}
         >
-          {/* Subtle texture via crosshatch SVG */}
-          <svg
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 h-full w-full opacity-[0.04]"
-          >
-            <defs>
-              <pattern
-                id={`grid-${i}`}
-                width="24"
-                height="24"
-                patternUnits="userSpaceOnUse"
-              >
-                <path d="M0 0H24V24" fill="none" stroke={tile.accent} strokeWidth="0.5" />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill={`url(#grid-${i})`} />
-          </svg>
-
           <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.14em] opacity-70">
             {tile.eyebrow}
           </span>
-
           <div>
             <h3 className="font-display text-[18px] font-medium leading-tight">
               {tile.title}

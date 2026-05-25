@@ -142,6 +142,12 @@ const nextConfig = {
 
   images: {
     remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+        port: '',
+        pathname: '**',
+      },
       ...(process.env.S3_PUBLIC_IMAGES_BUCKET_HOSTNAME
         ? [
             {
