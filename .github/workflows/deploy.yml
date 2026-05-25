@@ -17,7 +17,7 @@ env:
 
 jobs:
   build:
-    name: Build & push image (on server)
+    name: Build & push image (GitHub runner, ARM64)
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -31,51 +31,30 @@ jobs:
         id: tag
         run: echo "tag=$(echo $GITHUB_SHA | cut -c1-7)" >> $GITHUB_OUTPUT
 
-      - name: Build on ARM server via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        env:
-          IMAGE_TAG: ${{ steps.tag.outputs.tag }}
-          GHCR_USER: ${{ github.actor }}
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/setup-qemu-action@v3
         with:
-          host: ${{ secrets.SERVER_IP }}
-          username: ubuntu
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: IMAGE_TAG,GHCR_USER,GHCR_TOKEN
-          command_timeout: 30m
-          script: |
-            set -e
+          platforms: arm64
 
-            # Ensure repo exists on server
-            if [ ! -d /opt/blyss/.git ]; then
-              sudo rm -rf /opt/blyss
-              sudo git clone https://${GHCR_USER}:${GHCR_TOKEN}@github.com/justinelut/blyss.git /opt/blyss
-              sudo chown -R ubuntu:ubuntu /opt/blyss
-            fi
+      - uses: docker/setup-buildx-action@v3
 
-            cd /opt/blyss
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-            # Update code
-            git remote set-url origin https://${GHCR_USER}:${GHCR_TOKEN}@github.com/justinelut/blyss.git 2>/dev/null || true
-            git fetch origin master
-            git reset --hard origin/master
-
-            # Login to GHCR
-            echo "${GHCR_TOKEN}" | sudo docker login ghcr.io -u "${GHCR_USER}" --password-stdin
-
-            # Build web image
-            sudo DOCKER_BUILDKIT=1 docker build \
-              -t ghcr.io/justinelut/blyss-web:${IMAGE_TAG} \
-              -t ghcr.io/justinelut/blyss-web:latest \
-              -f clients/web/Dockerfile \
-              clients/web/
-
-            # Push to GHCR
-            sudo docker push ghcr.io/justinelut/blyss-web:${IMAGE_TAG}
-            sudo docker push ghcr.io/justinelut/blyss-web:latest
-
-            # Cleanup
-            sudo docker image prune -f
+      - name: Build & push web image (ARM64)
+        uses: docker/build-push-action@v6
+        with:
+          context: ./clients/web
+          file: ./clients/web/Dockerfile
+          push: true
+          platforms: linux/arm64
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/blyss-web:${{ steps.tag.outputs.tag }}
+            ghcr.io/${{ github.repository_owner }}/blyss-web:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   deploy:
     name: Deploy to K3s
@@ -87,7 +66,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Deploy manifests and roll
+      - name: Copy k8s manifest to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ubuntu
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "k8s/blyss-web.yaml"
+          target: "/opt/blyss/"
+          strip_components: 0
+
+      - name: Apply manifests and roll deployment
         uses: appleboy/ssh-action@v1.0.3
         env:
           IMAGE_TAG: ${{ needs.build.outputs.image-tag }}
@@ -117,9 +106,8 @@ jobs:
               --docker-password="${GHCR_PULL_TOKEN}" \
               | sudo kubectl apply -f -
 
-            # 3. Apply manifests from repo on server
-            cd /opt/blyss
-            sudo kubectl apply -n $NS -f k8s/blyss-web.yaml
+            # 3. Apply manifest from /opt/blyss
+            sudo kubectl apply -f /opt/blyss/k8s/blyss-web.yaml
 
             # 4. Set new image
             sudo kubectl set image deployment/$DEP \
