@@ -88,6 +88,33 @@ const getLoginResponse = (request: NextRequest): NextResponse => {
 }
 
 export async function proxy(request: NextRequest) {
+  const host = request.headers.get('host') ?? ''
+  const { pathname } = request.nextUrl
+
+  // --- Host-based routing (plan §6.0) ---
+  // buy.blyss.co.ke → checkout route group
+  if (host.startsWith('buy.') || /^buy\.blyss\./i.test(host)) {
+    if (!pathname.startsWith('/checkout') && !pathname.startsWith('/_buy')) {
+      const url = request.nextUrl.clone()
+      url.pathname = pathname === '/' ? '/checkout' : `/checkout${pathname}`
+      return NextResponse.rewrite(url)
+    }
+  }
+  // my.blyss.co.ke → portal route group
+  if (host.startsWith('my.') || /^my\.blyss\./i.test(host)) {
+    if (!pathname.startsWith('/_my')) {
+      const url = request.nextUrl.clone()
+      url.pathname = `/_my${pathname === '/' ? '' : pathname}`
+      return NextResponse.rewrite(url)
+    }
+  }
+  // cdn.blyss.co.ke should never hit Next.js
+  if (host.startsWith('cdn.') || /^cdn\.blyss\./i.test(host)) {
+    return new NextResponse('Not Found', { status: 404 })
+  }
+
+  // --- Original Polar proxy logic below ---
+
   // Do not run middleware for forwarded routes
   // @pieterbeulque added this because the `config.matcher` behavior below
   // doesn't appear to be working consistently with Vercel rewrites
