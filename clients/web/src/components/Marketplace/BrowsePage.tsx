@@ -23,7 +23,7 @@ import {
   BrowseMobileFilters,
   BrowseMobileFiltersTrigger,
 } from '@/components/Marketplace/BrowseMobileFilters'
-import { Eyebrow, typography } from '@/design'
+import { Eyebrow, typography, PageEnter } from '@/design'
 import { cn } from '@/lib/utils'
 
 interface BrowsePageProps {
@@ -185,10 +185,12 @@ export function BrowsePage({
       {/* Page hero — small, no full-bleed image (this is a serious shopper page) */}
       <header className="border-b border-[var(--border)]">
         <div className="mx-auto max-w-[1280px] px-6 py-12 md:px-16 md:py-16">
-          <Eyebrow>The marketplace</Eyebrow>
-          <h1 className={cn(typography.h1, 'mt-4 max-w-[18ch] text-[var(--text-primary)]')}>
-            Find your next thing.
-          </h1>
+          <PageEnter>
+            <Eyebrow>The marketplace</Eyebrow>
+            <h1 className={cn(typography.h1, 'mt-4 max-w-[18ch] text-[var(--text-primary)]')}>
+              Find your next thing.
+            </h1>
+          </PageEnter>
         </div>
       </header>
 

@@ -1,6 +1,8 @@
+'use client'
+
 import { schemas } from '@/lib/api'
 import { MarketplaceCreatorCard } from './MarketplaceCreatorCard'
-import { Skeleton } from '@/design'
+import { Skeleton, StaggerList, StaggerItem } from '@/design'
 
 interface CreatorsGridProps {
   creators: schemas['Organization'][]
@@ -10,8 +12,7 @@ interface CreatorsGridProps {
 
 /**
  * CreatorsGrid — 12 cards 3×4 desktop / 2×6 tablet / 1-col mobile.
- *
- * Per plan §6.3 step 4. Uses MarketplaceCreatorCard in tall variant.
+ * Stagger reveal on scroll-into-view.
  */
 export const CreatorsGrid = ({
   creators,
@@ -33,10 +34,12 @@ export const CreatorsGrid = ({
   }
 
   return (
-    <div className="grid grid-cols-1 gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <StaggerList className="grid grid-cols-1 gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {creators.map((creator) => (
-        <MarketplaceCreatorCard key={creator.id} creator={creator} variant="tall" />
+        <StaggerItem key={creator.id}>
+          <MarketplaceCreatorCard creator={creator} variant="tall" />
+        </StaggerItem>
       ))}
-    </div>
+    </StaggerList>
   )
 }

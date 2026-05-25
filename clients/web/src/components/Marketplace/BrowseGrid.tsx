@@ -2,7 +2,7 @@
 
 import { schemas } from '@/lib/api'
 import { MarketplaceProductCard } from './MarketplaceProductCard'
-import { Skeleton } from '@/design'
+import { Skeleton, StaggerList, StaggerItem } from '@/design'
 
 interface BrowseGridProps {
   products: schemas['Product'][]
@@ -34,10 +34,12 @@ export const BrowseGrid = ({ products, isLoading, loadingCount = 12 }: BrowseGri
   }
 
   return (
-    <div className="grid grid-cols-2 gap-x-4 gap-y-10 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 lg:gap-x-6 lg:gap-y-12">
+    <StaggerList className="grid grid-cols-2 gap-x-4 gap-y-10 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 lg:gap-x-6 lg:gap-y-12">
       {products.map((product) => (
-        <MarketplaceProductCard key={product.id} product={product} />
+        <StaggerItem key={product.id}>
+          <MarketplaceProductCard product={product} />
+        </StaggerItem>
       ))}
-    </div>
+    </StaggerList>
   )
 }

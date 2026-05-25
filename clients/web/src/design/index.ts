@@ -13,6 +13,7 @@ export { Skeleton } from './Skeleton'
 export { LegalDoc } from './LegalDoc'
 export { JsonLd } from './JsonLd'
 export { ThemeToggle } from './ThemeToggle'
+export { PageEnter, StaggerList, StaggerItem, FadeIn } from './PageMotion'
 
 export {
   typography,

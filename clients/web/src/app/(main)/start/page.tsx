@@ -1,16 +1,13 @@
-import { redirect } from 'next/navigation'
 import { Metadata } from 'next'
+import { StartLanding } from './StartLanding'
 
 export const metadata: Metadata = {
   title: 'Start selling · Blyss',
-  description: 'Set up your storefront in 10 minutes. M-Pesa or card payouts.',
+  description:
+    'Set up your storefront in 10 minutes. Sell digital products to Kenyan buyers via M-Pesa or card. 24-hour payouts.',
+  alternates: { canonical: 'https://blyss.co.ke/start' },
 }
 
-/**
- * /start — redirects to Polar's existing creator onboarding.
- * The onboarding flow at /dashboard/create handles org creation,
- * and the dashboard checklist handles the remaining setup steps.
- */
-export default function StartPage() {
-  redirect('/dashboard/create')
+export default function Page() {
+  return <StartLanding />
 }
