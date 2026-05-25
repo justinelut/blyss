@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react'
 import { useCart, useRemoveFromCart } from '@/hooks/queries/cart'
 import { CartItemRow } from './CartItemRow'
 import { Skeleton, Eyebrow, typography } from '@/design'
@@ -69,19 +70,35 @@ export const BlyssCartPage = () => {
 
   return (
     <div className="mx-auto max-w-[1280px] px-6 py-12 md:px-16 md:py-16">
-      <h1 className={cn(typography.h2, 'mb-10 text-[var(--text-primary)]')}>Your cart</h1>
+      <motion.h1
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className={cn(typography.h2, 'mb-10 text-[var(--text-primary)]')}
+      >
+        Your cart
+      </motion.h1>
 
       <div className="grid grid-cols-1 gap-12 lg:grid-cols-[1fr_360px] lg:gap-16">
         {/* Items column */}
         <div className="divide-y divide-[var(--border)]">
-          {items.map((item: any) => (
-            <CartItemRow
-              key={item.id}
-              item={item}
-              onRemove={(id) => removeItem({ itemId: id })}
-              isRemoving={(removingId as any)?.itemId === item.id}
-            />
-          ))}
+          <AnimatePresence initial={false}>
+            {items.map((item: any) => (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <CartItemRow
+                  item={item}
+                  onRemove={(id) => removeItem({ itemId: id })}
+                  isRemoving={(removingId as any)?.itemId === item.id}
+                />
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
 
         {/* Summary — sticky on desktop */}

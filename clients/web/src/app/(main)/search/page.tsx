@@ -1,44 +1,48 @@
-import { BrowseMarketplace } from '@/components/Browse/BrowseMarketplace'
-import { getServerSideAPI } from '@/utils/client/serverside'
-import { unwrap } from '@/lib/api'
 import { Metadata } from 'next'
+import { unwrap } from '@/lib/api'
+import { api } from '@/utils/client'
+import { SearchResults } from './SearchResults'
 
 export const metadata: Metadata = {
-  title: 'Search Marketplace | Blyss',
-  description: 'Discover curated digital assets from Kenyan creators',
+  title: 'Search · Blyss',
+  description: 'Find digital products from Kenyan creators on Blyss.',
 }
 
-export default async function BrowsePage({
+export default async function SearchPage({
   searchParams,
 }: {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+  searchParams: Promise<{ q?: string; category?: string }>
 }) {
-  const params = await searchParams
-  const api = await getServerSideAPI()
+  const { q, category } = await searchParams
+  const query = q?.trim() || ''
 
-  const search = typeof params.search === 'string' ? params.search : undefined
-  const category = typeof params.category === 'string' ? params.category : undefined
+  let products: any[] = []
+  let totalCount = 0
 
-  try {
-    const products = await unwrap(
-      api.GET('/v1/products', {
-        params: {
-          query: {
-            q: search,
-            limit: 100,
+  if (query) {
+    try {
+      const result = await unwrap(
+        api.GET('/v1/products/public', {
+          params: {
+            query: { search: query, category, limit: 24 },
           },
-        },
-      }),
-    )
-
-    return (
-      <BrowseMarketplace
-        initialProducts={products.items || []}
-        initialSearch={search}
-        initialCategory={category}
-      />
-    )
-  } catch {
-    return <BrowseMarketplace initialProducts={[]} />
+        }),
+      )
+      products = result.items ?? []
+      totalCount = result.pagination?.total_count ?? products.length
+    } catch {
+      products = []
+    }
   }
+
+  return (
+    <div className="bg-[var(--background)] pt-20 text-[var(--text-primary)]">
+      <SearchResults
+        query={query}
+        category={category}
+        products={products}
+        totalCount={totalCount}
+      />
+    </div>
+  )
 }
