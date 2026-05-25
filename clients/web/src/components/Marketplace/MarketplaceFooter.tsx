@@ -121,9 +121,6 @@ export const MarketplaceFooter = () => {
           <span className="font-sans text-[11px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
             © {new Date().getFullYear()} Blyss · Nairobi · Made in Kenya
           </span>
-          <span className="font-sans text-[11px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
-            Built on Polar.sh — Apache 2.0
-          </span>
         </div>
       </div>
     </footer>
