@@ -138,6 +138,55 @@ jobs:
               ports:
                 - port: 80
                   targetPort: 3000
+            ---
+            apiVersion: networking.k8s.io/v1
+            kind: Ingress
+            metadata:
+              name: blyss-ingress
+              annotations:
+                traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+            spec:
+              rules:
+                - host: blyss.co.ke
+                  http:
+                    paths:
+                      - path: /
+                        pathType: Prefix
+                        backend:
+                          service:
+                            name: blyss-web
+                            port:
+                              number: 80
+                - host: www.blyss.co.ke
+                  http:
+                    paths:
+                      - path: /
+                        pathType: Prefix
+                        backend:
+                          service:
+                            name: blyss-web
+                            port:
+                              number: 80
+                - host: buy.blyss.co.ke
+                  http:
+                    paths:
+                      - path: /
+                        pathType: Prefix
+                        backend:
+                          service:
+                            name: blyss-web
+                            port:
+                              number: 80
+                - host: my.blyss.co.ke
+                  http:
+                    paths:
+                      - path: /
+                        pathType: Prefix
+                        backend:
+                          service:
+                            name: blyss-web
+                            port:
+                              number: 80
             EOF
 
             # Wait for rollout
