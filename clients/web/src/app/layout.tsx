@@ -117,6 +117,12 @@ export default async function RootLayout({
       className={`antialiased ${inter.variable} ${interDisplay.variable} ${louize.variable} ${GeistMono.variable}`}
     >
       <head>
+        {/* Apply theme before paint to avoid flash */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('blyss-theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.setAttribute('data-theme','dark');document.documentElement.classList.add('dark');}}catch(e){}})();`,
+          }}
+        />
         {CONFIG.ENVIRONMENT === 'development' ? (
           <>
             <link

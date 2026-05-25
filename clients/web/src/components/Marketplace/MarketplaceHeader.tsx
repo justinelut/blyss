@@ -1,10 +1,12 @@
 'use client'
 
-import { Search, ShoppingCart, User, Menu, X } from 'lucide-react'
+import { Search, User, Menu, X } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import { BlyssLogo } from '@/design'
+import { ThemeToggle } from '@/design/ThemeToggle'
+import { CartButton } from '@/components/Cart/CartButton'
 import { useAuth } from '@/hooks'
 import { cn } from '@/lib/utils'
 
@@ -86,7 +88,7 @@ export const MarketplaceHeader = ({ alwaysBlurred = false }: MarketplaceHeaderPr
           </nav>
 
           {/* Right cluster */}
-          <div className="flex items-center gap-2 md:gap-4">
+          <div className="flex items-center gap-2 md:gap-3">
             <Link
               href="/search"
               aria-label="Search"
@@ -94,13 +96,8 @@ export const MarketplaceHeader = ({ alwaysBlurred = false }: MarketplaceHeaderPr
             >
               <Search size={20} strokeWidth={1.75} />
             </Link>
-            <Link
-              href="/cart"
-              aria-label="Cart"
-              className="flex h-10 w-10 items-center justify-center rounded-md text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-sunken)] hover:text-[var(--text-primary)]"
-            >
-              <ShoppingCart size={20} strokeWidth={1.75} />
-            </Link>
+            <ThemeToggle />
+            <CartButton />
             {authenticated && currentUser ? (
               <Link
                 href="/dashboard"

@@ -12,6 +12,7 @@ export { SectionDivider } from './SectionDivider'
 export { Skeleton } from './Skeleton'
 export { LegalDoc } from './LegalDoc'
 export { JsonLd } from './JsonLd'
+export { ThemeToggle } from './ThemeToggle'
 
 export {
   typography,
