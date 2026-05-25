@@ -1,152 +1,240 @@
 'use client'
 
 import Link from 'next/link'
-import { motion, useReducedMotion } from 'motion/react'
+import { motion, useReducedMotion, useScroll, useTransform } from 'motion/react'
+import { useRef } from 'react'
+import { ArrowRight } from 'lucide-react'
 import { Eyebrow } from '@/design'
 import { cn } from '@/lib/utils'
 
-interface HeroProps {
-  /** Optional background image URL — falls back to a tonal hero block */
-  backgroundImage?: string
-}
-
 /**
- * Hero — homepage opener.
+ * Hero — editorial split-grid homepage opener with cinematic motion.
  *
- * Per plan §6.1 step 2:
- * - Full-bleed background (image OR --surface tone fallback)
- * - Eyebrow: "DIGITAL PRODUCTS · NAIROBI"
- * - Headline: "Make. Sell. Get paid." (italic on one word for emphasis)
- * - Lede: max 60ch, Inter 22px
- * - Single primary CTA "Start selling" — NO secondary CTA above the fold
- * - NO scroll-down arrow (per anti-pattern checklist)
+ * Layout: 7/12 content column on left, 5/12 showcase mosaic on right.
+ * Mobile collapses to single column with showcase below.
  *
- * Motion sequence (skipped if prefers-reduced-motion):
- * - Eyebrow fades up at 200ms
- * - Headline word-by-word stagger over 300ms
- * - Lede + CTA together at 500ms
- * - Background image scales 1.04 → 1.0 over 800ms
+ * Motion (respects prefers-reduced-motion):
+ * - Eyebrow fades + slides up
+ * - Headline: word-by-word stagger with italic emphasis
+ * - Lede + CTAs cascade in
+ * - Right mosaic tiles fade up with stagger
+ * - Subtle parallax on scroll for the entire section
+ *
+ * Per plan §3 + §6.1 + §17 (Bandcamp/Aimé Leon Dore reference).
  */
-export const Hero = ({ backgroundImage }: HeroProps) => {
+export const Hero = () => {
   const reduce = useReducedMotion()
+  const ref = useRef<HTMLElement>(null)
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ['start start', 'end start'],
+  })
+  const parallaxY = useTransform(scrollYProgress, [0, 1], [0, reduce ? 0 : -80])
 
+  const ease = [0.32, 0.72, 0, 1] as const
   const headlineWords = ['Make.', 'Sell.', 'Get paid.']
 
-  // Animation orchestration via stagger; respects reduced motion.
-  const ease = [0.32, 0.72, 0, 1] as const
-  const eyebrowAnim = reduce
-    ? undefined
-    : {
-        initial: { opacity: 0, y: 12 },
-        animate: { opacity: 1, y: 0 },
-        transition: { duration: 0.6, ease, delay: 0.05 },
-      }
-  const wordAnim = (i: number) =>
+  const fadeUp = (delay: number, distance = 16) =>
     reduce
-      ? undefined
+      ? { initial: false, animate: { opacity: 1, y: 0 } }
       : {
-          initial: { opacity: 0, y: 24 },
+          initial: { opacity: 0, y: distance },
           animate: { opacity: 1, y: 0 },
-          transition: { duration: 0.7, ease, delay: 0.2 + i * 0.12 },
+          transition: { duration: 0.7, ease, delay },
         }
-  const ledeAnim = reduce
-    ? undefined
-    : {
-        initial: { opacity: 0, y: 12 },
-        animate: { opacity: 1, y: 0 },
-        transition: { duration: 0.7, ease, delay: 0.55 },
-      }
-  const bgAnim = reduce
-    ? undefined
-    : {
-        initial: { scale: 1.04 },
-        animate: { scale: 1 },
-        transition: { duration: 0.8, ease },
-      }
 
   return (
-    <section className="relative isolate overflow-hidden bg-[var(--surface)]">
-      {/* Background — image if provided, otherwise a single tonal block */}
-      <motion.div
-        {...(bgAnim ?? {})}
-        className="absolute inset-0 -z-10"
-      >
-        {backgroundImage ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={backgroundImage}
-            alt=""
-            aria-hidden="true"
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          // Fallback editorial block — warm tonal gradient (NO color gradient,
-          // just a single tone with subtle vignette via inset shadow alternative)
-          <div className="h-full w-full bg-[var(--surface)]" />
-        )}
-        {/* Warm overlay to keep text legibility on any image */}
-        {backgroundImage && (
-          <div className="absolute inset-0 bg-[rgba(26,26,23,0.18)]" />
-        )}
-      </motion.div>
-
-      {/* Content */}
-      <div className="mx-auto max-w-[1280px] px-6 py-24 md:px-16 md:py-40 lg:py-48">
-        <div className="max-w-[20ch]">
-          <motion.div {...(eyebrowAnim ?? {})}>
-            <Eyebrow accent={!backgroundImage}>
-              {backgroundImage ? (
-                <span className="text-white/80">Digital products · Nairobi</span>
-              ) : (
-                'Digital products · Nairobi'
-              )}
-            </Eyebrow>
+    <section
+      ref={ref}
+      className="relative isolate overflow-hidden bg-[var(--background)]"
+    >
+      <div className="mx-auto grid max-w-[1280px] grid-cols-1 gap-12 px-6 pt-20 pb-16 md:px-16 md:pt-32 md:pb-24 lg:grid-cols-12 lg:gap-16 lg:pt-40 lg:pb-32">
+        {/* Left — content column */}
+        <motion.div style={{ y: parallaxY }} className="flex flex-col lg:col-span-7">
+          <motion.div {...fadeUp(0.05)}>
+            <Eyebrow accent>Digital products · Nairobi</Eyebrow>
           </motion.div>
 
-          <h1
-            className={cn(
-              'mt-6 font-display font-semibold tracking-[-0.025em] leading-[1.02]',
-              'text-[clamp(48px,7vw,96px)]',
-              backgroundImage ? 'text-white' : 'text-[var(--text-primary)]',
-            )}
-          >
-            {headlineWords.map((word, i) => (
-              <motion.span
-                key={`${word}-${i}`}
-                {...(wordAnim(i) ?? {})}
-                className="mr-3 inline-block"
-              >
-                {/* Italicize the middle word for emphasis */}
-                {i === 1 ? <em className="font-display italic">{word}</em> : word}
-              </motion.span>
-            ))}
+          <h1 className="mt-6 font-display font-semibold tracking-[-0.025em] leading-[0.98] text-[clamp(48px,8vw,112px)] text-[var(--text-primary)]">
+            {headlineWords.map((word, i) => {
+              const isItalic = i === 1
+              return (
+                <motion.span
+                  key={`${word}-${i}`}
+                  {...(reduce
+                    ? { initial: false }
+                    : {
+                        initial: { opacity: 0, y: 32, rotateX: -25 },
+                        animate: { opacity: 1, y: 0, rotateX: 0 },
+                        transition: { duration: 0.8, ease, delay: 0.15 + i * 0.12 },
+                      })}
+                  className={cn(
+                    'mr-3 inline-block',
+                    isItalic && 'font-display italic text-[var(--accent)]',
+                  )}
+                  style={{ transformOrigin: 'bottom' }}
+                >
+                  {word}
+                </motion.span>
+              )
+            })}
           </h1>
 
           <motion.p
-            {...(ledeAnim ?? {})}
-            className={cn(
-              'mt-8 max-w-[60ch] font-sans text-[20px] leading-[1.5] md:text-[22px]',
-              backgroundImage ? 'text-white/85' : 'text-[var(--text-secondary)]',
-            )}
+            {...fadeUp(0.55)}
+            className="mt-8 max-w-[52ch] font-sans text-[18px] leading-[1.55] text-[var(--text-secondary)] md:text-[22px]"
           >
             The modern marketplace for Kenyan creators. Templates, ebooks,
             beats, courses, subscription tiers. M-Pesa or card. Paid out within
             24&nbsp;hours.
           </motion.p>
 
-          <motion.div
-            {...(ledeAnim ?? {})}
-            className="mt-10"
-          >
+          {/* CTA cluster */}
+          <motion.div {...fadeUp(0.7)} className="mt-10 flex flex-wrap items-center gap-4">
             <Link
               href="/start"
-              className="inline-flex h-12 items-center justify-center rounded-md bg-[var(--accent)] px-7 font-sans text-[15px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)]"
+              className="group inline-flex h-13 items-center justify-center gap-2 rounded-md bg-[var(--accent)] px-7 py-4 font-sans text-[15px] font-medium text-[var(--accent-foreground)] transition-all hover:bg-[var(--accent-hover)] hover:gap-3"
             >
               Start selling
+              <ArrowRight
+                size={16}
+                className="transition-transform duration-300 group-hover:translate-x-0.5"
+              />
+            </Link>
+            <Link
+              href="/marketplace"
+              className="group inline-flex h-13 items-center justify-center gap-1.5 px-2 py-4 font-sans text-[15px] font-medium text-[var(--text-primary)] underline-offset-8 transition-colors hover:text-[var(--accent)] hover:underline"
+            >
+              Browse the marketplace
             </Link>
           </motion.div>
+
+          {/* Trust line */}
+          <motion.div
+            {...fadeUp(0.85)}
+            className="mt-12 flex flex-wrap items-center gap-x-8 gap-y-3 font-sans text-[13px] text-[var(--text-muted)]"
+          >
+            <span className="flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--success)]" />
+              M-Pesa &amp; card
+            </span>
+            <span className="flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--success)]" />
+              20% platform fee
+            </span>
+            <span className="flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--success)]" />
+              24-hour payouts
+            </span>
+          </motion.div>
+        </motion.div>
+
+        {/* Right — showcase mosaic */}
+        <div className="relative lg:col-span-5">
+          <ShowcaseMosaic reduce={reduce ?? false} ease={ease} />
         </div>
       </div>
     </section>
+  )
+}
+
+/**
+ * ShowcaseMosaic — typographic placeholder tiles styled to evoke real product
+ * cards. When real seed data is available, swap to MarketplaceProductCard.
+ */
+function ShowcaseMosaic({
+  reduce,
+  ease,
+}: {
+  reduce: boolean
+  ease: readonly [number, number, number, number]
+}) {
+  const tiles = [
+    {
+      eyebrow: 'Templates',
+      title: 'Notion OS',
+      price: 'KSh 2,400',
+      tone: 'bg-[var(--surface-sunken)]',
+      accent: '#C2410C',
+      span: 'col-span-2 row-span-2',
+    },
+    {
+      eyebrow: 'Beats',
+      title: 'Lagos Drum Kit',
+      price: 'KSh 1,200',
+      tone: 'bg-[var(--surface)]',
+      accent: '#1A1A17',
+      span: 'col-span-2',
+    },
+    {
+      eyebrow: 'Course',
+      title: 'M-Pesa for Devs',
+      price: 'KSh 4,500',
+      tone: 'bg-[#1A1A17] text-[#FAFAF7]',
+      accent: '#FAFAF7',
+      span: 'col-span-2',
+    },
+    {
+      eyebrow: 'Subscription',
+      title: 'Kenyan Type',
+      price: 'KSh 800/mo',
+      tone: 'bg-[var(--accent)] text-[var(--accent-foreground)]',
+      accent: '#FAFAF7',
+      span: 'col-span-2',
+    },
+  ]
+
+  return (
+    <div className="grid grid-cols-4 grid-rows-3 gap-3 md:gap-4">
+      {tiles.map((tile, i) => (
+        <motion.div
+          key={tile.title}
+          {...(reduce
+            ? { initial: false }
+            : {
+                initial: { opacity: 0, y: 32, scale: 0.96 },
+                animate: { opacity: 1, y: 0, scale: 1 },
+                transition: { duration: 0.7, ease, delay: 0.4 + i * 0.08 },
+              })}
+          whileHover={reduce ? undefined : { y: -4 }}
+          className={cn(
+            'group relative flex aspect-[4/5] flex-col justify-between overflow-hidden rounded-md p-4',
+            tile.tone,
+            tile.span,
+          )}
+        >
+          {/* Subtle texture via crosshatch SVG */}
+          <svg
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 h-full w-full opacity-[0.04]"
+          >
+            <defs>
+              <pattern
+                id={`grid-${i}`}
+                width="24"
+                height="24"
+                patternUnits="userSpaceOnUse"
+              >
+                <path d="M0 0H24V24" fill="none" stroke={tile.accent} strokeWidth="0.5" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill={`url(#grid-${i})`} />
+          </svg>
+
+          <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.14em] opacity-70">
+            {tile.eyebrow}
+          </span>
+
+          <div>
+            <h3 className="font-display text-[18px] font-medium leading-tight">
+              {tile.title}
+            </h3>
+            <p className="mt-1 font-sans text-[12px] tabular-nums opacity-80">
+              {tile.price}
+            </p>
+          </div>
+        </motion.div>
+      ))}
+    </div>
   )
 }
