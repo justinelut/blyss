@@ -1,0 +1,378 @@
+# Blyss K3s Manifests
+#
+# Per plan/12-deployment.md + plan/02-source-approach.md:
+# - Single K3s server behind Cloudflare Tunnel
+# - No public IP, no Let's Encrypt origin
+# - All services ClusterIP except cloudflared
+#
+# Apply: kubectl apply -f k8s/
+
+# --- Namespace ---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: blyss
+---
+# --- Postgres StatefulSet ---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: blyss
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: blyss
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: blyss-secrets
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: blyss-secrets
+                  key: POSTGRES_PASSWORD
+          volumeMounts:
+            - name: pgdata
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              memory: 512Mi
+              cpu: 250m
+            limits:
+              memory: 1Gi
+  volumeClaimTemplates:
+    - metadata:
+        name: pgdata
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests:
+            storage: 20Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: blyss
+spec:
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+  clusterIP: None
+---
+# --- Redis ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: blyss
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          ports:
+            - containerPort: 6379
+          resources:
+            requests:
+              memory: 128Mi
+            limits:
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: blyss
+spec:
+  selector:
+    app: redis
+  ports:
+    - port: 6379
+---
+# --- MinIO ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minio
+  namespace: blyss
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: minio
+  template:
+    metadata:
+      labels:
+        app: minio
+    spec:
+      containers:
+        - name: minio
+          image: minio/minio:latest
+          args: ["server", "/data", "--console-address", ":9001"]
+          ports:
+            - containerPort: 9000
+            - containerPort: 9001
+          env:
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: blyss-secrets
+                  key: MINIO_ROOT_USER
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: blyss-secrets
+                  key: MINIO_ROOT_PASSWORD
+          volumeMounts:
+            - name: minio-data
+              mountPath: /data
+          resources:
+            requests:
+              memory: 256Mi
+            limits:
+              memory: 512Mi
+      volumes:
+        - name: minio-data
+          persistentVolumeClaim:
+            claimName: minio-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: minio-pvc
+  namespace: blyss
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 50Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio
+  namespace: blyss
+spec:
+  selector:
+    app: minio
+  ports:
+    - name: api
+      port: 9000
+    - name: console
+      port: 9001
+---
+# --- Blyss API (Polar backend) ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blyss-api
+  namespace: blyss
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: blyss-api
+  template:
+    metadata:
+      labels:
+        app: blyss-api
+    spec:
+      containers:
+        - name: api
+          image: ghcr.io/justinelut/blyss-api:latest
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - secretRef:
+                name: blyss-secrets
+          resources:
+            requests:
+              memory: 512Mi
+              cpu: 250m
+            limits:
+              memory: 1Gi
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: blyss-api
+  namespace: blyss
+spec:
+  selector:
+    app: blyss-api
+  ports:
+    - port: 8000
+---
+# --- Blyss Worker ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blyss-worker
+  namespace: blyss
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: blyss-worker
+  template:
+    metadata:
+      labels:
+        app: blyss-worker
+    spec:
+      containers:
+        - name: worker
+          image: ghcr.io/justinelut/blyss-api:latest
+          command: ["python", "-m", "polar.worker"]
+          envFrom:
+            - secretRef:
+                name: blyss-secrets
+          resources:
+            requests:
+              memory: 256Mi
+            limits:
+              memory: 512Mi
+---
+# --- Blyss Web (Next.js) ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blyss-web
+  namespace: blyss
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: blyss-web
+  template:
+    metadata:
+      labels:
+        app: blyss-web
+    spec:
+      containers:
+        - name: web
+          image: ghcr.io/justinelut/blyss-web:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: NEXT_PUBLIC_API_URL
+              value: "https://api.blyss.co.ke"
+          resources:
+            requests:
+              memory: 256Mi
+            limits:
+              memory: 512Mi
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: blyss-web
+  namespace: blyss
+spec:
+  selector:
+    app: blyss-web
+  ports:
+    - port: 3000
+---
+# --- Cloudflared Tunnel ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared
+  namespace: blyss
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cloudflared
+  template:
+    metadata:
+      labels:
+        app: cloudflared
+    spec:
+      containers:
+        - name: cloudflared
+          image: cloudflare/cloudflared:latest
+          args:
+            - tunnel
+            - --config
+            - /etc/cloudflared/config.yml
+            - run
+          volumeMounts:
+            - name: config
+              mountPath: /etc/cloudflared
+              readOnly: true
+            - name: credentials
+              mountPath: /etc/cloudflared/credentials
+              readOnly: true
+          resources:
+            requests:
+              memory: 64Mi
+            limits:
+              memory: 128Mi
+      volumes:
+        - name: config
+          configMap:
+            name: cloudflared-config
+        - name: credentials
+          secret:
+            secretName: cloudflared-credentials
+---
+# --- Cloudflared ConfigMap ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloudflared-config
+  namespace: blyss
+data:
+  config.yml: |
+    tunnel: blyss
+    credentials-file: /etc/cloudflared/credentials/credentials.json
+    ingress:
+      - hostname: blyss.co.ke
+        service: http://blyss-web:3000
+      - hostname: "*.blyss.co.ke"
+        service: http://blyss-web:3000
+      - hostname: api.blyss.co.ke
+        service: http://blyss-api:8000
+      - hostname: cdn.blyss.co.ke
+        service: http://minio:9000
+      - service: http_status:404

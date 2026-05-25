@@ -246,17 +246,39 @@ class ProductPriceRepository(
         options: Options = (),
     ) -> Product | None:
         """
-        Get product by slug (using name as slug for now).
-        TODO: Add dedicated slug field to Product model.
+        Get a public product by slug or UUID.
+
+        For now we accept either a UUID (preferred — what the marketplace
+        cards link to) or the product name treated as a slug. Until a
+        dedicated `slug` column lands on the Product model, the marketplace
+        URL `/product/{id}` resolves UUIDs here.
+
+        TODO: Add a dedicated `slug` field to Product so the URL can be
+        editorial ("kenyan-presets") instead of a UUID.
         """
-        statement = (
-            self.get_base_statement()
-            .where(
-                Product.name == slug,
+        # First try the UUID path so the SQL planner uses the primary-key
+        # index. If `slug` doesn't parse as a UUID, fall back to name match.
+        try:
+            product_id = UUID(slug)
+        except (ValueError, AttributeError):
+            product_id = None
+
+        base = self.get_base_statement().options(*options)
+
+        if product_id is not None:
+            statement = base.where(
+                Product.id == product_id,
                 Product.is_deleted.is_(False),
                 Product.visibility == ProductVisibility.public,
             )
-            .options(*options)
+            product = await self.get_one_or_none(statement)
+            if product is not None:
+                return product
+
+        statement = base.where(
+            Product.name == slug,
+            Product.is_deleted.is_(False),
+            Product.visibility == ProductVisibility.public,
         )
         return await self.get_one_or_none(statement)
 

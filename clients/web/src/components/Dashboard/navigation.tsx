@@ -2,10 +2,6 @@ import { PolarHog, usePostHog } from '@/hooks/posthog'
 import { FEATURES } from '@/utils/config'
 import AllInclusiveOutlined from '@mui/icons-material/AllInclusiveOutlined'
 import AttachMoneyOutlined from '@mui/icons-material/AttachMoneyOutlined'
-import CodeOutlined from '@mui/icons-material/CodeOutlined'
-import DiamondOutlined from '@mui/icons-material/DiamondOutlined'
-import DiscountOutlined from '@mui/icons-material/DiscountOutlined'
-import DonutLargeOutlined from '@mui/icons-material/DonutLargeOutlined'
 import HiveOutlined from '@mui/icons-material/HiveOutlined'
 import LinkOutlined from '@mui/icons-material/LinkOutlined'
 import PeopleAltOutlined from '@mui/icons-material/PeopleAltOutlined'
@@ -13,8 +9,9 @@ import ShoppingBagOutlined from '@mui/icons-material/ShoppingBagOutlined'
 import SpaceDashboardOutlined from '@mui/icons-material/SpaceDashboardOutlined'
 import TrendingUp from '@mui/icons-material/TrendingUp'
 import TuneOutlined from '@mui/icons-material/TuneOutlined'
+import DiscountOutlined from '@mui/icons-material/DiscountOutlined'
+import DiamondOutlined from '@mui/icons-material/DiamondOutlined'
 import { schemas } from '@/lib/api'
-import { Status } from '@/components/atoms/Status'
 import { usePathname } from 'next/navigation'
 import { useMemo } from 'react'
 
@@ -225,23 +222,7 @@ const generalRoutesList = (org?: schemas['Organization']): Route[] => [
         title: 'Metrics',
         link: `/dashboard/${org?.slug}/analytics/metrics`,
       },
-      // DISABLED — Events (usage-based event ingestion, plan §4.4)
-      // {
-      //   title: 'Events',
-      //   link: `/dashboard/${org?.slug}/analytics/events`,
-      // },
-      {
-        title: 'Costs',
-        link: `/dashboard/${org?.slug}/analytics/costs`,
-        if: () => org?.feature_settings?.revops_enabled ?? false,
-        extra: (
-          <Status
-            status="Beta"
-            size="small"
-            className="bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400"
-          />
-        ),
-      },
+      // Events + Costs hidden — SaaS-focused, not relevant (plan §7.1)
     ],
   },
   {
@@ -283,13 +264,7 @@ const accountRoutesList = (): Route[] => [
     if: true,
     subs: undefined,
   },
-  {
-    id: 'developer',
-    title: 'Developer',
-    link: `/dashboard/account/developer`,
-    icon: <CodeOutlined fontSize="inherit" />,
-    if: FEATURES.developerTools,
-  },
+  // Developer tools hidden — not relevant for creator marketplace (plan §7.1)
 ]
 
 const orgFinanceSubRoutesList = (org?: schemas['Organization']): SubRoute[] => [
@@ -328,22 +303,10 @@ const organizationRoutesList = (org?: schemas['Organization']): Route[] => [
         link: `/dashboard/${org?.slug}/settings`,
       },
       {
-        title: 'Billing',
-        link: `/dashboard/${org?.slug}/settings/billing`,
-      },
-      {
         title: 'Members',
         link: `/dashboard/${org?.slug}/settings/members`,
       },
-      {
-        title: 'Webhooks',
-        link: `/dashboard/${org?.slug}/settings/webhooks`,
-        if: FEATURES.webhooks,
-      },
-      {
-        title: 'Custom Fields',
-        link: `/dashboard/${org?.slug}/settings/custom-fields`,
-      },
+      // Webhooks, Billing, Custom Fields hidden — not relevant for creator marketplace (plan §7.1)
     ],
   },
 ]

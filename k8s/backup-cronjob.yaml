@@ -1,0 +1,58 @@
+# Postgres backup CronJob — runs daily at 03:00 EAT, uploads to Backblaze B2.
+# Per plan/12-deployment.md backup section.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgres-backup
+  namespace: blyss
+spec:
+  schedule: "0 0 * * *"  # 00:00 UTC = 03:00 EAT
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: backup
+              image: postgres:16-alpine
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -e
+                  TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+                  FILENAME="blyss_${TIMESTAMP}.sql.gz"
+                  pg_dump -h postgres -U "$POSTGRES_USER" "$POSTGRES_DB" | gzip > /tmp/${FILENAME}
+                  # Upload to Backblaze B2 via S3-compatible API
+                  apk add --no-cache aws-cli
+                  aws s3 cp /tmp/${FILENAME} s3://blyss-backups/${FILENAME} \
+                    --endpoint-url "$B2_ENDPOINT"
+                  echo "Backup uploaded: ${FILENAME}"
+              env:
+                - name: POSTGRES_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: blyss-secrets
+                      key: POSTGRES_USER
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: blyss-secrets
+                      key: POSTGRES_PASSWORD
+                - name: POSTGRES_DB
+                  value: blyss
+                - name: AWS_ACCESS_KEY_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: blyss-secrets
+                      key: B2_KEY_ID
+                - name: AWS_SECRET_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: blyss-secrets
+                      key: B2_APPLICATION_KEY
+                - name: B2_ENDPOINT
+                  value: "https://s3.us-west-004.backblazeb2.com"

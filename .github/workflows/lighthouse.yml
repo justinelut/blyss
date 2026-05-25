@@ -1,0 +1,53 @@
+name: Lighthouse CI
+
+on:
+  pull_request:
+    paths:
+      - 'clients/web/**'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: clients/web/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+        working-directory: clients/web
+
+      - run: pnpm build
+        working-directory: clients/web
+
+      - name: Run Lighthouse CI
+        uses: treosh/lighthouse-ci-action@v12
+        with:
+          configPath: clients/web/lighthouserc.json
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+
+      - name: Comment results on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs')
+            const results = JSON.parse(fs.readFileSync('.lighthouseci/manifest.json', 'utf8'))
+            const summary = results.map(r => {
+              const s = r.summary
+              return `| ${r.url} | ${(s.performance*100).toFixed(0)} | ${(s.accessibility*100).toFixed(0)} | ${(s.seo*100).toFixed(0)} | ${(s['best-practices']*100).toFixed(0)} |`
+            }).join('\n')
+            const body = `## Lighthouse Results\n| URL | Perf | A11y | SEO | BP |\n|---|---|---|---|---|\n${summary}`
+            github.rest.issues.createComment({ issue_number: context.issue.number, owner: context.repo.owner, repo: context.repo.repo, body })
