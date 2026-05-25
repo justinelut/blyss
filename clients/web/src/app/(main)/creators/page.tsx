@@ -5,6 +5,7 @@ import { JsonLd } from '@/design'
 import { CreatorsDirectoryPage } from '@/components/Marketplace/CreatorsDirectoryPage'
 
 // ISR — regenerate the directory at most once per minute.
+export const dynamic = "force-dynamic"
 export const revalidate = 60
 
 export const metadata: Metadata = {

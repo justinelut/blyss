@@ -8,6 +8,7 @@ import type { FilterCategory } from '@/components/Marketplace/BrowseFilterRail'
 // ISR — regenerate the marketplace shell at most once per minute. Filtered
 // query results are fetched client-side via TanStack Query so paginated
 // requests don't go through ISR.
+export const dynamic = "force-dynamic"
 export const revalidate = 60
 
 export const metadata: Metadata = {

@@ -7,6 +7,7 @@ import type { CategoryTile } from '@/components/Marketplace/BrowseByCraft'
 
 // ISR: regenerate the home page at most once per minute. Cloudflare caches
 // the rendered HTML; first render after a publish hits this revalidation.
+export const dynamic = "force-dynamic"
 export const revalidate = 60
 
 export const metadata: Metadata = {
