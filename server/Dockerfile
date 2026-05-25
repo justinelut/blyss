@@ -39,15 +39,20 @@ RUN apk add --no-cache curl jq
 
 RUN --mount=type=secret,id=IPINFO_ACCESS_TOKEN \
   mkdir /data && \
-  TOKEN=$(cat /run/secrets/IPINFO_ACCESS_TOKEN) && \
-  EXPECTED_SHA256=$(curl -fsSL "https://ipinfo.io/data/free/country_asn.mmdb/checksums?token=${TOKEN}" | jq -r '.checksums.sha256') && \
-  curl -fsSL "https://ipinfo.io/data/free/country_asn.mmdb?token=${TOKEN}" -o /data/country_asn.mmdb && \
-  echo "${EXPECTED_SHA256}  /data/country_asn.mmdb" | sha256sum -c -
+  TOKEN=$(cat /run/secrets/IPINFO_ACCESS_TOKEN 2>/dev/null || echo "") && \
+  if [ -n "$TOKEN" ]; then \
+    EXPECTED_SHA256=$(curl -fsSL "https://ipinfo.io/data/free/country_asn.mmdb/checksums?token=${TOKEN}" | jq -r '.checksums.sha256') && \
+    curl -fsSL "https://ipinfo.io/data/free/country_asn.mmdb?token=${TOKEN}" -o /data/country_asn.mmdb && \
+    echo "${EXPECTED_SHA256}  /data/country_asn.mmdb" | sha256sum -c -; \
+  else \
+    echo "IPINFO_ACCESS_TOKEN not provided, skipping GeoIP download" && \
+    touch /data/country_asn.mmdb; \
+  fi
 
 # Stage 4: Final production image
-FROM --platform=$BUILDPLATFORM python:3.14-slim AS production
-LABEL org.opencontainers.image.source=https://github.com/polarsource/polar
-LABEL org.opencontainers.image.description="Polar"
+FROM python:3.14-slim AS production
+LABEL org.opencontainers.image.source=https://github.com/justinelut/blyss
+LABEL org.opencontainers.image.description="Blyss API"
 LABEL org.opencontainers.image.licenses=Apache-2.0
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
