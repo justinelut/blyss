@@ -122,6 +122,10 @@ jobs:
                       env:
                         - name: NEXT_PUBLIC_API_URL
                           value: "https://api.blyss.co.ke"
+                        - name: HOSTNAME
+                          value: "0.0.0.0"
+                        - name: PORT
+                          value: "3000"
                       resources:
                         requests:
                           memory: 256Mi
