@@ -236,7 +236,6 @@ jobs:
               --from-literal=POLAR_SENTRY_DSN="${SENTRY_DSN:-}" \
               --from-literal=POLAR_POSTHOG_PROJECT_API_KEY="${POSTHOG_KEY:-}" \
               --from-literal=POLAR_POSTHOG_DEBUG=0 \
-              --from-literal=POLAR_SKIP_EMAIL_RENDERER_CHECK=1 \
               --from-literal=POLAR_STRIPE_SECRET_KEY=sk_test_dummy_unused \
               --from-literal=POLAR_STRIPE_PUBLISHABLE_KEY=pk_test_dummy_unused \
               --from-literal=POLAR_STRIPE_WEBHOOK_SECRET=whsec_dummy_unused \
