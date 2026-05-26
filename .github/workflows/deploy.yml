@@ -48,6 +48,10 @@ jobs:
           file: ./clients/web/Dockerfile
           push: true
           platforms: linux/arm64
+          build-args: |
+            NEXT_PUBLIC_API_URL=https://api.blyss.co.ke
+            NEXT_PUBLIC_FRONTEND_BASE_URL=https://blyss.co.ke
+            NEXT_PUBLIC_CHECKOUT_BASE_URL=https://buy.blyss.co.ke
           tags: |
             ghcr.io/${{ github.repository_owner }}/blyss-web:${{ steps.tag.outputs.tag }}
             ghcr.io/${{ github.repository_owner }}/blyss-web:latest
@@ -195,15 +199,42 @@ jobs:
             sudo kubectl set image deployment/blyss-api api=ghcr.io/$REPO_OWNER/blyss-api:${API_TAG} -n $NS 2>/dev/null || true
             sudo kubectl set image deployment/blyss-worker worker=ghcr.io/$REPO_OWNER/blyss-api:${API_TAG} -n $NS 2>/dev/null || true
 
-            # 6. Wait for rollouts
-            for dep in blyss-web blyss-api blyss-worker; do
-              echo "==> Rolling out $dep"
-              sudo kubectl rollout status deployment/$dep -n $NS --timeout=5m 2>/dev/null || {
-                echo "$dep rollout pending, dumping logs:"
-                sudo kubectl -n $NS describe deployment/$dep 2>&1 | tail -20
-                sudo kubectl -n $NS logs deployment/$dep --tail=30 2>&1 || true
-              }
-            done
+            # 6. Wait for postgres + api before running migrations
+            echo "==> Waiting for postgres"
+            sudo kubectl rollout status statefulset/postgres -n $NS --timeout=3m 2>/dev/null || true
+            echo "==> Waiting for api"
+            sudo kubectl rollout status deployment/blyss-api -n $NS --timeout=5m 2>/dev/null || {
+              echo "API rollout pending, dumping logs:"
+              sudo kubectl -n $NS describe deployment/blyss-api 2>&1 | tail -20
+              sudo kubectl -n $NS logs deployment/blyss-api --tail=30 2>&1 || true
+            }
+
+            # 7. Run migrations (idempotent — skips if up-to-date)
+            echo "==> Running database migrations"
+            API_POD=$(sudo kubectl -n $NS get pods -l app=blyss-api --field-selector=status.phase=Running -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+            if [ -n "$API_POD" ]; then
+              sudo kubectl -n $NS exec "$API_POD" -- alembic upgrade head 2>&1 || \
+                sudo kubectl -n $NS exec "$API_POD" -- uv run alembic upgrade head 2>&1 || \
+                echo "⚠️  Migration command not found, may need manual run"
+            else
+              echo "⚠️  No running API pod, skipping migrations"
+            fi
+
+            # 8. Seed admin user (idempotent)
+            echo "==> Seeding admin user"
+            if [ -n "$API_POD" ]; then
+              sudo kubectl -n $NS exec "$API_POD" -- python scripts/seed_admin.py justinequartz@gmail.com 2>&1 || \
+                sudo kubectl -n $NS exec "$API_POD" -- uv run python scripts/seed_admin.py justinequartz@gmail.com 2>&1 || \
+                echo "⚠️  Admin seed failed (non-blocking)"
+            fi
+
+            # 9. Wait for web rollout
+            echo "==> Waiting for web"
+            sudo kubectl rollout status deployment/blyss-web -n $NS --timeout=5m 2>/dev/null || {
+              echo "Web rollout pending, dumping logs:"
+              sudo kubectl -n $NS describe deployment/blyss-web 2>&1 | tail -20
+              sudo kubectl -n $NS logs deployment/blyss-web --tail=30 2>&1 || true
+            }
 
             echo "✅ Deploy complete"
             sudo kubectl -n $NS get pods

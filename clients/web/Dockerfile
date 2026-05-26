@@ -9,6 +9,17 @@ RUN pnpm install --frozen-lockfile --ignore-scripts
 RUN pnpm rebuild
 
 COPY . .
+
+# NEXT_PUBLIC_* must be present at build time — Next.js inlines them into the
+# client bundle. Pass via --build-arg from the deploy workflow.
+ARG NEXT_PUBLIC_API_URL=https://api.blyss.co.ke
+ARG NEXT_PUBLIC_FRONTEND_BASE_URL=https://blyss.co.ke
+ARG NEXT_PUBLIC_CHECKOUT_BASE_URL=https://buy.blyss.co.ke
+
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_FRONTEND_BASE_URL=$NEXT_PUBLIC_FRONTEND_BASE_URL
+ENV NEXT_PUBLIC_CHECKOUT_BASE_URL=$NEXT_PUBLIC_CHECKOUT_BASE_URL
+
 RUN pnpm build
 
 ENV NODE_ENV=production
