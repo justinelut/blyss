@@ -14,10 +14,10 @@ env:
 
 jobs:
   # ---------------------------------------------------------------------------
-  # Build web image
+  # Build web image (ARM64)
   # ---------------------------------------------------------------------------
   build-web:
-    name: Build web image (ARM64)
+    name: Build web image
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -26,16 +26,12 @@ jobs:
       tag: ${{ steps.tag.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
-
       - id: tag
         run: echo "tag=$(echo $GITHUB_SHA | cut -c1-7)" >> $GITHUB_OUTPUT
 
       - uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm64
-
+        with: { platforms: arm64 }
       - uses: docker/setup-buildx-action@v3
-
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -59,10 +55,10 @@ jobs:
           cache-to: type=gha,mode=max,scope=web
 
   # ---------------------------------------------------------------------------
-  # Build API image
+  # Build API image (ARM64)
   # ---------------------------------------------------------------------------
   build-api:
-    name: Build API image (ARM64)
+    name: Build API image
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -71,16 +67,12 @@ jobs:
       tag: ${{ steps.tag.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
-
       - id: tag
         run: echo "tag=$(echo $GITHUB_SHA | cut -c1-7)" >> $GITHUB_OUTPUT
 
       - uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm64
-
+        with: { platforms: arm64 }
       - uses: docker/setup-buildx-action@v3
-
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -100,7 +92,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=api
 
   # ---------------------------------------------------------------------------
-  # Deploy all manifests + roll deployments
+  # Deploy
   # ---------------------------------------------------------------------------
   deploy:
     name: Deploy to K3s
@@ -108,11 +100,32 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: read
+      packages: read   # mints GITHUB_TOKEN with GHCR pull rights
     steps:
       - uses: actions/checkout@v4
 
-      - name: Clean stale manifests on server
+      # Stage env + jwks files locally (single GitHub secrets each)
+      - name: Stage env + jwks files on runner
+        env:
+          ENV_SECRET: ${{ secrets.ENV_SECRET }}
+          JWKS_SECRET: ${{ secrets.JWKS_SECRET }}
+        run: |
+          if [ -z "${ENV_SECRET:-}" ]; then
+            echo "::error::ENV_SECRET repo secret is empty."
+            exit 1
+          fi
+          if [ -z "${JWKS_SECRET:-}" ]; then
+            echo "::error::JWKS_SECRET repo secret is empty."
+            exit 1
+          fi
+          mkdir -p k8s/_staged
+          printf '%s\n' "$ENV_SECRET" > k8s/_staged/blyss.env.secret
+          printf '%s\n' "$JWKS_SECRET" > k8s/_staged/.jwks.json
+          chmod 644 k8s/_staged/blyss.env.secret k8s/_staged/.jwks.json
+          echo "Staged env: $(wc -l < k8s/_staged/blyss.env.secret) lines"
+          echo "Staged jwks: $(wc -c < k8s/_staged/.jwks.json) bytes"
+
+      - name: Wipe stale manifest dir on server
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_IP }}
@@ -123,171 +136,82 @@ jobs:
             sudo mkdir -p /opt/blyss/k8s
             sudo chown -R ubuntu:ubuntu /opt/blyss
 
-      - name: Copy k8s manifests to server
+      - name: Copy manifests + secrets to server
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ubuntu
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "k8s/*.yaml"
-          target: "/opt/blyss/"
-          strip_components: 0
+          source: "k8s/blyss-api.yaml,k8s/blyss-web.yaml,k8s/postgres.yaml,k8s/redis.yaml,k8s/minio.yaml,k8s/backup-cronjob.yaml,k8s/_staged/blyss.env.secret,k8s/_staged/.jwks.json"
+          target: "/opt/blyss/k8s/"
+          strip_components: 1
 
-      - name: Apply manifests and roll deployments
+      - name: Apply manifests + roll deployments
         uses: appleboy/ssh-action@v1.0.3
         env:
           WEB_TAG: ${{ needs.build-web.outputs.tag }}
           API_TAG: ${{ needs.build-api.outputs.tag }}
           GHCR_USERNAME: ${{ github.actor }}
           GHCR_PULL_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Production secrets — populated from GitHub repo secrets.
-          # Empty values stay as placeholders.
-          PAYSTACK_SECRET_KEY: ${{ secrets.PAYSTACK_SECRET_KEY }}
-          PAYSTACK_PUBLIC_KEY: ${{ secrets.PAYSTACK_PUBLIC_KEY }}
-          PAYSTACK_WEBHOOK_SECRET: ${{ secrets.PAYSTACK_WEBHOOK_SECRET }}
-          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
-          APPLE_CLIENT_ID: ${{ secrets.APPLE_CLIENT_ID }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          APPLE_KEY_ID: ${{ secrets.APPLE_KEY_ID }}
-          APPLE_PRIVATE_KEY: ${{ secrets.APPLE_PRIVATE_KEY }}
-          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
-          POSTHOG_KEY: ${{ secrets.POSTHOG_KEY }}
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ubuntu
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: WEB_TAG,API_TAG,GHCR_USERNAME,GHCR_PULL_TOKEN,PAYSTACK_SECRET_KEY,PAYSTACK_PUBLIC_KEY,PAYSTACK_WEBHOOK_SECRET,RESEND_API_KEY,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,APPLE_CLIENT_ID,APPLE_TEAM_ID,APPLE_KEY_ID,APPLE_PRIVATE_KEY,SENTRY_DSN,POSTHOG_KEY
+          envs: WEB_TAG,API_TAG,GHCR_USERNAME,GHCR_PULL_TOKEN
           command_timeout: 15m
           script: |
             set -e
             export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
-
             NS=blyss
             REPO_OWNER=justinelut
+            ENV_FILE=/opt/blyss/k8s/_staged/blyss.env.secret
+            JWKS_FILE=/opt/blyss/k8s/_staged/.jwks.json
 
-            # 1. Ensure namespace
+            # Files might land at /opt/blyss/k8s/blyss.env.secret or /opt/blyss/k8s/_staged/...
+            # Find them
+            [ ! -s "$ENV_FILE" ] && ENV_FILE=/opt/blyss/k8s/blyss.env.secret
+            [ ! -s "$JWKS_FILE" ] && JWKS_FILE=/opt/blyss/k8s/.jwks.json
+
+            if [ ! -s "$ENV_FILE" ]; then
+              echo "::error::Env file missing — searched _staged/blyss.env.secret and blyss.env.secret"
+              find /opt/blyss/k8s -type f
+              exit 1
+            fi
+
+            # 1. Namespace
             sudo kubectl create namespace $NS 2>/dev/null || true
 
-            # 2. Sync GHCR pull secret
+            # 2. GHCR pull secret
             sudo kubectl create secret docker-registry ghcr-secret -n $NS \
               --dry-run=client -o yaml \
               --docker-server=ghcr.io \
               --docker-username="${GHCR_USERNAME}" \
               --docker-password="${GHCR_PULL_TOKEN}" \
+              --docker-email="ops@blyss.co.ke" \
               | sudo kubectl apply -f -
+            echo "✅ ghcr-secret synced"
 
-            # 3. Sync app secrets — uses POLAR_ prefix as the backend expects.
-            # Always re-applies (idempotent) so adding/changing GitHub secrets
-            # picks up on next deploy. Persistent values (POSTGRES_PASSWORD,
-            # MINIO_PASSWORD, POLAR_SECRET) are read from existing secret if
-            # present, otherwise generated.
-            POSTGRES_PASS=$(sudo kubectl get secret blyss-secrets -n $NS -o jsonpath='{.data.POLAR_POSTGRES_PWD}' 2>/dev/null | base64 -d 2>/dev/null || openssl rand -hex 16)
-            MINIO_PASS=$(sudo kubectl get secret blyss-secrets -n $NS -o jsonpath='{.data.POLAR_MINIO_PWD}' 2>/dev/null | base64 -d 2>/dev/null || openssl rand -hex 16)
-            APP_SECRET=$(sudo kubectl get secret blyss-secrets -n $NS -o jsonpath='{.data.POLAR_SECRET}' 2>/dev/null | base64 -d 2>/dev/null || openssl rand -hex 32)
-
-            # JWKS file — generate once via Python script in the API image, persist in dedicated secret.
-            if ! sudo kubectl get secret blyss-jwks -n $NS >/dev/null 2>&1; then
-              echo "==> Generating JWKS via API image"
-              # Spin a one-shot pod that generates the JWKS, capture its stdout
-              POD_NAME="jwks-gen-$(date +%s)"
-              sudo kubectl run -n $NS $POD_NAME --restart=Never \
-                --image=ghcr.io/$REPO_OWNER/blyss-api:${API_TAG} \
-                --overrides='{"spec":{"imagePullSecrets":[{"name":"ghcr-secret"}]}}' \
-                --command -- python -m polar.kit.jwk polar_prod >/dev/null 2>&1 || true
-              # Wait for completion
-              for i in 1 2 3 4 5 6 7 8 9 10; do
-                phase=$(sudo kubectl get pod $POD_NAME -n $NS -o jsonpath='{.status.phase}' 2>/dev/null)
-                if [ "$phase" = "Succeeded" ] || [ "$phase" = "Failed" ]; then break; fi
-                sleep 3
-              done
-              JWKS_JSON=$(sudo kubectl logs $POD_NAME -n $NS 2>/dev/null | tr -d '\r')
-              sudo kubectl delete pod $POD_NAME -n $NS --force --grace-period=0 2>/dev/null || true
-              if echo "$JWKS_JSON" | grep -q '"keys"'; then
-                sudo kubectl create secret generic blyss-jwks -n $NS \
-                  --from-literal=.jwks.json="$JWKS_JSON"
-                echo "✅ JWKS generated and stored"
-              else
-                echo "⚠️  JWKS generation failed:"
-                echo "$JWKS_JSON" | head -5
-              fi
-            fi
-
+            # 3. App env secret (from single multi-line file)
             sudo kubectl create secret generic blyss-secrets -n $NS \
+              --from-env-file="$ENV_FILE" \
               --dry-run=client -o yaml \
-              --from-literal=POLAR_ENV=production \
-              --from-literal=POLAR_LOG_LEVEL=INFO \
-              --from-literal=POLAR_TESTING=0 \
-              --from-literal=POLAR_SQLALCHEMY_DEBUG=0 \
-              --from-literal=POLAR_DEFAULT_CURRENCY=KES \
-              --from-literal=POLAR_CORS_ORIGINS='["https://blyss.co.ke","https://www.blyss.co.ke","https://buy.blyss.co.ke","https://my.blyss.co.ke"]' \
-              --from-literal=POLAR_ALLOWED_HOSTS='["blyss.co.ke","www.blyss.co.ke","buy.blyss.co.ke","my.blyss.co.ke","api.blyss.co.ke"]' \
-              --from-literal=POLAR_FRONTEND_BASE_URL=https://blyss.co.ke \
-              --from-literal=POLAR_BASE_URL=https://api.blyss.co.ke \
-              --from-literal=POLAR_CHECKOUT_BASE_URL=https://buy.blyss.co.ke/checkout/{client_secret} \
-              --from-literal=POLAR_USER_SESSION_COOKIE_DOMAIN=blyss.co.ke \
-              --from-literal=POLAR_SECRET="$APP_SECRET" \
-              --from-literal=POLAR_POSTGRES_USER=blyss \
-              --from-literal=POLAR_POSTGRES_PWD="$POSTGRES_PASS" \
-              --from-literal=POLAR_POSTGRES_HOST=postgres \
-              --from-literal=POLAR_POSTGRES_PORT=5432 \
-              --from-literal=POLAR_POSTGRES_DATABASE=blyss \
-              --from-literal=POLAR_POSTGRES_SSL_MODE= \
-              --from-literal=POLAR_REDIS_HOST=redis \
-              --from-literal=POLAR_REDIS_PORT=6379 \
-              --from-literal=POLAR_REDIS_DB=0 \
-              --from-literal=POLAR_REDIS_PASSWORD= \
-              --from-literal=POLAR_REDIS_SSL=False \
-              --from-literal=POLAR_MINIO_USER=blyssadmin \
-              --from-literal=POLAR_MINIO_PWD="$MINIO_PASS" \
-              --from-literal=POLAR_AWS_ACCESS_KEY_ID=blyssadmin \
-              --from-literal=POLAR_AWS_SECRET_ACCESS_KEY="$MINIO_PASS" \
-              --from-literal=POLAR_AWS_REGION=us-east-1 \
-              --from-literal=POLAR_S3_ENDPOINT_URL=http://minio:9000 \
-              --from-literal=POLAR_S3_PUBLIC_ENDPOINT_URL=https://cdn.blyss.co.ke \
-              --from-literal=POLAR_S3_FILES_BUCKET_NAME=blyss-private \
-              --from-literal=POLAR_S3_FILES_PUBLIC_BUCKET_NAME=blyss-public \
-              --from-literal=POLAR_S3_CUSTOMER_INVOICES_BUCKET_NAME=blyss-private \
-              --from-literal=POLAR_S3_PAYOUT_INVOICES_BUCKET_NAME=blyss-private \
-              --from-literal=POLAR_EMAIL_SENDER=resend \
-              --from-literal=POLAR_EMAIL_FROM_NAME=Blyss \
-              --from-literal=POLAR_EMAIL_FROM_DOMAIN=notifications.blyss.co.ke \
-              --from-literal=POLAR_EMAIL_FROM_LOCAL=hello \
-              --from-literal=POLAR_EMAIL_DEFAULT_REPLY_TO_NAME="Blyss Support" \
-              --from-literal=POLAR_EMAIL_DEFAULT_REPLY_TO_EMAIL_ADDRESS=hello@blyss.co.ke \
-              --from-literal=POLAR_INVOICES_ADDITIONAL_INFO="Blyss · Nairobi" \
-              --from-literal=POLAR_PLATFORM_FEE_BASIS_POINTS=2000 \
-              --from-literal=POLAR_PLATFORM_FEE_FIXED=0 \
-              --from-literal=POLAR_FAVICON_URL=https://cdn.blyss.co.ke/brand/favicon.png \
-              --from-literal=POLAR_THUMBNAIL_URL=https://cdn.blyss.co.ke/brand/og-default.png \
-              --from-literal=POLAR_PAYSTACK_SECRET_KEY="${PAYSTACK_SECRET_KEY:-sk_test_placeholder}" \
-              --from-literal=POLAR_PAYSTACK_PUBLIC_KEY="${PAYSTACK_PUBLIC_KEY:-pk_test_placeholder}" \
-              --from-literal=POLAR_PAYSTACK_WEBHOOK_SECRET="${PAYSTACK_WEBHOOK_SECRET:-placeholder}" \
-              --from-literal=POLAR_RESEND_API_KEY="${RESEND_API_KEY:-}" \
-              --from-literal=POLAR_GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID:-}" \
-              --from-literal=POLAR_GOOGLE_CLIENT_SECRET="${GOOGLE_CLIENT_SECRET:-}" \
-              --from-literal=POLAR_APPLE_CLIENT_ID="${APPLE_CLIENT_ID:-}" \
-              --from-literal=POLAR_APPLE_TEAM_ID="${APPLE_TEAM_ID:-}" \
-              --from-literal=POLAR_APPLE_KEY_ID="${APPLE_KEY_ID:-}" \
-              --from-literal=POLAR_APPLE_KEY_VALUE="${APPLE_PRIVATE_KEY:-}" \
-              --from-literal=POLAR_SENTRY_DSN="${SENTRY_DSN:-}" \
-              --from-literal=POLAR_POSTHOG_PROJECT_API_KEY="${POSTHOG_KEY:-}" \
-              --from-literal=POLAR_POSTHOG_DEBUG=0 \
-              --from-literal=POLAR_JWKS=/etc/blyss/jwks/.jwks.json \
-              --from-literal=POLAR_STRIPE_SECRET_KEY=sk_test_dummy_unused \
-              --from-literal=POLAR_STRIPE_PUBLISHABLE_KEY=pk_test_dummy_unused \
-              --from-literal=POLAR_STRIPE_WEBHOOK_SECRET=whsec_dummy_unused \
-              --from-literal=POLAR_STRIPE_CONNECT_WEBHOOK_SECRET=whsec_dummy_unused \
               | sudo kubectl apply -f -
-            echo "✅ blyss-secrets synced"
+            echo "✅ blyss-secrets synced from $(wc -l < $ENV_FILE) env lines"
 
-            # 4. Apply all manifests
+            # 4. JWKS secret (RSA key file mounted as volume)
+            sudo kubectl create secret generic blyss-jwks -n $NS \
+              --from-file=.jwks.json="$JWKS_FILE" \
+              --dry-run=client -o yaml \
+              | sudo kubectl apply -f -
+            echo "✅ blyss-jwks synced"
+
+            # 5. Wipe staged secrets from server
+            sudo rm -f "$ENV_FILE" "$JWKS_FILE"
+            sudo rm -rf /opt/blyss/k8s/_staged
+
+            # 6. Apply manifests (postgres apply non-fatal — immutable fields)
             for f in /opt/blyss/k8s/*.yaml; do
               echo "==> kubectl apply -f $f"
-              # Postgres is a StatefulSet with immutable fields; once created,
-              # most spec changes get rejected. Allow these to fail silently
-              # since the running pod is still healthy.
               if [[ "$f" == *postgres* ]]; then
                 sudo kubectl apply -f "$f" 2>&1 || echo "  (postgres apply skipped — non-template fields immutable)"
               else
@@ -295,69 +219,46 @@ jobs:
               fi
             done
 
-            # 4b. Remove stale resources from prior monolithic manifest
+            # Cleanup legacy
             sudo kubectl delete deployment cloudflared -n $NS --ignore-not-found
             sudo kubectl delete configmap cloudflared-config -n $NS --ignore-not-found
 
-            # 5. Update images
+            # 7. Update images
             sudo kubectl set image deployment/blyss-web web=ghcr.io/$REPO_OWNER/blyss-web:${WEB_TAG} -n $NS 2>/dev/null || true
             sudo kubectl set image deployment/blyss-api api=ghcr.io/$REPO_OWNER/blyss-api:${API_TAG} -n $NS 2>/dev/null || true
             sudo kubectl set image deployment/blyss-worker worker=ghcr.io/$REPO_OWNER/blyss-api:${API_TAG} -n $NS 2>/dev/null || true
 
-            # 6. Wait for postgres + api before running migrations
-            echo "==> Waiting for postgres"
+            # 8. Wait for postgres + api
             sudo kubectl rollout status statefulset/postgres -n $NS --timeout=3m 2>/dev/null || true
-            echo "==> Waiting for api"
             sudo kubectl rollout status deployment/blyss-api -n $NS --timeout=5m 2>/dev/null || {
-              echo "API rollout pending, dumping logs:"
-              sudo kubectl -n $NS describe deployment/blyss-api 2>&1 | tail -20
-              sudo kubectl -n $NS logs deployment/blyss-api --tail=30 2>&1 || true
+              echo "API rollout pending; continuing"
             }
 
-            # 7. Run migrations (idempotent — skips if up-to-date)
-            echo "==> Running database migrations"
+            # 9. Run migrations
             API_POD=$(sudo kubectl -n $NS get pods -l app=blyss-api --field-selector=status.phase=Running -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
             if [ -n "$API_POD" ]; then
+              echo "==> Running migrations"
               sudo kubectl -n $NS exec "$API_POD" -- uv run python -m scripts.db upgrade 2>&1 || \
                 sudo kubectl -n $NS exec "$API_POD" -- python -m scripts.db upgrade 2>&1 || \
                 echo "⚠️  Migration command failed"
-            else
-              echo "⚠️  No running API pod, skipping migrations"
-            fi
-
-            # 8. Seed admin user (idempotent)
-            echo "==> Seeding admin user"
-            if [ -n "$API_POD" ]; then
+              echo "==> Seeding admin"
               sudo kubectl -n $NS exec "$API_POD" -- uv run python scripts/seed_admin.py justinequartz@gmail.com 2>&1 || \
                 sudo kubectl -n $NS exec "$API_POD" -- python scripts/seed_admin.py justinequartz@gmail.com 2>&1 || \
                 echo "⚠️  Admin seed failed (non-blocking)"
+            else
+              echo "⚠️  No running API pod; skipping migrations + seed"
             fi
 
-            # 9. Wait for web rollout
-            echo "==> Waiting for web"
-            sudo kubectl rollout status deployment/blyss-web -n $NS --timeout=5m 2>/dev/null || {
-              echo "Web rollout pending, dumping logs:"
-              sudo kubectl -n $NS describe deployment/blyss-web 2>&1 | tail -20
-              sudo kubectl -n $NS logs deployment/blyss-web --tail=30 2>&1 || true
-            }
+            # 10. Web rollout
+            sudo kubectl rollout status deployment/blyss-web -n $NS --timeout=5m 2>/dev/null || true
 
-            # 10. Final state dump for visibility
-            echo ""
-            echo "===================================="
-            echo " Final cluster state"
-            echo "===================================="
+            # 11. Final state
+            echo "════════════════════════════"
+            echo " Final state"
+            echo "════════════════════════════"
             sudo kubectl -n $NS get pods -o wide
             echo ""
-            echo "==> blyss-api logs (last 60 lines)"
-            sudo kubectl -n $NS logs deployment/blyss-api --tail=60 --all-containers=true 2>&1 || true
-            echo ""
-            echo "==> blyss-api previous logs (if crashed)"
-            sudo kubectl -n $NS logs deployment/blyss-api --tail=60 --previous 2>&1 || true
-            echo ""
-            echo "==> blyss-api describe"
-            sudo kubectl -n $NS describe deployment/blyss-api 2>&1 | tail -40
-            echo ""
-            echo "==> Recent events"
-            sudo kubectl -n $NS get events --sort-by=.lastTimestamp 2>&1 | tail -20
+            echo "═══ blyss-api logs (last 50) ═══"
+            sudo kubectl -n $NS logs deployment/blyss-api --tail=50 --all-containers=true 2>&1 || true
 
             echo "✅ Deploy complete"
