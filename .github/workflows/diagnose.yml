@@ -1,0 +1,68 @@
+name: Diagnose K3s
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH and dump everything
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ubuntu
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          command_timeout: 5m
+          script: |
+            export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+            NS=blyss
+            echo "═══════════════════════════════════════"
+            echo " PODS"
+            echo "═══════════════════════════════════════"
+            sudo kubectl -n $NS get pods -o wide
+            echo ""
+            echo "═══════════════════════════════════════"
+            echo " SERVICES"
+            echo "═══════════════════════════════════════"
+            sudo kubectl -n $NS get svc
+            echo ""
+            echo "═══════════════════════════════════════"
+            echo " ENDPOINTS (= ready pod IPs)"
+            echo "═══════════════════════════════════════"
+            sudo kubectl -n $NS get endpoints
+            echo ""
+            echo "═══════════════════════════════════════"
+            echo " INGRESS"
+            echo "═══════════════════════════════════════"
+            sudo kubectl -n $NS get ingress
+            echo ""
+            echo "═══════════════════════════════════════"
+            echo " RECENT EVENTS"
+            echo "═══════════════════════════════════════"
+            sudo kubectl -n $NS get events --sort-by=.lastTimestamp 2>&1 | tail -25
+            echo ""
+            echo "═══════════════════════════════════════"
+            echo " API DEPLOYMENT DESCRIBE"
+            echo "═══════════════════════════════════════"
+            sudo kubectl -n $NS describe deployment/blyss-api 2>&1 | tail -50
+            echo ""
+            echo "═══════════════════════════════════════"
+            echo " API POD LOGS (current)"
+            echo "═══════════════════════════════════════"
+            sudo kubectl -n $NS logs deployment/blyss-api --tail=120 --all-containers=true 2>&1 || true
+            echo ""
+            echo "═══════════════════════════════════════"
+            echo " API POD LOGS (previous, if crashed)"
+            echo "═══════════════════════════════════════"
+            sudo kubectl -n $NS logs deployment/blyss-api --tail=120 --previous 2>&1 || true
+            echo ""
+            echo "═══════════════════════════════════════"
+            echo " POSTGRES POD LOGS"
+            echo "═══════════════════════════════════════"
+            sudo kubectl -n $NS logs statefulset/postgres --tail=40 2>&1 || true
+            echo ""
+            echo "═══════════════════════════════════════"
+            echo " WORKER POD LOGS"
+            echo "═══════════════════════════════════════"
+            sudo kubectl -n $NS logs deployment/blyss-worker --tail=60 2>&1 || true
