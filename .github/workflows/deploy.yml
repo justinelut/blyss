@@ -112,6 +112,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Clean stale manifests on server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ubuntu
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            sudo rm -rf /opt/blyss/k8s
+            sudo mkdir -p /opt/blyss/k8s
+            sudo chown -R ubuntu:ubuntu /opt/blyss
+
       - name: Copy k8s manifests to server
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -248,6 +259,10 @@ jobs:
               echo "==> kubectl apply -f $f"
               sudo kubectl apply -f "$f"
             done
+
+            # 4b. Remove stale resources from prior monolithic manifest
+            sudo kubectl delete deployment cloudflared -n $NS --ignore-not-found
+            sudo kubectl delete configmap cloudflared-config -n $NS --ignore-not-found
 
             # 5. Update images
             sudo kubectl set image deployment/blyss-web web=ghcr.io/$REPO_OWNER/blyss-web:${WEB_TAG} -n $NS 2>/dev/null || true
