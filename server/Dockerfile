@@ -47,8 +47,7 @@ RUN --mount=type=secret,id=IPINFO_ACCESS_TOKEN \
     curl -fsSL "https://ipinfo.io/data/free/country_asn.mmdb?token=${TOKEN}" -o /data/country_asn.mmdb && \
     echo "${EXPECTED_SHA256}  /data/country_asn.mmdb" | sha256sum -c -; \
   else \
-    echo "IPINFO_ACCESS_TOKEN not provided, skipping GeoIP download" && \
-    touch /data/country_asn.mmdb; \
+    echo "IPINFO_ACCESS_TOKEN not provided, skipping GeoIP download (Polar handles missing DB gracefully)"; \
   fi
 
 # Stage 4: Final production image
