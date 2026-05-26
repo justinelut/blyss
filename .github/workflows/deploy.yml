@@ -313,5 +313,23 @@ jobs:
               sudo kubectl -n $NS logs deployment/blyss-web --tail=30 2>&1 || true
             }
 
+            # 10. Final state dump for visibility
+            echo ""
+            echo "===================================="
+            echo " Final cluster state"
+            echo "===================================="
+            sudo kubectl -n $NS get pods -o wide
+            echo ""
+            echo "==> blyss-api logs (last 60 lines)"
+            sudo kubectl -n $NS logs deployment/blyss-api --tail=60 --all-containers=true 2>&1 || true
+            echo ""
+            echo "==> blyss-api previous logs (if crashed)"
+            sudo kubectl -n $NS logs deployment/blyss-api --tail=60 --previous 2>&1 || true
+            echo ""
+            echo "==> blyss-api describe"
+            sudo kubectl -n $NS describe deployment/blyss-api 2>&1 | tail -40
+            echo ""
+            echo "==> Recent events"
+            sudo kubectl -n $NS get events --sort-by=.lastTimestamp 2>&1 | tail -20
+
             echo "✅ Deploy complete"
-            sudo kubectl -n $NS get pods
