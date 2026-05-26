@@ -18,6 +18,7 @@ spec:
       containers:
         - name: api
           image: ghcr.io/justinelut/blyss-api:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 10000
           envFrom:
@@ -78,7 +79,8 @@ spec:
       containers:
         - name: worker
           image: ghcr.io/justinelut/blyss-api:latest
-          command: ["dramatiq", "-p", "1", "-t", "1", "polar.worker.run"]
+          imagePullPolicy: IfNotPresent
+          command: ["uv", "run", "dramatiq", "-p", "1", "-t", "1", "polar.worker.run"]
           envFrom:
             - secretRef:
                 name: blyss-secrets
