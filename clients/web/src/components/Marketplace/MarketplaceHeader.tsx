@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import { BlyssLogo } from '@/design'
-import { ThemeToggle } from '@/design/ThemeToggle'
 import { CartButton } from '@/components/Cart/CartButton'
 import { useAuth } from '@/hooks'
 import { cn } from '@/lib/utils'
@@ -96,7 +95,6 @@ export const MarketplaceHeader = ({ alwaysBlurred = false }: MarketplaceHeaderPr
             >
               <Search size={20} strokeWidth={1.75} />
             </Link>
-            <ThemeToggle />
             <CartButton />
             {authenticated && currentUser ? (
               <Link

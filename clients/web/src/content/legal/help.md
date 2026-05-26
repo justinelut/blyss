@@ -1,47 +1,86 @@
 # Help Center
 
-*Last updated: May 2026*
+Welcome to Blyss. Here's how to do the most common things.
 
-## For Creators
+---
 
-### Getting Started
-1. Sign up at blyss.co.ke/start
-2. Set up your storefront (name, banner, bio)
-3. Upload your first product
-4. Share your link — buyers pay with M-Pesa or card
+## Selling on Blyss
+
+### Getting started as a creator
+
+1. **Sign up** at [blyss.co.ke/login](/login) using your email or Google.
+2. **Create your store** — pick a name and a slug. The slug becomes your URL: `blyss.co.ke/<your-slug>`.
+3. **Verify your identity** with your Kenyan national ID or business registration. This is required before you can receive payouts.
+4. **List your first product** from your dashboard. Add a name, description, price, and the file or content you're selling.
+5. **Connect Paystack** so we can pay you. Link your bank account or M-Pesa number through Paystack's onboarding.
+
+You're live. Share your store link and start selling.
+
+### Pricing your products
+
+Blyss takes a flat **12% platform fee** on each sale. Paystack and M-Pesa transaction fees are passed through at cost (typically 1.5% + KES 30 for cards, 1% capped at KES 50 for M-Pesa).
+
+Quick math on a KES 1,000 sale paid via M-Pesa:
+
+| | Amount |
+|--|--|
+| Sale price | KES 1,000 |
+| Blyss fee (12%) | – KES 120 |
+| M-Pesa fee (~1%) | – KES 10 |
+| **You receive** | **KES 870** |
+
+You set prices in KES by default. USD pricing is available for cross-border sales — we'll auto-convert at the rate at checkout.
 
 ### Payouts
-- Payouts are processed within 24 hours of a verified purchase
-- M-Pesa payouts go directly to your registered phone number
-- Bank transfers available for amounts over KSh 10,000
 
-### Pricing
-- Blyss charges a 20% platform fee
-- No monthly fees, no hidden costs
-- You set your own prices in KES or USD
+Payouts happen automatically. Once a sale is confirmed and the chargeback window has passed (24–72 hours depending on the payment method), the Seller's share lands in their linked Paystack subaccount, which forwards to their bank or M-Pesa.
 
-## For Buyers
+You can see all earnings, fees, and payouts under **Dashboard → Finance**.
 
-### Payments
-- **M-Pesa**: Enter your phone number at checkout. You'll receive an STK push to confirm.
-- **Card**: Visa and Mastercard accepted via Paystack.
+### Subscriptions
 
-### After Purchase
-- Digital downloads are available immediately in your portal at my.blyss.co.ke
-- Subscription content unlocks as soon as payment confirms
+Recurring subscriptions are first-class in Blyss. Set a monthly or yearly price and Blyss handles the recurring billing through Paystack. Subscribers can cancel any time from their portal and lose access at the end of their paid period.
+
+---
+
+## Buying on Blyss
+
+### How to buy
+
+Click **Buy now** on any product. Pay with your card or M-Pesa. Your purchase appears under **My orders** at [blyss.co.ke/my](https://my.blyss.co.ke), and you can re-download files any time.
+
+### Where do my files go?
+
+Digital downloads are linked to your Blyss account email. Sign in at [blyss.co.ke/login](/login) and go to **My orders** to access them. Subscription benefits (Discord access, members-only feeds) are also managed from there.
 
 ### Refunds
-- See our [Refund Policy](/refunds) for details
-- Email hello@blyss.co.ke with your order number
 
-## Account
+See our [Refunds policy](/refunds). Short version: refunds are issued for broken downloads, undeliverable files, or material misrepresentation. Buyer's remorse generally isn't grounds for a refund on digital goods.
 
-- Sign in via magic link (email) or Google/Apple
-- Manage your account at my.blyss.co.ke/account
-- To delete your account, email hello@blyss.co.ke
+### Chargebacks
 
-## Contact
+Please email **disputes@blyss.co.ke** before initiating a chargeback. We can usually resolve issues faster than your bank can.
 
-**Email:** hello@blyss.co.ke
+---
 
-We respond within 24 hours on business days.
+## Account and security
+
+### Two-factor authentication
+
+Sellers should turn on 2FA from **Dashboard → Settings → Security**. We support authenticator apps (Authy, Google Authenticator, 1Password) and recovery codes.
+
+### Forgot password / can't sign in
+
+Use the magic-link login at [blyss.co.ke/login](/login). Enter your email and we'll send a one-time code that signs you in. If your email account is compromised, contact **support@blyss.co.ke** to verify your identity another way.
+
+### Closing your account
+
+You can close your Blyss account from **Dashboard → Settings → Account**. Pending payouts settle to your linked account, your products are unlisted, and we keep transaction records for the legally required period (7 years for tax compliance).
+
+---
+
+## Still stuck?
+
+Email **support@blyss.co.ke** with your account email and a clear description of the problem. We respond within 1 business day, usually faster.
+
+For payment issues specifically, include the order ID and which payment method you used.

@@ -14,6 +14,94 @@ from polar.operational_errors import handle_operational_error
 from polar.worker import JobQueueManager
 
 
+class ForwardedHostMiddleware:
+    """Apply X-Forwarded-Host (or fall back to settings.BASE_URL) to the request scope.
+
+    Uvicorn's --proxy-headers flag handles X-Forwarded-Proto and X-Forwarded-For,
+    but not X-Forwarded-Host. When the upstream proxy rewrites the Host header
+    (e.g. code-server / Cloudflare-tunnel setups that pin the upstream Host to
+    127.0.0.1), generated URLs (such as the OAuth redirect_uri built from
+    request.url_for) end up pointing at the internal upstream host instead of
+    the public hostname.
+
+    Resolution order:
+    1. If X-Forwarded-Host is set by the public proxy → use it.
+    2. Else if X-Forwarded-Proto is set (request came through a proxy) and the
+       Host header is loopback-ish, fall back to settings.BASE_URL.
+    3. Else leave the scope alone.
+    """
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    @staticmethod
+    def _is_loopback_host(host_header: bytes | None) -> bool:
+        if not host_header:
+            return True  # no host = anything goes
+        host = host_header.decode("latin-1").split(":", 1)[0].strip().lower()
+        return host in {"127.0.0.1", "0.0.0.0", "localhost", "::1"}
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] not in ("http", "websocket"):
+            await self.app(scope, receive, send)
+            return
+
+        # Lazy import to avoid circular import at module load
+        from polar.config import settings
+
+        headers = dict(scope.get("headers", []))
+        forwarded_host = headers.get(b"x-forwarded-host")
+        forwarded_proto = headers.get(b"x-forwarded-proto")
+        host_header = headers.get(b"host")
+
+        public_host: str | None = None
+        public_scheme: str | None = None
+
+        if forwarded_host:
+            public_host = forwarded_host.decode("latin-1").split(",")[0].strip()
+            if forwarded_proto:
+                public_scheme = (
+                    forwarded_proto.decode("latin-1").split(",")[0].strip()
+                )
+        elif (
+            forwarded_proto
+            and self._is_loopback_host(host_header)
+            and settings.BASE_URL
+        ):
+            # Behind a proxy that drops/rewrites Host. Use the configured base URL.
+            from urllib.parse import urlparse
+
+            parsed = urlparse(str(settings.BASE_URL))
+            if parsed.hostname:
+                public_host = parsed.netloc
+                public_scheme = parsed.scheme
+
+        if public_host:
+            new_headers = [
+                (name, value)
+                for name, value in scope["headers"]
+                if name != b"host"
+            ]
+            new_headers.append((b"host", public_host.encode("latin-1")))
+            scope = dict(scope)
+            scope["headers"] = new_headers
+
+            if public_scheme:
+                scope["scheme"] = public_scheme
+
+            if ":" in public_host:
+                hostname, _, port = public_host.partition(":")
+                try:
+                    scope["server"] = (hostname, int(port))
+                except ValueError:
+                    scope["server"] = (hostname, None)
+            else:
+                default_port = 443 if public_scheme == "https" else 80
+                scope["server"] = (public_host, default_port)
+
+        await self.app(scope, receive, send)
+
+
 class LogCorrelationIdMiddleware:
     def __init__(self, app: ASGIApp) -> None:
         self.app = app

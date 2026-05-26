@@ -178,7 +178,7 @@ export const OrganizationStep = ({
         className="flex min-h-0 w-full shrink-0 flex-col gap-12 md:max-w-xl md:p-8"
       >
         <FadeUp className="flex flex-col items-center gap-y-8">
-          <LogoIcon size={50} />
+          <LogoIcon size={48} />
           <div className="flex flex-col items-center gap-y-4">
             <h1 className="text-3xl">
               {hasExistingOrg
@@ -302,27 +302,26 @@ export const OrganizationStep = ({
                                 htmlFor="terms"
                                 className="cursor-pointer leading-relaxed font-medium"
                               >
-                                I understand the restrictions above and agree to
-                                Polar&apos;s terms
+                                I&apos;ve read what Blyss allows and agree to
+                                the platform terms
                               </label>
-                              <ul className="dark:text-polar-500 flex flex-col gap-y-1 text-sm text-gray-500">
+                              <ul className="flex flex-col gap-y-1 text-sm text-[var(--text-muted)]">
                                 <li>
                                   <a
-                                    href="https://blyss.co.ke/help"
-                                    className="text-blue-600 hover:underline dark:text-blue-400"
+                                    href="/acceptable-use"
+                                    className="text-[var(--accent)] hover:underline"
                                     target="_blank"
                                     rel="noreferrer"
                                   >
-                                    Account Reviews Policy
+                                    Acceptable Use Policy
                                   </a>
-                                  {' - '}I&apos;ll comply with KYC/AML
-                                  requirements including website and social
-                                  verification
+                                  {' — '}what creators can and can&apos;t sell on
+                                  Blyss
                                 </li>
                                 <li>
                                   <a
-                                    href="https://blyss.co.ke/terms"
-                                    className="text-blue-600 hover:underline dark:text-blue-400"
+                                    href="/terms"
+                                    className="text-[var(--accent)] hover:underline"
                                     target="_blank"
                                     rel="noreferrer"
                                   >
@@ -331,8 +330,8 @@ export const OrganizationStep = ({
                                 </li>
                                 <li>
                                   <a
-                                    href="https://blyss.co.ke/privacy"
-                                    className="text-blue-600 hover:underline dark:text-blue-400"
+                                    href="/privacy"
+                                    className="text-[var(--accent)] hover:underline"
                                     target="_blank"
                                     rel="noreferrer"
                                   >

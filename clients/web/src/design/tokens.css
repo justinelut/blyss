@@ -1,54 +1,33 @@
-/* =============================================================================
+/**
  * Blyss design tokens — color palette
  *
- * Source of truth: plan/04-ui-direction.md §3.2
- * Light mode is default and dominant. Dark mode is for the hero CTA accent
- * block, the closing CTA band on the homepage, the post-purchase confirmation
- * screen, and the creator earnings widget.
+ * Dark mode only. Blyss v1 ships dark exclusively: warm near-black surfaces
+ * with burnt-orange brand accents. Light mode was deprecated in May 2026.
  *
  * Forbidden in production: any blue, any green outside --success, any purple,
  * pure black, pure white outside --surface-elevated, any gradient.
  * ============================================================================= */
 
-:root {
-  /* Light mode (default) */
-  --background:        #FAFAF7;   /* warm off-white, paper not snow */
-  --surface:           #F1EFE9;   /* aged paper; section breaks */
-  --surface-elevated:  #FFFFFF;   /* product cards, modals, dropdowns */
-  --surface-sunken:    #E8E5DD;   /* input bg, code blocks, hover */
-  --border:            #D9D5CB;   /* hairline; sparingly */
-  --border-strong:     #BBB5A8;   /* focused inputs, active filter chips */
-  --text-primary:      #1A1A17;   /* warm near-black; never #000000 */
-  --text-secondary:    #4A4842;   /* body */
-  --text-muted:        #88857C;   /* metadata, captions, eyebrows */
-  --accent:            #C2410C;   /* burnt orange — Blyss signature */
-  --accent-hover:      #DD5818;
-  --accent-foreground: #FAFAF7;
-  --success:           #15803D;   /* sparingly — confirmation only */
-  --danger:            #B91C1C;
-  --warning:           #B45309;
-
-  /* Aliases that the existing Polar codebase expects to see — point to Blyss */
-  --background-foreground: var(--text-primary);
-  --foreground: var(--text-primary);
-}
-
+:root,
 [data-theme='dark'],
 .dark {
-  --background:        #0F0E0C;
-  --surface:           #18171A;
-  --surface-elevated:  #211F22;
-  --surface-sunken:    #27262A;
-  --border:            #2C2A28;
-  --border-strong:     #3D3A35;
-  --text-primary:      #F5F2EC;
-  --text-secondary:    #BAB5A8;
-  --text-muted:        #7A766B;
-  --accent:            #F97316;   /* brighter orange for dark */
+  --background:        #0F0E0C;   /* near-black, warm */
+  --surface:           #18171A;   /* section breaks */
+  --surface-elevated:  #211F22;   /* product cards, modals, dropdowns */
+  --surface-sunken:    #27262A;   /* input bg, code blocks, hover */
+  --border:            #2C2A28;   /* hairline */
+  --border-strong:     #3D3A35;   /* focused inputs, active filter chips */
+  --text-primary:      #F5F2EC;   /* warm near-white */
+  --text-secondary:    #BAB5A8;   /* body */
+  --text-muted:        #7A766B;   /* metadata, captions, eyebrows */
+  --accent:            #F97316;   /* orange — Blyss signature */
   --accent-hover:      #FFA052;
   --accent-foreground: #0F0E0C;
   --success:           #16A34A;
   --danger:            #DC2626;
   --warning:           #D97706;
+
+  /* Aliases that the existing Polar codebase expects to see — point to Blyss */
+  --background-foreground: var(--text-primary);
   --foreground: var(--text-primary);
 }

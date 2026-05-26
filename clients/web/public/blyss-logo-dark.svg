@@ -1,6 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" fill="none">
-  <!-- Blyss Logo - Dark Mode -->
-  <!-- Placeholder: Replace with actual Blyss logo design -->
-  <rect width="200" height="60" fill="transparent"/>
-  <text x="10" y="40" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#FFFFFF">Blyss</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" fill="none" role="img" aria-label="Blyss">
+  <text
+    x="0"
+    y="44"
+    font-family="'Inter Display', 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif"
+    font-size="44"
+    font-weight="700"
+    letter-spacing="-1.3"
+    fill="currentColor"
+  >Blyss</text>
+  <circle cx="92" cy="56" r="2.5" fill="#F97316"/>
 </svg>

@@ -20,13 +20,13 @@ export default async function Page(props: {
 
   return (
     <form
-      className="dark:bg-polar-950 flex h-screen w-full grow items-center justify-center bg-gray-50"
+      className="flex h-screen w-full grow items-center justify-center bg-[var(--background)]"
       method="POST"
       action={`${CONFIG.BASE_URL}/v1/email-update/verify?${urlSearchParams.toString()}`}
     >
       <div className="flex w-80 flex-col items-center gap-4">
-        <LogoIcon size={60} className="mb-6 text-blue-500 dark:text-blue-400" />
-        <div className="dark:text-polar-400 text-center text-gray-500">
+        <LogoIcon size={48} className="mb-6" />
+        <div className="text-center text-[var(--text-secondary)]">
           To complete the email update process, please click the button below:
         </div>
         <input type="hidden" name="token" value={token} />

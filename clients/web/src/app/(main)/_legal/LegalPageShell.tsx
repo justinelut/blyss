@@ -12,6 +12,7 @@ interface LegalPageShellProps {
 }
 
 const LEGAL_NAV = [
+  { href: '/about', label: 'About' },
   { href: '/help', label: 'Help' },
   { href: '/terms', label: 'Terms' },
   { href: '/privacy', label: 'Privacy' },

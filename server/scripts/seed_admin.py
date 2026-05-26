@@ -5,9 +5,8 @@ stored — admin login still goes through the magic-link flow. This script
 creates the user (or marks an existing user as admin) so they can access
 the backoffice and admin features.
 
-Usage on the server:
-    sudo kubectl exec -it deploy/blyss-api -n blyss -- \\
-        python scripts/seed_admin.py justinequartz@gmail.com
+Usage (must be run from server/ directory with .env loaded):
+    uv run python scripts/seed_admin.py justinequartz@gmail.com
 """
 
 import asyncio
@@ -23,11 +22,10 @@ from polar.models import User
 
 
 async def seed_admin(email: str) -> None:
-    engine = create_async_engine("script", debug=False)
+    engine = create_async_engine("script")
     Session = create_async_sessionmaker(engine)
 
     async with Session() as session:
-        # Find existing user by email (case-insensitive)
         result = await session.execute(
             select(User).where(User.email == email.lower())
         )
@@ -55,7 +53,8 @@ async def seed_admin(email: str) -> None:
         print(f"  email_verified: {user.email_verified}")
         print()
         print("Login: visit /login and request a magic link for this email.")
-        print("After signing in, you'll have admin access to /backoffice.")
+
+    await engine.dispose()
 
 
 def main() -> None:

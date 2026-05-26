@@ -3,7 +3,7 @@ import uuid
 from typing import cast
 
 import structlog
-from dramatiq import Retry, actor
+from dramatiq import Retry
 
 from polar.checkout.service import checkout as checkout_service
 from polar.external_event.service import external_event as external_event_service
@@ -19,7 +19,7 @@ from polar.models.checkout import CheckoutStatus
 from polar.models.external_event import PaystackEvent
 from polar.order.service import order as order_service
 from polar.postgres import AsyncSessionMaker
-from polar.worker import TaskPriority, can_retry
+from polar.worker import TaskPriority, actor, can_retry
 
 log: Logger = structlog.get_logger()
 
@@ -386,7 +386,7 @@ async def charge_failed(event_id: uuid.UUID) -> None:
 
 @actor(
     actor_name="paystack.organization.create_subaccount",
-    priority=TaskPriority.NORMAL,
+    priority=TaskPriority.MEDIUM,
     max_retries=3,
     min_backoff=5000,
     max_backoff=300000,

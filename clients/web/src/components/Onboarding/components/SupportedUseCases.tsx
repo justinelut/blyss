@@ -2,36 +2,46 @@ export default function SupportedUseCases() {
   return (
     <div className="flex flex-col gap-y-4 text-sm">
       <div className="flex flex-col gap-y-2">
-        <p className="font-medium">Supported Usecases</p>
-        <p className="dark:text-polar-500 text-sm text-gray-500">
-          SaaS subscriptions, digital downloads, software licenses, online
-          courses, and other purely digital products.
+        <p className="font-medium text-[var(--text-primary)]">
+          What you can sell on Blyss
+        </p>
+        <p className="text-sm text-[var(--text-secondary)]">
+          Digital products and recurring subscriptions made by you — ebooks,
+          templates, beats, courses, presets, photo packs, software licenses,
+          paid newsletters, communities, and creator subscriptions.
         </p>
       </div>
 
       <div className="flex flex-col gap-y-2">
-        <p className="font-medium">Prohibited Usecases</p>
-        <ul className="dark:text-polar-500 space-y-1 text-sm text-gray-500">
-          <li>• Physical goods or products requiring shipping</li>
-          <li>• Human services (custom development, design and consultancy)</li>
-          <li>• Marketplaces</li>
+        <p className="font-medium text-[var(--text-primary)]">
+          What&apos;s not allowed
+        </p>
+        <ul className="space-y-1 text-sm text-[var(--text-secondary)]">
+          <li>• Reselling other people&apos;s work without rights</li>
           <li>
-            • Anything in our list of{' '}
+            • Adult content, weapons, pirated software, or anything illegal in
+            Kenya
+          </li>
+          <li>• Pyramid schemes, deceptive get-rich-quick offers</li>
+          <li>• Hate speech, harassment, or content that targets minors</li>
+          <li>
+            • Anything covered in our{' '}
             <a
-              href="https://blyss.co.ke/help"
-              className="text-blue-500 underline dark:text-blue-400"
+              href="/acceptable-use"
+              className="text-[var(--accent)] underline-offset-2 hover:underline"
               target="_blank"
               rel="noreferrer"
             >
-              prohibited products
+              acceptable-use policy
             </a>
           </li>
         </ul>
       </div>
 
-      <div className="dark:border-polar-700 border-t border-gray-200 pt-4">
-        <p className="dark:text-polar-500 text-xs text-gray-500">
-          Transactions that violate our policy will be canceled and refunded.
+      <div className="border-t border-[var(--border)] pt-4">
+        <p className="text-xs text-[var(--text-muted)]">
+          Stores that violate these rules will be paused, and pending payouts
+          may be held while we review. We&apos;ll always tell you why.
         </p>
       </div>
     </div>

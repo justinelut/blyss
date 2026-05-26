@@ -113,43 +113,14 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
+      data-theme="dark"
       suppressHydrationWarning
-      className={`antialiased ${inter.variable} ${interDisplay.variable} ${louize.variable} ${GeistMono.variable}`}
+      className={`antialiased dark ${inter.variable} ${interDisplay.variable} ${louize.variable} ${GeistMono.variable}`}
     >
       <head>
-        {/* Apply theme before paint to avoid flash */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('blyss-theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.setAttribute('data-theme','dark');document.documentElement.classList.add('dark');}}catch(e){}})();`,
-          }}
-        />
-        {CONFIG.ENVIRONMENT === 'development' ? (
-          <>
-            <link
-              href="/favicon-dev.png"
-              rel="icon"
-              media="(prefers-color-scheme: dark)"
-            />
-            <link
-              href="/favicon-dev-dark.png"
-              rel="icon"
-              media="(prefers-color-scheme: light)"
-            />
-          </>
-        ) : (
-          <>
-            <link
-              href="/favicon.png"
-              rel="icon"
-              media="(prefers-color-scheme: dark)"
-            />
-            <link
-              href="/favicon-dark.png"
-              rel="icon"
-              media="(prefers-color-scheme: light)"
-            />
-          </>
-        )}
+        {/* Dark mode is the only mode in Blyss v1. data-theme="dark" is set on
+            <html> directly so server-rendered pages match client paint —
+            no FOUC, no theme flash. */}
       </head>
       <body
         style={{

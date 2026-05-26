@@ -157,7 +157,9 @@ class Settings(BaseSettings):
     POSTGRES_PORT: int = 5432
     POSTGRES_DATABASE: str = "blyss"
     POSTGRES_SSL_MODE: str | None = None
-    DATABASE_POOL_SIZE: int = 5
+    DATABASE_POOL_SIZE: int = 20
+    DATABASE_POOL_MAX_OVERFLOW: int = 30
+    DATABASE_POOL_TIMEOUT_SECONDS: float = 30.0
     DATABASE_SYNC_POOL_SIZE: int = 1  # Specific pool size for sync connection: since we only use it in OAuth2 router, don't waste resources.
     DATABASE_POOL_RECYCLE_SECONDS: int = 600  # 10 minutes
     DATABASE_COMMAND_TIMEOUT_SECONDS: float = 30.0

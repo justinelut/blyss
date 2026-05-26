@@ -10,6 +10,8 @@ interface BlyssLogoProps {
   className?: string
   /** Skip the link wrapper (e.g. when used inside another anchor) */
   asPlainText?: boolean
+  /** Hide the orange signature dot under the "y" — useful for monochrome footers */
+  hideAccent?: boolean
 }
 
 const sizeClasses: Record<NonNullable<BlyssLogoProps['size']>, string> = {
@@ -19,33 +21,54 @@ const sizeClasses: Record<NonNullable<BlyssLogoProps['size']>, string> = {
   xl: 'text-4xl md:text-5xl', // 36-48px — hero / 404 pages
 }
 
+const dotPosition: Record<NonNullable<BlyssLogoProps['size']>, string> = {
+  sm: 'h-[3px] w-[3px] -bottom-[2px] left-[55%]',
+  md: 'h-[3.5px] w-[3.5px] -bottom-[2px] left-[55%]',
+  lg: 'h-[4px] w-[4px] -bottom-[3px] left-[55%]',
+  xl: 'h-[6px] w-[6px] -bottom-[4px] left-[55%] md:h-[7px] md:w-[7px]',
+}
+
 /**
  * BlyssLogo — the canonical wordmark.
  *
- * Wordmark only for v1 (no glyph). Renders "Blyss" in Inter Display 600 with
- * tight tracking. Replace this component when a custom logo asset ships in
- * v1.1; until then, every surface uses this component instead of inlining
- * the string.
+ * "Blyss" in Inter Display 700 with a small orange dot under the "y"
+ * descender as the brand signature. The dot is the only chromatic moment
+ * in the wordmark — everything else inherits from the surrounding text
+ * color via `currentColor`, so the logo flips correctly on light surfaces
+ * (warn: light surfaces are deprecated in v1) and dark surfaces alike.
  *
- *   <BlyssLogo size="lg" />                    // nav
- *   <BlyssLogo size="xl" className="text-white" /> // hero on dark
- *   <BlyssLogo size="sm" asPlainText />        // inside another link
+ *   <BlyssLogo size="lg" />                          // nav
+ *   <BlyssLogo size="xl" className="text-white" />   // hero on dark
+ *   <BlyssLogo size="sm" asPlainText />              // inside another link
+ *   <BlyssLogo size="sm" hideAccent />               // monochrome footer
  */
 export const BlyssLogo = ({
   href = '/',
   size = 'md',
   className,
   asPlainText,
+  hideAccent,
 }: BlyssLogoProps) => {
   const wordmark = (
-    <span
-      className={cn(
-        'font-display font-semibold tracking-[-0.02em] leading-none select-none',
-        sizeClasses[size],
-        className,
+    <span className="relative inline-block">
+      <span
+        className={cn(
+          'font-display font-semibold tracking-[-0.025em] leading-none select-none',
+          sizeClasses[size],
+          className,
+        )}
+      >
+        Blyss
+      </span>
+      {!hideAccent && (
+        <span
+          aria-hidden="true"
+          className={cn(
+            'absolute rounded-full bg-[var(--accent)]',
+            dotPosition[size],
+          )}
+        />
       )}
-    >
-      Blyss
     </span>
   )
 

@@ -21,7 +21,7 @@ from polar.postgres import (
     get_db_read_session,
     get_db_session,
 )
-from polar.product.schemas import ProductID
+from polar.product.schemas import Product as ProductSchema, ProductID
 from polar.routing import APIRouter
 
 from . import auth, sorting
@@ -52,58 +52,60 @@ SubscriptionNotFound = {
 
 @router.get(
     "/public",
-    response_model=ListResource[SubscriptionSchema],
-    summary="List Public Subscriptions",
+    response_model=ListResource[ProductSchema],
+    summary="List Public Subscription Products",
 )
 async def list_public_subscriptions(
-    is_featured: bool | None = Query(None, description="Filter featured subscriptions"),
+    is_featured: bool | None = Query(
+        None, description="Filter featured subscription products"
+    ),
     limit: int = Query(6, ge=1, le=100, description="Items per page"),
     session: AsyncReadSession = Depends(get_db_read_session),
-) -> ListResource[SubscriptionSchema]:
+) -> ListResource[ProductSchema]:
     """
-    List public subscriptions without authentication.
+    List public subscription-type products (recurring_interval is set).
 
-    This endpoint is used for the marketplace homepage to display featured subscriptions.
+    Returns products — not actual customer subscription records — so this
+    endpoint is safe for unauthenticated marketplace browsing. Used by the
+    marketplace homepage to surface "Subscriptions worth it" cards.
     """
-    from sqlalchemy import and_, select
+    from sqlalchemy import select
     from sqlalchemy.orm import selectinload
 
-    from polar.models import Product, Subscription
+    from polar.models import Product
     from polar.models.product import ProductVisibility
 
     statement = (
-        select(Subscription)
-        .join(Product, Product.id == Subscription.product_id)
+        select(Product)
         .where(
-            Subscription.ended_at.is_(None),
-            Subscription.cancel_at_period_end.is_(False),
             Product.is_archived.is_(False),
-            Product.is_deleted.is_(False),
+            Product.deleted_at.is_(None),
             Product.visibility == ProductVisibility.public,
+            Product.recurring_interval.isnot(None),
         )
+        .order_by(Product.created_at.desc())
+        .limit(limit)
     )
 
-    # Skip is_featured filter for now since metadata might not be set
-    # if is_featured is not None:
-    #     statement = statement.where(
-    #         Product.user_metadata["is_featured"].astext == str(is_featured).lower()
-    #     )
-
-    statement = statement.order_by(Subscription.created_at.desc())
-    statement = statement.limit(limit)
+    if is_featured is not None:
+        statement = statement.where(
+            Product.user_metadata["is_featured"].astext == str(is_featured).lower()
+        )
 
     statement = statement.options(
-        selectinload(Subscription.product).selectinload(Product.organization),
-        selectinload(Subscription.product).selectinload(Product.product_benefits),
-        selectinload(Subscription.subscription_product_prices),
+        selectinload(Product.organization),
+        selectinload(Product.product_benefits),
+        selectinload(Product.product_medias),
+        selectinload(Product.attached_custom_fields),
+        selectinload(Product.all_prices),
     )
 
     result = await session.execute(statement)
-    subscriptions = result.scalars().unique().all()
+    products = result.scalars().unique().all()
 
     return ListResource.from_paginated_results(
-        [SubscriptionSchema.model_validate(sub) for sub in subscriptions],
-        len(subscriptions),
+        [ProductSchema.model_validate(p) for p in products],
+        len(products),
         PaginationParams(limit=limit, page=1),
     )
 

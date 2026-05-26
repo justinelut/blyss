@@ -29,9 +29,7 @@ export const LoginShell = ({ children }: { children: React.ReactNode }) => {
       >
         {/* Logo top */}
         <div>
-          <Link href="/" className="inline-block">
-            <BlyssLogo size="xl" />
-          </Link>
+          <BlyssLogo size="xl" />
         </div>
 
         {/* Center: editorial copy */}
@@ -95,9 +93,7 @@ export const LoginShell = ({ children }: { children: React.ReactNode }) => {
         <div className="w-full max-w-[420px]">
           {/* Mobile logo */}
           <div className="mb-10 lg:hidden">
-            <Link href="/">
-              <BlyssLogo size="xl" />
-            </Link>
+            <BlyssLogo size="xl" />
           </div>
 
           {/* Form heading */}

@@ -155,3 +155,10 @@ server/.tinyb
 
 .turbo
 .claude/worktrees
+
+# Local debug env / JWKS captures — never commit (contains live creds)
+server/prod-test.env
+server/prod-test.jwks.json
+clients/web/dev.log
+server/api.log
+server/.jwks.json

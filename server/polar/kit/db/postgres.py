@@ -51,6 +51,8 @@ def create_async_engine(
     pool_logging_name: str | None = None,
     pool_size: int | None = None,
     pool_recycle: int | None = None,
+    pool_max_overflow: int | None = None,
+    pool_timeout: float | None = None,
     command_timeout: float | None = None,
     debug: bool = False,
 ) -> AsyncEngine:
@@ -60,6 +62,12 @@ def create_async_engine(
     if command_timeout is not None:
         connect_args["command_timeout"] = command_timeout
 
+    extra: dict[str, Any] = {}
+    if pool_max_overflow is not None:
+        extra["max_overflow"] = pool_max_overflow
+    if pool_timeout is not None:
+        extra["pool_timeout"] = pool_timeout
+
     return _create_async_engine(
         dsn,
         echo=debug,
@@ -67,7 +75,9 @@ def create_async_engine(
         pool_size=pool_size,
         pool_recycle=pool_recycle,
         pool_logging_name=pool_logging_name,
+        pool_pre_ping=True,
         json_serializer=json_serializer,
+        **extra,
     )
 
 

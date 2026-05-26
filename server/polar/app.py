@@ -34,6 +34,7 @@ from polar.logging import Logger
 from polar.logging import configure as configure_logging
 from polar.middlewares import (
     FlushEnqueuedWorkerJobsMiddleware,
+    ForwardedHostMiddleware,
     LogCorrelationIdMiddleware,
     OperationalErrorMiddleware,
     PathRewriteMiddleware,
@@ -206,6 +207,11 @@ def create_app() -> FastAPI:
     app.add_middleware(LogCorrelationIdMiddleware)
     if not settings.is_testing():
         app.add_middleware(HttpMetricsMiddleware)
+
+    # Outermost: rewrite Host from X-Forwarded-Host before any other middleware
+    # or route handler reads request.url / request.url_for. Critical for OAuth
+    # redirect_uri generation behind proxies that strip/rewrite Host header.
+    app.add_middleware(ForwardedHostMiddleware)
 
     configure_cors(app)
 

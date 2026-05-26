@@ -95,6 +95,11 @@ class TinybirdClient:
             clickhouse_connect.driver.asyncclient.AsyncClient | None
         ) = None
 
+        # Treat empty strings as "not configured" — Pydantic settings can pass
+        # `""` from env files where the value is left blank.
+        api_token = api_token or None
+        read_token = read_token or None
+
         self._write_client = httpx.AsyncClient(
             base_url=api_url,
             headers={"Authorization": f"Bearer {api_token}"} if api_token else {},
@@ -245,6 +250,12 @@ class TinybirdClient:
         *,
         db_statement: str,
     ) -> list[dict[str, Any]]:
+        # When ClickHouse isn't configured (no token), return an empty result
+        # set so downstream code doesn't crash trying to connect to a service
+        # that isn't running locally.
+        if not self._clickhouse_token:
+            return []
+
         operation = sql.strip().split(None, 1)[0].upper() if sql.strip() else "QUERY"
         with tracer.start_as_current_span(f"{operation} tinybird") as span:
             span.set_attribute("db.system", "clickhouse")

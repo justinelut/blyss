@@ -4,19 +4,22 @@ import { Eyebrow, SectionDivider, typography } from '@/design'
 import { OptimizedImage } from '@/components/Image/OptimizedImage'
 import { cn } from '@/lib/utils'
 
-type Subscription = schemas['Subscription']
+type Product = schemas['Product']
 
 interface FeaturedSubscriptionsProps {
-  subscriptions: Subscription[]
+  /**
+   * Items returned by `GET /v1/subscriptions/public` — these are subscription-type
+   * products (recurring_interval is set), not actual customer subscription records.
+   * Renamed prop kept for back-compat with existing callers.
+   */
+  subscriptions: Product[]
 }
 
-const formatMonthlyPrice = (sub: Subscription): string => {
-  // Subscription price model varies — try a few shapes.
-  const product = (sub as any).product
-  const price = product?.prices?.[0]
+const formatMonthlyPrice = (product: Product): string => {
+  const price = (product as any).prices?.[0]
   if (!price) return ''
-  const amount = (price as any).price_amount ?? 0
-  const currency = ((price as any).price_currency ?? 'KES').toUpperCase()
+  const amount = price.price_amount ?? 0
+  const currency = (price.price_currency ?? 'KES').toUpperCase()
   const major = amount / 100
   if (currency === 'KES') return `KSh ${major.toLocaleString('en-KE')}`
   if (currency === 'USD') return `$${major.toLocaleString('en-US')}`
@@ -24,11 +27,11 @@ const formatMonthlyPrice = (sub: Subscription): string => {
 }
 
 /**
- * FeaturedSubscriptions — 6 subscription product cards.
+ * FeaturedSubscriptions — 6 subscription-product cards.
  *
- * Per plan §6.1 step 6: from /v1/subscriptions/public?is_featured=true&limit=6.
- * Each card shows: name, creator + small avatar, monthly price (tabular), the
- * first benefit description.
+ * Pulls from `/v1/subscriptions/public?is_featured=true&limit=6` (public, no
+ * auth, no PII). Each card shows: name, creator + small avatar, monthly price
+ * (tabular), and the first benefit description if present.
  */
 export const FeaturedSubscriptions = ({ subscriptions }: FeaturedSubscriptionsProps) => {
   if (!subscriptions?.length) return null
@@ -51,22 +54,18 @@ export const FeaturedSubscriptions = ({ subscriptions }: FeaturedSubscriptionsPr
       </div>
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {subscriptions.slice(0, 6).map((sub) => {
-          const product = (sub as any).product
-          if (!product) return null
-          const creator = product.organization
-          const firstBenefit = product.benefits?.[0]
-          const subId = (sub as any).id ?? product.id
+        {subscriptions.slice(0, 6).map((product) => {
+          const creator = (product as any).organization
+          const firstBenefit = (product as any).benefits?.[0]
 
           return (
             <Link
-              key={subId}
+              key={product.id}
               href={`/product/${product.id}`}
               prefetch
               className="group block rounded-md bg-[var(--surface-elevated)] p-6 transition-colors hover:bg-[var(--background)]"
             >
               <div className="flex items-start gap-3">
-                {/* Creator avatar */}
                 {creator?.avatar_url && (
                   <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-[var(--surface-sunken)]">
                     <OptimizedImage
@@ -96,7 +95,7 @@ export const FeaturedSubscriptions = ({ subscriptions }: FeaturedSubscriptionsPr
               </div>
 
               <p className="mt-5 font-display text-[24px] font-semibold tabular-nums text-[var(--text-primary)]">
-                {formatMonthlyPrice(sub)}
+                {formatMonthlyPrice(product)}
                 <span className="font-sans text-[14px] font-normal text-[var(--text-muted)]">
                   {' '}/ month
                 </span>

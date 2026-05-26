@@ -235,15 +235,6 @@ export const DashboardSidebar = ({
                   >
                     Account Settings
                   </DropdownMenuItem>
-                  {!CONFIG.IS_SANDBOX && (
-                    <DropdownMenuItem
-                      onClick={() =>
-                        router.push('https://blyss.co.ke/start')
-                      }
-                    >
-                      Go to Sandbox
-                    </DropdownMenuItem>
-                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={() =>

@@ -30,7 +30,7 @@ const baseCSP = `
     default-src 'self';
     connect-src 'self' ${process.env.NEXT_PUBLIC_API_URL} ${process.env.S3_UPLOAD_ORIGINS} ${R2_ENDPOINT} ${MINIO_CONSOLE} ${MINIO_API} https://api.stripe.com https://maps.googleapis.com https://*.google-analytics.com https://chat.uk.plain.com https://prod-uk-services-attachm-attachmentsuploadbucket2-1l2e4906o2asm.s3.eu-west-2.amazonaws.com;
     frame-src 'self' https://*.js.stripe.com https://js.stripe.com https://hooks.stripe.com https://customer-wl21dabnj6qtvcai.cloudflarestream.com videodelivery.net *.cloudflarestream.com;
-    script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.js.stripe.com https://js.stripe.com https://maps.googleapis.com https://www.googletagmanager.com https://chat.cdn-plain.com https://embed.cloudflarestream.com;
+    script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.js.stripe.com https://js.stripe.com https://maps.googleapis.com https://www.googletagmanager.com https://chat.cdn-plain.com https://embed.cloudflarestream.com https://static.cloudflareinsights.com;
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
     img-src 'self' blob: data: https://www.gravatar.com https://img.logo.dev https://lh3.googleusercontent.com https://avatars.githubusercontent.com ${S3_PUBLIC_IMAGES_BUCKET_ORIGIN} ${R2_ENDPOINT} ${MINIO_CONSOLE} ${MINIO_API} https://uploads.polar.sh https://prod-uk-services-workspac-workspacefilespublicbuck-vs4gjqpqjkh6.s3.amazonaws.com https://prod-uk-services-attachm-attachmentsbucket28b3ccf-uwfssb4vt2us.s3.eu-west-2.amazonaws.com https://i0.wp.com;
     font-src 'self';
@@ -78,7 +78,7 @@ const nextConfig = {
   pageExtensions: ['js', 'jsx', 'md', 'mdx', 'ts', 'tsx'],
 
   // Allow dev origins for HMR
-  allowedDevOrigins: ['127.0.0.1', 'localhost'],
+  allowedDevOrigins: ['127.0.0.1', 'localhost', '3000.blyss.co.ke', '*.blyss.co.ke'],
 
   // Ignore TypeScript errors during build
   typescript: {
@@ -119,26 +119,42 @@ const nextConfig = {
     return config
   },
 
-  // Since Codespaces run behind a proxy, we need to allow it for Server-Side Actions, like cache revalidation
-  // See: https://github.com/vercel/next.js/issues/58019
-  ...(CODESPACES
-    ? {
-        experimental: {
-          serverActions: {
-            allowedForwardedHosts: [
+  // Server Actions need an explicit allow-list for the public-facing host
+  // when the dev server is behind a TLS-terminating proxy (Cloudflare → code-server
+  // → Next.js). Without this, POSTs from `3000.blyss.co.ke` get rejected as
+  // "Invalid Server Actions request" because Next.js compares the Host header
+  // (which the upstream proxy rewrites to 127.0.0.1:3000) against the Origin
+  // header (which the browser correctly sets to https://3000.blyss.co.ke).
+  experimental: {
+    serverActions: {
+      allowedForwardedHosts: [
+        '3000.blyss.co.ke',
+        'blyss.co.ke',
+        'localhost:3000',
+        '127.0.0.1:3000',
+        ...(CODESPACES
+          ? [
               `${process.env.CODESPACE_NAME}-8080.${process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN}`,
               'localhost:8080',
               '127.0.0.1:8080',
-            ],
-            allowedOrigins: [
+            ]
+          : []),
+      ],
+      allowedOrigins: [
+        '3000.blyss.co.ke',
+        'blyss.co.ke',
+        'localhost:3000',
+        '127.0.0.1:3000',
+        ...(CODESPACES
+          ? [
               `${process.env.CODESPACE_NAME}-8080.${process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN}`,
               'localhost:8080',
               '127.0.0.1:8080',
-            ],
-          },
-        },
-      }
-    : {}),
+            ]
+          : []),
+      ],
+    },
+  },
 
   images: {
     remotePatterns: [
@@ -213,23 +229,6 @@ const nextConfig = {
       // when they want to manage their store.
 
       // Redirect /maintainer to polar.sh if on a different domain name
-      {
-        source: '/dashboard/:path*',
-        destination: `https://${defaultFrontendHostname}/dashboard/:path*`,
-        missing: [
-          {
-            type: 'host',
-            value: defaultFrontendHostname,
-          },
-          {
-            type: 'header',
-            key: 'x-forwarded-host',
-            value: defaultFrontendHostname,
-          },
-        ],
-        permanent: false,
-      },
-
       {
         source: '/maintainer',
         destination: '/dashboard',

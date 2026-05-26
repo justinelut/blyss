@@ -26,6 +26,10 @@ const Login = ({
     : 'global:user:login:view'
 
   const resolvedReturnTo = useMemo(() => {
+    // After login, send creators straight to /dashboard so they land on their
+    // store. /dashboard handles the "no org yet" case by redirecting to
+    // /dashboard/create. Marketplace shoppers who want to keep browsing can
+    // still pass return_to=/ explicitly via the link they came in from.
     const path = returnTo ?? '/dashboard'
 
     if (returnParams) {
