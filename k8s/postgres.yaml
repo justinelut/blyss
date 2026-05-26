@@ -26,12 +26,12 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: blyss-secrets
-                  key: POSTGRES_USER
+                  key: POLAR_POSTGRES_USER
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: blyss-secrets
-                  key: POSTGRES_PASSWORD
+                  key: POLAR_POSTGRES_PWD
           volumeMounts:
             - name: pgdata
               mountPath: /var/lib/postgresql/data

@@ -19,7 +19,7 @@ spec:
         - name: api
           image: ghcr.io/justinelut/blyss-api:latest
           ports:
-            - containerPort: 8000
+            - containerPort: 10000
           envFrom:
             - secretRef:
                 name: blyss-secrets
@@ -32,7 +32,7 @@ spec:
           readinessProbe:
             httpGet:
               path: /healthz
-              port: 8000
+              port: 10000
             initialDelaySeconds: 20
             periodSeconds: 10
             failureThreshold: 6
@@ -47,7 +47,7 @@ spec:
     app: blyss-api
   ports:
     - port: 80
-      targetPort: 8000
+      targetPort: 10000
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -69,7 +69,7 @@ spec:
       containers:
         - name: worker
           image: ghcr.io/justinelut/blyss-api:latest
-          command: ["dramatiq", "polar.worker"]
+          command: ["dramatiq", "-p", "1", "-t", "1", "polar.worker.run"]
           envFrom:
             - secretRef:
                 name: blyss-secrets

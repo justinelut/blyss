@@ -167,46 +167,80 @@ jobs:
               --docker-password="${GHCR_PULL_TOKEN}" \
               | sudo kubectl apply -f -
 
-            # 3. Sync app secrets — always apply (idempotent), uses GH secrets if set
-            POSTGRES_PASS=$(sudo kubectl get secret blyss-secrets -n $NS -o jsonpath='{.data.POSTGRES_PASSWORD}' 2>/dev/null | base64 -d 2>/dev/null || openssl rand -hex 16)
-            MINIO_PASS=$(sudo kubectl get secret blyss-secrets -n $NS -o jsonpath='{.data.MINIO_ROOT_PASSWORD}' 2>/dev/null | base64 -d 2>/dev/null || openssl rand -hex 16)
-            APP_SECRET=$(sudo kubectl get secret blyss-secrets -n $NS -o jsonpath='{.data.SECRET}' 2>/dev/null | base64 -d 2>/dev/null || openssl rand -hex 32)
+            # 3. Sync app secrets — uses POLAR_ prefix as the backend expects.
+            # Always re-applies (idempotent) so adding/changing GitHub secrets
+            # picks up on next deploy. Persistent values (POSTGRES_PASSWORD,
+            # MINIO_PASSWORD, POLAR_SECRET) are read from existing secret if
+            # present, otherwise generated.
+            POSTGRES_PASS=$(sudo kubectl get secret blyss-secrets -n $NS -o jsonpath='{.data.POLAR_POSTGRES_PWD}' 2>/dev/null | base64 -d 2>/dev/null || openssl rand -hex 16)
+            MINIO_PASS=$(sudo kubectl get secret blyss-secrets -n $NS -o jsonpath='{.data.POLAR_MINIO_PWD}' 2>/dev/null | base64 -d 2>/dev/null || openssl rand -hex 16)
+            APP_SECRET=$(sudo kubectl get secret blyss-secrets -n $NS -o jsonpath='{.data.POLAR_SECRET}' 2>/dev/null | base64 -d 2>/dev/null || openssl rand -hex 32)
 
             sudo kubectl create secret generic blyss-secrets -n $NS \
               --dry-run=client -o yaml \
-              --from-literal=POSTGRES_USER=blyss \
-              --from-literal=POSTGRES_PASSWORD="$POSTGRES_PASS" \
-              --from-literal=POSTGRES_HOST=postgres \
-              --from-literal=POSTGRES_PORT=5432 \
-              --from-literal=POSTGRES_DATABASE=blyss \
-              --from-literal=REDIS_URL=redis://redis:6379/0 \
-              --from-literal=MINIO_ROOT_USER=minioadmin \
-              --from-literal=MINIO_ROOT_PASSWORD="$MINIO_PASS" \
-              --from-literal=AWS_ACCESS_KEY_ID=minioadmin \
-              --from-literal=AWS_SECRET_ACCESS_KEY="$MINIO_PASS" \
-              --from-literal=AWS_S3_ENDPOINT=http://minio:9000 \
-              --from-literal=AWS_S3_FILES_BUCKET=blyss-files \
-              --from-literal=AWS_S3_PUBLIC_BUCKET=blyss-public \
-              --from-literal=SECRET="$APP_SECRET" \
-              --from-literal=POLAR_AUTH_COOKIE_KEY=polar_session \
-              --from-literal=FRONTEND_BASE_URL=https://blyss.co.ke \
-              --from-literal=CHECKOUT_BASE_URL=https://buy.blyss.co.ke \
-              --from-literal=PLATFORM_NAME=Blyss \
-              --from-literal=PLATFORM_FEE_BASIS_POINTS=2000 \
-              --from-literal=EMAIL_FROM_NAME=Blyss \
-              --from-literal=EMAIL_FROM_ADDRESS=hello@blyss.co.ke \
-              --from-literal=PAYSTACK_SECRET_KEY="${PAYSTACK_SECRET_KEY:-sk_test_placeholder}" \
-              --from-literal=PAYSTACK_PUBLIC_KEY="${PAYSTACK_PUBLIC_KEY:-pk_test_placeholder}" \
-              --from-literal=PAYSTACK_WEBHOOK_SECRET="${PAYSTACK_WEBHOOK_SECRET:-placeholder}" \
-              --from-literal=RESEND_API_KEY="${RESEND_API_KEY:-placeholder}" \
-              --from-literal=GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID:-}" \
-              --from-literal=GOOGLE_CLIENT_SECRET="${GOOGLE_CLIENT_SECRET:-}" \
-              --from-literal=APPLE_CLIENT_ID="${APPLE_CLIENT_ID:-}" \
-              --from-literal=APPLE_TEAM_ID="${APPLE_TEAM_ID:-}" \
-              --from-literal=APPLE_KEY_ID="${APPLE_KEY_ID:-}" \
-              --from-literal=APPLE_PRIVATE_KEY="${APPLE_PRIVATE_KEY:-}" \
-              --from-literal=SENTRY_DSN="${SENTRY_DSN:-}" \
-              --from-literal=POSTHOG_KEY="${POSTHOG_KEY:-}" \
+              --from-literal=POLAR_ENV=production \
+              --from-literal=POLAR_LOG_LEVEL=INFO \
+              --from-literal=POLAR_TESTING=0 \
+              --from-literal=POLAR_SQLALCHEMY_DEBUG=0 \
+              --from-literal=POLAR_DEFAULT_CURRENCY=KES \
+              --from-literal=POLAR_CORS_ORIGINS='["https://blyss.co.ke","https://www.blyss.co.ke","https://buy.blyss.co.ke","https://my.blyss.co.ke"]' \
+              --from-literal=POLAR_ALLOWED_HOSTS='["blyss.co.ke","www.blyss.co.ke","buy.blyss.co.ke","my.blyss.co.ke","api.blyss.co.ke"]' \
+              --from-literal=POLAR_FRONTEND_BASE_URL=https://blyss.co.ke \
+              --from-literal=POLAR_BASE_URL=https://api.blyss.co.ke \
+              --from-literal=POLAR_CHECKOUT_BASE_URL=https://buy.blyss.co.ke/checkout/{client_secret} \
+              --from-literal=POLAR_USER_SESSION_COOKIE_DOMAIN=blyss.co.ke \
+              --from-literal=POLAR_SECRET="$APP_SECRET" \
+              --from-literal=POLAR_POSTGRES_USER=blyss \
+              --from-literal=POLAR_POSTGRES_PWD="$POSTGRES_PASS" \
+              --from-literal=POLAR_POSTGRES_HOST=postgres \
+              --from-literal=POLAR_POSTGRES_PORT=5432 \
+              --from-literal=POLAR_POSTGRES_DATABASE=blyss \
+              --from-literal=POLAR_POSTGRES_SSL_MODE= \
+              --from-literal=POLAR_REDIS_HOST=redis \
+              --from-literal=POLAR_REDIS_PORT=6379 \
+              --from-literal=POLAR_REDIS_DB=0 \
+              --from-literal=POLAR_REDIS_PASSWORD= \
+              --from-literal=POLAR_REDIS_SSL=False \
+              --from-literal=POLAR_MINIO_USER=blyssadmin \
+              --from-literal=POLAR_MINIO_PWD="$MINIO_PASS" \
+              --from-literal=POLAR_AWS_ACCESS_KEY_ID=blyssadmin \
+              --from-literal=POLAR_AWS_SECRET_ACCESS_KEY="$MINIO_PASS" \
+              --from-literal=POLAR_AWS_REGION=us-east-1 \
+              --from-literal=POLAR_S3_ENDPOINT_URL=http://minio:9000 \
+              --from-literal=POLAR_S3_PUBLIC_ENDPOINT_URL=https://cdn.blyss.co.ke \
+              --from-literal=POLAR_S3_FILES_BUCKET_NAME=blyss-private \
+              --from-literal=POLAR_S3_FILES_PUBLIC_BUCKET_NAME=blyss-public \
+              --from-literal=POLAR_S3_CUSTOMER_INVOICES_BUCKET_NAME=blyss-private \
+              --from-literal=POLAR_S3_PAYOUT_INVOICES_BUCKET_NAME=blyss-private \
+              --from-literal=POLAR_EMAIL_SENDER=resend \
+              --from-literal=POLAR_EMAIL_FROM_NAME=Blyss \
+              --from-literal=POLAR_EMAIL_FROM_DOMAIN=notifications.blyss.co.ke \
+              --from-literal=POLAR_EMAIL_FROM_LOCAL=hello \
+              --from-literal=POLAR_EMAIL_DEFAULT_REPLY_TO_NAME="Blyss Support" \
+              --from-literal=POLAR_EMAIL_DEFAULT_REPLY_TO_EMAIL_ADDRESS=hello@blyss.co.ke \
+              --from-literal=POLAR_INVOICES_ADDITIONAL_INFO="Blyss · Nairobi" \
+              --from-literal=POLAR_PLATFORM_FEE_BASIS_POINTS=2000 \
+              --from-literal=POLAR_PLATFORM_FEE_FIXED=0 \
+              --from-literal=POLAR_FAVICON_URL=https://cdn.blyss.co.ke/brand/favicon.png \
+              --from-literal=POLAR_THUMBNAIL_URL=https://cdn.blyss.co.ke/brand/og-default.png \
+              --from-literal=POLAR_PAYSTACK_SECRET_KEY="${PAYSTACK_SECRET_KEY:-sk_test_placeholder}" \
+              --from-literal=POLAR_PAYSTACK_PUBLIC_KEY="${PAYSTACK_PUBLIC_KEY:-pk_test_placeholder}" \
+              --from-literal=POLAR_PAYSTACK_WEBHOOK_SECRET="${PAYSTACK_WEBHOOK_SECRET:-placeholder}" \
+              --from-literal=POLAR_RESEND_API_KEY="${RESEND_API_KEY:-}" \
+              --from-literal=POLAR_GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID:-}" \
+              --from-literal=POLAR_GOOGLE_CLIENT_SECRET="${GOOGLE_CLIENT_SECRET:-}" \
+              --from-literal=POLAR_APPLE_CLIENT_ID="${APPLE_CLIENT_ID:-}" \
+              --from-literal=POLAR_APPLE_TEAM_ID="${APPLE_TEAM_ID:-}" \
+              --from-literal=POLAR_APPLE_KEY_ID="${APPLE_KEY_ID:-}" \
+              --from-literal=POLAR_APPLE_KEY_VALUE="${APPLE_PRIVATE_KEY:-}" \
+              --from-literal=POLAR_SENTRY_DSN="${SENTRY_DSN:-}" \
+              --from-literal=POLAR_POSTHOG_PROJECT_API_KEY="${POSTHOG_KEY:-}" \
+              --from-literal=POLAR_POSTHOG_DEBUG=0 \
+              --from-literal=POLAR_SKIP_EMAIL_RENDERER_CHECK=1 \
+              --from-literal=POLAR_STRIPE_SECRET_KEY=sk_test_dummy_unused \
+              --from-literal=POLAR_STRIPE_PUBLISHABLE_KEY=pk_test_dummy_unused \
+              --from-literal=POLAR_STRIPE_WEBHOOK_SECRET=whsec_dummy_unused \
+              --from-literal=POLAR_STRIPE_CONNECT_WEBHOOK_SECRET=whsec_dummy_unused \
               | sudo kubectl apply -f -
             echo "✅ blyss-secrets synced"
 
@@ -235,9 +269,9 @@ jobs:
             echo "==> Running database migrations"
             API_POD=$(sudo kubectl -n $NS get pods -l app=blyss-api --field-selector=status.phase=Running -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
             if [ -n "$API_POD" ]; then
-              sudo kubectl -n $NS exec "$API_POD" -- alembic upgrade head 2>&1 || \
-                sudo kubectl -n $NS exec "$API_POD" -- uv run alembic upgrade head 2>&1 || \
-                echo "⚠️  Migration command not found, may need manual run"
+              sudo kubectl -n $NS exec "$API_POD" -- uv run python -m scripts.db upgrade 2>&1 || \
+                sudo kubectl -n $NS exec "$API_POD" -- python -m scripts.db upgrade 2>&1 || \
+                echo "⚠️  Migration command failed"
             else
               echo "⚠️  No running API pod, skipping migrations"
             fi
@@ -245,8 +279,8 @@ jobs:
             # 8. Seed admin user (idempotent)
             echo "==> Seeding admin user"
             if [ -n "$API_POD" ]; then
-              sudo kubectl -n $NS exec "$API_POD" -- python scripts/seed_admin.py justinequartz@gmail.com 2>&1 || \
-                sudo kubectl -n $NS exec "$API_POD" -- uv run python scripts/seed_admin.py justinequartz@gmail.com 2>&1 || \
+              sudo kubectl -n $NS exec "$API_POD" -- uv run python scripts/seed_admin.py justinequartz@gmail.com 2>&1 || \
+                sudo kubectl -n $NS exec "$API_POD" -- python scripts/seed_admin.py justinequartz@gmail.com 2>&1 || \
                 echo "⚠️  Admin seed failed (non-blocking)"
             fi
 
