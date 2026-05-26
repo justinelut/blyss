@@ -187,6 +187,33 @@ jobs:
             MINIO_PASS=$(sudo kubectl get secret blyss-secrets -n $NS -o jsonpath='{.data.POLAR_MINIO_PWD}' 2>/dev/null | base64 -d 2>/dev/null || openssl rand -hex 16)
             APP_SECRET=$(sudo kubectl get secret blyss-secrets -n $NS -o jsonpath='{.data.POLAR_SECRET}' 2>/dev/null | base64 -d 2>/dev/null || openssl rand -hex 32)
 
+            # JWKS file — generate once via Python script in the API image, persist in dedicated secret.
+            if ! sudo kubectl get secret blyss-jwks -n $NS >/dev/null 2>&1; then
+              echo "==> Generating JWKS via API image"
+              # Spin a one-shot pod that generates the JWKS, capture its stdout
+              POD_NAME="jwks-gen-$(date +%s)"
+              sudo kubectl run -n $NS $POD_NAME --restart=Never \
+                --image=ghcr.io/$REPO_OWNER/blyss-api:${API_TAG} \
+                --overrides='{"spec":{"imagePullSecrets":[{"name":"ghcr-secret"}]}}' \
+                --command -- python -m polar.kit.jwk polar_prod >/dev/null 2>&1 || true
+              # Wait for completion
+              for i in 1 2 3 4 5 6 7 8 9 10; do
+                phase=$(sudo kubectl get pod $POD_NAME -n $NS -o jsonpath='{.status.phase}' 2>/dev/null)
+                if [ "$phase" = "Succeeded" ] || [ "$phase" = "Failed" ]; then break; fi
+                sleep 3
+              done
+              JWKS_JSON=$(sudo kubectl logs $POD_NAME -n $NS 2>/dev/null | tr -d '\r')
+              sudo kubectl delete pod $POD_NAME -n $NS --force --grace-period=0 2>/dev/null || true
+              if echo "$JWKS_JSON" | grep -q '"keys"'; then
+                sudo kubectl create secret generic blyss-jwks -n $NS \
+                  --from-literal=.jwks.json="$JWKS_JSON"
+                echo "✅ JWKS generated and stored"
+              else
+                echo "⚠️  JWKS generation failed:"
+                echo "$JWKS_JSON" | head -5
+              fi
+            fi
+
             sudo kubectl create secret generic blyss-secrets -n $NS \
               --dry-run=client -o yaml \
               --from-literal=POLAR_ENV=production \
@@ -247,6 +274,7 @@ jobs:
               --from-literal=POLAR_SENTRY_DSN="${SENTRY_DSN:-}" \
               --from-literal=POLAR_POSTHOG_PROJECT_API_KEY="${POSTHOG_KEY:-}" \
               --from-literal=POLAR_POSTHOG_DEBUG=0 \
+              --from-literal=POLAR_JWKS=/etc/blyss/jwks/.jwks.json \
               --from-literal=POLAR_STRIPE_SECRET_KEY=sk_test_dummy_unused \
               --from-literal=POLAR_STRIPE_PUBLISHABLE_KEY=pk_test_dummy_unused \
               --from-literal=POLAR_STRIPE_WEBHOOK_SECRET=whsec_dummy_unused \
