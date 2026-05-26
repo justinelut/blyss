@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blyss-api
+  namespace: blyss
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: blyss-api
+  template:
+    metadata:
+      labels:
+        app: blyss-api
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+      containers:
+        - name: api
+          image: ghcr.io/justinelut/blyss-api:latest
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - secretRef:
+                name: blyss-secrets
+          resources:
+            requests:
+              memory: 512Mi
+              cpu: 200m
+            limits:
+              memory: 1Gi
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            failureThreshold: 6
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: blyss-api
+  namespace: blyss
+spec:
+  selector:
+    app: blyss-api
+  ports:
+    - port: 80
+      targetPort: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blyss-worker
+  namespace: blyss
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: blyss-worker
+  template:
+    metadata:
+      labels:
+        app: blyss-worker
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+      containers:
+        - name: worker
+          image: ghcr.io/justinelut/blyss-api:latest
+          command: ["dramatiq", "polar.worker"]
+          envFrom:
+            - secretRef:
+                name: blyss-secrets
+          resources:
+            requests:
+              memory: 256Mi
+              cpu: 100m
+            limits:
+              memory: 512Mi

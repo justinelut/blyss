@@ -11,24 +11,23 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository_owner }}/blyss-web
-  K3S_NAMESPACE: blyss
-  K3S_DEPLOYMENT: blyss-web
 
 jobs:
-  build:
-    name: Build & push image (GitHub runner, ARM64)
+  # ---------------------------------------------------------------------------
+  # Build web image
+  # ---------------------------------------------------------------------------
+  build-web:
+    name: Build web image (ARM64)
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
     outputs:
-      image-tag: ${{ steps.tag.outputs.tag }}
+      tag: ${{ steps.tag.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Compute short SHA tag
-        id: tag
+      - id: tag
         run: echo "tag=$(echo $GITHUB_SHA | cut -c1-7)" >> $GITHUB_OUTPUT
 
       - uses: docker/setup-qemu-action@v3
@@ -39,12 +38,11 @@ jobs:
 
       - uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build & push web image (ARM64)
-        uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v6
         with:
           context: ./clients/web
           file: ./clients/web/Dockerfile
@@ -53,12 +51,56 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository_owner }}/blyss-web:${{ steps.tag.outputs.tag }}
             ghcr.io/${{ github.repository_owner }}/blyss-web:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
 
+  # ---------------------------------------------------------------------------
+  # Build API image
+  # ---------------------------------------------------------------------------
+  build-api:
+    name: Build API image (ARM64)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: tag
+        run: echo "tag=$(echo $GITHUB_SHA | cut -c1-7)" >> $GITHUB_OUTPUT
+
+      - uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: ./server
+          file: ./server/Dockerfile
+          push: true
+          platforms: linux/arm64
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/blyss-api:${{ steps.tag.outputs.tag }}
+            ghcr.io/${{ github.repository_owner }}/blyss-api:latest
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+
+  # ---------------------------------------------------------------------------
+  # Deploy all manifests + roll deployments
+  # ---------------------------------------------------------------------------
   deploy:
     name: Deploy to K3s
-    needs: build
+    needs: [build-web, build-api]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -66,34 +108,35 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Copy k8s manifest to server
+      - name: Copy k8s manifests to server
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ubuntu
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "k8s/blyss-web.yaml"
+          source: "k8s/*.yaml"
           target: "/opt/blyss/"
           strip_components: 0
 
-      - name: Apply manifests and roll deployment
+      - name: Apply manifests and roll deployments
         uses: appleboy/ssh-action@v1.0.3
         env:
-          IMAGE_TAG: ${{ needs.build.outputs.image-tag }}
+          WEB_TAG: ${{ needs.build-web.outputs.tag }}
+          API_TAG: ${{ needs.build-api.outputs.tag }}
           GHCR_USERNAME: ${{ github.actor }}
           GHCR_PULL_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ubuntu
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: IMAGE_TAG,GHCR_USERNAME,GHCR_PULL_TOKEN
-          command_timeout: 10m
+          envs: WEB_TAG,API_TAG,GHCR_USERNAME,GHCR_PULL_TOKEN
+          command_timeout: 15m
           script: |
             set -e
             export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
             NS=blyss
-            DEP=blyss-web
+            REPO_OWNER=justinelut
 
             # 1. Ensure namespace
             sudo kubectl create namespace $NS 2>/dev/null || true
@@ -106,38 +149,61 @@ jobs:
               --docker-password="${GHCR_PULL_TOKEN}" \
               | sudo kubectl apply -f -
 
-            # 3. Apply manifest from /opt/blyss
-            sudo kubectl apply -f /opt/blyss/k8s/blyss-web.yaml
+            # 3. Sync app secrets if missing (placeholder values — update via kubectl edit secret)
+            if ! sudo kubectl get secret blyss-secrets -n $NS >/dev/null 2>&1; then
+              POSTGRES_PASS=$(openssl rand -hex 16)
+              MINIO_PASS=$(openssl rand -hex 16)
+              SECRET=$(openssl rand -hex 32)
+              sudo kubectl create secret generic blyss-secrets -n $NS \
+                --from-literal=POSTGRES_USER=blyss \
+                --from-literal=POSTGRES_PASSWORD="$POSTGRES_PASS" \
+                --from-literal=POSTGRES_HOST=postgres \
+                --from-literal=POSTGRES_PORT=5432 \
+                --from-literal=POSTGRES_DATABASE=blyss \
+                --from-literal=REDIS_URL=redis://redis:6379/0 \
+                --from-literal=MINIO_ROOT_USER=minioadmin \
+                --from-literal=MINIO_ROOT_PASSWORD="$MINIO_PASS" \
+                --from-literal=AWS_ACCESS_KEY_ID=minioadmin \
+                --from-literal=AWS_SECRET_ACCESS_KEY="$MINIO_PASS" \
+                --from-literal=AWS_S3_ENDPOINT=http://minio:9000 \
+                --from-literal=AWS_S3_FILES_BUCKET=blyss-files \
+                --from-literal=AWS_S3_PUBLIC_BUCKET=blyss-public \
+                --from-literal=SECRET="$SECRET" \
+                --from-literal=POLAR_AUTH_COOKIE_KEY=polar_session \
+                --from-literal=FRONTEND_BASE_URL=https://blyss.co.ke \
+                --from-literal=CHECKOUT_BASE_URL=https://buy.blyss.co.ke \
+                --from-literal=PLATFORM_NAME=Blyss \
+                --from-literal=PLATFORM_FEE_BASIS_POINTS=2000 \
+                --from-literal=EMAIL_FROM_NAME=Blyss \
+                --from-literal=EMAIL_FROM_ADDRESS=hello@blyss.co.ke \
+                --from-literal=PAYSTACK_SECRET_KEY=sk_test_placeholder \
+                --from-literal=PAYSTACK_PUBLIC_KEY=pk_test_placeholder \
+                --from-literal=PAYSTACK_WEBHOOK_SECRET=placeholder \
+                --from-literal=RESEND_API_KEY=placeholder
+              echo "✅ Created blyss-secrets with random POSTGRES_PASSWORD + SECRET. Update Paystack/Resend keys via:"
+              echo "   sudo kubectl edit secret blyss-secrets -n $NS"
+            fi
 
-            # 4. Set new image
-            sudo kubectl set image deployment/$DEP \
-              web=ghcr.io/justinelut/blyss-web:${IMAGE_TAG} \
-              -n $NS
-
-            # 5. Wait for rollout with diagnostics
-            sudo kubectl rollout status deployment/$DEP -n $NS --timeout=5m &
-            ROLLOUT_PID=$!
-
-            while kill -0 $ROLLOUT_PID 2>/dev/null; do
-              sleep 10
-              echo "---- $(date -u +%H:%M:%S) pod state ----"
-              sudo kubectl -n $NS get pods -l app=blyss-web -o wide --no-headers 2>/dev/null || true
-              POD=$(sudo kubectl -n $NS get pods -l app=blyss-web \
-                --sort-by=.metadata.creationTimestamp \
-                -o jsonpath='{.items[-1:].metadata.name}' 2>/dev/null || echo "")
-              if [ -n "$POD" ]; then
-                echo "---- logs (last 15 lines) ----"
-                sudo kubectl -n $NS logs "$POD" --tail=15 2>/dev/null || true
-              fi
+            # 4. Apply all manifests
+            for f in /opt/blyss/k8s/*.yaml; do
+              echo "==> kubectl apply -f $f"
+              sudo kubectl apply -f "$f"
             done
 
-            wait $ROLLOUT_PID || {
-              echo "ROLLOUT FAILED — dumping diagnostics"
-              sudo kubectl -n $NS describe deployment/$DEP 2>&1 | tail -30
-              sudo kubectl -n $NS logs deployment/$DEP --tail=50 2>&1 || true
-              sudo kubectl -n $NS logs deployment/$DEP --previous --tail=50 2>&1 || true
-              exit 1
-            }
+            # 5. Update images
+            sudo kubectl set image deployment/blyss-web web=ghcr.io/$REPO_OWNER/blyss-web:${WEB_TAG} -n $NS 2>/dev/null || true
+            sudo kubectl set image deployment/blyss-api api=ghcr.io/$REPO_OWNER/blyss-api:${API_TAG} -n $NS 2>/dev/null || true
+            sudo kubectl set image deployment/blyss-worker worker=ghcr.io/$REPO_OWNER/blyss-api:${API_TAG} -n $NS 2>/dev/null || true
 
-            echo "✅ Deployed ghcr.io/justinelut/blyss-web:${IMAGE_TAG}"
+            # 6. Wait for rollouts
+            for dep in blyss-web blyss-api blyss-worker; do
+              echo "==> Rolling out $dep"
+              sudo kubectl rollout status deployment/$dep -n $NS --timeout=5m 2>/dev/null || {
+                echo "$dep rollout pending, dumping logs:"
+                sudo kubectl -n $NS describe deployment/$dep 2>&1 | tail -20
+                sudo kubectl -n $NS logs deployment/$dep --tail=30 2>&1 || true
+              }
+            done
+
+            echo "✅ Deploy complete"
             sudo kubectl -n $NS get pods
