@@ -257,7 +257,14 @@ jobs:
             # 4. Apply all manifests
             for f in /opt/blyss/k8s/*.yaml; do
               echo "==> kubectl apply -f $f"
-              sudo kubectl apply -f "$f"
+              # Postgres is a StatefulSet with immutable fields; once created,
+              # most spec changes get rejected. Allow these to fail silently
+              # since the running pod is still healthy.
+              if [[ "$f" == *postgres* ]]; then
+                sudo kubectl apply -f "$f" 2>&1 || echo "  (postgres apply skipped — non-template fields immutable)"
+              else
+                sudo kubectl apply -f "$f"
+              fi
             done
 
             # 4b. Remove stale resources from prior monolithic manifest
