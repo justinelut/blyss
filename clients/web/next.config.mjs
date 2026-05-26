@@ -11,7 +11,7 @@ const CODESPACES = process.env.CODESPACES === 'true'
 
 const defaultFrontendHostname = process.env.NEXT_PUBLIC_FRONTEND_BASE_URL
   ? new URL(process.env.NEXT_PUBLIC_FRONTEND_BASE_URL).hostname
-  : 'polar.sh'
+  : 'blyss.co.ke'
 
 const S3_PUBLIC_IMAGES_BUCKET_ORIGIN = process.env
   .S3_PUBLIC_IMAGES_BUCKET_HOSTNAME
@@ -208,74 +208,9 @@ const nextConfig = {
   },
 
   async redirects() {
-    return [
-      // dashboard.polar.sh redirections
-      {
-        source: '/',
-        destination: '/login',
-        has: [
-          {
-            type: 'host',
-            value: 'dashboard.polar.sh',
-          },
-        ],
-        permanent: false,
-      },
-      {
-        source: '/:path*',
-        destination: 'https://polar.sh/:path*',
-        has: [
-          {
-            type: 'host',
-            value: 'dashboard.polar.sh',
-          },
-        ],
-        permanent: false,
-      },
-      {
-        source: '/careers',
-        destination: 'https://polar.sh/company',
-        permanent: false,
-      },
-      {
-        source: '/llms.txt',
-        destination: 'https://polar.sh/docs/llms.txt',
-        permanent: true,
-        has: [
-          {
-            type: 'host',
-            value: 'polar.sh',
-          },
-        ],
-      },
-      {
-        source: '/llms-full.txt',
-        destination: 'https://polar.sh/docs/llms-full.txt',
-        permanent: true,
-        has: [
-          {
-            type: 'host',
-            value: 'polar.sh',
-          },
-        ],
-      },
-
-      // Logged-in user redirections
-      {
-        source: '/',
-        destination: '/start',
-        has: [
-          {
-            type: 'cookie',
-            key: POLAR_AUTH_COOKIE_KEY,
-          },
-          {
-            type: 'host',
-            value: defaultFrontendHostname,
-          },
-        ],
-        permanent: false,
-      },
+    return [      // Logged-in user redirections — disabled. Blyss is a marketplace,
+      // logged-in users still see the marketplace at /; they go to /dashboard
+      // when they want to manage their store.
 
       // Redirect /maintainer to polar.sh if on a different domain name
       {
