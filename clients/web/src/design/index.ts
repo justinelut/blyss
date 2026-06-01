@@ -7,6 +7,8 @@
  */
 
 export { BlyssLogo } from './BlyssLogo'
+export { Button, buttonVariants, type ButtonProps } from './Button'
+export { Input, type InputProps } from './Input'
 export { Eyebrow } from './Eyebrow'
 export { SectionDivider } from './SectionDivider'
 export { Skeleton } from './Skeleton'

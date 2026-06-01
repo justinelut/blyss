@@ -5,8 +5,13 @@ RUN corepack enable
 
 WORKDIR /app
 COPY pnpm-lock.yaml package.json pnpm-workspace.yaml ./
-RUN pnpm install --frozen-lockfile --ignore-scripts
-RUN pnpm rebuild
+
+# Install with scripts allowed. pnpm-workspace.yaml has the explicit allowBuilds
+# config so postinstall steps for native deps (sharp, esbuild, sentry-cli, etc.)
+# run correctly. --ignore-scripts here would cause Next 16's secondary install
+# during `next build` (triggered by lockfile drift detection) to fail.
+ENV CI=true
+RUN pnpm install --frozen-lockfile
 
 COPY . .
 

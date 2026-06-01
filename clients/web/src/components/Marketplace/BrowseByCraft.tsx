@@ -58,8 +58,8 @@ export const BrowseByCraft = ({ categories }: BrowseByCraftProps) => {
               />
             )}
 
-            {/* Subtle warm overlay so the text is always readable */}
-            <div className="absolute inset-0 bg-gradient-to-tr from-[rgba(26,26,23,0.18)] to-transparent" />
+            {/* Subtle warm scrim so the text is always readable (no gradient) */}
+            <div className="absolute inset-0 bg-[rgba(26,26,23,0.32)]" />
 
             {/* Label */}
             <div className="absolute inset-0 flex flex-col justify-end p-5 md:p-6">

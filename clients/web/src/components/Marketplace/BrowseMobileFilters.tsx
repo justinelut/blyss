@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { motion, useReducedMotion, AnimatePresence } from 'motion/react'
-import { SlidersHorizontal, X } from 'lucide-react'
+import { FiSliders, FiX } from 'react-icons/fi'
 import {
   BrowseFilterRail,
   type BrowseFilters,
@@ -41,7 +41,7 @@ export const BrowseMobileFiltersTrigger = ({
         className,
       )}
     >
-      <SlidersHorizontal size={16} strokeWidth={1.75} />
+      <FiSliders size={16} />
       Filters
       {activeCount > 0 && (
         <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--accent)] px-1.5 font-sans text-[11px] font-semibold tabular-nums text-[var(--accent-foreground)]">
@@ -118,7 +118,7 @@ export const BrowseMobileFilters = ({
                 aria-label="Close filters"
                 className="flex h-9 w-9 items-center justify-center rounded-md text-[var(--text-muted)] hover:bg-[var(--surface-sunken)] hover:text-[var(--text-primary)]"
               >
-                <X size={20} strokeWidth={1.75} />
+                <FiX size={20} />
               </button>
             </div>
 

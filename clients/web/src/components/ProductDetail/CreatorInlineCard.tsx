@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { OptimizedImage } from '@/components/Image/OptimizedImage'
-import { ArrowRight } from 'lucide-react'
+import { FiArrowRight } from 'react-icons/fi'
 import { cn } from '@/lib/utils'
 import { typography } from '@/design'
 
@@ -50,7 +50,7 @@ export const CreatorInlineCard = ({
         className="mt-5 inline-flex items-center gap-1.5 font-sans text-[14px] font-medium text-[var(--accent)] underline-offset-4 transition-colors hover:underline"
       >
         Visit storefront
-        <ArrowRight size={14} />
+        <FiArrowRight size={14} />
       </Link>
     </div>
   )

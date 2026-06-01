@@ -90,17 +90,10 @@
   --color-polar-900: hsl(24, 16%, 8%);
   --color-polar-950: hsl(24, 18%, 5%);
 
-  /* Etsy Marketplace Colors */
-  --color-orange-50: #fff4ed;
-  --color-orange-100: #ffe5d1;
-  --color-orange-200: #ffc9a3;
-  --color-orange-300: #ffa66a;
-  --color-orange-400: #ff7a2f;
-  --color-orange-500: #f1641e;
-  --color-orange-600: #d9541a;
-  --color-orange-700: #b33d0f;
-  --color-orange-800: #8f2f0a;
-  --color-orange-900: #732508;
+  /* NOTE: a former off-brand marketplace orange ramp and the teal ramp were
+   * removed (0 usages, off-palette per §3.2). The Blyss brand orange is the
+   * --color-primary ramp below (burnt orange #C2410C). amber/blue/green ramps
+   * are retained because the dashboard/charts depend on them. */
 
   --color-amber-50: #fffbeb;
   --color-amber-100: #fff4c6;
@@ -112,17 +105,6 @@
   --color-amber-700: #b45309;
   --color-amber-800: #92400e;
   --color-amber-900: #78350f;
-
-  --color-teal-50: #f0fdfa;
-  --color-teal-100: #ccfbf1;
-  --color-teal-200: #99f6e4;
-  --color-teal-300: #5eead4;
-  --color-teal-400: #2dd4bf;
-  --color-teal-500: #00a699;
-  --color-teal-600: #0d9488;
-  --color-teal-700: #0f766e;
-  --color-teal-800: #115e59;
-  --color-teal-900: #134e4a;
 
   /* Editorial Design System — Blyss palette
    * Tokens come from src/design/tokens.css (imported above).
@@ -236,11 +218,7 @@
 
 @layer base {
   html {
-    @apply text-gray-900;
-  }
-
-  html.dark {
-    @apply text-gray-200;
+    color: var(--text-primary);
   }
 
   *,
@@ -252,6 +230,7 @@
   }
 
   body {
+    background-color: var(--background);
     color: var(--foreground);
   }
 }

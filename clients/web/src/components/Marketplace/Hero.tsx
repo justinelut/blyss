@@ -4,7 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { motion, useReducedMotion, useScroll, useTransform } from 'motion/react'
 import { useRef } from 'react'
-import { ArrowRight } from 'lucide-react'
+import { FiArrowRight } from 'react-icons/fi'
 import { schemas } from '@/lib/api'
 import { Eyebrow } from '@/design'
 import { cn } from '@/lib/utils'
@@ -104,7 +104,7 @@ export const Hero = ({ showcaseProducts = [] }: HeroProps) => {
               className="group inline-flex h-13 items-center justify-center gap-2 rounded-md bg-[var(--accent)] px-7 py-4 font-sans text-[15px] font-medium text-[var(--accent-foreground)] transition-all hover:bg-[var(--accent-hover)] hover:gap-3"
             >
               Start selling
-              <ArrowRight
+              <FiArrowRight
                 size={16}
                 className="transition-transform duration-300 group-hover:translate-x-0.5"
               />
@@ -162,7 +162,7 @@ function ShowcaseMosaic({
   const placeholderTiles = [
     { eyebrow: 'Templates', title: 'Notion OS', price: 'KSh 2,400', tone: 'bg-[var(--surface-sunken)]', accent: '#C2410C', span: 'col-span-2 row-span-2' },
     { eyebrow: 'Beats', title: 'Lagos Drum Kit', price: 'KSh 1,200', tone: 'bg-[var(--surface)]', accent: '#1A1A17', span: 'col-span-2' },
-    { eyebrow: 'Course', title: 'M-Pesa for Devs', price: 'KSh 4,500', tone: 'bg-[#1A1A17] text-[#FAFAF7]', accent: '#FAFAF7', span: 'col-span-2' },
+    { eyebrow: 'Course', title: 'M-Pesa for Devs', price: 'KSh 4,500', tone: 'dark bg-[var(--background)] text-[var(--text-primary)]', accent: '#FAFAF7', span: 'col-span-2' },
     { eyebrow: 'Subscription', title: 'Kenyan Type', price: 'KSh 800/mo', tone: 'bg-[var(--accent)] text-[var(--accent-foreground)]', accent: '#FAFAF7', span: 'col-span-2' },
   ]
 

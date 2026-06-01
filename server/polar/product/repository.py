@@ -178,6 +178,84 @@ class ProductRepository(
 
         return await self.get_all(statement)
 
+    async def get_by_slug(
+        self,
+        slug: str,
+        *,
+        options: Options = (),
+    ) -> Product | None:
+        """
+        Get a public product by slug or UUID.
+
+        We accept either a UUID (what the marketplace cards link to) or the
+        product name treated as a slug, until a dedicated `slug` column lands
+        on the Product model. The marketplace URL `/product/{id}` resolves
+        UUIDs here.
+        """
+        try:
+            product_id = UUID(slug)
+        except (ValueError, AttributeError):
+            product_id = None
+
+        base = self.get_base_statement().options(*options)
+
+        if product_id is not None:
+            statement = base.where(
+                Product.id == product_id,
+                Product.is_deleted.is_(False),
+                Product.visibility == ProductVisibility.public,
+            )
+            product = await self.get_one_or_none(statement)
+            if product is not None:
+                return product
+
+        statement = base.where(
+            Product.name == slug,
+            Product.is_deleted.is_(False),
+            Product.visibility == ProductVisibility.public,
+        )
+        return await self.get_one_or_none(statement)
+
+    async def get_related_products(
+        self,
+        product_id: UUID,
+        organization_id: UUID,
+        limit: int = 4,
+        *,
+        options: Options = (),
+    ) -> Sequence[Product]:
+        """Get related products based on same organization (creator)."""
+        statement = (
+            self.get_base_statement()
+            .where(
+                Product.organization_id == organization_id,
+                Product.id != product_id,
+                Product.is_deleted.is_(False),
+                Product.is_archived.is_(False),
+                Product.visibility == ProductVisibility.public,
+            )
+            .limit(limit)
+            .options(*options)
+        )
+        return await self.get_all(statement)
+
+    async def track_product_view(
+        self,
+        product_id: UUID,
+        session_id: str | None = None,
+        user_id: UUID | None = None,
+    ) -> None:
+        """Track a product view for analytics (creates a ProductView record)."""
+        from polar.models import ProductView
+
+        view = ProductView(
+            product_id=product_id,
+            session_id=session_id,
+            user_id=user_id,
+        )
+        self.session.add(view)
+        await self.session.flush()
+
 
 class ProductPriceRepository(
     RepositorySoftDeletionIDMixin[ProductPrice, UUID],
@@ -239,91 +317,3 @@ class ProductPriceRepository(
 
         return statement
 
-    async def get_by_slug(
-        self,
-        slug: str,
-        *,
-        options: Options = (),
-    ) -> Product | None:
-        """
-        Get a public product by slug or UUID.
-
-        For now we accept either a UUID (preferred — what the marketplace
-        cards link to) or the product name treated as a slug. Until a
-        dedicated `slug` column lands on the Product model, the marketplace
-        URL `/product/{id}` resolves UUIDs here.
-
-        TODO: Add a dedicated `slug` field to Product so the URL can be
-        editorial ("kenyan-presets") instead of a UUID.
-        """
-        # First try the UUID path so the SQL planner uses the primary-key
-        # index. If `slug` doesn't parse as a UUID, fall back to name match.
-        try:
-            product_id = UUID(slug)
-        except (ValueError, AttributeError):
-            product_id = None
-
-        base = self.get_base_statement().options(*options)
-
-        if product_id is not None:
-            statement = base.where(
-                Product.id == product_id,
-                Product.is_deleted.is_(False),
-                Product.visibility == ProductVisibility.public,
-            )
-            product = await self.get_one_or_none(statement)
-            if product is not None:
-                return product
-
-        statement = base.where(
-            Product.name == slug,
-            Product.is_deleted.is_(False),
-            Product.visibility == ProductVisibility.public,
-        )
-        return await self.get_one_or_none(statement)
-
-    async def get_related_products(
-        self,
-        product_id: UUID,
-        organization_id: UUID,
-        limit: int = 4,
-        *,
-        options: Options = (),
-    ) -> Sequence[Product]:
-        """
-        Get related products based on same organization (creator).
-        TODO: Enhance with category matching when category system is implemented.
-        """
-        statement = (
-            self.get_base_statement()
-            .where(
-                Product.organization_id == organization_id,
-                Product.id != product_id,
-                Product.is_deleted.is_(False),
-                Product.is_archived.is_(False),
-                Product.visibility == ProductVisibility.public,
-            )
-            .limit(limit)
-            .options(*options)
-        )
-        return await self.get_all(statement)
-
-    async def track_product_view(
-        self,
-        product_id: UUID,
-        session_id: str | None = None,
-        user_id: UUID | None = None,
-    ) -> None:
-        """
-        Track a product view for analytics.
-        Creates a ProductView record.
-        """
-        from polar.models import ProductView
-
-        view = ProductView(
-            product_id=product_id,
-            session_id=session_id,
-            user_id=user_id,
-        )
-        self.session.add(view)
-        await self.session.flush()

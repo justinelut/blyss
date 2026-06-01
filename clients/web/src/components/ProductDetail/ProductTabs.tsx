@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { schemas } from '@/lib/api'
 import { LegalDoc, typography } from '@/design'
 import { cn } from '@/lib/utils'
-import { FileText, Check } from 'lucide-react'
+import { FiFileText, FiCheck } from 'react-icons/fi'
 
 type Product = schemas['Product']
 
@@ -91,7 +91,7 @@ export const ProductTabs = ({ product, reviewsContent }: ProductTabsProps) => {
                 key={i}
                 className="flex items-center gap-3 rounded-md bg-[var(--surface-sunken)] p-3"
               >
-                <FileText size={18} className="shrink-0 text-[var(--text-muted)]" />
+                <FiFileText size={18} className="shrink-0 text-[var(--text-muted)]" />
                 <span className="flex-1 font-sans text-[14px] text-[var(--text-primary)]">
                   {(m as any).name || `File ${i + 1}`}
                 </span>
@@ -108,7 +108,7 @@ export const ProductTabs = ({ product, reviewsContent }: ProductTabsProps) => {
                 <ul className="flex flex-col gap-2">
                   {benefits.map((b: any, i: number) => (
                     <li key={i} className="flex items-start gap-2 font-sans text-[14px] text-[var(--text-secondary)]">
-                      <Check size={15} className="mt-0.5 shrink-0 text-[var(--accent)]" />
+                      <FiCheck size={15} className="mt-0.5 shrink-0 text-[var(--accent)]" />
                       {b.description || b.name || 'Benefit'}
                     </li>
                   ))}
@@ -122,7 +122,7 @@ export const ProductTabs = ({ product, reviewsContent }: ProductTabsProps) => {
           <ul className="flex flex-col gap-3">
             {benefits.map((b: any, i: number) => (
               <li key={i} className="flex items-start gap-3 font-sans text-[15px] text-[var(--text-secondary)]">
-                <Check size={16} className="mt-0.5 shrink-0 text-[var(--accent)]" />
+                <FiCheck size={16} className="mt-0.5 shrink-0 text-[var(--accent)]" />
                 <div>
                   <span className="font-medium text-[var(--text-primary)]">{b.name || b.description}</span>
                   {b.description && b.name && (

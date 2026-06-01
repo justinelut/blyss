@@ -1,6 +1,6 @@
 'use client'
 
-import { Mail, Globe, Instagram, Twitter } from 'lucide-react'
+import { FiMail, FiGlobe, FiInstagram, FiTwitter } from 'react-icons/fi'
 import { LegalDoc, typography } from '@/design'
 import { cn } from '@/lib/utils'
 
@@ -26,7 +26,7 @@ export interface AboutTabProps {
 interface SocialItem {
   href: string
   label: string
-  Icon: typeof Twitter
+  Icon: typeof FiTwitter
 }
 
 /**
@@ -49,21 +49,21 @@ export const AboutTab = ({ name, bio, socials, email }: AboutTabProps) => {
     items.push({
       href: normalizeUrl(socials.twitter, 'https://x.com/'),
       label: 'X / Twitter',
-      Icon: Twitter,
+      Icon: FiTwitter,
     })
   }
   if (socials?.instagram) {
     items.push({
       href: normalizeUrl(socials.instagram, 'https://instagram.com/'),
       label: 'Instagram',
-      Icon: Instagram,
+      Icon: FiInstagram,
     })
   }
   if (socials?.website) {
     items.push({
       href: normalizeUrl(socials.website, 'https://'),
       label: 'Website',
-      Icon: Globe,
+      Icon: FiGlobe,
     })
   }
 
@@ -139,9 +139,8 @@ export const AboutTab = ({ name, bio, socials, email }: AboutTabProps) => {
                     href={`mailto:${email}`}
                     className="group inline-flex items-center gap-3 font-sans text-[15px] text-[var(--text-secondary)] transition-colors hover:text-[var(--accent)]"
                   >
-                    <Mail
+                    <FiMail
                       size={18}
-                      strokeWidth={1.75}
                       className="text-[var(--text-muted)] transition-colors group-hover:text-[var(--accent)]"
                       aria-hidden="true"
                     />

@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { schemas } from '@/lib/api'
 import { OptimizedImage } from '@/components/Image/OptimizedImage'
 import { Eyebrow, SectionDivider, typography } from '@/design'
-import { ArrowRight } from 'lucide-react'
+import { FiArrowRight } from 'react-icons/fi'
 import { cn } from '@/lib/utils'
 
 type Organization = schemas['Organization']
@@ -125,7 +125,7 @@ export const FeaturedCreatorSpotlight = ({
                   {topProduct.name}
                 </p>
               </div>
-              <ArrowRight
+              <FiArrowRight
                 size={18}
                 className="shrink-0 text-[var(--text-muted)] transition-transform group-hover:translate-x-1 group-hover:text-[var(--accent)]"
               />
@@ -139,7 +139,7 @@ export const FeaturedCreatorSpotlight = ({
               className="inline-flex h-12 items-center justify-center rounded-md bg-[var(--accent)] px-6 font-sans text-[15px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)]"
             >
               View storefront
-              <ArrowRight size={16} className="ml-2" />
+              <FiArrowRight size={16} className="ml-2" />
             </Link>
           </div>
         </div>

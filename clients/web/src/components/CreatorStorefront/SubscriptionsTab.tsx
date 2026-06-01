@@ -3,7 +3,7 @@
 import { schemas } from '@/lib/api'
 import { typography } from '@/design'
 import { cn } from '@/lib/utils'
-import { Check } from 'lucide-react'
+import { FiCheck } from 'react-icons/fi'
 
 type Product = schemas['Product']
 type ProductPrice = Product['prices'][number]
@@ -190,9 +190,8 @@ export const SubscriptionsTab = ({
                       key={idx}
                       className="flex items-start gap-3 font-sans text-[14px] leading-[1.55] text-[var(--text-secondary)]"
                     >
-                      <Check
+                      <FiCheck
                         size={16}
-                        strokeWidth={2}
                         className="mt-1 shrink-0 text-[var(--accent)]"
                         aria-hidden="true"
                       />

@@ -16,8 +16,9 @@ export const AuthModal = ({
   const title = isSignup ? 'Sign Up' : 'Log In'
 
   const copy = isSignup ? (
-    <p className="dark:text-polar-500 text-xl text-gray-500">
-      Join thousands of creators monetizing their digital products with Blyss.
+    <p className="font-sans text-xl text-[var(--text-secondary)]">
+      Sell your digital products and subscriptions on Blyss. M-Pesa or card,
+      paid out within 24 hours.
     </p>
   ) : null
 
@@ -25,7 +26,9 @@ export const AuthModal = ({
     <div className="overflow-y-auto p-12">
       <div className="flex flex-col justify-between gap-y-16">
         <div className="flex flex-col gap-y-4">
-          <h1 className="text-3xl">{title}</h1>
+          <h1 className="font-display text-3xl font-semibold text-[var(--text-primary)]">
+            {title}
+          </h1>
           {copy}
         </div>
 

@@ -1,13 +1,18 @@
 packages:
   - "."
 
+# pnpm 11+ requires explicit approval for packages with build scripts.
+# These deps need to run their postinstall to set up native binaries / native
+# bindings (Sharp for image processing, esbuild bundler, unrs-resolver for
+# resolving paths in Rust, sentry-cli for sourcemap upload, protobufjs codegen,
+# core-js patcher).
 allowBuilds:
-  '@sentry/cli': set this to true or false
-  core-js: set this to true or false
-  esbuild: set this to true or false
-  protobufjs: set this to true or false
-  sharp: set this to true or false
-  unrs-resolver: set this to true or false
+  '@sentry/cli': true
+  core-js: true
+  esbuild: true
+  protobufjs: true
+  sharp: true
+  unrs-resolver: true
 
 onlyBuiltDependencies:
   - "@sentry/cli"

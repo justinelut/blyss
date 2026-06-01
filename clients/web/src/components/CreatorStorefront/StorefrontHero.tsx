@@ -1,7 +1,7 @@
 'use client'
 
 import { motion, useReducedMotion } from 'motion/react'
-import { Heart } from 'lucide-react'
+import { FiHeart } from 'react-icons/fi'
 import { OptimizedImage } from '@/components/Image/OptimizedImage'
 import { cn } from '@/lib/utils'
 
@@ -179,7 +179,7 @@ export const StorefrontHero = ({
                   onClick={onTipClick}
                   className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-white/10 px-5 font-sans text-[14px] font-medium text-white backdrop-blur-md transition-colors hover:bg-white/20"
                 >
-                  <Heart size={16} strokeWidth={1.75} />
+                  <FiHeart size={16} />
                   Tip
                 </button>
               )}

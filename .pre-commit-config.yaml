@@ -1,0 +1,14 @@
+# Pre-commit hooks for Blyss. Install: pip install pre-commit && pre-commit install
+# Blocks secrets from being committed (the .env.production / SSH-key leak must
+# never recur). Run once across history audit: pre-commit run gitleaks --all-files
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.21.2
+    hooks:
+      - id: gitleaks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: detect-private-key
+      - id: check-added-large-files
+        args: ['--maxkb=2048']

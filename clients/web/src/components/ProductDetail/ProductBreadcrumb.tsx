@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ChevronRight } from 'lucide-react'
+import { FiChevronRight } from 'react-icons/fi'
 import { cn } from '@/lib/utils'
 
 export interface BreadcrumbCrumb {
@@ -55,9 +55,8 @@ export const ProductBreadcrumb = ({ crumbs, className }: ProductBreadcrumbProps)
                 </span>
               )}
               {!isLast && (
-                <ChevronRight
+                <FiChevronRight
                   size={14}
-                  strokeWidth={1.75}
                   className="text-[var(--text-muted)]"
                   aria-hidden="true"
                 />

@@ -108,6 +108,21 @@ venv.bak/
 !.env.testing
 .env.devcontainer
 
+# --- Secret hardening (post-leak; see SECURITY incident 2026-06) ------------
+# Real environment files must never be committed (templates/examples only).
+.env.production
+.env.development
+.env.local
+server/.env.production
+server/.env.development
+# SSH private keys + any key material
+*.key
+*.pem
+**/ssh-key-*.key
+oracle/**
+!oracle/**/*.md
+.jwks.json
+
 # Spyder project settings
 .spyderproject
 .spyproject

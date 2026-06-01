@@ -8,7 +8,12 @@ from polar.auth.models import Anonymous, AuthSubject, User
 from polar.benefit.schemas import BenefitID
 from polar.exceptions import NotPermitted, PolarRequestValidationError, ResourceNotFound
 from polar.kit.metadata import MetadataQuery, get_metadata_query_openapi_schema
-from polar.kit.pagination import ListResource, PaginationParams, PaginationParamsQuery
+from polar.kit.pagination import (
+    ListResource,
+    Pagination,
+    PaginationParams,
+    PaginationParamsQuery,
+)
 from polar.kit.schemas import MultipleQueryFilter
 from polar.kit.sorting import Sorting, SortingGetter
 from polar.models import Product
@@ -386,9 +391,7 @@ async def update_benefits(
 async def get_product_by_slug(
     slug: str,
     request: Request,
-    auth_subject: Annotated[
-        AuthSubject[Anonymous | User], Depends(WebUserOrAnonymous)
-    ] = None,
+    auth_subject: WebUserOrAnonymous,
     session: AsyncSession = Depends(get_db_session),
 ) -> Product:
     """
@@ -458,9 +461,10 @@ async def get_related_products(
         options=repository.get_eager_options(),
     )
 
+    items = [ProductSchema.model_validate(p) for p in related]
     return ListResource(
-        items=[ProductSchema.model_validate(p) for p in related],
-        pagination=PaginationParams(limit=limit, page=1),
+        items=items,
+        pagination=Pagination(total_count=len(items), max_page=1),
     )
 
 
@@ -472,9 +476,7 @@ async def get_related_products(
 async def track_add_to_cart(
     id: ProductID,
     request: Request,
-    auth_subject: Annotated[
-        AuthSubject[Anonymous | User], Depends(WebUserOrAnonymous)
-    ] = None,
+    auth_subject: WebUserOrAnonymous,
     session: AsyncSession = Depends(get_db_session),
 ) -> None:
     """
