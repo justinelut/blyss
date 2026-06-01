@@ -32,6 +32,25 @@ const formatPrice = (product: Product): string => {
 }
 
 /**
+ * Tonal placeholder palette for cards without uploaded media. Stays inside the
+ * Blyss palette tokens — variations come from background tone + accent tint.
+ * Picked deterministically from product id so the home grid doesn't render
+ * eight identical tiles. (Spec §3.4: real photography or editorial placeholder.)
+ */
+const PLACEHOLDER_TONES = [
+  { bg: 'bg-[var(--surface-sunken)]', mark: 'text-[var(--text-muted)]' },
+  { bg: 'bg-[var(--surface)]', mark: 'text-[var(--text-secondary)]' },
+  { bg: 'bg-[var(--surface-elevated)]', mark: 'text-[var(--text-secondary)]' },
+  { bg: 'bg-[var(--accent)]', mark: 'text-[var(--accent-foreground)]' },
+] as const
+
+const pickTone = (key: string) => {
+  let h = 0
+  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0
+  return PLACEHOLDER_TONES[h % PLACEHOLDER_TONES.length]
+}
+
+/**
  * MarketplaceProductCard — the canonical product card for the marketplace
  * surface. Used in trending grids, featured sections, related products, etc.
  *
@@ -63,7 +82,7 @@ export const MarketplaceProductCard = ({
       aria-label={`${product.name}${creatorName ? ` by ${creatorName}` : ''}`}
       className={cn('group block', className)}
     >
-      {/* Image — 4:5 aspect, hover scale */}
+      {/* Image — 4:5 aspect, hover scale; typographic placeholder when no media */}
       <div className="relative w-full overflow-hidden rounded-md bg-[var(--surface-sunken)]">
         <motion.div
           initial={false}
@@ -73,14 +92,46 @@ export const MarketplaceProductCard = ({
             ease: [0.32, 0.72, 0, 1],
           }}
         >
-          <OptimizedImage
-            src={productImage}
-            alt={`${product.name} — Product cover`}
-            fill
-            aspectRatio="4/5"
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-            className="rounded-md"
-          />
+          {productImage ? (
+            <OptimizedImage
+              src={productImage}
+              alt={`${product.name} — Product cover`}
+              fill
+              aspectRatio="4/5"
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+              className="rounded-md"
+            />
+          ) : (
+            (() => {
+              const tone = pickTone(product.id)
+              return (
+                <div
+                  aria-hidden
+                  className={cn(
+                    'relative flex aspect-[4/5] w-full flex-col justify-between rounded-md p-5 md:p-6',
+                    tone.bg,
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'font-display text-[40px] font-light leading-none md:text-[56px]',
+                      tone.mark,
+                    )}
+                  >
+                    {(creatorName?.[0] ?? product.name[0] ?? '·').toUpperCase()}
+                  </span>
+                  <p
+                    className={cn(
+                      'font-display text-[15px] font-medium leading-tight md:text-[16px]',
+                      tone.mark,
+                    )}
+                  >
+                    {product.name}
+                  </p>
+                </div>
+              )
+            })()
+          )}
         </motion.div>
       </div>
 

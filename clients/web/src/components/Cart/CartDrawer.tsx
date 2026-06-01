@@ -48,6 +48,7 @@ export const CartDrawer = ({ open, onOpenChange }: CartDrawerProps) => {
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
+        hideClose
         className="flex w-full flex-col bg-[var(--background)] p-0 sm:max-w-[420px]"
       >
         {/* Header */}

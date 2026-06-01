@@ -168,6 +168,14 @@ function ShowcaseMosaic({
 
   // If real products passed, render image tiles
   if (products.length >= 4) {
+    // Tonal cycle for image-less tiles — varies per index so the mosaic
+    // doesn't read as four identical blocks. Stays inside the Blyss palette.
+    const tones = [
+      'bg-[var(--surface-sunken)] text-[var(--text-primary)]',
+      'bg-[var(--surface)] text-[var(--text-primary)]',
+      'dark bg-[var(--background)] text-[var(--text-primary)]',
+      'bg-[var(--accent)] text-[var(--accent-foreground)]',
+    ] as const
     return (
       <div className="grid grid-cols-4 grid-rows-3 gap-3 md:gap-4">
         {products.slice(0, 4).map((p, i) => {
@@ -190,34 +198,52 @@ function ShowcaseMosaic({
                   })}
               whileHover={reduce ? undefined : { y: -4 }}
               className={cn(
-                'group relative aspect-[4/5] overflow-hidden rounded-md bg-[var(--surface-sunken)]',
+                'group relative aspect-[4/5] overflow-hidden rounded-md',
+                img ? 'bg-[var(--surface-sunken)]' : tones[i % tones.length],
                 span,
               )}
             >
               <Link href={`/product/${p.id}`} className="block h-full w-full">
-                {img && (
-                  <Image
-                    src={img}
-                    alt={p.name}
-                    fill
-                    sizes="(max-width: 1024px) 50vw, 25vw"
-                    className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-                  />
-                )}
-                <div className="absolute inset-0 bg-[rgba(15,14,12,0.18)]" />
-                <div className="absolute inset-0 flex flex-col justify-between p-4 text-white">
-                  <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-white/85">
-                    {org?.name || 'Blyss'}
-                  </span>
-                  <div>
-                    <h3 className="font-display text-[16px] font-medium leading-tight md:text-[18px]">
-                      {p.name}
-                    </h3>
-                    <p className="mt-1 font-sans text-[12px] tabular-nums text-white/85">
-                      {priceLabel}
-                    </p>
+                {img ? (
+                  <>
+                    <Image
+                      src={img}
+                      alt={p.name}
+                      fill
+                      sizes="(max-width: 1024px) 50vw, 25vw"
+                      className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                    />
+                    <div className="absolute inset-0 bg-[rgba(15,14,12,0.32)]" />
+                    <div className="absolute inset-0 flex flex-col justify-between p-4 text-white md:p-5">
+                      <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-white/85">
+                        {org?.name || 'Blyss'}
+                      </span>
+                      <div>
+                        <h3 className="font-display text-[16px] font-medium leading-tight md:text-[18px]">
+                          {p.name}
+                        </h3>
+                        <p className="mt-1 font-sans text-[12px] tabular-nums text-white/85">
+                          {priceLabel}
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  /* Editorial typographic tile — no image */
+                  <div className="absolute inset-0 flex flex-col justify-between p-4 md:p-5">
+                    <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.14em] opacity-75">
+                      {org?.name || 'Blyss'}
+                    </span>
+                    <div>
+                      <h3 className="font-display text-[16px] font-medium leading-tight md:text-[18px]">
+                        {p.name}
+                      </h3>
+                      <p className="mt-1 font-sans text-[12px] tabular-nums opacity-80">
+                        {priceLabel}
+                      </p>
+                    </div>
                   </div>
-                </div>
+                )}
               </Link>
             </motion.div>
           )
