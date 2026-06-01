@@ -23,12 +23,16 @@ on:
 
 permissions:
   contents: read
+  packages: read
 
 jobs:
   reset:
     name: Wipe + rebuild blyss namespace
     runs-on: ubuntu-latest
     if: ${{ github.event.inputs.confirm == 'RESET' }}
+    permissions:
+      contents: read
+      packages: read   # mints GITHUB_TOKEN with GHCR pull rights for ghcr-secret
     steps:
       - uses: actions/checkout@v4
 
