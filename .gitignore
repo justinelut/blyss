@@ -106,6 +106,10 @@ env.bak/
 venv.bak/
 !.env.template
 !.env.testing
+!*.env.template
+!.env.*.template
+!**/.env.*.template
+!**/*.env.template
 .env.devcontainer
 
 # --- Secret hardening (post-leak; see SECURITY incident 2026-06) ------------
