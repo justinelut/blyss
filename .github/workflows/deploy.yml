@@ -241,7 +241,7 @@ jobs:
               sudo kubectl -n $NS exec "$API_POD" -- sh -c "cd /app/server && uv run alembic upgrade head" 2>&1 || \
                 echo "⚠️  Migration command failed (use the Cluster reset workflow if schema is out of sync)"
               echo "==> Seeding admin"
-              sudo kubectl -n $NS exec "$API_POD" -- sh -c "cd /app/server && uv run python scripts/seed_admin.py justinequartz@gmail.com" 2>&1 || \
+              sudo kubectl -n $NS exec "$API_POD" -- sh -c "cd /app/server && uv run python -m scripts.seed_admin justinequartz@gmail.com" 2>&1 || \
                 echo "⚠️  Admin seed failed (non-blocking)"
             else
               echo "⚠️  No running API pod; skipping migrations + seed"
