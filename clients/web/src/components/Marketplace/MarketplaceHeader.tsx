@@ -1,6 +1,6 @@
 'use client'
 
-import { Search, User, Menu, X } from 'lucide-react'
+import { FiSearch, FiUser, FiMenu, FiX } from 'react-icons/fi'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
@@ -93,7 +93,7 @@ export const MarketplaceHeader = ({ alwaysBlurred = false }: MarketplaceHeaderPr
               aria-label="Search"
               className="flex h-10 w-10 items-center justify-center rounded-md text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-sunken)] hover:text-[var(--text-primary)]"
             >
-              <Search size={20} strokeWidth={1.75} />
+              <FiSearch size={20} />
             </Link>
             <CartButton />
             {authenticated && currentUser ? (
@@ -102,7 +102,7 @@ export const MarketplaceHeader = ({ alwaysBlurred = false }: MarketplaceHeaderPr
                 aria-label="Account"
                 className="hidden h-10 w-10 items-center justify-center rounded-md text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-sunken)] hover:text-[var(--text-primary)] md:flex"
               >
-                <User size={20} strokeWidth={1.75} />
+                <FiUser size={20} />
               </Link>
             ) : (
               <>
@@ -128,7 +128,7 @@ export const MarketplaceHeader = ({ alwaysBlurred = false }: MarketplaceHeaderPr
               aria-expanded={mobileOpen}
               className="flex h-10 w-10 items-center justify-center rounded-md text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-sunken)] hover:text-[var(--text-primary)] md:hidden"
             >
-              {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+              {mobileOpen ? <FiX size={22} /> : <FiMenu size={22} />}
             </button>
           </div>
         </div>

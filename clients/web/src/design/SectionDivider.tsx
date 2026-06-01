@@ -18,7 +18,9 @@ const toneStyles: Record<NonNullable<SectionDividerProps['tone']>, string> = {
   default: 'bg-[var(--background)] text-[var(--text-primary)]',
   sunken: 'bg-[var(--surface)] text-[var(--text-primary)]',
   elevated: 'bg-[var(--surface-elevated)] text-[var(--text-primary)]',
-  dark: 'bg-[#0F0E0C] text-[#F5F2EC]',
+  // `dark` opts the section into the dark token palette (tokens.css cascades
+  // the dark --background / --text-primary / --accent to all descendants).
+  dark: 'dark bg-[var(--background)] text-[var(--text-primary)]',
 }
 
 const densityStyles: Record<NonNullable<SectionDividerProps['density']>, string> = {

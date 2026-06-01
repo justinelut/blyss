@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Heart, Share2 } from 'lucide-react'
+import { FiHeart, FiShare2 } from 'react-icons/fi'
 import { schemas } from '@/lib/api'
 import { OptimizedImage } from '@/components/Image/OptimizedImage'
 import { typography } from '@/design'
@@ -135,6 +135,12 @@ export const ProductInfoColumn = ({
         {isBuyLoading ? 'Adding…' : getBuyLabel(product)}
       </button>
 
+      {/* M-Pesa-first payment note (factual, not a badge strip) */}
+      <p className="-mt-2 flex items-center gap-2 font-sans text-[13px] text-[var(--text-muted)]">
+        <span className="h-1.5 w-1.5 rounded-full bg-[var(--success)]" />
+        Pay with M-Pesa or card · instant download
+      </p>
+
       {/* Secondary actions — Wishlist + Share */}
       <div className="flex items-center gap-3">
         <button
@@ -144,9 +150,8 @@ export const ProductInfoColumn = ({
           aria-pressed={isInWishlist}
           className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-md border border-[var(--border-strong)] bg-transparent font-sans text-[14px] font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-sunken)]"
         >
-          <Heart
+          <FiHeart
             size={16}
-            strokeWidth={1.75}
             className={cn(
               isInWishlist
                 ? 'fill-[var(--accent)] text-[var(--accent)]'
@@ -161,7 +166,7 @@ export const ProductInfoColumn = ({
           aria-label="Share product"
           className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-[var(--border-strong)] bg-transparent text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-sunken)] hover:text-[var(--text-primary)]"
         >
-          <Share2 size={16} strokeWidth={1.75} />
+          <FiShare2 size={16} />
         </button>
       </div>
     </div>

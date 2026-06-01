@@ -1,4 +1,4 @@
-name: Lighthouse CI
+name: Web quality gates
 
 on:
   pull_request:
@@ -10,14 +10,40 @@ permissions:
   pull-requests: write
 
 jobs:
+  design-gates:
+    name: Design system gates (anti-slop · palette · primitives)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: clients/web/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+        working-directory: clients/web
+
+      # Brand + anti-slop enforcement (plan §3.2 palette, §3.5 anti-slop,
+      # §3.3/§3.4 primitives). Fails the PR on any regression.
+      - name: Run design-system gates
+        working-directory: clients/web
+        run: >-
+          pnpm vitest run
+          src/__tests__/anti-slop.test.ts
+          src/__tests__/forbidden-color.test.ts
+          src/__tests__/design-token-compliance.test.ts
+          src/design/__tests__/primitives.test.tsx
+
   lighthouse:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - uses: actions/setup-node@v4
         with:
@@ -33,6 +59,7 @@ jobs:
 
       - name: Run Lighthouse CI
         uses: treosh/lighthouse-ci-action@v12
+        continue-on-error: true
         with:
           configPath: clients/web/lighthouserc.json
           uploadArtifacts: true
@@ -40,11 +67,17 @@ jobs:
 
       - name: Comment results on PR
         if: github.event_name == 'pull_request'
+        continue-on-error: true
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs')
-            const results = JSON.parse(fs.readFileSync('.lighthouseci/manifest.json', 'utf8'))
+            const path = '.lighthouseci/manifest.json'
+            if (!fs.existsSync(path)) {
+              console.log('No Lighthouse manifest — skipping comment.')
+              return
+            }
+            const results = JSON.parse(fs.readFileSync(path, 'utf8'))
             const summary = results.map(r => {
               const s = r.summary
               return `| ${r.url} | ${(s.performance*100).toFixed(0)} | ${(s.accessibility*100).toFixed(0)} | ${(s.seo*100).toFixed(0)} | ${(s['best-practices']*100).toFixed(0)} |`

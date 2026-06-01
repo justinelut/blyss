@@ -237,13 +237,11 @@ jobs:
             # 9. Run migrations
             API_POD=$(sudo kubectl -n $NS get pods -l app=blyss-api --field-selector=status.phase=Running -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
             if [ -n "$API_POD" ]; then
-              echo "==> Running migrations"
-              sudo kubectl -n $NS exec "$API_POD" -- uv run python -m scripts.db upgrade 2>&1 || \
-                sudo kubectl -n $NS exec "$API_POD" -- python -m scripts.db upgrade 2>&1 || \
-                echo "⚠️  Migration command failed"
+              echo "==> Running alembic migrations"
+              sudo kubectl -n $NS exec "$API_POD" -- sh -c "cd /app/server && uv run alembic upgrade head" 2>&1 || \
+                echo "⚠️  Migration command failed (use the Cluster reset workflow if schema is out of sync)"
               echo "==> Seeding admin"
-              sudo kubectl -n $NS exec "$API_POD" -- uv run python scripts/seed_admin.py justinequartz@gmail.com 2>&1 || \
-                sudo kubectl -n $NS exec "$API_POD" -- python scripts/seed_admin.py justinequartz@gmail.com 2>&1 || \
+              sudo kubectl -n $NS exec "$API_POD" -- sh -c "cd /app/server && uv run python scripts/seed_admin.py justinequartz@gmail.com" 2>&1 || \
                 echo "⚠️  Admin seed failed (non-blocking)"
             else
               echo "⚠️  No running API pod; skipping migrations + seed"

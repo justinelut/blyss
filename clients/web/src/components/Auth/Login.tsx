@@ -88,24 +88,24 @@ const Login = ({
       <div className="flex w-full flex-col gap-y-4">
         <GoogleLoginButton {...loginProps} />
         <div className="flex w-full flex-row items-center gap-6">
-          <div className="dark:border-polar-700 grow border-t border-gray-200"></div>
-          <div className="text-sm text-gray-500">or</div>
-          <div className="dark:border-polar-700 grow border-t border-gray-200"></div>
+          <div className="grow border-t border-[var(--border)]"></div>
+          <div className="font-sans text-sm text-[var(--text-muted)]">or</div>
+          <div className="grow border-t border-[var(--border)]"></div>
         </div>
         <LoginCodeForm {...loginProps} />
       </div>
-      <div className="dark:text-polar-500 mt-6 text-center text-xs text-balance text-gray-400">
+      <div className="mt-6 text-center font-sans text-xs text-balance text-[var(--text-muted)]">
         By using Blyss, you agree to our{' '}
         <a
-          className="dark:text-polar-300 text-gray-600"
-          href="https://blyss.co.ke/legal/terms"
+          className="text-[var(--text-secondary)] underline-offset-2 hover:text-[var(--accent)] hover:underline"
+          href="/terms"
         >
           Terms of Service
         </a>{' '}
         &amp;{' '}
         <a
-          className="dark:text-polar-300 text-gray-600"
-          href="https://blyss.co.ke/legal/privacy"
+          className="text-[var(--text-secondary)] underline-offset-2 hover:text-[var(--accent)] hover:underline"
+          href="/privacy"
         >
           Privacy Policy
         </a>

@@ -1,0 +1,51 @@
+{
+  "name": "blyss",
+  "description": "Blyss premium marketplace rebrand agent. Auto-loads the design/anti-slop skills and the Blyss brand spec, and wires shadcn + Playwright + Context7 MCP servers for component lookups, screenshot self-critique, and version-correct docs.",
+  "prompt": null,
+  "mcpServers": {
+    "shadcn": {
+      "command": "npx",
+      "args": ["-y", "shadcn@latest", "mcp"],
+      "timeout": 120000
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest", "--headless"],
+      "timeout": 120000
+    },
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp@latest"],
+      "timeout": 120000
+    }
+  },
+  "tools": [
+    "read",
+    "write",
+    "shell",
+    "grep",
+    "glob",
+    "code",
+    "knowledge",
+    "thinking",
+    "todo",
+    "@shadcn",
+    "@playwright",
+    "@context7"
+  ],
+  "allowedTools": [
+    "read",
+    "grep",
+    "glob",
+    "@shadcn",
+    "@context7"
+  ],
+  "resources": [
+    "file://clients/web/AGENTS.md",
+    "file://plan/04-ui-direction.md",
+    "skill://.kiro/skills/**/SKILL.md"
+  ],
+  "toolsSettings": {},
+  "includeMcpJson": true,
+  "model": null
+}

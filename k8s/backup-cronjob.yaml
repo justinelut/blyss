@@ -1,5 +1,6 @@
-# Postgres backup CronJob — runs daily at 03:00 EAT, uploads to Backblaze B2.
-# Per plan/12-deployment.md backup section.
+# Postgres backup CronJob — runs daily at 03:00 EAT, uploads to Backblaze B2
+# (S3-compatible). When B2 credentials are not present, the job still runs
+# pg_dump locally and skips the upload (no CrashLoop). Per plan §12 backups.
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -26,33 +27,43 @@ spec:
                   TIMESTAMP=$(date +%Y%m%d_%H%M%S)
                   FILENAME="blyss_${TIMESTAMP}.sql.gz"
                   pg_dump -h postgres -U "$POSTGRES_USER" "$POSTGRES_DB" | gzip > /tmp/${FILENAME}
-                  # Upload to Backblaze B2 via S3-compatible API
-                  apk add --no-cache aws-cli
-                  aws s3 cp /tmp/${FILENAME} s3://blyss-backups/${FILENAME} \
-                    --endpoint-url "$B2_ENDPOINT"
-                  echo "Backup uploaded: ${FILENAME}"
+                  echo "pg_dump complete: /tmp/${FILENAME} ($(du -h /tmp/${FILENAME} | cut -f1))"
+                  if [ -n "$AWS_ACCESS_KEY_ID" ] && [ -n "$AWS_SECRET_ACCESS_KEY" ] && [ -n "$B2_ENDPOINT" ]; then
+                    apk add --no-cache aws-cli
+                    aws s3 cp /tmp/${FILENAME} s3://blyss-backups/${FILENAME} --endpoint-url "$B2_ENDPOINT"
+                    echo "Backup uploaded: ${FILENAME}"
+                  else
+                    echo "B2 credentials not configured — pg_dump produced but not uploaded."
+                    echo "(Set POLAR_B2_KEY_ID + POLAR_B2_APPLICATION_KEY in ENV_SECRET to enable upload.)"
+                  fi
               env:
                 - name: POSTGRES_USER
                   valueFrom:
                     secretKeyRef:
                       name: blyss-secrets
-                      key: POSTGRES_USER
+                      key: POLAR_POSTGRES_USER
                 - name: PGPASSWORD
                   valueFrom:
                     secretKeyRef:
                       name: blyss-secrets
-                      key: POSTGRES_PASSWORD
+                      key: POLAR_POSTGRES_PWD
                 - name: POSTGRES_DB
-                  value: blyss
+                  valueFrom:
+                    secretKeyRef:
+                      name: blyss-secrets
+                      key: POLAR_POSTGRES_DATABASE
+                      optional: true
                 - name: AWS_ACCESS_KEY_ID
                   valueFrom:
                     secretKeyRef:
                       name: blyss-secrets
-                      key: B2_KEY_ID
+                      key: POLAR_B2_KEY_ID
+                      optional: true
                 - name: AWS_SECRET_ACCESS_KEY
                   valueFrom:
                     secretKeyRef:
                       name: blyss-secrets
-                      key: B2_APPLICATION_KEY
+                      key: POLAR_B2_APPLICATION_KEY
+                      optional: true
                 - name: B2_ENDPOINT
                   value: "https://s3.us-west-004.backblazeb2.com"

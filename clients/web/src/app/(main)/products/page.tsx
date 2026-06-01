@@ -1,25 +1,12 @@
-import { Metadata } from 'next'
-import { BrowseProductsPage } from './BrowseProductsPage'
+import { permanentRedirect } from 'next/navigation'
 
-export const metadata: Metadata = {
-  title: 'Browse Products | Blyss Marketplace',
-  description:
-    'Discover and browse digital products from Kenyan creators. Find digital art, templates, e-books, music, and more.',
-  openGraph: {
-    title: 'Browse Products | Blyss Marketplace',
-    description:
-      'Discover and browse digital products from Kenyan creators. Find digital art, templates, e-books, music, and more.',
-    type: 'website',
-  },
-  alternates: {
-    canonical: '/products',
-  },
-  robots: {
-    index: true,
-    follow: true,
-  },
-}
-
+/**
+ * /products is the legacy browse route. The canonical, redesigned browse
+ * experience lives at /marketplace (see plan §6.2, Lighthouse config, and the
+ * marketplace nav). We permanently redirect so the old Polar-styled page is no
+ * longer part of the live surface. The legacy component files are left on disk
+ * (no file/dependency removal) but are no longer reachable.
+ */
 export default function Page() {
-  return <BrowseProductsPage />
+  permanentRedirect('/marketplace')
 }

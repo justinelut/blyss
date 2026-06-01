@@ -1,6 +1,6 @@
 'use client'
 
-import { Search, X } from 'lucide-react'
+import { FiSearch, FiX } from 'react-icons/fi'
 import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 
@@ -40,9 +40,8 @@ export const BrowseSearchBar = ({
 
   return (
     <div className={cn('relative w-full', className)}>
-      <Search
+      <FiSearch
         size={18}
-        strokeWidth={1.75}
         aria-hidden="true"
         className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
       />
@@ -67,7 +66,7 @@ export const BrowseSearchBar = ({
           aria-label="Clear search"
           className="absolute right-3 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-md text-[var(--text-muted)] transition-colors hover:bg-[var(--surface)] hover:text-[var(--text-primary)]"
         >
-          <X size={16} strokeWidth={1.75} />
+          <FiX size={16} />
         </button>
       )}
     </div>

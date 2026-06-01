@@ -13,7 +13,7 @@ interface Props { params: Promise<{ id: string }> }
 
 async function fetchProduct(id: string) {
   const api = await getServerSideAPI()
-  return unwrap(api.GET('/v1/products/slug/{slug}', { params: { path: { slug: id }, query: { args: null, kwargs: null } } }))
+  return unwrap(api.GET('/v1/products/slug/{slug}', { params: { path: { slug: id } } }))
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

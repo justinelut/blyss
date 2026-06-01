@@ -113,14 +113,13 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      data-theme="dark"
       suppressHydrationWarning
-      className={`antialiased dark ${inter.variable} ${interDisplay.variable} ${louize.variable} ${GeistMono.variable}`}
+      className={`antialiased ${inter.variable} ${interDisplay.variable} ${louize.variable} ${GeistMono.variable}`}
     >
       <head>
-        {/* Dark mode is the only mode in Blyss v1. data-theme="dark" is set on
-            <html> directly so server-rendered pages match client paint —
-            no FOUC, no theme flash. */}
+        {/* Light is the default, dominant mode (plan/04-ui-direction.md §3.2).
+            Dark is reserved for accent sections, opted into by wrapping the
+            section in `.dark`. No theme class on <html> = light by default. */}
       </head>
       <body
         style={{

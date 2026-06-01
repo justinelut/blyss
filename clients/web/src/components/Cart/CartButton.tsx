@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ShoppingBag } from 'lucide-react'
+import { FiShoppingBag } from 'react-icons/fi'
 import { motion, useReducedMotion, AnimatePresence } from 'motion/react'
 import { useCart } from '@/hooks/queries/cart'
 import { CartDrawer } from './CartDrawer'
@@ -33,7 +33,7 @@ export const CartButton = ({ className }: CartButtonProps) => {
           className,
         )}
       >
-        <ShoppingBag size={20} strokeWidth={1.75} />
+        <FiShoppingBag size={20} />
 
         {/* Item count badge */}
         <AnimatePresence>

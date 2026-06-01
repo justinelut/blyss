@@ -1,6 +1,6 @@
 'use client'
 
-import { X } from 'lucide-react'
+import { FiX } from 'react-icons/fi'
 import type { BrowseFilters, FilterCategory } from './BrowseFilterRail'
 import { cn } from '@/lib/utils'
 
@@ -76,9 +76,8 @@ export const BrowseActiveChips = ({
           )}
         >
           {chip.label}
-          <X
+          <FiX
             size={14}
-            strokeWidth={1.75}
             className="text-[var(--text-muted)] transition-colors group-hover:text-[var(--accent)]"
           />
         </button>

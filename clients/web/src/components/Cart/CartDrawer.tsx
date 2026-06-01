@@ -1,6 +1,6 @@
 'use client'
 
-import { X } from 'lucide-react'
+import { FiX } from 'react-icons/fi'
 import { useRouter } from 'next/navigation'
 import {
   Sheet,
@@ -48,6 +48,7 @@ export const CartDrawer = ({ open, onOpenChange }: CartDrawerProps) => {
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
+        hideClose
         className="flex w-full flex-col bg-[var(--background)] p-0 sm:max-w-[420px]"
       >
         {/* Header */}
@@ -61,7 +62,7 @@ export const CartDrawer = ({ open, onOpenChange }: CartDrawerProps) => {
               aria-label="Close cart"
               className="flex h-9 w-9 items-center justify-center rounded-md text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-sunken)]"
             >
-              <X size={20} />
+              <FiX size={20} />
             </button>
           </SheetClose>
         </SheetHeader>

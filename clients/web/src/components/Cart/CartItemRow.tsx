@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Trash2 } from 'lucide-react'
+import { FiTrash2 } from 'react-icons/fi'
 import { OptimizedImage } from '@/components/Image/OptimizedImage'
 import { schemas } from '@/lib/api'
 import { cn } from '@/lib/utils'
@@ -78,7 +78,7 @@ export const CartItemRow = ({ item, onRemove, isRemoving }: CartItemRowProps) =>
             isRemoving && 'opacity-50',
           )}
         >
-          <Trash2 size={13} />
+          <FiTrash2 size={13} />
           Remove
         </button>
       </div>

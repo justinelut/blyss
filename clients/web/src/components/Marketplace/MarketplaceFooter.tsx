@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Instagram, Twitter } from 'lucide-react'
+import { FiInstagram, FiTwitter } from 'react-icons/fi'
 import { BlyssLogo } from '@/design'
 
 const footerColumns = [
@@ -35,8 +35,8 @@ const footerColumns = [
 ]
 
 const socialLinks = [
-  { href: 'https://instagram.com/blyss.co.ke', label: 'Instagram', Icon: Instagram },
-  { href: 'https://x.com/blyss_co_ke', label: 'X / Twitter', Icon: Twitter },
+  { href: 'https://instagram.com/blyss.co.ke', label: 'Instagram', Icon: FiInstagram },
+  { href: 'https://x.com/blyss_co_ke', label: 'X / Twitter', Icon: FiTwitter },
 ]
 
 /**
@@ -72,7 +72,7 @@ export const MarketplaceFooter = () => {
                   aria-label={label}
                   className="flex h-9 w-9 items-center justify-center rounded-md text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-sunken)] hover:text-[var(--accent)]"
                 >
-                  <Icon size={18} strokeWidth={1.75} />
+                  <Icon size={18} />
                 </a>
               ))}
             </div>

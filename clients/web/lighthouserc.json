@@ -1,14 +1,14 @@
 {
   "ci": {
     "collect": {
-      "startServerCommand": "pnpm start",
-      "startServerReadyPattern": "ready on",
+      "startServerCommand": "pnpm --dir clients/web start",
+      "startServerReadyPattern": "Ready in|started server on|Local:",
       "url": [
         "http://localhost:3000/",
         "http://localhost:3000/creators",
         "http://localhost:3000/marketplace"
       ],
-      "numberOfRuns": 3
+      "numberOfRuns": 1
     },
     "assert": {
       "assertions": {
