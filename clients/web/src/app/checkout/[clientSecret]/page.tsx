@@ -52,21 +52,38 @@ export default async function Page(props: {
   const { clientSecret } = params
 
   // CheckoutLink IDs (polar_cl_*) are NOT checkout-session client_secrets.
-  // Bounce them to the backend's resolve endpoint, which creates the
-  // checkout session, then redirects back here with the real client_secret.
-  // Without this, hitting `buy.blyss.co.ke/checkout/polar_cl_xxx` 404s
-  // because /v1/checkouts/client/polar_cl_xxx doesn't match a checkout row.
+  // Resolve them server-side via the backend's /v1/checkout-links/{cs}/redirect
+  // endpoint, which creates a checkout session and 302s back to the frontend.
+  // We follow the redirect SERVER-SIDE so the browser only ever sees the
+  // final /checkout/{real_session_secret} URL on the current public host
+  // (e.g. buy.blyss.co.ke) — never api.blyss.co.ke.
   if (clientSecret.startsWith('polar_cl_')) {
     const resolveURL = new URL(
       `/v1/checkout-links/${clientSecret}/redirect`,
-      getPublicServerURL(),
+      getServerURL(),
     )
-    // Forward through embed/theme/locale so the resolved checkout keeps the
-    // same UI mode the link was opened in.
     if (_embed) resolveURL.searchParams.set('embed', _embed)
     if (theme) resolveURL.searchParams.set('theme', theme)
     if (_locale) resolveURL.searchParams.set('locale', _locale)
-    redirect(resolveURL.toString())
+
+    const resp = await fetch(resolveURL.toString(), {
+      redirect: 'manual',
+      cache: 'no-store',
+    })
+    const location = resp.headers.get('location')
+    if (location) {
+      // Backend redirects to FRONTEND_BASE_URL/checkout/{real_secret}.
+      // We send the browser only the path+query — it stays on the current
+      // public host (buy.blyss.co.ke) and never sees api.blyss.
+      try {
+        const target = new URL(location)
+        redirect(target.pathname + target.search)
+      } catch {
+        // Already a relative URL — pass through unchanged.
+        redirect(location)
+      }
+    }
+    notFound()
   }
 
   const embed = _embed === 'true'
