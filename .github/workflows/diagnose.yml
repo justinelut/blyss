@@ -53,8 +53,10 @@ jobs:
             POD=$(sudo kubectl -n $NS get pods -l app=blyss-api -o jsonpath='{.items[0].metadata.name}')
             sudo kubectl -n $NS get pod $POD -o jsonpath='{.spec.containers[0].command}{"\n"}{.spec.containers[0].args}{"\n"}'
             echo
-            echo "ps inside pod:"
-            sudo kubectl -n $NS exec $POD -- sh -c "ps -ef | grep uvicorn | grep -v grep" 2>&1 || true
+            echo "actual running command (from /proc):"
+            for pid in 1 2 3 4 5 6 7 8 9 10 11 12; do
+              sudo kubectl -n $NS exec $POD -- sh -c "test -r /proc/$pid/cmdline && cat /proc/$pid/cmdline | tr '\0' ' ' && echo" 2>/dev/null
+            done | grep -i uvicorn | head -3
             echo
 
             echo "═══════════════════════════════════════"
