@@ -63,6 +63,19 @@ jobs:
             echo
 
             echo "═══════════════════════════════════════"
+            echo " ORGANIZATIONS + PRODUCTS (DB probe)"
+            echo "═══════════════════════════════════════"
+            PG=$(sudo kubectl -n $NS get pods -l app=postgres -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
+            [ -z "$PG" ] && PG=postgres-0
+            echo "-- organizations --"
+            sudo kubectl -n $NS exec $PG -- psql -U polar -d polar -c "select slug, name, is_deleted, blocked_at, created_at from organizations order by created_at desc limit 20;" 2>&1 | head -30
+            echo "-- products per org --"
+            sudo kubectl -n $NS exec $PG -- psql -U polar -d polar -c "select o.slug, count(p.id) as products, sum((p.is_archived)::int) as archived from organizations o left join products p on p.organization_id=o.id group by o.slug order by products desc limit 20;" 2>&1 | head -30
+            echo "-- product visibility columns --"
+            sudo kubectl -n $NS exec $PG -- psql -U polar -d polar -c "select id, name, is_archived, organization_id from products order by created_at desc limit 10;" 2>&1 | head -20
+            echo
+
+            echo "═══════════════════════════════════════"
             echo " TRAEFIK CRD + FORWARDED-PROTO PROBE"
             echo "═══════════════════════════════════════"
             echo "-- available middleware CRD apiVersions --"
