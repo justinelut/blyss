@@ -263,7 +263,16 @@ export async function proxy(request: NextRequest) {
     headers['x-polar-user'] = JSON.stringify(user)
   }
 
-  const response = NextResponse.next({ headers })
+  // Mirror the requested pathname into the request headers so server
+  // components can read it via `headers()` and conditionally render layout
+  // chrome (marketplace header/footer for public pages, none for /dashboard).
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set('x-blyss-pathname', request.nextUrl.pathname)
+
+  const response = NextResponse.next({
+    headers,
+    request: { headers: requestHeaders },
+  })
 
   if (isNewDistinctId) {
     response.cookies.set(DISTINCT_ID_COOKIE, distinctId, {

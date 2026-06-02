@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, useReducedMotion } from 'motion/react'
 import Link from 'next/link'
-import { Search as SearchIcon, X, ArrowRight } from 'lucide-react'
+import { FiSearch, FiX, FiArrowRight } from 'react-icons/fi'
 import { schemas } from '@/lib/api'
 import { MarketplaceProductCard } from '@/components/Marketplace/MarketplaceProductCard'
 import { Eyebrow, typography, StaggerList, StaggerItem } from '@/design'
@@ -58,7 +58,7 @@ export const SearchResults = ({ query, products, totalCount }: SearchResultsProp
         transition={{ duration: 0.6, ease, delay: 0.1 }}
         className="mt-8 flex w-full max-w-[640px] items-center gap-2 rounded-md bg-[var(--surface-sunken)] px-4 py-3 transition-colors focus-within:bg-[var(--surface)] focus-within:ring-1 focus-within:ring-[var(--border-strong)]"
       >
-        <SearchIcon size={18} className="shrink-0 text-[var(--text-muted)]" />
+        <FiSearch size={18} className="shrink-0 text-[var(--text-muted)]" />
         <input
           type="search"
           value={input}
@@ -74,7 +74,7 @@ export const SearchResults = ({ query, products, totalCount }: SearchResultsProp
             aria-label="Clear search"
             className="flex h-7 w-7 items-center justify-center rounded text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-elevated)] hover:text-[var(--text-primary)]"
           >
-            <X size={16} />
+            <FiX size={16} />
           </button>
         )}
       </motion.form>
@@ -115,7 +115,7 @@ export const SearchResults = ({ query, products, totalCount }: SearchResultsProp
                 className="group mt-8 inline-flex h-11 items-center gap-2 rounded-md bg-[var(--accent)] px-6 font-sans text-[14px] font-medium text-[var(--accent-foreground)] transition-all hover:bg-[var(--accent-hover)] hover:gap-3"
               >
                 Browse all
-                <ArrowRight
+                <FiArrowRight
                   size={15}
                   className="transition-transform group-hover:translate-x-0.5"
                 />

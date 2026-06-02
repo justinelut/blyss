@@ -123,15 +123,15 @@ export const Hero = ({ showcaseProducts = [] }: HeroProps) => {
             className="mt-12 flex flex-wrap items-center gap-x-8 gap-y-3 font-sans text-[13px] text-[var(--text-muted)]"
           >
             <span className="flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-[var(--success)]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
               M-Pesa &amp; card
             </span>
             <span className="flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-[var(--success)]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
               20% platform fee
             </span>
             <span className="flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-[var(--success)]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
               24-hour payouts
             </span>
           </motion.div>

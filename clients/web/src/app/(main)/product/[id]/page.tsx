@@ -81,7 +81,7 @@ export default async function ProductPage({ params }: Props) {
     <>
       <JsonLd data={productLd} />
       <JsonLd data={breadcrumbLd} />
-      <div className="bg-[var(--background)] pt-20 text-[var(--text-primary)]">
+      <div className="bg-[var(--background)] text-[var(--text-primary)]">
         <div className="mx-auto max-w-[1280px] px-6 pt-4 md:px-16">
           <ProductBreadcrumb crumbs={crumbs} />
         </div>

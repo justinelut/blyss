@@ -30,7 +30,7 @@ export const LegalPageShell = ({ title, content }: LegalPageShellProps) => {
   const pathname = usePathname()
 
   return (
-    <div className="bg-[var(--background)] pt-20 text-[var(--text-primary)]">
+    <div className="bg-[var(--background)] text-[var(--text-primary)]">
       <div className="mx-auto max-w-[1280px] px-6 py-12 md:px-16 md:py-20">
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-[220px_1fr] lg:gap-20">
           {/* Sidebar */}

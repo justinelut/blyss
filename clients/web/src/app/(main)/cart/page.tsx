@@ -8,9 +8,5 @@ export const metadata: Metadata = {
 }
 
 export default function Page() {
-  return (
-    <div className="bg-[var(--background)] pt-20 text-[var(--text-primary)]">
-      <BlyssCartPage />
-    </div>
-  )
+  return <BlyssCartPage />
 }

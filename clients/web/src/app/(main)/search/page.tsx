@@ -36,13 +36,11 @@ export default async function SearchPage({
   }
 
   return (
-    <div className="bg-[var(--background)] pt-20 text-[var(--text-primary)]">
-      <SearchResults
-        query={query}
-        category={category}
-        products={products}
-        totalCount={totalCount}
-      />
-    </div>
+    <SearchResults
+      query={query}
+      category={category}
+      products={products}
+      totalCount={totalCount}
+    />
   )
 }

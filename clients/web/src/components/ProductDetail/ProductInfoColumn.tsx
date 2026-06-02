@@ -137,7 +137,7 @@ export const ProductInfoColumn = ({
 
       {/* M-Pesa-first payment note (factual, not a badge strip) */}
       <p className="-mt-2 flex items-center gap-2 font-sans text-[13px] text-[var(--text-muted)]">
-        <span className="h-1.5 w-1.5 rounded-full bg-[var(--success)]" />
+        <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
         Pay with M-Pesa or card · instant download
       </p>
 

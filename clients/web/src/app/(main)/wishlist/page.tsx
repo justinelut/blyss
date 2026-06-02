@@ -13,9 +13,5 @@ export default async function Wishlist() {
   const user = await getAuthenticatedUser()
   if (!user) redirect('/login?return_to=/wishlist')
 
-  return (
-    <div className="bg-[var(--background)] pt-20 text-[var(--text-primary)]">
-      <BlyssWishlistPage />
-    </div>
-  )
+  return <BlyssWishlistPage />
 }
