@@ -231,6 +231,11 @@ export const OrganizationDetailsForm: React.FC<
   const { control, setError, setValue } =
     useFormContext<schemas['OrganizationUpdate']>()
   const { name, avatar_url: avatarURL } = useWatch({ control })
+  const profileSettings = useWatch({
+    control,
+    name: 'profile_settings' as never,
+  }) as { cover_image_url?: string | null } | undefined
+  const coverImageURL = profileSettings?.cover_image_url ?? null
 
   const { status: urlStatus, validateURL } = useURLValidation({
     organizationSlug: organization.slug,
@@ -270,8 +275,92 @@ export const OrganizationDetailsForm: React.FC<
     initialFiles: [],
   })
 
+  // Banner image uploader. Stored on the JSON profile_settings column as
+  // `cover_image_url` so the public storefront (StorefrontHero) can render it.
+  // Reuses the organization_avatar file service since both target the public
+  // S3 bucket — adding a dedicated service type would require a backend
+  // migration for no functional gain.
+  const onBannerUpdated = useCallback(
+    (files: FileObject<schemas['OrganizationAvatarFileRead']>[]) => {
+      if (files.length === 0) return
+      const lastFile = files[files.length - 1]
+      setValue(
+        'profile_settings.cover_image_url' as never,
+        lastFile.public_url as never,
+        { shouldDirty: true },
+      )
+    },
+    [setValue],
+  )
+  const onBannerRejected = useCallback(
+    (rejections: FileRejection[]) => {
+      rejections.forEach((rejection) => {
+        setError(
+          'profile_settings.cover_image_url' as never,
+          { message: rejection.errors[0].message },
+        )
+      })
+    },
+    [setError],
+  )
+  const banner = useFileUpload({
+    organization: organization,
+    service: 'organization_avatar',
+    accept: {
+      'image/jpeg': [],
+      'image/png': [],
+      'image/webp': [],
+    },
+    // Banners are larger than avatars — allow up to 5 MB.
+    maxSize: 5 * 1024 * 1024,
+    onFilesUpdated: onBannerUpdated,
+    onFilesRejected: onBannerRejected,
+    initialFiles: [],
+  })
+
   return (
     <div className="space-y-8">
+      {/* Banner / cover image — shown on the public storefront hero */}
+      <div>
+        <label className="mb-2 block text-sm font-medium">Banner</label>
+        <p className="mb-3 text-xs text-gray-500">
+          Wide image shown on your storefront. PNG / JPG / WebP, up to 5 MB.
+          Recommended 1920×1080 or larger.
+        </p>
+        <FormField
+          control={control}
+          name={'profile_settings.cover_image_url' as never}
+          render={() => (
+            <div>
+              <div
+                {...banner.getRootProps()}
+                className={twMerge(
+                  'relative cursor-pointer overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface-sunken)] transition-opacity hover:opacity-90',
+                  banner.isDragActive && 'opacity-50',
+                )}
+                style={{ aspectRatio: '16 / 9', maxHeight: 220 }}
+              >
+                <input {...banner.getInputProps()} />
+                {coverImageURL ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={coverImageURL}
+                    alt="Storefront banner"
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-[var(--text-muted)]">
+                    <AddPhotoAlternateOutlined fontSize="medium" />
+                    <span className="text-xs">Click or drag to upload banner</span>
+                  </div>
+                )}
+              </div>
+              <FormMessage className="mt-2 text-xs/snug" />
+            </div>
+          )}
+        />
+      </div>
+
       {/* Basic Info - Always Visible */}
       <div className="space-y-6">
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-12">

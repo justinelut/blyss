@@ -356,6 +356,15 @@ class OrganizationCreate(Schema):
     )
 
 
+class OrganizationProfileSettingsUpdate(Schema):
+    """Public-facing profile fields stored in the JSON profile_settings column."""
+
+    cover_image_url: HttpUrlToStr | None = Field(
+        None,
+        description="Public banner / cover image URL for the creator storefront.",
+    )
+
+
 class OrganizationUpdate(Schema):
     name: NameInput | None = None
     avatar_url: AvatarUrl | None = None
@@ -373,6 +382,7 @@ class OrganizationUpdate(Schema):
     )
 
     feature_settings: OrganizationFeatureSettings | None = None
+    profile_settings: OrganizationProfileSettingsUpdate | None = None
     subscription_settings: OrganizationSubscriptionSettings | None = None
     notification_settings: OrganizationNotificationSettings | None = None
     customer_email_settings: OrganizationCustomerEmailSettings | None = None
@@ -483,6 +493,7 @@ class CreatorStorefrontSchema(Schema):
     name: str
     slug: str
     avatar_url: str | None
+    cover_image_url: str | None = None
     bio: str | None
     email: str | None
     social_links: SocialLinks | None

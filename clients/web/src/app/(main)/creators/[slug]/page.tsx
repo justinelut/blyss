@@ -110,6 +110,7 @@ export default async function Page({ params }: CreatorPageProps) {
   // city). Fall back gracefully.
   const raw = creator as unknown as Record<string, unknown> & typeof creator
   const bannerUrl =
+    ((creator as { cover_image_url?: string | null }).cover_image_url) ??
     (raw['banner_url'] as string | null | undefined) ??
     ((raw['profile_settings'] as Record<string, unknown> | undefined)?.[
       'cover_image_url'

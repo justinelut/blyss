@@ -221,6 +221,7 @@ async def get_creator(
         name=organization.name,
         slug=organization.slug,
         avatar_url=organization.avatar_url,
+        cover_image_url=(organization.profile_settings or {}).get("cover_image_url"),
         bio=organization.bio,
         email=organization.email,
         social_links=social_links_dict if social_links_dict else None,

@@ -370,6 +370,17 @@ class OrganizationService:
         if update_schema.subscription_settings is not None:
             organization.subscription_settings = update_schema.subscription_settings
 
+        if update_schema.profile_settings is not None:
+            # Merge into the existing JSONB column (don't replace) so unrelated
+            # keys set elsewhere — e.g. is_featured / is_featured_spotlight —
+            # survive when the dashboard saves only cover_image_url.
+            organization.profile_settings = {
+                **organization.profile_settings,
+                **update_schema.profile_settings.model_dump(
+                    mode="json", exclude_unset=True, exclude_none=True
+                ),
+            }
+
         if update_schema.notification_settings is not None:
             organization.notification_settings = update_schema.notification_settings
 

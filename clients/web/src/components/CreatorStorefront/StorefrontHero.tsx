@@ -84,13 +84,15 @@ export const StorefrontHero = ({
       aria-labelledby="storefront-name"
       className="relative isolate overflow-hidden bg-[var(--surface)]"
     >
-      {/* Banner — 16:9 ratio block. Image with warm overlay scrim, or fallback
-          tonal block sized identically. */}
-      <motion.div
-        {...(bgAnim ?? {})}
-        className="relative aspect-[16/9] w-full"
-      >
-        {bannerUrl ? (
+      {/* Banner — 16:9 when an image is provided. When there's no image we
+          render a SHORT single-tone editorial block (no scrim) to avoid the
+          visual two-banner stack the dark scrim would otherwise create over
+          a flat fallback color. */}
+      {bannerUrl ? (
+        <motion.div
+          {...(bgAnim ?? {})}
+          className="relative aspect-[16/9] w-full"
+        >
           <OptimizedImage
             src={bannerUrl}
             alt=""
@@ -99,14 +101,15 @@ export const StorefrontHero = ({
             priority
             className="h-full w-full"
           />
-        ) : (
-          <div className="h-full w-full bg-[var(--surface-sunken)]" />
-        )}
-
-        {/* Single-tone scrim — only on bottom 55% so the photo's main subject
-            stays untouched. NOT a gradient (per §15.4). */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[55%] bg-[rgba(15,14,12,0.55)]" />
-      </motion.div>
+          {/* Single-tone scrim — only on bottom 55% so the photo's main
+              subject stays untouched. NOT a gradient (per §15.4). */}
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[55%] bg-[rgba(15,14,12,0.55)]" />
+        </motion.div>
+      ) : (
+        // No banner: a tonal block sized to the overlay's natural height.
+        // No scrim, no aspect ratio. Overlay below renders in dark text.
+        <div className="h-[260px] w-full bg-[var(--surface)] md:h-[320px]" />
+      )}
 
       {/* Overlay content — anchored bottom-left of the banner via absolute
           positioning on the section. Container width matches the rest of
@@ -132,8 +135,15 @@ export const StorefrontHero = ({
                 />
               </div>
 
-              {/* Name + handle + bio + city */}
-              <div className="min-w-0 pb-1 text-white">
+              {/* Name + handle + bio + city. Text color depends on whether a
+                  banner image is present (white over scrim) or absent
+                  (dark over the tonal surface block). */}
+              <div
+                className={cn(
+                  'min-w-0 pb-1',
+                  bannerUrl ? 'text-white' : 'text-[var(--text-primary)]',
+                )}
+              >
                 <h1
                   id="storefront-name"
                   className={cn(
@@ -143,11 +153,25 @@ export const StorefrontHero = ({
                 >
                   {name}
                 </h1>
-                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 font-sans text-[14px] text-white/75">
-                  <span className="font-medium text-white/85">@{slug}</span>
+                <div
+                  className={cn(
+                    'mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 font-sans text-[14px]',
+                    bannerUrl
+                      ? 'text-white/75'
+                      : 'text-[var(--text-muted)]',
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'font-medium',
+                      bannerUrl ? 'text-white/85' : 'text-[var(--text-secondary)]',
+                    )}
+                  >
+                    @{slug}
+                  </span>
                   {city && (
                     <>
-                      <span aria-hidden="true" className="text-white/40">
+                      <span aria-hidden="true" className={bannerUrl ? 'text-white/40' : 'text-[var(--border-strong)]'}>
                         ·
                       </span>
                       <span>{city}</span>
@@ -155,7 +179,14 @@ export const StorefrontHero = ({
                   )}
                 </div>
                 {bio && (
-                  <p className="mt-3 max-w-[52ch] font-sans text-[15px] leading-[1.5] text-white/85 md:text-[16px]">
+                  <p
+                    className={cn(
+                      'mt-3 max-w-[52ch] font-sans text-[15px] leading-[1.5] md:text-[16px]',
+                      bannerUrl
+                        ? 'text-white/85'
+                        : 'text-[var(--text-secondary)]',
+                    )}
+                  >
                     {bio}
                   </p>
                 )}
@@ -177,7 +208,12 @@ export const StorefrontHero = ({
                 <button
                   type="button"
                   onClick={onTipClick}
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-white/10 px-5 font-sans text-[14px] font-medium text-white backdrop-blur-md transition-colors hover:bg-white/20"
+                  className={cn(
+                    'inline-flex h-11 items-center justify-center gap-2 rounded-md px-5 font-sans text-[14px] font-medium transition-colors',
+                    bannerUrl
+                      ? 'bg-white/10 text-white backdrop-blur-md hover:bg-white/20'
+                      : 'border border-[var(--border-strong)] text-[var(--text-primary)] hover:bg-[var(--surface-sunken)]',
+                  )}
                 >
                   <FiHeart size={16} />
                   Tip
