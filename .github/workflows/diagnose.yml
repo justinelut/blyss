@@ -69,7 +69,7 @@ jobs:
             sudo kubectl -n $NS exec $POD -- sh -c 'echo "  S3_ENDPOINT_URL=$POLAR_S3_ENDPOINT_URL"; echo "  S3_PUBLIC_ENDPOINT_URL=$POLAR_S3_PUBLIC_ENDPOINT_URL"; echo "  FILES_BUCKET=$POLAR_S3_FILES_BUCKET_NAME"; echo "  PUBLIC_BUCKET=$POLAR_S3_FILES_PUBLIC_BUCKET_NAME"' 2>&1 || true
             echo "-- buckets that exist in MinIO --"
             MINIO=$(sudo kubectl -n $NS get pods -l app=minio -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
-            sudo kubectl -n $NS exec $MINIO -- sh -c 'mc alias set loc http://localhost:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null 2>&1; mc ls loc 2>&1; echo "--- cors on public bucket ---"; mc cors get loc/$POLAR_S3_FILES_PUBLIC_BUCKET_NAME 2>&1 || mc anonymous get loc/blyss-public 2>&1' 2>&1 | head -20
+            sudo kubectl -n $NS exec $MINIO -- sh -c 'mc alias set loc http://127.0.0.1:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"; echo "exit=$?"; echo "--- bucket list ---"; mc ls loc/; echo "--- public bucket stat ---"; mc stat loc/blyss-public 2>&1 | head -3; echo "--- private bucket stat ---"; mc stat loc/blyss-private 2>&1 | head -3' 2>&1 | head -25
             echo
 
             echo "═══════════════════════════════════════"
