@@ -149,8 +149,13 @@ export class Upload {
     part: schemas['S3FileUploadPart']
     onProgress: (uploaded: number) => void
   }): Promise<schemas['S3FileUploadCompletedPart']> {
-    const chunkBlob = this.file.slice(part.chunk_start, part.chunk_end)
-    const blob = new Blob([chunkBlob], { type: this.file.type })
+    // Send the raw chunk slice WITHOUT a forced mime type. Wrapping it in a
+    // typed Blob makes the browser add a `Content-Type` request header that is
+    // NOT part of the presigned URL's SignedHeaders
+    // (host;x-amz-checksum-sha256;x-amz-sdk-checksum-algorithm), which MinIO
+    // strictly rejects: "There were headers present which were not signed".
+    // The object's content type is already set at create_multipart_upload time.
+    const blob = this.file.slice(part.chunk_start, part.chunk_end)
 
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest()
