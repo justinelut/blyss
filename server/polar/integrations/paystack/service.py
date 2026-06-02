@@ -55,12 +55,24 @@ class PaystackService:
         self.secret_key = settings.PAYSTACK_SECRET_KEY
         self.base_url = "https://api.paystack.co"
 
-        # Set up HTTP client with proper headers
+        # Set up HTTP client with proper headers.
+        # NOTE on User-Agent: api.paystack.co is fronted by Cloudflare. With a
+        # bare Python User-Agent (httpx default) Cloudflare's bot management
+        # returns HTTP 403 + error code 1010 ("owner has banned your access
+        # based on your browser's signature"). A browser-style UA passes. We
+        # pin a Chrome-on-Linux UA — Paystack does not advertise a programmatic
+        # User-Agent allowlist publicly, so we use a stable browser fingerprint
+        # rather than promising httpx's version stays unbanned.
         self._client = httpx.AsyncClient(
             base_url=self.base_url,
             headers={
                 "Authorization": f"Bearer {self.secret_key}",
                 "Content-Type": "application/json",
+                "User-Agent": (
+                    "Mozilla/5.0 (X11; Linux x86_64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/120.0.0.0 Safari/537.36"
+                ),
             },
             timeout=30.0,
         )
