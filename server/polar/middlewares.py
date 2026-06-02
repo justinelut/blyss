@@ -80,9 +80,10 @@ class ForwardedHostMiddleware:
 
         # Rule 3: if BASE_URL is configured and the request Host matches its
         # hostname (this IS a request for the public app), force scope's scheme
-        # and host to BASE_URL. Robust to Traefik/k3s defaults that overwrite
-        # X-Forwarded-Proto with the cluster-internal http scheme — so the
-        # OAuth redirect_uri stays https://api.example.com/... not http://.
+        # to https and host to the configured netloc. Robust to Traefik/k3s
+        # defaults that overwrite X-Forwarded-Proto with the cluster-internal
+        # http scheme, AND robust to ENV_SECRET having POLAR_BASE_URL set with
+        # the wrong scheme. Public app over https is correct by definition.
         if not public_host and settings.BASE_URL and host_header:
             from urllib.parse import urlparse
 
@@ -93,7 +94,7 @@ class ForwardedHostMiddleware:
                 )
                 if req_host == parsed_base.hostname.lower():
                     public_host = parsed_base.netloc
-                    public_scheme = parsed_base.scheme
+                    public_scheme = "https"
 
         if public_host:
             new_headers = [
