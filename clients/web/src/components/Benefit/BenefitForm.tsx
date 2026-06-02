@@ -398,10 +398,17 @@ export const DiscordBenefitForm = () => {
 const BenefitTypeSelect = () => {
   const { control } = useFormContext<schemas['BenefitCustomCreate']>()
 
-  // Show ALL benefit types (custom, discord, github_repository, downloadables,
-  // license_keys, meter_credit, feature_flag). Per user request, github + feature
-  // flag + meter credits are enabled for creators.
-  const availableBenefitTypes = enums.benefitTypeValues
+  // Hide developer-oriented benefit types (github_repository / meter_credit /
+  // feature_flag) — Kenyan creators don't recognize them. Visible types:
+  // custom, discord, downloadables, license_keys.
+  const HIDDEN_BENEFIT_TYPES: ReadonlyArray<schemas['BenefitType']> = [
+    'github_repository',
+    'meter_credit',
+    'feature_flag',
+  ]
+  const availableBenefitTypes = enums.benefitTypeValues.filter(
+    (value) => !HIDDEN_BENEFIT_TYPES.includes(value),
+  )
 
   return (
     <FormField

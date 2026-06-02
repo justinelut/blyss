@@ -40,7 +40,19 @@ class S3Service:
         self.presign_ttl = presign_ttl
         self.client = client
         self.public_endpoint_url = public_endpoint_url
-        self._unsigned_client = get_client(signature_version=botocore.UNSIGNED)
+        self._unsigned_client = get_client(
+            signature_version=botocore.UNSIGNED, endpoint_url=public_endpoint_url
+        )
+        # Presign-only client whose endpoint_url matches the public CDN, so
+        # SigV4 signatures are computed for the host the browser will send
+        # (e.g. cdn.blyss.co.ke). Without this we'd sign with the internal
+        # http://minio:9000 host and the browser PUT would fail with 403
+        # SignatureDoesNotMatch. Server-side multipart create/complete still
+        # use `self.client` (internal endpoint) for direct in-cluster calls.
+        if public_endpoint_url:
+            self._presign_client = get_client(endpoint_url=public_endpoint_url)
+        else:
+            self._presign_client = client
 
     def upload(
         self,
@@ -184,7 +196,7 @@ class S3Service:
         ret = []
         expires_in = self.presign_ttl
         for part in parts:
-            signed_post_url = self.client.generate_presigned_url(
+            signed_post_url = self._presign_client.generate_presigned_url(
                 "upload_part",
                 Params=dict(
                     UploadId=upload_id,
@@ -195,24 +207,11 @@ class S3Service:
                 ExpiresIn=expires_in,
             )
 
-            # Log original URL before rewrite
-            original_url = signed_post_url
             log.info(
                 "s3_presigned_url_generated",
                 part_number=part.number,
-                original_url=original_url[:150],
+                url=signed_post_url[:150],
             )
-
-            # Rewrite URL to use public endpoint
-            signed_post_url = self._rewrite_url_to_public_endpoint(signed_post_url)
-
-            if original_url != signed_post_url:
-                log.info(
-                    "s3_url_rewritten",
-                    part_number=part.number,
-                    from_url=original_url[:100],
-                    to_url=signed_post_url[:100],
-                )
 
             presign_expires_at = utc_now() + timedelta(seconds=expires_in)
             headers = S3FileUploadPart.generate_headers(part.checksum_sha256_base64)
@@ -281,7 +280,7 @@ class S3Service:
     ) -> tuple[str, datetime]:
         expires_in = self.presign_ttl
         presign_from = utc_now()
-        signed_download_url = self.client.generate_presigned_url(
+        signed_download_url = self._presign_client.generate_presigned_url(
             "get_object",
             Params=dict(
                 Bucket=self.bucket,
@@ -294,9 +293,6 @@ class S3Service:
             ExpiresIn=expires_in,
         )
 
-        # Rewrite URL to use public endpoint
-        signed_download_url = self._rewrite_url_to_public_endpoint(signed_download_url)
-
         presign_expires_at = presign_from + timedelta(seconds=expires_in)
         return (signed_download_url, presign_expires_at)
 
@@ -304,12 +300,11 @@ class S3Service:
         # This is apparently the *only* way to get a public URL with boto3,
         # apart from building a URL manually 🙄
         # Ref: https://stackoverflow.com/a/48197923
-        url = self._unsigned_client.generate_presigned_url(
+        # _unsigned_client is built with endpoint_url=public_endpoint_url, so
+        # this URL is already browser-reachable.
+        return self._unsigned_client.generate_presigned_url(
             "get_object", ExpiresIn=0, Params=dict(Bucket=self.bucket, Key=path)
         )
-
-        # Rewrite URL to use public endpoint
-        return self._rewrite_url_to_public_endpoint(url)
 
     def delete_file(self, path: str) -> bool:
         deleted = self.client.delete_object(Bucket=self.bucket, Key=path)

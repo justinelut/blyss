@@ -10,11 +10,13 @@ if TYPE_CHECKING:
 
 
 def get_client(
-    *, signature_version: str = settings.AWS_SIGNATURE_VERSION
+    *,
+    signature_version: str = settings.AWS_SIGNATURE_VERSION,
+    endpoint_url: str | None = None,
 ) -> "S3Client":
     return boto3.client(
         "s3",
-        endpoint_url=settings.S3_ENDPOINT_URL,
+        endpoint_url=endpoint_url or settings.S3_ENDPOINT_URL,
         aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
         aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
         config=Config(
