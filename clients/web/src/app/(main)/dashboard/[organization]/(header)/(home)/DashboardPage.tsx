@@ -3,7 +3,6 @@
 import { OverviewSection } from '@/components/DashboardOverview/OverviewSection'
 import { DashboardBody } from '@/components/Layout/DashboardLayout'
 import PaymentOnboardingStepper from '@/components/Onboarding/PaymentOnboardingStepper'
-import { IOSAppBanner } from '@/components/Upsell/IOSAppBanner'
 import { AccountWidget } from '@/components/Widgets/AccountWidget'
 import { OrdersWidget } from '@/components/Widgets/OrdersWidget'
 import RevenueWidget from '@/components/Widgets/RevenueWidget'
@@ -22,7 +21,6 @@ export default function OverviewPage({ organization }: OverviewPageProps) {
 
   return (
     <DashboardBody className="gap-y-8 pb-16 md:gap-y-12" title={null}>
-      <IOSAppBanner />
       {paymentStatus && !paymentStatus.payment_ready && (
         <PaymentOnboardingStepper organization={organization} />
       )}

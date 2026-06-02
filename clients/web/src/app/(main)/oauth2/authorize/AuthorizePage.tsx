@@ -50,7 +50,7 @@ const AuthorizePage = ({
             <>
               <div className="dark:text-polar-400 w-full text-center text-lg text-gray-600">
                 <span className="font-medium">{clientName}</span> requests the
-                following permissions to your Polar organization.
+                following permissions to your Blyss organization.
               </div>
               <div className="dark:border-polar-700 dark:bg-polar-800 mt-6 mb-0 inline-flex flex-row items-center justify-start gap-2 rounded-2xl border border-gray-100 bg-gray-50 p-2 pr-4 text-sm">
                 <Avatar
@@ -66,7 +66,7 @@ const AuthorizePage = ({
             <>
               <div className="dark:text-polar-400 w-full text-center text-lg text-gray-600">
                 <span className="font-medium">{clientName}</span> requests the
-                following permissions to your personal Polar account.
+                following permissions to your personal Blyss account.
               </div>
               <div className="dark:border-polar-700 dark:bg-polar-800 mt-6 mb-0 inline-flex flex-row items-center justify-start gap-2 rounded-2xl border border-gray-100 bg-gray-50 p-2 pr-4 text-sm">
                 <Avatar

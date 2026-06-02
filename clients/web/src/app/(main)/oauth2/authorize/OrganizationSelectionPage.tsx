@@ -362,7 +362,7 @@ const OrganizationSelectionPage = ({
           <span className="dark:text-polar-200 font-medium text-gray-700">
             {clientName}
           </span>{' '}
-          wants to access one of your Polar organizations. Select one:
+          wants to access one of your Blyss organizations. Select one:
         </>
       }
     >
