@@ -66,7 +66,7 @@ export const OrganizationStep = ({
     defaultValues: {
       name: initialSlug || '',
       slug: initialSlug || '',
-      default_presentment_currency: 'usd',
+      default_presentment_currency: 'kes',
       terms: false,
     },
   })

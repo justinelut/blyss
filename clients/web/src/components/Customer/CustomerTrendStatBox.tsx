@@ -19,6 +19,9 @@ export interface CustomerTrendStatBoxProps extends CustomerStatBoxProps {
   }
   period?: string
   trendUpIsBad?: boolean
+  /** Currency for the previous-period tooltip's currency-typed metrics.
+   *  Defaults to KES (Blyss platform default); pass the org's currency. */
+  currency?: string
 }
 
 export const CustomerTrendStatBox = ({
@@ -29,6 +32,7 @@ export const CustomerTrendStatBox = ({
   size = 'sm',
   trend,
   trendUpIsBad = false,
+  currency = 'kes',
 }: PropsWithChildren<CustomerTrendStatBoxProps>) => {
   const formatter = useMemo(() => {
     switch (trend?.metric.type) {
@@ -82,7 +86,7 @@ export const CustomerTrendStatBox = ({
               <span className="dark:text-polar-500 font-sans text-sm text-gray-500">
                 Previous Period
               </span>
-              <span>{formatter?.(trend.previousValue, 'usd')}</span>
+              <span>{formatter?.(trend.previousValue, currency)}</span>
             </TooltipContent>
           </Tooltip>
         ) : (

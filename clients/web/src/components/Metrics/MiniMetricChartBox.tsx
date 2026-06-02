@@ -11,12 +11,17 @@ export interface MiniMetricBoxProps {
   title?: string
   metric?: schemas['Metric'] | null
   value?: number | null
+  /** Currency to format `currency`-typed metrics in. Defaults to KES (the
+   *  Blyss platform default per backend `DEFAULT_CURRENCY`); pass the org's
+   *  default_presentment_currency from the calling page. */
+  currency?: string
 }
 
 export const MiniMetricChartBox = ({
   title,
   metric,
   value,
+  currency = 'kes',
 }: MiniMetricBoxProps) => {
   return (
     <Card className="rounded-2xl">
@@ -30,7 +35,7 @@ export const MiniMetricChartBox = ({
           {metric &&
             (metric.type === 'scalar'
               ? formatHumanFriendlyScalar(value ?? 0)
-              : formatCurrency('statistics')(value ?? 0, 'usd'))}
+              : formatCurrency('statistics')(value ?? 0, currency))}
         </h3>
       </CardContent>
     </Card>

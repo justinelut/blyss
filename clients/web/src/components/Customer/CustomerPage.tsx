@@ -232,7 +232,7 @@ export const CustomerPage: React.FC<CustomerPageProps> = ({
                 {typeof metricsData?.totals.revenue === 'number'
                   ? formatCurrency('statistics')(
                       metricsData.totals.revenue,
-                      'usd',
+                      organization.default_presentment_currency,
                     )
                   : '—'}
               </CustomerTrendStatBox>
@@ -243,7 +243,7 @@ export const CustomerPage: React.FC<CustomerPageProps> = ({
                 trendUpIsBad
               >
                 {typeof metricsData?.totals.costs === 'number'
-                  ? formatCurrency('subcent')(metricsData.totals.costs, 'usd')
+                  ? formatCurrency('subcent')(metricsData.totals.costs, organization.default_presentment_currency)
                   : '—'}
               </CustomerTrendStatBox>
               <CustomerTrendStatBox
@@ -254,7 +254,7 @@ export const CustomerPage: React.FC<CustomerPageProps> = ({
                 {typeof metricsData?.totals.gross_margin === 'number'
                   ? formatCurrency('statistics')(
                       metricsData.totals.gross_margin,
-                      'usd',
+                      organization.default_presentment_currency,
                     )
                   : '—'}
               </CustomerTrendStatBox>
@@ -274,7 +274,7 @@ export const CustomerPage: React.FC<CustomerPageProps> = ({
                 {typeof metricsData?.totals.cumulative_revenue === 'number'
                   ? formatCurrency('statistics')(
                       metricsData.totals.cumulative_revenue,
-                      'usd',
+                      organization.default_presentment_currency,
                     )
                   : '—'}
               </CustomerStatBox>

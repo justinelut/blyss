@@ -99,7 +99,7 @@ const AccountBalance: React.FC<AccountBalanceProps> = ({
             ) : (
               <>
                 {summary &&
-                  formatCurrency('accounting')(account.credit_balance, 'usd')}
+                  formatCurrency('accounting')(account.credit_balance, organization.default_presentment_currency)}
               </>
             )}
           </div>
