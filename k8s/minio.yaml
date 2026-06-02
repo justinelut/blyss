@@ -71,3 +71,41 @@ spec:
       port: 9000
     - name: console
       port: 9001
+---
+# One-shot bucket initialization. Creates the private + public buckets and
+# sets the public-download policy. Without this, presigned upload URLs point
+# at buckets that don't exist → browser "network error" on file upload.
+# Idempotent: re-running on every deploy is safe (mb --ignore-existing).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: minio-init
+  namespace: blyss
+spec:
+  ttlSecondsAfterFinished: 120
+  backoffLimit: 6
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: mc
+          image: minio/mc:latest
+          envFrom:
+            - secretRef:
+                name: blyss-secrets
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              until mc alias set loc http://minio:9000 "$POLAR_MINIO_USER" "$POLAR_MINIO_PWD" >/dev/null 2>&1; do
+                echo "waiting for minio..."; sleep 3
+              done
+              PUB="${POLAR_S3_FILES_PUBLIC_BUCKET_NAME:-blyss-public}"
+              PRIV="${POLAR_S3_FILES_BUCKET_NAME:-blyss-private}"
+              mc mb --ignore-existing "loc/$PUB"
+              mc mb --ignore-existing "loc/$PRIV"
+              mc anonymous set download "loc/$PUB"
+              echo "minio-init done: $PUB (public), $PRIV (private)"
+              mc ls loc/
+

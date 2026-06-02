@@ -210,6 +210,9 @@ jobs:
             sudo rm -rf /opt/blyss/k8s/_staged
 
             # 6. Apply manifests (postgres apply non-fatal — immutable fields)
+            # Jobs have an immutable spec, so delete the bucket-init Job first
+            # to let it be recreated cleanly on every deploy.
+            sudo kubectl delete job minio-init -n $NS --ignore-not-found
             for f in /opt/blyss/k8s/*.yaml; do
               echo "==> kubectl apply -f $f"
               if [[ "$f" == *postgres* ]]; then
