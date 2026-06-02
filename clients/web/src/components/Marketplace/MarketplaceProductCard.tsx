@@ -69,7 +69,10 @@ export const MarketplaceProductCard = ({
 }: MarketplaceProductCardProps) => {
   const reduce = useReducedMotion()
   const productImage = product.medias?.[0]?.public_url
-  const linkHref = href ?? `/product/${product.id}`
+  // Seed-data placeholders use ids prefixed "seed_" — they have no PDP, so
+  // route the click to the marketplace browse page instead of 404'ing.
+  const isSeed = typeof product.id === 'string' && product.id.startsWith('seed_')
+  const linkHref = href ?? (isSeed ? '/marketplace' : `/product/${product.id}`)
   const creatorName =
     (product as any).organization?.name ??
     (product as any).organization?.slug ??

@@ -10,7 +10,7 @@ import { useAuth } from '@/hooks'
 import { cn } from '@/lib/utils'
 
 const navLinks = [
-  { href: '/', label: 'Browse' },
+  { href: '/marketplace', label: 'Browse' },
   { href: '/creators', label: 'Creators' },
   { href: '/marketplace?type=subscription', label: 'Subscriptions' },
   { href: '/help', label: 'Help' },

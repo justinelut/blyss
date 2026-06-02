@@ -35,6 +35,15 @@ export const FeaturedCreatorSpotlight = ({
   const bio = ((creator as any).bio ?? '').slice(0, 240)
   const city = ((creator as any).city ?? 'Nairobi') as string
   const topProductImage = topProduct?.medias?.[0]?.public_url
+  // Seed-data fallbacks (when no real data is in the DB) use ids prefixed
+  // "seed_". Route those clicks to the directory/marketplace pages so cards
+  // never dead-end on 404.
+  const isSeedCreator = typeof creator.id === 'string' && creator.id.startsWith('seed_')
+  const isSeedProduct =
+    !!topProduct && typeof topProduct.id === 'string' && topProduct.id.startsWith('seed_')
+  const profileHref = isSeedCreator ? '/creators' : `/creators/${slug}`
+  const productHref =
+    topProduct && (isSeedProduct ? '/marketplace' : `/product/${topProduct.id}`)
 
   return (
     <SectionDivider tone="default" density="md">
@@ -99,9 +108,9 @@ export const FeaturedCreatorSpotlight = ({
           )}
 
           {/* Top product preview */}
-          {topProduct && (
+          {topProduct && productHref && (
             <Link
-              href={`/product/${topProduct.id}`}
+              href={productHref}
               prefetch
               className="group flex items-center gap-4 rounded-md bg-[var(--surface-sunken)] p-3 transition-colors hover:bg-[var(--surface)]"
             >
@@ -135,7 +144,7 @@ export const FeaturedCreatorSpotlight = ({
           {/* CTA */}
           <div className="mt-auto pt-2">
             <Link
-              href={`/creators/${slug}`}
+              href={profileHref}
               className="inline-flex h-12 items-center justify-center rounded-md bg-[var(--accent)] px-6 font-sans text-[15px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)]"
             >
               View storefront

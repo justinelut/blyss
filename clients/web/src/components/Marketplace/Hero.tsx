@@ -203,7 +203,7 @@ function ShowcaseMosaic({
                 span,
               )}
             >
-              <Link href={`/product/${p.id}`} className="block h-full w-full">
+              <Link href={p.id.startsWith('seed_') ? '/marketplace' : `/product/${p.id}`} className="block h-full w-full">
                 {img ? (
                   <>
                     <Image

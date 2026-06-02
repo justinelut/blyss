@@ -58,10 +58,12 @@ export const FeaturedSubscriptions = ({ subscriptions }: FeaturedSubscriptionsPr
           const creator = (product as any).organization
           const firstBenefit = (product as any).benefits?.[0]
 
+          const isSeed =
+            typeof product.id === 'string' && product.id.startsWith('seed_')
           return (
             <Link
               key={product.id}
-              href={`/product/${product.id}`}
+              href={isSeed ? '/marketplace?type=subscription' : `/product/${product.id}`}
               prefetch
               className="group block rounded-md bg-[var(--surface-elevated)] p-6 transition-colors hover:bg-[var(--background)]"
             >

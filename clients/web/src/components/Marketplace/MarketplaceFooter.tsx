@@ -6,8 +6,8 @@ const footerColumns = [
   {
     heading: 'Browse',
     links: [
-      { href: '/', label: 'All products' },
-      { href: '/category', label: 'Categories' },
+      { href: '/marketplace', label: 'All products' },
+      { href: '/marketplace', label: 'Categories' },
       { href: '/creators', label: 'Creators' },
       { href: '/marketplace?type=subscription', label: 'Subscriptions' },
     ],

@@ -56,12 +56,16 @@ export const MarketplaceCreatorCard = ({
   const avatar = (creator as any).avatar_url ?? undefined
   const banner = (creator as any).profile_settings?.cover_image_url ?? undefined
   const slug = (creator as any).slug ?? creator.id
+  // Seed-data placeholders use ids prefixed "seed_" — link to the creators
+  // directory instead of /creators/<slug> which would 404 on an empty DB.
+  const isSeed = typeof creator.id === 'string' && creator.id.startsWith('seed_')
+  const profileHref = isSeed ? '/creators' : `/creators/${slug}`
   const bio = ((creator as any).bio ?? '').slice(0, 80)
 
   if (variant === 'compact') {
     return (
       <Link
-        href={`/creators/${slug}`}
+        href={profileHref}
         prefetch
         className={cn('group block', className)}
       >
@@ -129,7 +133,7 @@ export const MarketplaceCreatorCard = ({
   const ini = initials(creator.name)
   return (
     <Link
-      href={`/creators/${slug}`}
+      href={profileHref}
       prefetch
       className={cn('group block', className)}
     >
