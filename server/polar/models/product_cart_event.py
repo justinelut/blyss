@@ -12,7 +12,7 @@ class ProductCartEvent(RecordModel):
     __tablename__ = "product_cart_events"
     __table_args__ = (
         Index("ix_product_cart_events_product_id", "product_id"),
-        Index("ix_product_cart_events_created_at", "created_at"),
+        # created_at index auto-created by RecordModel.
     )
 
     product_id: Mapped[UUID] = mapped_column(

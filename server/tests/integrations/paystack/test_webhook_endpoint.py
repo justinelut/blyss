@@ -19,6 +19,10 @@ from polar.integrations.paystack.endpoints import PaystackWebhookEventGetter
 from polar.models.external_event import ExternalEvent, ExternalEventSource
 from polar.postgres import AsyncSession
 
+# All async test functions in this file run on the asyncio event loop
+# (pyproject.toml uses strict asyncio_mode, which requires explicit marking).
+pytestmark = pytest.mark.asyncio
+
 
 class MockRequest:
     """Mock request object for testing."""
@@ -240,8 +244,8 @@ class TestWebhookEndpoint:
         stored_event = result.scalar_one_or_none()
 
         assert stored_event is not None
-        assert stored_event.type == "paystack.webhook.charge.success"
-        assert stored_event.payload == payload_data
+        assert stored_event.task_name == "paystack.webhook.charge.success"
+        assert stored_event.data == payload_data
 
     async def test_webhook_endpoint_invalid_signature(self, client: AsyncClient):
         """Test webhook endpoint with invalid signature."""
@@ -386,12 +390,12 @@ class TestWebhookEndpoint:
         # Verify all events were stored with correct types
         stmt = select(ExternalEvent).where(
             ExternalEvent.source == ExternalEventSource.paystack,
-            ExternalEvent.type.like("paystack.webhook.%"),
+            ExternalEvent.task_name.like("paystack.webhook.%"),
         )
         result = await session.execute(stmt)
         stored_events = result.scalars().all()
 
-        stored_types = {event.type for event in stored_events}
+        stored_types = {event.task_name for event in stored_events}
         expected_types = {
             f"paystack.webhook.{event_type}" for event_type in event_types
         }
@@ -448,4 +452,4 @@ class TestWebhookEndpoint:
 
         assert stored_event is not None
         assert stored_event.external_id == "fallback_ref_123"
-        assert stored_event.type == "paystack.webhook.charge.success"
+        assert stored_event.task_name == "paystack.webhook.charge.success"

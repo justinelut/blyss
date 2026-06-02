@@ -14,7 +14,7 @@ class ProductView(RecordModel):
     __tablename__ = "product_views"
     __table_args__ = (
         Index("ix_product_views_product_id", "product_id"),
-        Index("ix_product_views_created_at", "created_at"),
+        # created_at index auto-created by RecordModel.
     )
 
     product_id: Mapped[UUID] = mapped_column(

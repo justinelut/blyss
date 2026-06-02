@@ -15,7 +15,8 @@ class Donation(RecordModel):
     __table_args__ = (
         Index("ix_donations_organization_id", "organization_id"),
         Index("ix_donations_donor_email", "donor_email"),
-        Index("ix_donations_created_at", "created_at"),
+        # Note: created_at index is already auto-created by RecordModel
+        # (`index=True` on the column), so no explicit Index here.
     )
 
     amount: Mapped[int] = mapped_column(Integer, nullable=False)

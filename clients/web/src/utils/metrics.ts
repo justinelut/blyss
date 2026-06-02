@@ -40,32 +40,34 @@ export const fromISODate = (date: string) =>
 
 export const getTickFormatter = (
   metric: schemas['Metric'],
+  currency: string = 'kes',
 ): ((value: number) => string) => {
   switch (metric.type) {
     case 'scalar':
       return formatHumanFriendlyScalar
     case 'currency':
-      return (value: number) => formatCurrency('statistics')(value, 'usd')
+      return (value: number) => formatCurrency('statistics')(value, currency)
     case 'percentage':
       return formatPercentage
     case 'currency_sub_cent':
-      return (value: number) => formatCurrency('subcent')(value, 'usd')
+      return (value: number) => formatCurrency('subcent')(value, currency)
   }
 }
 
 export const getFormattedMetricValue = (
   metric: schemas['Metric'],
   value: number,
+  currency: string = 'kes',
 ): string => {
   switch (metric.type) {
     case 'scalar':
       return formatScalar(value)
     case 'currency':
-      return formatCurrency('statistics')(value, 'usd')
+      return formatCurrency('statistics')(value, currency)
     case 'percentage':
       return formatPercentage(value)
     case 'currency_sub_cent':
-      return formatCurrency('subcent')(value, 'usd')
+      return formatCurrency('subcent')(value, currency)
   }
 }
 
