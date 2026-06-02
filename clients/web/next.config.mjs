@@ -22,17 +22,17 @@ const S3_PUBLIC_IMAGES_BUCKET_ORIGIN = process.env
 const R2_ENDPOINT =
   'https://c1eaaa292b9dddcb67f9592bb5bc1948.r2.cloudflarestorage.com'
 
-// MinIO self-hosted storage endpoints
-const MINIO_CONSOLE = 'https://storage.blyss.co.ke' // Console UI
-const MINIO_API = 'https://s3.blyss.co.ke' // API for uploads
+// MinIO self-hosted storage — public endpoint used for presigned uploads
+// AND public media reads. Must match POLAR_S3_PUBLIC_ENDPOINT_URL on the API.
+const MINIO_CDN = 'https://cdn.blyss.co.ke'
 
 const baseCSP = `
     default-src 'self';
-    connect-src 'self' ${process.env.NEXT_PUBLIC_API_URL} ${process.env.S3_UPLOAD_ORIGINS} ${R2_ENDPOINT} ${MINIO_CONSOLE} ${MINIO_API} https://api.stripe.com https://maps.googleapis.com https://*.google-analytics.com https://chat.uk.plain.com https://prod-uk-services-attachm-attachmentsuploadbucket2-1l2e4906o2asm.s3.eu-west-2.amazonaws.com;
+    connect-src 'self' ${process.env.NEXT_PUBLIC_API_URL} ${process.env.S3_UPLOAD_ORIGINS ?? ''} ${R2_ENDPOINT} ${MINIO_CDN} https://api.stripe.com https://maps.googleapis.com https://*.google-analytics.com https://chat.uk.plain.com https://prod-uk-services-attachm-attachmentsuploadbucket2-1l2e4906o2asm.s3.eu-west-2.amazonaws.com;
     frame-src 'self' https://*.js.stripe.com https://js.stripe.com https://hooks.stripe.com https://customer-wl21dabnj6qtvcai.cloudflarestream.com videodelivery.net *.cloudflarestream.com;
     script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.js.stripe.com https://js.stripe.com https://maps.googleapis.com https://www.googletagmanager.com https://chat.cdn-plain.com https://embed.cloudflarestream.com https://static.cloudflareinsights.com;
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-    img-src 'self' blob: data: https://www.gravatar.com https://img.logo.dev https://lh3.googleusercontent.com https://avatars.githubusercontent.com ${S3_PUBLIC_IMAGES_BUCKET_ORIGIN} ${R2_ENDPOINT} ${MINIO_CONSOLE} ${MINIO_API} https://uploads.polar.sh https://prod-uk-services-workspac-workspacefilespublicbuck-vs4gjqpqjkh6.s3.amazonaws.com https://prod-uk-services-attachm-attachmentsbucket28b3ccf-uwfssb4vt2us.s3.eu-west-2.amazonaws.com https://i0.wp.com;
+    img-src 'self' blob: data: https://www.gravatar.com https://img.logo.dev https://lh3.googleusercontent.com https://avatars.githubusercontent.com ${S3_PUBLIC_IMAGES_BUCKET_ORIGIN} ${R2_ENDPOINT} ${MINIO_CDN} https://uploads.polar.sh https://prod-uk-services-workspac-workspacefilespublicbuck-vs4gjqpqjkh6.s3.amazonaws.com https://prod-uk-services-attachm-attachmentsbucket28b3ccf-uwfssb4vt2us.s3.eu-west-2.amazonaws.com https://i0.wp.com;
     font-src 'self';
     object-src 'none';
     base-uri 'self';
@@ -188,13 +188,7 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'storage.blyss.co.ke',
-        port: '',
-        pathname: '**',
-      },
-      {
-        protocol: 'https',
-        hostname: 's3.blyss.co.ke',
+        hostname: 'cdn.blyss.co.ke',
         port: '',
         pathname: '**',
       },
