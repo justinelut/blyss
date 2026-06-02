@@ -67,6 +67,9 @@ jobs:
             echo "═══════════════════════════════════════"
             echo "-- env keys present? (length only) --"
             sudo kubectl -n $NS exec $POD -- sh -c 'echo "  paystack key len=${#POLAR_PAYSTACK_SECRET_KEY}"; echo "  google client_id len=${#POLAR_GOOGLE_CLIENT_ID}"; echo "  google client_secret len=${#POLAR_GOOGLE_CLIENT_SECRET}"' 2>&1 | head -5 || true
+            echo "-- cluster egress IP (this is what Paystack/Cloudflare sees) --"
+            sudo kubectl -n $NS exec $POD -- python3 -c 'import urllib.request;r=urllib.request.urlopen("https://api.ipify.org",timeout=10);print("  egress ip:",r.read().decode())' 2>&1 | head -3 || true
+            sudo kubectl -n $NS exec $POD -- python3 -c 'import urllib.request,json;r=urllib.request.urlopen("https://ipinfo.io/json",timeout=10);d=json.loads(r.read());print("  ipinfo:",d.get("ip"),d.get("org",""),d.get("country",""))' 2>&1 | head -3 || true
             echo "-- paystack key auth (HTTP code) --"
             sudo kubectl -n $NS exec $POD -- python3 -c 'import os,urllib.request,urllib.error;k=os.environ["POLAR_PAYSTACK_SECRET_KEY"];r=urllib.request.Request("https://api.paystack.co/transaction/verify/00000000",headers={"Authorization":"Bearer "+k});exec("try:\n  resp=urllib.request.urlopen(r,timeout=10);print(\"  HTTP\",resp.status)\nexcept urllib.error.HTTPError as e:\n  print(\"  HTTP\",e.code,\"(key valid: 401=invalid, 404=valid)\")\nexcept Exception as e:\n  print(\"  ERR\",e)")' 2>&1 | head -3 || true
             echo "-- paystack /transaction list (better key test, 200=valid) + key prefix --"
