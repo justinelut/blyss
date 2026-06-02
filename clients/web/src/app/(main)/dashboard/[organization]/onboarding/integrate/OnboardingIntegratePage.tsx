@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
-import { ArrowRight, Check, Copy, ExternalLink, Share2 } from 'lucide-react'
+import { FiArrowRight, FiCheck, FiCopy, FiExternalLink } from 'react-icons/fi'
 import type { schemas } from '@/lib/api'
 import { BlyssLogo, Eyebrow, typography } from '@/design'
 import { cn } from '@/lib/utils'
@@ -27,7 +27,7 @@ export default function OnboardingIntegratePage({
   const ease = [0.32, 0.72, 0, 1] as const
 
   const productUrl = `${STOREFRONT_BASE}/product/${product.id}`
-  const storefrontUrl = `${STOREFRONT_BASE}/${organization.slug}`
+  const storefrontUrl = `${STOREFRONT_BASE}/creators/${organization.slug}`
   const dashboardUrl = `/dashboard/${organization.slug}`
 
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
@@ -87,7 +87,7 @@ export default function OnboardingIntegratePage({
               Direct link to the {product.name} purchase page.
             </p>
             <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <code className="flex-1 truncate rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 font-mono text-[13px] text-[var(--text-primary)]">
+              <code className="flex-1 truncate rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 font-sans text-[13px] text-[var(--text-primary)] [font-variant-numeric:tabular-nums]">
                 {productUrl}
               </code>
               <button
@@ -97,11 +97,11 @@ export default function OnboardingIntegratePage({
               >
                 {copiedKey === 'product' ? (
                   <>
-                    <Check size={14} strokeWidth={2} /> Copied
+                    <FiCheck size={14} /> Copied
                   </>
                 ) : (
                   <>
-                    <Copy size={14} strokeWidth={2} /> Copy link
+                    <FiCopy size={14} /> Copy link
                   </>
                 )}
               </button>
@@ -110,7 +110,7 @@ export default function OnboardingIntegratePage({
                 target="_blank"
                 className="inline-flex h-10 items-center justify-center gap-1.5 rounded-md border border-[var(--border)] px-4 font-sans text-[14px] font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-sunken)]"
               >
-                Preview <ExternalLink size={14} strokeWidth={2} />
+                Preview <FiExternalLink size={14} />
               </Link>
             </div>
           </motion.div>
@@ -122,19 +122,16 @@ export default function OnboardingIntegratePage({
             transition={{ duration: 0.5, ease, delay: 0.28 }}
             className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 md:p-8"
           >
-            <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[var(--surface-sunken)] text-[var(--text-secondary)]">
-                <Share2 size={18} strokeWidth={1.75} />
-              </div>
-              <div className="flex-1">
-                <h2 className="font-display text-[20px] font-semibold tracking-[-0.02em]">
-                  Your storefront
+            <div className="flex-1">
+                <Eyebrow>Your storefront</Eyebrow>
+                <h2 className="mt-2 font-display text-[20px] font-semibold tracking-[-0.02em]">
+                  Share everything you sell
                 </h2>
                 <p className="mt-1 font-sans text-[14px] text-[var(--text-secondary)]">
-                  Share this for everything you sell, not just one product.
+                  One link for your whole catalog, not just this product.
                 </p>
                 <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-                  <code className="flex-1 truncate rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 font-mono text-[13px]">
+                  <code className="flex-1 truncate rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 font-sans text-[13px] text-[var(--text-primary)] [font-variant-numeric:tabular-nums]">
                     {storefrontUrl}
                   </code>
                   <button
@@ -144,16 +141,15 @@ export default function OnboardingIntegratePage({
                   >
                     {copiedKey === 'storefront' ? (
                       <>
-                        <Check size={14} strokeWidth={2} /> Copied
+                        <FiCheck size={14} /> Copied
                       </>
                     ) : (
                       <>
-                        <Copy size={14} strokeWidth={2} /> Copy
+                        <FiCopy size={14} /> Copy
                       </>
                     )}
                   </button>
                 </div>
-              </div>
             </div>
           </motion.div>
         </div>
@@ -176,7 +172,7 @@ export default function OnboardingIntegratePage({
             className="inline-flex h-11 items-center justify-center gap-1.5 rounded-md bg-[var(--accent)] px-6 font-sans text-[14px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)]"
           >
             Go to dashboard
-            <ArrowRight size={14} strokeWidth={2} />
+            <FiArrowRight size={14} />
           </Link>
         </motion.div>
       </div>

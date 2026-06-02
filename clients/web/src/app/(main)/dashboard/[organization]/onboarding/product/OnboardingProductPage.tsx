@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { motion, useReducedMotion } from 'motion/react'
-import { ArrowRight, Sparkles, Wallet, Share2, Headphones } from 'lucide-react'
+import { FiArrowRight } from 'react-icons/fi'
 import type { schemas } from '@/lib/api'
 import { BlyssLogo, Eyebrow, typography } from '@/design'
 import { cn } from '@/lib/utils'
@@ -15,34 +15,28 @@ interface Props {
   welcomeStatusDescription?: string
 }
 
-const checklist = [
+const checklist: ReadonlyArray<{
+  title: string
+  body: string
+  cta?: string
+  href?: string
+}> = [
   {
-    icon: Sparkles,
     title: 'List your first product',
     body: 'Pick what you want to sell — a beat pack, a Notion template, an ebook, a community subscription. Add a name, price, and the file or content. Takes about 2 minutes.',
     cta: 'Create a product',
   },
   {
-    icon: Wallet,
     title: 'Connect Paystack for payouts',
     body: 'Link your Paystack account so we can deposit your earnings to your bank or M-Pesa. You only need to do this before your first sale.',
     cta: 'Set up payouts',
     href: '/dashboard/{slug}/finance/account',
   },
   {
-    icon: Share2,
     title: 'Share your storefront',
-    body: 'Your store is live at blyss.co.ke/{slug}. Drop the link in your bio, post about it, tell your community. Sales start the moment people land on it.',
+    body: 'Your store is live at blyss.co.ke/creators/{slug}. Drop the link in your bio, post about it, tell your community. Sales start the moment people land on it.',
   },
-] as const
-
-const supportItems = [
-  {
-    icon: Headphones,
-    title: 'Stuck on something?',
-    body: 'Email support@blyss.co.ke and we usually reply within a few hours during Nairobi business days.',
-  },
-] as const
+]
 
 export default function OnboardingProductPage({
   organization,
@@ -74,11 +68,11 @@ export default function OnboardingProductPage({
             initial={reduce ? false : { opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45, ease, delay: 0.05 }}
-            className="mb-10 inline-flex flex-col gap-1 rounded-md border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-4 py-3 text-[14px]"
+            className="mb-10 inline-flex flex-col gap-1 border-l-2 border-[var(--accent)] bg-[var(--surface)] px-4 py-3 text-[14px]"
             role="status"
           >
             <span className="font-medium text-[var(--accent)]">
-              ✓ {welcomeStatus}
+              {welcomeStatus}
             </span>
             {welcomeStatusDescription && (
               <span className="text-[var(--text-secondary)]">
@@ -109,10 +103,9 @@ export default function OnboardingProductPage({
           </p>
         </motion.div>
 
-        {/* Step list */}
-        <div className="mt-14 flex flex-col gap-4">
+        {/* Step list — editorial numbered rows, hairline dividers, no tiles */}
+        <div className="mt-14 border-t border-[var(--border)]">
           {checklist.map((step, i) => {
-            const Icon = step.icon
             const isPrimary = i === 0
             const href = step.href?.replace('{slug}', organization.slug)
             return (
@@ -125,32 +118,21 @@ export default function OnboardingProductPage({
                   ease,
                   delay: 0.18 + i * 0.08,
                 }}
-                className={cn(
-                  'group relative flex flex-col gap-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 md:flex-row md:items-start md:p-8',
-                  isPrimary &&
-                    'border-[var(--accent)]/40 bg-[var(--surface-elevated)] shadow-[0_2px_24px_-12px_var(--accent)]',
-                )}
+                className="group flex gap-6 border-b border-[var(--border)] py-8 md:gap-10"
               >
-                <div
+                <span
                   className={cn(
-                    'flex h-11 w-11 shrink-0 items-center justify-center rounded-lg',
+                    'shrink-0 font-display text-[40px] font-semibold leading-none tracking-[-0.03em] [font-variant-numeric:tabular-nums] md:text-[56px]',
                     isPrimary
-                      ? 'bg-[var(--accent)] text-[var(--accent-foreground)]'
-                      : 'bg-[var(--surface-sunken)] text-[var(--text-secondary)]',
+                      ? 'text-[var(--accent)]'
+                      : 'text-[var(--border-strong)]',
                   )}
                 >
-                  <Icon size={20} strokeWidth={1.75} />
-                </div>
+                  {String(i + 1).padStart(2, '0')}
+                </span>
 
-                <div className="flex-1">
-                  <h2
-                    className={cn(
-                      'font-display font-semibold tracking-[-0.02em] text-[22px] text-[var(--text-primary)]',
-                    )}
-                  >
-                    <span className="text-[var(--text-muted)] mr-2 font-mono text-sm">
-                      {String(i + 1).padStart(2, '0')}
-                    </span>
+                <div className="flex-1 pt-1">
+                  <h2 className="font-display text-[22px] font-semibold tracking-[-0.02em] text-[var(--text-primary)]">
                     {step.title}
                   </h2>
                   <p className="mt-2 max-w-[58ch] font-sans text-[15px] leading-[1.6] text-[var(--text-secondary)]">
@@ -168,9 +150,8 @@ export default function OnboardingProductPage({
                       )}
                     >
                       {step.cta}
-                      <ArrowRight
+                      <FiArrowRight
                         size={14}
-                        strokeWidth={2}
                         className="transition-transform group-hover:translate-x-0.5"
                       />
                     </Link>
@@ -199,7 +180,7 @@ export default function OnboardingProductPage({
             className="inline-flex h-11 items-center justify-center gap-1.5 rounded-md bg-[var(--accent)] px-6 font-sans text-[14px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)]"
           >
             Create my first product
-            <ArrowRight size={14} strokeWidth={2} />
+            <FiArrowRight size={14} />
           </Link>
         </motion.div>
 
@@ -208,25 +189,22 @@ export default function OnboardingProductPage({
           initial={reduce ? false : { opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease, delay: 0.6 }}
-          className="mt-16"
+          className="mt-16 text-[14px] text-[var(--text-muted)]"
         >
-          {supportItems.map((item) => {
-            const Icon = item.icon
-            return (
-              <div
-                key={item.title}
-                className="flex items-start gap-3 text-[14px] text-[var(--text-muted)]"
-              >
-                <Icon size={16} strokeWidth={1.75} className="mt-0.5" />
-                <p>
-                  <span className="font-medium text-[var(--text-secondary)]">
-                    {item.title}
-                  </span>{' '}
-                  {item.body}
-                </p>
-              </div>
-            )
-          })}
+          <p>
+            <span className="font-medium text-[var(--text-secondary)]">
+              Stuck on something?
+            </span>{' '}
+            Email{' '}
+            <a
+              href="mailto:support@blyss.co.ke"
+              className="text-[var(--text-secondary)] underline-offset-4 hover:text-[var(--accent)] hover:underline"
+            >
+              support@blyss.co.ke
+            </a>{' '}
+            and we usually reply within a few hours during Nairobi business
+            days.
+          </p>
         </motion.div>
       </div>
     </div>
