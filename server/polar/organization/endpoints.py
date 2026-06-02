@@ -197,8 +197,18 @@ async def get_creator(
     if organization is None:
         raise ResourceNotFound()
 
-    # Get non-archived products
-    products = [p for p in organization.products if not p.is_archived]
+    # Convert non-archived SQLAlchemy products → public Product schema dicts.
+    # Lazy-import the schema to avoid a circular import (product.schemas
+    # imports OrganizationID from organization.schemas).
+    from polar.product.schemas import Product as ProductSchema
+
+    products = [
+        ProductSchema.model_validate(p, from_attributes=True).model_dump(
+            mode="json"
+        )
+        for p in organization.products
+        if not p.is_archived
+    ]
 
     # Convert socials list to SocialLinks format
     social_links_dict = {}
