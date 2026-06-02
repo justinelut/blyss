@@ -65,15 +65,35 @@ jobs:
             echo "═══════════════════════════════════════"
             echo " PAYMENTS / EXTERNAL APIS PROBE"
             echo "═══════════════════════════════════════"
-            echo "-- Paystack secret key — call /transaction/verify with a known-bad ref to confirm key is accepted --"
-            sudo kubectl -n $NS exec $POD -- sh -c 'curl -sS -m 10 -o /dev/null -w "  paystack key auth: HTTP %{http_code}\n" -H "Authorization: Bearer $POLAR_PAYSTACK_SECRET_KEY" "https://api.paystack.co/transaction/verify/00000000"' 2>&1 | head -3
+            echo "-- Paystack secret key — verify-transaction call (bad ref) confirms auth --"
+            sudo kubectl -n $NS exec $POD -- python3 -c '
+import os, urllib.request, urllib.error, json
+key=os.environ.get("POLAR_PAYSTACK_SECRET_KEY","")
+print(f"  key len={len(key)} prefix={key[:6]}...")
+req=urllib.request.Request("https://api.paystack.co/transaction/verify/00000000",
+  headers={"Authorization":f"Bearer {key}"})
+try:
+  with urllib.request.urlopen(req, timeout=10) as r:
+    print(f"  HTTP {r.status} ok={r.status<400}")
+except urllib.error.HTTPError as e:
+  body=e.read().decode("utf-8","ignore")[:200]
+  print(f"  HTTP {e.code} body={body!r}")
+except Exception as e:
+  print(f"  ERR: {e}")
+' 2>&1 | head -6
             echo "-- Google OAuth client ID present in env? --"
-            sudo kubectl -n $NS exec $POD -- sh -c 'k=${POLAR_GOOGLE_CLIENT_ID:-};echo "  client_id length=${#k}";echo "  prefix=${k:0:12}..."' 2>&1 | head -3
-            echo "-- blyss-studio org row: subaccount + mpesa fields --"
+            sudo kubectl -n $NS exec $POD -- python3 -c '
+import os
+k=os.environ.get("POLAR_GOOGLE_CLIENT_ID","")
+print(f"  client_id len={len(k)} prefix={k[:14]}")
+sec=os.environ.get("POLAR_GOOGLE_CLIENT_SECRET","")
+print(f"  client_secret len={len(sec)} present={bool(sec)}")
+' 2>&1 | head -3
+            echo "-- blyss-studio org row: subaccount + mpesa fields (correct columns) --"
             PG=$(sudo kubectl -n $NS get pods -l app=postgres -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select slug, subaccount_status, paystack_subaccount_code, mpesa_number, mpesa_verified, payout_method, default_presentment_currency from organizations where slug='blyss-studio';\"" 2>&1 | head -10
-            echo "-- worker logs (paystack/subaccount) --"
-            sudo kubectl -n $NS logs deployment/blyss-worker --tail=200 2>&1 | grep -iE "paystack|subaccount|mpesa" | head -10
+            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select slug, subaccount_status, subaccount_code, mpesa_number, mpesa_verified, payout_method, default_presentment_currency from organizations where slug='blyss-studio';\"" 2>&1 | head -10
+            echo "-- worker logs (last 100 lines) --"
+            sudo kubectl -n $NS logs deployment/blyss-worker --tail=100 2>&1 | tail -20
             echo
 
             echo "═══════════════════════════════════════"
