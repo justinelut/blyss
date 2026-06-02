@@ -22280,6 +22280,10 @@ export interface components {
       feature_settings?:
         | components['schemas']['OrganizationFeatureSettings']
         | null
+      profile_settings?: {
+        cover_image_url?: string | null
+        [key: string]: unknown
+      } | null
       subscription_settings?:
         | components['schemas']['OrganizationSubscriptionSettings']
         | null
@@ -22660,6 +22664,10 @@ export interface components {
       feature_settings?:
         | components['schemas']['OrganizationFeatureSettings']
         | null
+      profile_settings?: {
+        cover_image_url?: string | null
+        [key: string]: unknown
+      } | null
       subscription_settings?:
         | components['schemas']['OrganizationSubscriptionSettings']
         | null

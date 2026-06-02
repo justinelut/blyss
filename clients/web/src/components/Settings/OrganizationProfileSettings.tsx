@@ -233,8 +233,8 @@ export const OrganizationDetailsForm: React.FC<
   const { name, avatar_url: avatarURL } = useWatch({ control })
   const profileSettings = useWatch({
     control,
-    name: 'profile_settings' as never,
-  }) as { cover_image_url?: string | null } | undefined
+    name: 'profile_settings',
+  })
   const coverImageURL = profileSettings?.cover_image_url ?? null
 
   const { status: urlStatus, validateURL } = useURLValidation({
@@ -285,8 +285,8 @@ export const OrganizationDetailsForm: React.FC<
       if (files.length === 0) return
       const lastFile = files[files.length - 1]
       setValue(
-        'profile_settings.cover_image_url' as never,
-        lastFile.public_url as never,
+        'profile_settings.cover_image_url',
+        lastFile.public_url,
         { shouldDirty: true },
       )
     },
@@ -296,7 +296,7 @@ export const OrganizationDetailsForm: React.FC<
     (rejections: FileRejection[]) => {
       rejections.forEach((rejection) => {
         setError(
-          'profile_settings.cover_image_url' as never,
+          'profile_settings.cover_image_url',
           { message: rejection.errors[0].message },
         )
       })
@@ -329,7 +329,7 @@ export const OrganizationDetailsForm: React.FC<
         </p>
         <FormField
           control={control}
-          name={'profile_settings.cover_image_url' as never}
+          name={'profile_settings.cover_image_url'}
           render={() => (
             <div>
               <div
