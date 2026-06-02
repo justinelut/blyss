@@ -51,12 +51,15 @@ jobs:
             echo " API CONTAINER CMD (what's actually running)"
             echo "═══════════════════════════════════════"
             POD=$(sudo kubectl -n $NS get pods -l app=blyss-api -o jsonpath='{.items[0].metadata.name}')
-            sudo kubectl -n $NS get pod $POD -o jsonpath='{.spec.containers[0].command}{"\n"}{.spec.containers[0].args}{"\n"}'
-            echo
+            sudo kubectl -n $NS get pod $POD -o jsonpath='{.spec.containers[0].image}{"\n"}'
             echo "actual running command (from /proc):"
             for pid in 1 2 3 4 5 6 7 8 9 10 11 12; do
               sudo kubectl -n $NS exec $POD -- sh -c "test -r /proc/$pid/cmdline && cat /proc/$pid/cmdline | tr '\0' ' ' && echo" 2>/dev/null
-            done | grep -i uvicorn | head -3
+            done | grep -i uvicorn | head -1
+            echo "middleware Rule 3 present in running image?"
+            sudo kubectl -n $NS exec $POD -- sh -c "grep -c 'Rule 3' /app/server/polar/middlewares.py" 2>&1 || true
+            echo "POLAR_BASE_URL value seen by pod:"
+            sudo kubectl -n $NS exec $POD -- sh -c 'echo "  $POLAR_BASE_URL"' 2>&1 || true
             echo
 
             echo "═══════════════════════════════════════"
