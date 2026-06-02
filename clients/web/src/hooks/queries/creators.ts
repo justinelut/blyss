@@ -22,7 +22,7 @@ export const useCreators = (
     queryKey: ['creators', parameters || {}],
     queryFn: () =>
       unwrap(
-        api.GET('/v1/creators', {
+        api.GET('/v1/organizations/creators', {
           params: {
             query: {
               search: parameters?.search,
@@ -50,7 +50,7 @@ export const useCreator = (
     queryKey: ['creators', { slug }],
     queryFn: () =>
       unwrap(
-        api.GET('/v1/creators/{slug}', {
+        api.GET('/v1/organizations/creators/{slug}', {
           params: { path: { slug: slug ?? '' } },
         }),
       ),

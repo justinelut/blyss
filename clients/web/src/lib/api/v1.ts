@@ -944,7 +944,7 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/v1/organizations/v1/creators': {
+  '/v1/organizations/creators': {
     parameters: {
       query?: never
       header?: never
@@ -967,7 +967,7 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/v1/organizations/v1/creators/{slug}': {
+  '/v1/organizations/creators/{slug}': {
     parameters: {
       query?: never
       header?: never

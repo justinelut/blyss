@@ -137,6 +137,98 @@ async def list(
 
 
 @router.get(
+    "/creators",
+    summary="List Creators",
+    response_model=builtins.list[CreatorSummarySchema],
+    tags=[APITag.public],
+)
+async def list_creators(
+    search: str | None = Query(None, description="Search creators by name."),
+    limit: int = Query(default=100, le=100, description="Maximum number of results."),
+    offset: int = Query(default=0, ge=0, description="Number of results to skip."),
+    session: AsyncReadSession = Depends(get_db_read_session),
+) -> builtins.list[CreatorSummarySchema]:
+    """List all creators with products.
+
+    This endpoint does not require authentication and returns all creators
+    that have at least one product available.
+    """
+    organizations = await organization_service.get_creators_directory(
+        session, search=search, limit=limit, offset=offset
+    )
+
+    # Build response with product counts
+    result = []
+    for org in organizations:
+        # Count non-archived products
+        product_count = len([p for p in org.products if not p.is_archived])
+
+        result.append(
+            CreatorSummarySchema(
+                id=org.id,
+                name=org.name,
+                slug=org.slug,
+                avatar_url=org.avatar_url,
+                product_count=product_count,
+            )
+        )
+
+    return result
+
+
+@router.get(
+    "/creators/{slug}",
+    summary="Get Creator Storefront",
+    response_model=CreatorStorefrontSchema,
+    responses={404: OrganizationNotFound},
+    tags=[APITag.public],
+)
+async def get_creator(
+    slug: str,
+    session: AsyncReadSession = Depends(get_db_read_session),
+) -> CreatorStorefrontSchema:
+    """Get creator storefront data by slug.
+
+    This endpoint does not require authentication and returns the creator's
+    profile information along with their products.
+    """
+    organization = await organization_service.get_creator_storefront(session, slug)
+
+    if organization is None:
+        raise ResourceNotFound()
+
+    # Get non-archived products
+    products = [p for p in organization.products if not p.is_archived]
+
+    # Convert socials list to SocialLinks format
+    social_links_dict = {}
+    if organization.socials:
+        for social in organization.socials:
+            platform = social.get("platform", "").lower()
+            url = social.get("url", "")
+            if platform and url:
+                # Map platform names to schema fields
+                if platform in ["x", "twitter"]:
+                    social_links_dict["twitter"] = url
+                elif platform == "instagram":
+                    social_links_dict["instagram"] = url
+                elif platform in ["website", "other"]:
+                    if "website" not in social_links_dict:
+                        social_links_dict["website"] = url
+
+    return CreatorStorefrontSchema(
+        id=organization.id,
+        name=organization.name,
+        slug=organization.slug,
+        avatar_url=organization.avatar_url,
+        bio=organization.bio,
+        email=organization.email,
+        social_links=social_links_dict if social_links_dict else None,
+        products=products,
+    )
+
+
+@router.get(
     "/{id}",
     summary="Get Organization",
     response_model=OrganizationSchema,
@@ -706,98 +798,6 @@ async def get_review_status(
 
 
 # Public Creator Endpoints
-
-
-@router.get(
-    "/creators",
-    summary="List Creators",
-    response_model=builtins.list[CreatorSummarySchema],
-    tags=[APITag.public],
-)
-async def list_creators(
-    search: str | None = Query(None, description="Search creators by name."),
-    limit: int = Query(default=100, le=100, description="Maximum number of results."),
-    offset: int = Query(default=0, ge=0, description="Number of results to skip."),
-    session: AsyncReadSession = Depends(get_db_read_session),
-) -> builtins.list[CreatorSummarySchema]:
-    """List all creators with products.
-
-    This endpoint does not require authentication and returns all creators
-    that have at least one product available.
-    """
-    organizations = await organization_service.get_creators_directory(
-        session, search=search, limit=limit, offset=offset
-    )
-
-    # Build response with product counts
-    result = []
-    for org in organizations:
-        # Count non-archived products
-        product_count = len([p for p in org.products if not p.is_archived])
-
-        result.append(
-            CreatorSummarySchema(
-                id=org.id,
-                name=org.name,
-                slug=org.slug,
-                avatar_url=org.avatar_url,
-                product_count=product_count,
-            )
-        )
-
-    return result
-
-
-@router.get(
-    "/creators/{slug}",
-    summary="Get Creator Storefront",
-    response_model=CreatorStorefrontSchema,
-    responses={404: OrganizationNotFound},
-    tags=[APITag.public],
-)
-async def get_creator(
-    slug: str,
-    session: AsyncReadSession = Depends(get_db_read_session),
-) -> CreatorStorefrontSchema:
-    """Get creator storefront data by slug.
-
-    This endpoint does not require authentication and returns the creator's
-    profile information along with their products.
-    """
-    organization = await organization_service.get_creator_storefront(session, slug)
-
-    if organization is None:
-        raise ResourceNotFound()
-
-    # Get non-archived products
-    products = [p for p in organization.products if not p.is_archived]
-
-    # Convert socials list to SocialLinks format
-    social_links_dict = {}
-    if organization.socials:
-        for social in organization.socials:
-            platform = social.get("platform", "").lower()
-            url = social.get("url", "")
-            if platform and url:
-                # Map platform names to schema fields
-                if platform in ["x", "twitter"]:
-                    social_links_dict["twitter"] = url
-                elif platform == "instagram":
-                    social_links_dict["instagram"] = url
-                elif platform in ["website", "other"]:
-                    if "website" not in social_links_dict:
-                        social_links_dict["website"] = url
-
-    return CreatorStorefrontSchema(
-        id=organization.id,
-        name=organization.name,
-        slug=organization.slug,
-        avatar_url=organization.avatar_url,
-        bio=organization.bio,
-        email=organization.email,
-        social_links=social_links_dict if social_links_dict else None,
-        products=products,
-    )
 
 
 @router.patch(

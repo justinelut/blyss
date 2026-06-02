@@ -24,7 +24,7 @@ interface CreatorPageProps {
  * /creators/[slug] — Creator storefront (plan §6.4).
  *
  * Server component: fetches the creator + their products from
- * `/v1/organizations/v1/creators/{slug}` (CreatorStorefrontSchema), emits
+ * `/v1/organizations/creators/{slug}` (CreatorStorefrontSchema), emits
  * Person JSON-LD with the creator's product list as `subjectOf.itemListElement`,
  * sets canonical + OG metadata, and hands off to the
  * <CreatorStorefrontPage> client island for tab state.
@@ -38,7 +38,7 @@ interface CreatorPageProps {
 async function fetchCreator(slug: string) {
   const api = await getServerSideAPI()
   return unwrap(
-    api.GET('/v1/organizations/v1/creators/{slug}', {
+    api.GET('/v1/organizations/creators/{slug}', {
       params: { path: { slug } },
     }),
   )
