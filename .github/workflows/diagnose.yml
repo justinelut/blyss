@@ -74,9 +74,11 @@ jobs:
             echo "-- recent products --"
             sudo kubectl -n $NS exec $PG -- sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "select id, name, is_archived, organization_id from products order by created_at desc limit 10;"' 2>&1 | head -20
             echo "-- blyss-studio row (storefront filter fields) --"
-            sudo kubectl -n $NS exec $PG -- sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "select slug, deleted_at, blocked_at from organizations where slug=$$blyss-studio$$;"' 2>&1 | head -10
+            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select slug, deleted_at, blocked_at, created_at from organizations where slug = 'blyss-studio';\"" 2>&1 | head -10
             echo "-- replicate storefront query exactly --"
-            sudo kubectl -n $NS exec $PG -- sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "select slug from organizations where slug=$$blyss-studio$$ and deleted_at is null and blocked_at is null;"' 2>&1 | head -10
+            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select slug from organizations where slug = 'blyss-studio' and deleted_at is null and blocked_at is null;\"" 2>&1 | head -10
+            echo "-- ALL org slugs (exact, quoted) --"
+            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select '['||slug||']' as slug, deleted_at is null as not_deleted, blocked_at is null as not_blocked from organizations order by created_at desc limit 20;\"" 2>&1 | head -30
             echo
 
             echo "═══════════════════════════════════════"
