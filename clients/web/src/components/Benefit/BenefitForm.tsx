@@ -398,10 +398,10 @@ export const DiscordBenefitForm = () => {
 const BenefitTypeSelect = () => {
   const { control } = useFormContext<schemas['BenefitCustomCreate']>()
 
-  // Filter out GitHub and Feature Flag benefits for Kenyan creators marketplace
-  const availableBenefitTypes = enums.benefitTypeValues.filter(
-    (value) => value !== 'github_repository' && value !== 'feature_flag'
-  )
+  // Show ALL benefit types (custom, discord, github_repository, downloadables,
+  // license_keys, meter_credit, feature_flag). Per user request, github + feature
+  // flag + meter credits are enabled for creators.
+  const availableBenefitTypes = enums.benefitTypeValues
 
   return (
     <FormField

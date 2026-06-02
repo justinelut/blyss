@@ -36,9 +36,9 @@ from polar.integrations.chargeback_stop.endpoints import (
 from polar.integrations.discord.endpoints import router as discord_router
 
 # from polar.integrations.github.endpoints import router as github_router
-# from polar.integrations.github_repository_benefit.endpoints import (
-#     router as github_repository_benefit_router,
-# )
+from polar.integrations.github_repository_benefit.endpoints import (
+    router as github_repository_benefit_router,
+)
 from polar.integrations.google.endpoints import router as google_router
 from polar.integrations.paystack.endpoints import router as paystack_router
 from polar.integrations.plain.endpoints import router as plain_router
@@ -81,9 +81,10 @@ router = APIRouter(prefix="/v1")
 # /users
 router.include_router(user_router)
 
-# DISABLED — GitHub OAuth and GitHub-as-benefit routes (plan §4.4 step 1)
+# DISABLED — GitHub OAuth signin is disabled (plan §4.4 step 1)
 # router.include_router(github_router)
-# router.include_router(github_repository_benefit_router)
+# GitHub Repository Access as a benefit type IS enabled (per user request).
+router.include_router(github_repository_benefit_router)
 
 # DISABLED — Stripe routes never expose to marketplace; Paystack is the only payment surface
 # router.include_router(stripe_router)
