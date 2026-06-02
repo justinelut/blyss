@@ -51,6 +51,24 @@ export default async function Page(props: {
 
   const { clientSecret } = params
 
+  // CheckoutLink IDs (polar_cl_*) are NOT checkout-session client_secrets.
+  // Bounce them to the backend's resolve endpoint, which creates the
+  // checkout session, then redirects back here with the real client_secret.
+  // Without this, hitting `buy.blyss.co.ke/checkout/polar_cl_xxx` 404s
+  // because /v1/checkouts/client/polar_cl_xxx doesn't match a checkout row.
+  if (clientSecret.startsWith('polar_cl_')) {
+    const resolveURL = new URL(
+      `/v1/checkout-links/${clientSecret}/redirect`,
+      getPublicServerURL(),
+    )
+    // Forward through embed/theme/locale so the resolved checkout keeps the
+    // same UI mode the link was opened in.
+    if (_embed) resolveURL.searchParams.set('embed', _embed)
+    if (theme) resolveURL.searchParams.set('theme', theme)
+    if (_locale) resolveURL.searchParams.set('locale', _locale)
+    redirect(resolveURL.toString())
+  }
+
   const embed = _embed === 'true'
   const client = createClient(getServerURL())
 
