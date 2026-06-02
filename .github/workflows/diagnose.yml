@@ -63,6 +63,18 @@ jobs:
             echo
 
             echo "═══════════════════════════════════════"
+            echo " TRAEFIK CRD + FORWARDED-PROTO PROBE"
+            echo "═══════════════════════════════════════"
+            echo "-- available middleware CRD apiVersions --"
+            sudo kubectl api-resources 2>/dev/null | grep -i middleware || echo "  (no middleware CRD)"
+            echo "-- existing middlewares in ns --"
+            sudo kubectl -n $NS get middlewares.traefik.io 2>/dev/null || sudo kubectl -n $NS get middlewares.traefik.containo.us 2>/dev/null || echo "  (none)"
+            echo "-- what scheme/headers does the API see? (hit the echo via in-cluster + via public) --"
+            echo "  in-cluster (http expected):"
+            sudo kubectl -n $NS exec $POD -- python3 -c "import urllib.request as u; r=u.urlopen('http://localhost:10000/v1/integrations/google/login/authorize?return_to=/x', timeout=8); print('   ',r.headers.get('location','(no loc)')[:120])" 2>&1 | head -3 || true
+            echo
+
+            echo "═══════════════════════════════════════"
             echo " API POD LOGS (current)"
             echo "═══════════════════════════════════════"
             sudo kubectl -n $NS logs deployment/blyss-api --tail=120 --all-containers=true 2>&1 || true
