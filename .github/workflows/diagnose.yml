@@ -48,6 +48,24 @@ jobs:
             sudo kubectl -n $NS describe deployment/blyss-api 2>&1 | tail -50
             echo ""
             echo "═══════════════════════════════════════"
+            echo " API CONTAINER CMD (what's actually running)"
+            echo "═══════════════════════════════════════"
+            POD=$(sudo kubectl -n $NS get pods -l app=blyss-api -o jsonpath='{.items[0].metadata.name}')
+            sudo kubectl -n $NS get pod $POD -o jsonpath='{.spec.containers[0].command}{"\n"}{.spec.containers[0].args}{"\n"}'
+            echo
+            echo "ps inside pod:"
+            sudo kubectl -n $NS exec $POD -- sh -c "ps -ef | grep uvicorn | grep -v grep" 2>&1 || true
+            echo
+
+            echo "═══════════════════════════════════════"
+            echo " OAuth redirect_uri scheme tests (from inside cluster)"
+            echo "═══════════════════════════════════════"
+            echo "without forwarded headers (raw upstream):"
+            sudo kubectl -n $NS exec $POD -- sh -c "curl -sS -m 5 -D - -o /dev/null 'http://127.0.0.1:10000/v1/integrations/google/login/authorize?return_to=/dashboard' 2>&1 | grep -i location | head -1"
+            echo "with X-Forwarded-Proto: https:"
+            sudo kubectl -n $NS exec $POD -- sh -c "curl -sS -m 5 -D - -o /dev/null -H 'X-Forwarded-Proto: https' -H 'X-Forwarded-Host: api.blyss.co.ke' 'http://127.0.0.1:10000/v1/integrations/google/login/authorize?return_to=/dashboard' 2>&1 | grep -i location | head -1"
+
+            echo "═══════════════════════════════════════"
             echo " API POD LOGS (current)"
             echo "═══════════════════════════════════════"
             sudo kubectl -n $NS logs deployment/blyss-api --tail=120 --all-containers=true 2>&1 || true
