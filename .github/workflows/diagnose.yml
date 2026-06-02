@@ -81,6 +81,8 @@ jobs:
             echo "-- blyss-studio org row: subaccount + mpesa fields --"
             PG=$(sudo kubectl -n $NS get pods -l app=postgres -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
             sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select slug, subaccount_status, subaccount_code, mpesa_number, mpesa_verified, payout_method, default_presentment_currency from organizations where slug='blyss-studio';\"" 2>&1 | head -10
+            echo "-- blyss-studio avatar + profile_settings (banner) --"
+            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select slug, _avatar_url, profile_settings from organizations where slug='blyss-studio';\"" 2>&1 | head -10
             echo "-- worker logs (last 30 lines) --"
             sudo kubectl -n $NS logs deployment/blyss-worker --tail=30 2>&1 | tail -20
             echo
