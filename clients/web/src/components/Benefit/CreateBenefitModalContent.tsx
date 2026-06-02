@@ -1,13 +1,17 @@
 import { useCreateBenefit } from '@/hooks/queries'
 import { setValidationErrors } from '@/utils/api/errors'
-import { enums, schemas } from '@/lib/api'
+import { schemas } from '@/lib/api'
 import Button from '@/components/atoms/Button'
 import { Form } from '@/components/ui/form'
 import { useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { NewBenefitForm } from '../Benefit/BenefitForm'
-import { CreatableBenefit } from '../Benefit/utils'
+import {
+  CreatableBenefit,
+  defaultBenefitType,
+  visibleBenefitTypes,
+} from '../Benefit/utils'
 import { useToast } from '../Toast/use-toast'
 
 export type CreateBenefitModalParams = {
@@ -48,7 +52,7 @@ const CreateBenefitModalContent = ({
   const form = useForm<schemas['BenefitCreate']>({
     defaultValues: {
       organization_id: organization.id,
-      type: type ? type : 'feature_flag',
+      type: type ? type : defaultBenefitType,
       description: description ? description : undefined,
       properties: {
         ...(properties as any),
@@ -74,7 +78,7 @@ const CreateBenefitModalContent = ({
             error.detail,
             setError,
             1,
-            enums.benefitTypeValues as string[],
+            visibleBenefitTypes as string[],
           )
         }
         return

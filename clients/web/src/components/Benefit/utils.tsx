@@ -1,9 +1,34 @@
 import { schemas } from '@/lib/api'
+import { enums } from '@/lib/api'
 import { Check, Download, Flag, Gauge, Key } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
 import GitHubIcon from '../Icons/GitHubIcon'
 
 export type CreatableBenefit = schemas['BenefitType']
+
+/**
+ * Benefit types hidden from the marketplace UI. Kenyan creators don't
+ * recognize github_repository / meter_credit / feature_flag — those are
+ * developer-economy concepts inherited from upstream Polar. They remain in
+ * the BenefitType enum (existing data integrity) but are filtered out of
+ * every type-picker the user sees.
+ *
+ * Single source of truth — every benefit dropdown imports this list.
+ */
+export const HIDDEN_BENEFIT_TYPES: ReadonlyArray<schemas['BenefitType']> = [
+  'github_repository',
+  'meter_credit',
+  'feature_flag',
+]
+
+export const visibleBenefitTypes: ReadonlyArray<schemas['BenefitType']> =
+  enums.benefitTypeValues.filter((t) => !HIDDEN_BENEFIT_TYPES.includes(t))
+
+/** Default benefit type used when no `type` query param is provided.
+ *  Picks the first visible type (currently `custom`) so the form never
+ *  defaults to a hidden type. */
+export const defaultBenefitType: schemas['BenefitType'] =
+  visibleBenefitTypes[0] ?? 'custom'
 
 export const resolveBenefitCategoryIcon = (
   type?: schemas['BenefitType'],

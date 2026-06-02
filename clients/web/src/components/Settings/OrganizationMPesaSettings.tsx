@@ -164,8 +164,8 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
       )
 
       toast({
-        title: 'Subaccount Retry Started',
-        description: 'Attempting to create Paystack subaccount again.',
+        title: 'Retrying payout setup',
+        description: 'Setting up your payout account again.',
       })
 
       // Refresh the page to show updated status
@@ -173,7 +173,7 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
     } catch (error: any) {
       toast({
         title: 'Retry Failed',
-        description: error.message || 'Failed to retry subaccount creation',
+        description: error.message || 'Failed to set up your payout account',
         variant: 'destructive',
       })
     } finally {
@@ -236,8 +236,8 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
       <form onSubmit={handleSubmit(onConfigureMPesa)}>
         <SettingsGroup>
           <SettingsGroupItem
-            title="Paystack Subaccount Status"
-            description="Status of your Paystack subaccount for receiving payments"
+            title="Payout account"
+            description="Status of your payout account. Activates automatically once your details are verified."
           >
             <div className="flex items-center gap-2">
               {getSubaccountStatusBadge()}
@@ -266,28 +266,81 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
           </SettingsGroupItem>
 
           <SettingsGroupItem
-            title="Payout Method"
-            description="Choose how you want to receive your payouts"
+            title="How do you want to get paid?"
+            description="Pick where Blyss should send your earnings. You can change this later."
           >
             <FormField
               control={form.control}
               name="payout_method"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="w-full">
                   <FormControl>
-                    <Select
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      disabled={subaccountStatus !== 'active'}
-                    >
-                      <SelectTrigger className="w-48">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="bank">Bank Account</SelectItem>
-                        <SelectItem value="mpesa">M-Pesa</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      {/* M-Pesa card */}
+                      <button
+                        type="button"
+                        onClick={() => field.onChange('mpesa')}
+                        aria-pressed={field.value === 'mpesa'}
+                        className={
+                          'group flex flex-col items-start gap-3 rounded-lg border p-4 text-left transition-colors ' +
+                          (field.value === 'mpesa'
+                            ? 'border-[var(--accent)] bg-[var(--surface-elevated)] ring-1 ring-[var(--accent)]'
+                            : 'border-[var(--border)] bg-[var(--surface-elevated)] hover:bg-[var(--surface-sunken)]')
+                        }
+                      >
+                        <div className="flex w-full items-center justify-between">
+                          <span className="font-display text-[15px] font-semibold text-[var(--text-primary)]">
+                            M-Pesa
+                          </span>
+                          <span
+                            className={
+                              'h-3 w-3 rounded-full ' +
+                              (field.value === 'mpesa'
+                                ? 'bg-[var(--accent)]'
+                                : 'border border-[var(--border-strong)]')
+                            }
+                            aria-hidden="true"
+                          />
+                        </div>
+                        <p className="font-sans text-[13px] leading-[1.5] text-[var(--text-secondary)]">
+                          Get paid straight to your phone. We send a KSh 10
+                          confirmation transaction the first time so we know
+                          the number is yours.
+                        </p>
+                      </button>
+
+                      {/* Bank card */}
+                      <button
+                        type="button"
+                        onClick={() => field.onChange('bank')}
+                        aria-pressed={field.value === 'bank'}
+                        className={
+                          'group flex flex-col items-start gap-3 rounded-lg border p-4 text-left transition-colors ' +
+                          (field.value === 'bank'
+                            ? 'border-[var(--accent)] bg-[var(--surface-elevated)] ring-1 ring-[var(--accent)]'
+                            : 'border-[var(--border)] bg-[var(--surface-elevated)] hover:bg-[var(--surface-sunken)]')
+                        }
+                      >
+                        <div className="flex w-full items-center justify-between">
+                          <span className="font-display text-[15px] font-semibold text-[var(--text-primary)]">
+                            Bank account
+                          </span>
+                          <span
+                            className={
+                              'h-3 w-3 rounded-full ' +
+                              (field.value === 'bank'
+                                ? 'bg-[var(--accent)]'
+                                : 'border border-[var(--border-strong)]')
+                            }
+                            aria-hidden="true"
+                          />
+                        </div>
+                        <p className="font-sans text-[13px] leading-[1.5] text-[var(--text-secondary)]">
+                          Direct deposit to your KES bank account. Standard
+                          payout schedule, no extra steps after setup.
+                        </p>
+                      </button>
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>

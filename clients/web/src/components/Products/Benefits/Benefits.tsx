@@ -4,8 +4,9 @@ import {
   benefitsDisplayNames,
   CreatableBenefit,
   resolveBenefitIcon,
+  visibleBenefitTypes,
 } from '@/components/Benefit/utils'
-import { enums, schemas } from '@/lib/api'
+import { schemas } from '@/lib/api'
 import Button from '@/components/atoms/Button'
 import {
   DropdownMenu,
@@ -107,7 +108,7 @@ export const Benefits = ({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="min-w-[200px]">
-                {enums.benefitTypeValues.map((type) => (
+                {visibleBenefitTypes.map((type) => (
                   <DropdownMenuItem
                     key={type}
                     onClick={() => {

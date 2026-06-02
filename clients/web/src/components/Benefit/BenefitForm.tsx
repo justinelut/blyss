@@ -1,6 +1,6 @@
 import { useDiscordGuild } from '@/hooks/queries'
 import { getBotDiscordAuthorizeURL } from '@/utils/auth'
-import { enums, schemas } from '@/lib/api'
+import { schemas } from '@/lib/api'
 import Button from '@/components/atoms/Button'
 import Input from '@/components/atoms/Input'
 import {
@@ -31,7 +31,7 @@ import { DownloadablesBenefitForm } from './Downloadables/BenefitForm'
 import { GitHubRepositoryBenefitForm } from './GitHubRepositoryBenefitForm'
 import { LicenseKeysBenefitForm } from './LicenseKeys/BenefitForm'
 import { MeterCreditBenefitForm } from './MeterCredit/BenefitForm'
-import { benefitsDisplayNames } from './utils'
+import { benefitsDisplayNames, visibleBenefitTypes } from './utils'
 
 export const NewBenefitForm = ({
   organization,
@@ -398,17 +398,9 @@ export const DiscordBenefitForm = () => {
 const BenefitTypeSelect = () => {
   const { control } = useFormContext<schemas['BenefitCustomCreate']>()
 
-  // Hide developer-oriented benefit types (github_repository / meter_credit /
-  // feature_flag) — Kenyan creators don't recognize them. Visible types:
-  // custom, discord, downloadables, license_keys.
-  const HIDDEN_BENEFIT_TYPES: ReadonlyArray<schemas['BenefitType']> = [
-    'github_repository',
-    'meter_credit',
-    'feature_flag',
-  ]
-  const availableBenefitTypes = enums.benefitTypeValues.filter(
-    (value) => !HIDDEN_BENEFIT_TYPES.includes(value),
-  )
+  // Hide developer-oriented benefit types via the shared helper. See
+  // `Benefit/utils.tsx` for the canonical HIDDEN_BENEFIT_TYPES list.
+  const availableBenefitTypes = visibleBenefitTypes
 
   return (
     <FormField
