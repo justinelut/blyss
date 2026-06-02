@@ -111,16 +111,6 @@ spec:
                 name: blyss-web
                 port:
                   number: 80
-    - host: api.blyss.co.ke
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: blyss-api
-                port:
-                  number: 80
     - host: cdn.blyss.co.ke
       http:
         paths:
@@ -131,3 +121,39 @@ spec:
                 name: minio
                 port:
                   number: 9000
+---
+# Force X-Forwarded-Proto: https for the API host. The public edge terminates
+# TLS, but the scheme reaching the pod can be http (cluster-internal), which
+# makes Polar build http:// OAuth redirect_uris and Google rejects them
+# (redirect_uri_mismatch). uvicorn runs with --proxy-headers so it honors this.
+# This is an infra-layer fix — Polar application code is untouched.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: api-forwarded-https
+  namespace: blyss
+spec:
+  headers:
+    customRequestHeaders:
+      X-Forwarded-Proto: https
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: blyss-api-ingress
+  namespace: blyss
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+    traefik.ingress.kubernetes.io/router.middlewares: blyss-api-forwarded-https@kubernetescrd
+spec:
+  rules:
+    - host: api.blyss.co.ke
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: blyss-api
+                port:
+                  number: 80
