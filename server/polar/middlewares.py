@@ -18,17 +18,19 @@ class ForwardedHostMiddleware:
     """Apply X-Forwarded-Host (or fall back to settings.BASE_URL) to the request scope.
 
     Uvicorn's --proxy-headers flag handles X-Forwarded-Proto and X-Forwarded-For,
-    but not X-Forwarded-Host. When the upstream proxy rewrites the Host header
-    (e.g. code-server / Cloudflare-tunnel setups that pin the upstream Host to
-    127.0.0.1), generated URLs (such as the OAuth redirect_uri built from
-    request.url_for) end up pointing at the internal upstream host instead of
-    the public hostname.
+    but not X-Forwarded-Host. AND in K3s + Traefik defaults the forwarded
+    headers from upstream Cloudflare are NOT trusted, so X-Forwarded-Proto
+    gets overwritten with the Traefik-side scheme (http on cluster-internal),
+    which means request.url_for() builds http:// URLs even though the public
+    site is https://. This breaks Google OAuth (redirect_uri_mismatch).
 
-    Resolution order:
+    Resolution order, applied to scope:
     1. If X-Forwarded-Host is set by the public proxy → use it.
     2. Else if X-Forwarded-Proto is set (request came through a proxy) and the
        Host header is loopback-ish, fall back to settings.BASE_URL.
-    3. Else leave the scope alone.
+    3. Else if settings.BASE_URL is set AND its host matches the request Host
+       (i.e. this IS a request for the public app), force the scope's scheme
+       and host to settings.BASE_URL — robust to Traefik stripping headers.
     """
 
     def __init__(self, app: ASGIApp) -> None:
@@ -75,6 +77,23 @@ class ForwardedHostMiddleware:
             if parsed.hostname:
                 public_host = parsed.netloc
                 public_scheme = parsed.scheme
+
+        # Rule 3: if BASE_URL is configured and the request Host matches its
+        # hostname (this IS a request for the public app), force scope's scheme
+        # and host to BASE_URL. Robust to Traefik/k3s defaults that overwrite
+        # X-Forwarded-Proto with the cluster-internal http scheme — so the
+        # OAuth redirect_uri stays https://api.example.com/... not http://.
+        if not public_host and settings.BASE_URL and host_header:
+            from urllib.parse import urlparse
+
+            parsed_base = urlparse(str(settings.BASE_URL))
+            if parsed_base.hostname:
+                req_host = (
+                    host_header.decode("latin-1").split(":", 1)[0].strip().lower()
+                )
+                if req_host == parsed_base.hostname.lower():
+                    public_host = parsed_base.netloc
+                    public_scheme = parsed_base.scheme
 
         if public_host:
             new_headers = [
