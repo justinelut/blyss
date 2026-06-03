@@ -2,6 +2,7 @@ from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload, selectinload
 
 from polar.auth.models import Anonymous, AuthSubject, User, is_user
 from polar.cart.repository import CartRepository
@@ -180,10 +181,28 @@ class CartService:
         return migrated_count
 
     async def _get_product(self, session: AsyncSession, product_id: UUID) -> Product:
-        """Get a product by ID or raise ProductNotFound."""
-        statement = select(Product).where(Product.id == product_id)
+        """Get a product by ID or raise ProductNotFound.
+
+        Eager-loads `product_medias`, `attached_custom_fields`, `all_prices`
+        and `organization` so the cart's response schema (CartItemResponse →
+        Product) can serialize without tripping `lazy="raise"`. Without these,
+        `cart_item.product.medias` raises `InvalidRequestError`, which
+        bubbles as a bare 500 with no CORS headers — the browser then
+        reports it as a CORS error and the optimistic UI rolls back, which
+        is what surfaces as "items added then instantly disappear".
+        """
+        statement = (
+            select(Product)
+            .where(Product.id == product_id)
+            .options(
+                joinedload(Product.organization),
+                selectinload(Product.product_medias),
+                selectinload(Product.attached_custom_fields),
+                selectinload(Product.all_prices),
+            )
+        )
         result = await session.execute(statement)
-        product = result.scalar_one_or_none()
+        product = result.unique().scalar_one_or_none()
 
         if product is None:
             raise ProductNotFound(product_id)
