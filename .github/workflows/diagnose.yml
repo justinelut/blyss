@@ -85,6 +85,8 @@ jobs:
             sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select slug, avatar_url, profile_settings from organizations where slug='blyss-studio';\"" 2>&1 | head -10
             echo "-- blyss-studio organization_review row --"
             sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select id, organization_id, verdict, appeal_decision, appeal_submitted_at, created_at, modified_at from organization_reviews where organization_id='c2606553-9be0-4d3d-ba9a-02db9953da3b' order by created_at desc limit 3;\"" 2>&1 | head -10
+            echo "-- blyss-studio org status (gates payment access) --"
+            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select slug, status, status_updated_at, details_submitted_at, account_id from organizations where slug='blyss-studio';\"" 2>&1 | head -8
             echo "-- API errors in last 100 lines (storefront 500) --"
             sudo kubectl -n $NS logs deployment/blyss-api --tail=200 2>&1 | grep -iE "error|exception|traceback|creator" | tail -20
             echo "-- API errors mentioning /appeal --"
