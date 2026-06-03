@@ -85,6 +85,8 @@ jobs:
             sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select slug, avatar_url, profile_settings from organizations where slug='blyss-studio';\"" 2>&1 | head -10
             echo "-- API errors in last 100 lines (storefront 500) --"
             sudo kubectl -n $NS logs deployment/blyss-api --tail=200 2>&1 | grep -iE "error|exception|traceback|creator" | tail -20
+            echo "-- API errors mentioning /appeal --"
+            sudo kubectl -n $NS logs deployment/blyss-api --tail=400 2>&1 | grep -iE "appeal|submit_appeal" -A 20 | tail -60
             echo "-- worker logs (last 30 lines) --"
             sudo kubectl -n $NS logs deployment/blyss-worker --tail=30 2>&1 | tail -20
             echo
