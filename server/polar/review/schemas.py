@@ -43,3 +43,22 @@ class ProductRatingSummary(Schema):
     rating_distribution: dict[int, int] = Field(
         description="Distribution of ratings (1-5 stars)"
     )
+
+
+class OrganizationReviewPublic(Schema):
+    """A single review surfaced on the creator storefront, with enough product
+    context for the consumer to link back to the reviewed product."""
+
+    id: UUID
+    product_id: UUID
+    product_name: str
+    user_id: UUID
+    user_name: str
+    user_avatar: str | None
+    rating: int
+    review_text: str | None
+    is_verified_purchase: bool
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}

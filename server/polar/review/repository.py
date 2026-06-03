@@ -4,7 +4,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.orm import joinedload
 
 from polar.kit.repository import RepositoryBase, RepositoryIDMixin
-from polar.models import ProductReview
+from polar.models import Product, ProductReview
 
 
 class ReviewRepository(
@@ -106,3 +106,75 @@ class ReviewRepository(
         """Delete review"""
         statement = delete(ProductReview).where(ProductReview.id == review_id)
         await self.session.execute(statement)
+
+    # ---- Organization-level aggregates --------------------------------------
+
+    async def get_organization_rating_summary(
+        self,
+        organization_id: UUID,
+    ) -> dict:
+        """Aggregate average rating and total review count across every
+        product owned by the organization. Joins through products.
+        """
+        statement = (
+            select(
+                func.avg(ProductReview.rating).label("average_rating"),
+                func.count(ProductReview.id).label("total_reviews"),
+            )
+            .join(Product, Product.id == ProductReview.product_id)
+            .where(Product.organization_id == organization_id)
+        )
+
+        result = await self.session.execute(statement)
+        row = result.one()
+
+        return {
+            "average_rating": float(row.average_rating) if row.average_rating else 0.0,
+            "total_reviews": row.total_reviews,
+        }
+
+    async def get_organization_rating_distribution(
+        self,
+        organization_id: UUID,
+    ) -> dict[int, int]:
+        """Rating distribution (1-5) across all products in the organization."""
+        statement = (
+            select(
+                ProductReview.rating,
+                func.count(ProductReview.id).label("count"),
+            )
+            .join(Product, Product.id == ProductReview.product_id)
+            .where(Product.organization_id == organization_id)
+            .group_by(ProductReview.rating)
+        )
+
+        result = await self.session.execute(statement)
+        rows = result.all()
+
+        distribution = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
+        for row in rows:
+            distribution[row.rating] = row.count
+
+        return distribution
+
+    async def get_organization_recent_reviews(
+        self,
+        organization_id: UUID,
+        limit: int = 12,
+        offset: int = 0,
+    ) -> list[ProductReview]:
+        """Most recent reviews across every product in the organization."""
+        statement = (
+            select(ProductReview)
+            .join(Product, Product.id == ProductReview.product_id)
+            .where(Product.organization_id == organization_id)
+            .order_by(ProductReview.created_at.desc())
+            .limit(limit)
+            .offset(offset)
+            .options(
+                joinedload(ProductReview.user),
+                joinedload(ProductReview.product),
+            )
+        )
+        result = await self.session.execute(statement)
+        return list(result.scalars().all())

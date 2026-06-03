@@ -44,6 +44,81 @@ async function fetchCreator(slug: string) {
   )
 }
 
+/**
+ * Best-effort fetch of the aggregate creator-level review summary +
+ * recent reviews. Both endpoints are public and small. We swallow errors so
+ * a transient backend hiccup never breaks the storefront render — in that
+ * case the ReviewsBlock just falls back to its empty state.
+ */
+async function fetchOrganizationReviews(organizationId: string): Promise<{
+  summary: ReviewSummary | null
+  recent: ReviewExcerpt[]
+}> {
+  const apiBase = (
+    process.env.NEXT_PUBLIC_API_URL || 'https://api.blyss.co.ke'
+  ).replace(/\/$/, '')
+
+  const summaryUrl = `${apiBase}/v1/reviews/organization/${organizationId}/summary`
+  const recentUrl = `${apiBase}/v1/reviews/organization/${organizationId}?limit=6`
+
+  // The next-fetch cache is keyed per URL; we tag the requests so the
+  // ReviewsBlock cache can be invalidated alongside the storefront on
+  // revalidate (60s ISR). We don't pass cookies — these endpoints are
+  // public and the storefront SSR is anonymous.
+  const init: RequestInit & { next?: { revalidate?: number } } = {
+    next: { revalidate: 60 },
+  }
+
+  try {
+    const [summaryRes, recentRes] = await Promise.all([
+      fetch(summaryUrl, init),
+      fetch(recentUrl, init),
+    ])
+
+    if (!summaryRes.ok || !recentRes.ok) {
+      return { summary: null, recent: [] }
+    }
+
+    const summaryJson = (await summaryRes.json()) as {
+      average_rating: number
+      total_reviews: number
+    }
+    const recentJson = (await recentRes.json()) as Array<{
+      id: string
+      product_id: string
+      product_name: string
+      user_name: string
+      rating: number
+      review_text: string | null
+      created_at: string
+    }>
+
+    const summary: ReviewSummary | null =
+      summaryJson.total_reviews > 0
+        ? {
+            average: summaryJson.average_rating,
+            count: summaryJson.total_reviews,
+          }
+        : null
+
+    const recent: ReviewExcerpt[] = recentJson
+      .filter((r) => r.review_text && r.review_text.trim().length > 0)
+      .map((r) => ({
+        id: r.id,
+        reviewerName: r.user_name,
+        createdAt: r.created_at,
+        rating: r.rating,
+        body: r.review_text || '',
+        productName: r.product_name,
+        productId: r.product_id,
+      }))
+
+    return { summary, recent }
+  } catch {
+    return { summary: null, recent: [] }
+  }
+}
+
 export async function generateMetadata({
   params,
 }: CreatorPageProps): Promise<Metadata> {
@@ -136,9 +211,9 @@ export default async function Page({ params }: CreatorPageProps) {
   // Treat the bundled `products` array as Polar Product objects.
   const products = (creator.products ?? []) as schemas['Product'][]
 
-  // Reviews: not wired yet — pass null/[] to render the empty state.
-  const reviewSummary: ReviewSummary | null = null
-  const recentReviews: ReviewExcerpt[] = []
+  // Aggregate reviews — best-effort, never throws.
+  const { summary: reviewSummary, recent: recentReviews } =
+    await fetchOrganizationReviews(creator.id)
 
   // Person JSON-LD — Google reads this for knowledge-graph entries.
   const canonical = `${SITE_BASE}/creators/${creator.slug}`

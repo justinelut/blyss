@@ -10,6 +10,7 @@ from polar.postgres import AsyncSession, get_db_session
 from polar.routing import APIRouter
 
 from .schemas import (
+    OrganizationReviewPublic,
     ProductRatingSummary,
     ReviewCreate,
     ReviewPublic,
@@ -234,3 +235,78 @@ async def get_product_rating_summary(
         total_reviews=summary["total_reviews"],
         rating_distribution=summary["rating_distribution"],
     )
+
+
+@router.get(
+    "/organization/{organization_id}/summary",
+    response_model=ProductRatingSummary,
+    summary="Get Organization Rating Summary",
+    responses={
+        200: {"description": "Aggregated rating summary across the organization."},
+    },
+)
+async def get_organization_rating_summary(
+    organization_id: Annotated[UUID, Path(description="The organization ID.")],
+    session: AsyncSession = Depends(get_db_session),
+) -> ProductRatingSummary:
+    """Aggregate rating summary across every product in the organization.
+
+    Returns the average rating, total review count, and 1-5 star distribution
+    for every review left on a product owned by the organization. No
+    authentication required — surfaced on the public creator storefront.
+    """
+    summary = await review_service.get_organization_rating_summary(
+        session,
+        organization_id,
+    )
+
+    return ProductRatingSummary(
+        average_rating=summary["average_rating"],
+        total_reviews=summary["total_reviews"],
+        rating_distribution=summary["rating_distribution"],
+    )
+
+
+@router.get(
+    "/organization/{organization_id}",
+    response_model=list[OrganizationReviewPublic],
+    summary="Get Organization Reviews",
+    responses={
+        200: {"description": "Recent reviews across the organization."},
+    },
+)
+async def get_organization_reviews(
+    organization_id: Annotated[UUID, Path(description="The organization ID.")],
+    limit: int = 12,
+    offset: int = 0,
+    session: AsyncSession = Depends(get_db_session),
+) -> list[OrganizationReviewPublic]:
+    """Recent reviews across every product in the organization.
+
+    Each entry includes the reviewed product's id and name so the storefront
+    can link the review back to the product detail page. No authentication
+    required.
+    """
+    reviews = await review_service.get_organization_recent_reviews(
+        session,
+        organization_id,
+        limit,
+        offset,
+    )
+
+    return [
+        OrganizationReviewPublic(
+            id=review.id,
+            product_id=review.product_id,
+            product_name=review.product.name,
+            user_id=review.user_id,
+            user_name=review.user.username or review.user.email,
+            user_avatar=review.user.avatar_url,
+            rating=review.rating,
+            review_text=review.review_text,
+            is_verified_purchase=review.is_verified_purchase,
+            created_at=review.created_at,
+            updated_at=review.updated_at,
+        )
+        for review in reviews
+    ]

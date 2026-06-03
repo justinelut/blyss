@@ -253,5 +253,37 @@ class ReviewService:
             "rating_distribution": distribution,
         }
 
+    async def get_organization_rating_summary(
+        self,
+        session: AsyncSession,
+        organization_id: UUID,
+    ) -> dict:
+        """Aggregate rating summary across every product in the organization."""
+        repository = ReviewRepository.from_session(session)
+
+        summary = await repository.get_organization_rating_summary(organization_id)
+        distribution = await repository.get_organization_rating_distribution(
+            organization_id
+        )
+
+        return {
+            "average_rating": summary["average_rating"],
+            "total_reviews": summary["total_reviews"],
+            "rating_distribution": distribution,
+        }
+
+    async def get_organization_recent_reviews(
+        self,
+        session: AsyncSession,
+        organization_id: UUID,
+        limit: int = 12,
+        offset: int = 0,
+    ) -> list[ProductReview]:
+        """Most recent reviews across every product in the organization."""
+        repository = ReviewRepository.from_session(session)
+        return await repository.get_organization_recent_reviews(
+            organization_id, limit, offset
+        )
+
 
 review_service = ReviewService()
