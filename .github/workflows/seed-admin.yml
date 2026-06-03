@@ -16,25 +16,6 @@ jobs:
   seed:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Stage scripts on runner
-        run: |
-          mkdir -p _staged
-          cp server/scripts/seed_admin.py    _staged/
-          cp server/scripts/import_users.py  _staged/
-          cp server/scripts/users.json       _staged/
-
-      - name: Copy scripts to server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SERVER_IP }}
-          username: ubuntu
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "_staged/seed_admin.py,_staged/import_users.py,_staged/users.json"
-          target: "/tmp/blyss-seed/"
-          strip_components: 1
-
       - name: Run seed inside API pod
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -52,23 +33,20 @@ jobs:
             fi
             echo "Using pod: $POD"
 
-            # Copy scripts into the API pod's working directory
-            sudo kubectl -n $NS cp /tmp/blyss-seed/seed_admin.py    "$POD:/tmp/seed_admin.py"
-            sudo kubectl -n $NS cp /tmp/blyss-seed/import_users.py  "$POD:/tmp/import_users.py"
-            sudo kubectl -n $NS cp /tmp/blyss-seed/users.json       "$POD:/tmp/users.json"
-
+            # The image's ADD . /app/server/ already places the scripts at
+            # /app/server/scripts/. Run them in-place via uv run.
             echo ""
             echo "═══════════════════════════════════════"
             echo " 1. seed_admin: ${{ inputs.admin_email }}"
             echo "═══════════════════════════════════════"
-            sudo kubectl -n $NS exec "$POD" -- sh -c "cd /app/server && uv run python /tmp/seed_admin.py '${{ inputs.admin_email }}'"
+            sudo kubectl -n $NS exec "$POD" -- sh -c "cd /app/server && uv run python scripts/seed_admin.py '${{ inputs.admin_email }}'"
 
             if [ "${{ inputs.run_import }}" = "true" ]; then
               echo ""
               echo "═══════════════════════════════════════"
-              echo " 2. import_users: /tmp/users.json"
+              echo " 2. import_users: scripts/users.json"
               echo "═══════════════════════════════════════"
-              sudo kubectl -n $NS exec "$POD" -- sh -c "cd /app/server && uv run python /tmp/import_users.py /tmp/users.json"
+              sudo kubectl -n $NS exec "$POD" -- sh -c "cd /app/server && uv run python scripts/import_users.py scripts/users.json"
             else
               echo "Skipping users.json import (run_import=${{ inputs.run_import }})"
             fi
@@ -81,5 +59,8 @@ jobs:
             PG=$(sudo kubectl -n $NS get pods -l app=postgres -o jsonpath='{.items[0].metadata.name}')
             sudo kubectl -n $NS exec "$PG" -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select id, email, is_admin, email_verified from users where lower(email) = lower('${{ inputs.admin_email }}');\""
 
-            # Cleanup
-            rm -rf /tmp/blyss-seed
+            echo ""
+            echo "═══════════════════════════════════════"
+            echo " 4. Total users in DB"
+            echo "═══════════════════════════════════════"
+            sudo kubectl -n $NS exec "$PG" -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select count(*) as total_users from users;\""
