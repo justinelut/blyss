@@ -246,31 +246,71 @@ async def verify_mpesa(
             flush=True,
         )
 
-        # Update Paystack subaccount with M-Pesa number as settlement account
-        if organization.subaccount_code:
-            try:
+        # Create OR update the Paystack subaccount with the verified M-Pesa
+        # number as the settlement account. We do this lazily here (rather
+        # than auto-creating on org-create) because Paystack rejects
+        # subaccount creation without settlement_bank + account_number.
+        try:
+            if organization.subaccount_code:
                 await paystack.update_subaccount(
                     subaccount_code=organization.subaccount_code,
-                    settlement_bank="mpesa",  # Paystack's M-Pesa bank code
+                    settlement_bank="mpesa",
                     account_number=organization.mpesa_number,
                 )
-
+                organization = await repository.update(
+                    organization,
+                    update_dict={"subaccount_status": "active"},
+                    flush=True,
+                )
                 log.info(
                     "paystack.mpesa.subaccount_updated",
                     organization_id=organization.id,
                     subaccount_code=organization.subaccount_code,
                     mpesa_number=organization.mpesa_number,
                 )
-
-            except Exception as e:
-                log.error(
-                    "paystack.mpesa.subaccount_update_failed",
-                    organization_id=organization.id,
-                    subaccount_code=organization.subaccount_code,
-                    error=str(e),
+            else:
+                sub = await paystack.create_subaccount(
+                    business_name=organization.name,
+                    settlement_bank="mpesa",
+                    account_number=organization.mpesa_number,
+                    percentage_charge=20.0,
                 )
-                # Don't fail the verification if subaccount update fails
-                # The M-Pesa number is still verified
+                organization = await repository.update(
+                    organization,
+                    update_dict={
+                        "subaccount_code": sub["subaccount_code"],
+                        "subaccount_status": sub["status"],
+                    },
+                    flush=True,
+                )
+                log.info(
+                    "paystack.mpesa.subaccount_created",
+                    organization_id=organization.id,
+                    subaccount_code=sub["subaccount_code"],
+                    status=sub["status"],
+                    mpesa_number=organization.mpesa_number,
+                )
+        except Exception as e:
+            log.error(
+                "paystack.mpesa.subaccount_setup_failed",
+                organization_id=organization.id,
+                subaccount_code=organization.subaccount_code,
+                error=str(e),
+            )
+            # Persist the failure so the UI can offer Retry. M-Pesa number is
+            # still marked verified — only the subaccount setup failed.
+            organization = await repository.update(
+                organization,
+                update_dict={"subaccount_status": "failed"},
+                flush=True,
+            )
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    "M-Pesa was verified but the payout account could not be "
+                    "created. Please retry — your M-Pesa number is saved."
+                ),
+            ) from e
 
         log.info(
             "paystack.mpesa.verification_completed",

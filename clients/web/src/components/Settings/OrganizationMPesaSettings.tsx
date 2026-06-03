@@ -69,7 +69,15 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
   // Get M-Pesa related fields from organization (these would be added to the Organization schema)
   const currentMPesaNumber = (organization as any).mpesa_number
   const mpesaVerified = (organization as any).mpesa_verified || false
+  const subaccountCode = (organization as any).subaccount_code as string | null
   const subaccountStatus = (organization as any).subaccount_status || 'pending'
+  // The DB column defaults to "pending" so a fresh org with no subaccount
+  // looks indistinguishable from one whose subaccount is in-flight. We use
+  // the presence of subaccount_code as the actual signal — if there's no
+  // code yet, the creator hasn't started payout setup, so we render
+  // "Not configured" (gray, no spinner) instead of a misleading spinning
+  // "Pending" pill.
+  const isNotConfigured = !subaccountCode && subaccountStatus !== 'active'
 
   const validateMPesaNumber = (value: string): string | true => {
     if (!value) return 'M-Pesa number is required'
@@ -190,6 +198,12 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
   }, [currentUser, organization.id])
 
   const getSubaccountStatusBadge = () => {
+    // Short-circuit: a creator who hasn't reached payout setup yet must NOT
+    // see a spinning "Pending" pill — that signals "we're working on it"
+    // when the truth is "you haven't started yet".
+    if (isNotConfigured) {
+      return <Pill color="gray">Not configured</Pill>
+    }
     switch (subaccountStatus) {
       case 'active':
         return (

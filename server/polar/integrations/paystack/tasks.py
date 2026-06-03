@@ -395,8 +395,11 @@ async def create_organization_subaccount(organization_id: uuid.UUID) -> None:
     """
     Create Paystack subaccount for organization.
 
-    This task is triggered when an organization is created.
-    It creates a Paystack subaccount for automatic payment splitting.
+    This task is callable but is no longer triggered automatically on
+    organization creation — Paystack rejects subaccount creation without
+    settlement details, so we now create the subaccount lazily inside the
+    M-Pesa / bank verification endpoints. This task remains in place for
+    legacy retry flows that explicitly enqueue it.
     """
     from polar.organization.service import organization as organization_service
 
@@ -415,6 +418,20 @@ async def create_organization_subaccount(organization_id: uuid.UUID) -> None:
             if not organization:
                 log.error(
                     "paystack.organization.create_subaccount.not_found",
+                    organization_id=organization_id,
+                )
+                return
+
+            # Skip if the org has no settlement intent yet — without an
+            # M-Pesa number or a linked payout account, Paystack will reject
+            # subaccount creation. Wait until the creator supplies one.
+            if (
+                not organization.subaccount_code
+                and not organization.mpesa_number
+                and organization.account_id is None
+            ):
+                log.info(
+                    "paystack.organization.create_subaccount.deferred_no_settlement_intent",
                     organization_id=organization_id,
                 )
                 return

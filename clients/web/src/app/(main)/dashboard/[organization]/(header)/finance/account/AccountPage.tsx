@@ -38,7 +38,13 @@ export default function ClientPage({
   const [validationCompleted, setValidationCompleted] = useState(false)
 
   // Get Paystack subaccount status from organization
+  const subaccountCode = (organization as any).subaccount_code as string | null
   const subaccountStatus = (organization as any).subaccount_status || 'pending'
+  // Treat "no subaccount_code yet" as "not configured" — the column default
+  // is "pending" but that's misleading until the creator actually provides
+  // settlement details. See OrganizationMPesaSettings.tsx for the matching
+  // pattern in the Settings surface.
+  const isNotConfigured = !subaccountCode && subaccountStatus !== 'active'
   const payoutMethod = (organization as any).payout_method || 'bank'
   const mpesaVerified = (organization as any).mpesa_verified || false
   const mpesaNumber = (organization as any).mpesa_number

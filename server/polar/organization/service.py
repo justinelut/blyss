@@ -250,9 +250,14 @@ class OrganizationService:
         await self.add_user(session, organization, auth_subject.subject)
 
         enqueue_job("organization.created", organization_id=organization.id)
-        enqueue_job(
-            "paystack.organization.create_subaccount", organization_id=organization.id
-        )
+        # NOTE: Paystack subaccount creation is deferred until the creator
+        # provides settlement details (M-Pesa number or bank account).
+        # Paystack's /subaccount endpoint REQUIRES settlement_bank +
+        # account_number to verify a subaccount; calling it with only
+        # business_name leaves the subaccount permanently stuck in
+        # is_verified=False, which renders as "Pending" in the UI forever.
+        # The verify_mpesa endpoint (and the future bank-setup flow) creates
+        # the subaccount with full details when the creator finishes setup.
 
         posthog.auth_subject_event(
             auth_subject,
