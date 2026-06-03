@@ -4,10 +4,25 @@ from uuid import UUID
 
 from sqlalchemy import delete, select, update
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.orm import joinedload, selectinload
 
 from polar.kit.repository import RepositoryBase
 from polar.kit.utils import utc_now
-from polar.models import CartItem
+from polar.models import CartItem, Product
+
+
+# Eager-load options used whenever cart items are fetched for serialization.
+# CartItemResponse → Product touches `product.medias` and
+# `product.attached_custom_fields`, both of which are `lazy="raise"` on
+# Product. Without these options, `get_cart` 500s with InvalidRequestError.
+_CART_ITEM_PRODUCT_EAGER_OPTIONS = (
+    selectinload(CartItem.product).options(
+        joinedload(Product.organization),
+        selectinload(Product.product_medias),
+        selectinload(Product.attached_custom_fields),
+        selectinload(Product.all_prices),
+    ),
+)
 
 
 class CartRepository(RepositoryBase[CartItem]):
@@ -19,9 +34,13 @@ class CartRepository(RepositoryBase[CartItem]):
     ) -> Sequence[CartItem]:
         """Get all non-expired cart items for a user."""
         expiration_threshold = utc_now() - timedelta(days=7)
-        statement = select(CartItem).where(
-            CartItem.user_id == user_id,
-            CartItem.modified_at >= expiration_threshold,
+        statement = (
+            select(CartItem)
+            .where(
+                CartItem.user_id == user_id,
+                CartItem.modified_at >= expiration_threshold,
+            )
+            .options(*_CART_ITEM_PRODUCT_EAGER_OPTIONS)
         )
         return await self.get_all(statement)
 
@@ -31,9 +50,13 @@ class CartRepository(RepositoryBase[CartItem]):
     ) -> Sequence[CartItem]:
         """Get all non-expired cart items for a guest session."""
         expiration_threshold = utc_now() - timedelta(days=7)
-        statement = select(CartItem).where(
-            CartItem.session_token == session_token,
-            CartItem.modified_at >= expiration_threshold,
+        statement = (
+            select(CartItem)
+            .where(
+                CartItem.session_token == session_token,
+                CartItem.modified_at >= expiration_threshold,
+            )
+            .options(*_CART_ITEM_PRODUCT_EAGER_OPTIONS)
         )
         return await self.get_all(statement)
 
