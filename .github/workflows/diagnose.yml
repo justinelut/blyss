@@ -89,6 +89,8 @@ jobs:
             sudo kubectl -n $NS logs deployment/blyss-api --tail=400 2>&1 | grep -iE "appeal|submit_appeal" -A 20 | tail -60
             echo "-- python discovery in API pod --"
             sudo kubectl -n $NS exec $POD -- sh -c 'echo "  which python="; which python; echo "  which python3="; which python3; echo "  /app contents="; ls /app | head -20; echo "  pyproject?"; ls /app/pyproject.toml /app/uv.lock 2>&1 | head; echo "  venv probe="; ls /app/.venv/bin/python 2>&1; ls /opt/venv/bin/python 2>&1; echo "  PYTHONPATH=$PYTHONPATH"; python -c "import sqlalchemy; print(\"  sqlalchemy:\", sqlalchemy.__version__)" 2>&1 || true' 2>&1 | head -25
+            echo "-- email integration env probe --"
+            sudo kubectl -n $NS exec $POD -- sh -c 'echo "  POLAR_RESEND_API_KEY set: $([ -n \"$POLAR_RESEND_API_KEY\" ] && echo yes || echo no) (len=${#POLAR_RESEND_API_KEY})"; echo "  POLAR_LOOPS_API_KEY set: $([ -n \"$POLAR_LOOPS_API_KEY\" ] && echo yes || echo no) (len=${#POLAR_LOOPS_API_KEY})"; echo "  POLAR_PLAIN_TOKEN: $([ -n \"$POLAR_PLAIN_TOKEN\" ] && echo set || echo unset) (len=${#POLAR_PLAIN_TOKEN})"; echo "  POLAR_AI_PROVIDER=$POLAR_AI_PROVIDER"; echo "  POLAR_GOOGLE_AI_API_KEY set: $([ -n \"$POLAR_GOOGLE_AI_API_KEY\" ] && echo yes || echo no) (len=${#POLAR_GOOGLE_AI_API_KEY})"' 2>&1 | head -10
             echo "-- worker logs (last 30 lines) --"
             sudo kubectl -n $NS logs deployment/blyss-worker --tail=30 2>&1 | tail -20
             echo
