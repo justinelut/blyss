@@ -59,7 +59,7 @@ export const ProductReviews = ({ productId }: ProductReviewsProps) => {
               params: {
                 path: { product_id: productId },
                 query: { limit: 20, offset: 0 },
-              } as Record<string, unknown>,
+              },
             }),
           ),
         ])

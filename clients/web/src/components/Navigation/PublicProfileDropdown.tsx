@@ -1,6 +1,6 @@
 'use client'
 
-import { useListOrganizations, useWishlist } from '@/hooks/queries'
+import { useListOrganizations } from '@/hooks/queries'
 import { CONFIG } from '@/utils/config'
 import { useOutsideClick } from '@/utils/useOutsideClick'
 import Face from '@mui/icons-material/Face'
@@ -13,7 +13,6 @@ import Link from 'next/link'
 import { useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { LinkItem, ListItem, Profile } from './Navigation'
-import { Heart } from 'lucide-react'
 
 const PublicProfileDropdown = ({
   className,
@@ -35,8 +34,6 @@ const PublicProfileDropdown = ({
   const loggedUser = authenticatedUser
 
   const organizations = useListOrganizations({}, !!loggedUser)
-  const { data: wishlist } = useWishlist()
-  const wishlistCount = wishlist?.items?.length ?? 0
 
   if (!loggedUser) {
     return <></>
@@ -82,19 +79,6 @@ const PublicProfileDropdown = ({
                   <span className="mx-2 text-sm">Dashboard</span>
                 </LinkItem>
               )}
-              <LinkItem
-                href={`${CONFIG.FRONTEND_BASE_URL}/wishlist`}
-                icon={<Heart className="h-4 w-4" />}
-              >
-                <span className="mx-2 text-sm">
-                  Wishlist
-                  {wishlistCount > 0 && (
-                    <span className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-xs font-medium text-white">
-                      {wishlistCount > 99 ? '99+' : wishlistCount}
-                    </span>
-                  )}
-                </span>
-              </LinkItem>
               <LinkItem
                 href={`${CONFIG.FRONTEND_BASE_URL}/dashboard/account`}
                 icon={<Face fontSize="inherit" />}

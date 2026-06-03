@@ -2,7 +2,6 @@
 
 import { AuthModal } from '@/components/Auth/AuthModal'
 import GetStartedButton from '@/components/Auth/GetStartedButton'
-import { CartIcon } from '@/components/Cart/CartIcon'
 import { Modal } from '@/components/Modal'
 import { useModal } from '@/components/Modal/useModal'
 import PublicProfileDropdown from '@/components/Navigation/PublicProfileDropdown'
@@ -27,12 +26,14 @@ const TopbarRight = ({
     showModal()
   }
 
+  // Creator dashboard topbar — buyers' cart/wishlist do NOT belong here.
+  // Cart + Wishlist are buyer surfaces and live on the public marketplace
+  // (MarketplaceHeader) and on the customer portal /portal/wishlist tab.
   return (
     <>
       {authenticatedUser ? (
         <div>
           <div className="relative flex w-max shrink-0 flex-row items-center justify-between gap-x-6">
-            <CartIcon />
             <Popover />
             <PublicProfileDropdown
               authenticatedUser={authenticatedUser}
@@ -42,7 +43,6 @@ const TopbarRight = ({
         </div>
       ) : (
         <>
-          <CartIcon />
           <Button onClick={onLoginClick} variant="secondary">
             Log in
           </Button>

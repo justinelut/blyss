@@ -60,7 +60,7 @@ export const LeaveReviewCard = ({ api, order }: LeaveReviewCardProps) => {
         toast({
           title: 'Review failed',
           description: message,
-          variant: 'destructive',
+          variant: 'error',
         })
         return
       }
@@ -75,7 +75,7 @@ export const LeaveReviewCard = ({ api, order }: LeaveReviewCardProps) => {
       toast({
         title: 'Review failed',
         description: message,
-        variant: 'destructive',
+        variant: 'error',
       })
     } finally {
       setSubmitting(false)

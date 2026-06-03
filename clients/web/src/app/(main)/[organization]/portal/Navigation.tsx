@@ -50,6 +50,11 @@ const links = (
           },
         ]
       : []),
+    {
+      href: `/${organization.slug}/portal/wishlist`,
+      label: 'Wishlist',
+      isActive: (path: string) => path.includes('/wishlist'),
+    },
     ...(canAccessBilling
       ? [
           {
