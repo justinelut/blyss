@@ -293,6 +293,19 @@ class OrganizationPublicBase(OrganizationBase):
     customer_email_settings: SkipJsonSchema[OrganizationCustomerEmailSettings]
 
 
+class OrganizationProfileSettingsUpdate(Schema):
+    """Public-facing profile fields stored in the JSON profile_settings column.
+
+    Used for both reading (Organization.profile_settings) and writing
+    (OrganizationUpdate.profile_settings).
+    """
+
+    cover_image_url: HttpUrlToStr | None = Field(
+        None,
+        description="Public banner / cover image URL for the creator storefront.",
+    )
+
+
 class Organization(OrganizationBase):
     email: str | None = Field(description="Public support email.")
     website: str | None = Field(description="Official website of the organization.")
@@ -314,6 +327,14 @@ class Organization(OrganizationBase):
 
     feature_settings: OrganizationFeatureSettings | None = Field(
         description="Organization feature settings",
+    )
+    profile_settings: OrganizationProfileSettingsUpdate = Field(
+        default_factory=OrganizationProfileSettingsUpdate,
+        description=(
+            "Public profile settings (banner / cover image, future "
+            "extensions). Returned on every Organization read so the "
+            "dashboard form retains values after autosave."
+        ),
     )
     subscription_settings: OrganizationSubscriptionSettings = Field(
         description="Settings related to subscriptions management",
@@ -355,14 +376,6 @@ class OrganizationCreate(Schema):
         description="Default presentment currency for the organization",
     )
 
-
-class OrganizationProfileSettingsUpdate(Schema):
-    """Public-facing profile fields stored in the JSON profile_settings column."""
-
-    cover_image_url: HttpUrlToStr | None = Field(
-        None,
-        description="Public banner / cover image URL for the creator storefront.",
-    )
 
 
 class OrganizationUpdate(Schema):

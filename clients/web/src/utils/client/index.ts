@@ -20,19 +20,24 @@ const errorMiddleware: Middleware = {
   },
 }
 
+// Dynamically attach the X-Guest-Session-Token header on every client-side
+// request so guest carts work. Without this, the header was baked in at
+// module load — when the cookie didn't exist yet — and never updated, so
+// every cart POST went without the token, the backend rejected it with 401,
+// and the cart appeared to "add then disappear".
+const guestSessionMiddleware: Middleware = {
+  onRequest: async ({ request }) => {
+    const token = getSessionToken()
+    if (token) {
+      request.headers.set(getSessionTokenHeaderName(), token)
+    }
+    return request
+  },
+}
+
 export const createClientSideAPI = (token?: string): Client => {
-  const guestSessionToken = getSessionToken()
-  const headers: Record<string, string> = {}
-
-  if (guestSessionToken) {
-    headers[getSessionTokenHeaderName()] = guestSessionToken
-  }
-
-  const api = baseCreateClient(
-    process.env.NEXT_PUBLIC_API_URL as string,
-    token,
-    headers,
-  )
+  const api = baseCreateClient(process.env.NEXT_PUBLIC_API_URL as string, token)
+  api.use(guestSessionMiddleware)
   api.use(errorMiddleware)
   return api
 }
