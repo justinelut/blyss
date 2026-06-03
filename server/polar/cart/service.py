@@ -208,7 +208,11 @@ class CartService:
             return 0
 
         price = product.prices[0]
-        if price.amount_type.value == "fixed":
+        # Note: amount_type's column is plain String, so SQLAlchemy returns a
+        # raw str at runtime (not the ProductPriceAmountType enum). String
+        # comparison works either way; .value on a raw str raises AttributeError
+        # which was the live cart 500 ('str' object has no attribute 'value').
+        if str(price.amount_type) == "fixed":
             return price.price_amount * quantity
 
         return 0
