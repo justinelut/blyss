@@ -2,6 +2,7 @@ import builtins
 from typing import Annotated, Literal
 
 from fastapi import Depends, Query, Request
+from pydantic import UUID4
 
 from polar.auth.dependencies import WebUserOrAnonymous
 from polar.auth.models import Anonymous, AuthSubject, User
@@ -66,6 +67,17 @@ async def list_public_products(
         "newest", description="Sort order"
     ),
     is_featured: bool | None = Query(None, description="Filter featured products"),
+    is_recurring: bool | None = Query(
+        None,
+        description=(
+            "Filter on whether the product is recurring (subscription) or "
+            "one-time. Omit for both. true = subscriptions only, "
+            "false = one-time only."
+        ),
+    ),
+    organization_id: UUID4 | None = Query(
+        None, description="Filter products by creator/organization id."
+    ),
     page: int = Query(1, ge=1, description="Page number"),
     limit: int = Query(24, ge=1, le=100, description="Items per page"),
     session: AsyncReadSession = Depends(get_db_read_session),
@@ -108,6 +120,12 @@ async def list_public_products(
         statement = statement.where(
             Product.user_metadata["is_featured"].astext == str(is_featured).lower()
         )
+
+    if is_recurring is not None:
+        statement = statement.where(Product.is_recurring.is_(is_recurring))
+
+    if organization_id is not None:
+        statement = statement.where(Product.organization_id == organization_id)
 
     price_join_added = False
     if min_price is not None or max_price is not None:

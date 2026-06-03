@@ -89,8 +89,8 @@ export const MarketplaceHeader = ({ alwaysBlurred = false }: MarketplaceHeaderPr
           {/* Right cluster */}
           <div className="flex items-center gap-2 md:gap-3">
             <Link
-              href="/search"
-              aria-label="Search"
+              href="/marketplace"
+              aria-label="Search the marketplace"
               className="flex h-10 w-10 items-center justify-center rounded-md text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-sunken)] hover:text-[var(--text-primary)]"
             >
               <FiSearch size={20} />

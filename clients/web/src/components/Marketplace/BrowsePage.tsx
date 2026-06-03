@@ -151,6 +151,16 @@ export function BrowsePage({
     category: filters.category || undefined,
     minPrice: filters.min_price || undefined,
     maxPrice: filters.max_price || undefined,
+    // Map the URL chip → API filter:
+    //   'subscription' → is_recurring=true
+    //   'one_time'     → is_recurring=false
+    //   'all'          → undefined (no filter)
+    isRecurring:
+      filters.type === 'subscription'
+        ? true
+        : filters.type === 'one_time'
+          ? false
+          : undefined,
     sort:
       filters.sort === 'trending'
         ? 'newest' // backend doesn't support 'trending' yet — alias to newest

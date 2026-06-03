@@ -1453,6 +1453,8 @@ class OrganizationService:
         from sqlalchemy import select
         from sqlalchemy.orm import selectinload
 
+        from polar.models import Product
+
         statement = (
             select(Organization)
             .where(
@@ -1460,7 +1462,16 @@ class OrganizationService:
                 Organization.is_deleted.is_(False),
                 Organization.blocked_at.is_(None),
             )
-            .options(selectinload(Organization.products))
+            .options(
+                # Eagerly load the relationships the public Product schema
+                # touches; without these the storefront endpoint 500s with
+                # InvalidRequestError because the model uses lazy='raise'.
+                selectinload(Organization.products).options(
+                    selectinload(Product.product_medias),
+                    selectinload(Product.attached_custom_fields),
+                    selectinload(Product.all_prices),
+                )
+            )
         )
 
         result = await session.execute(statement)

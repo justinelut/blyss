@@ -77,10 +77,18 @@ export default async function MarketplacePage({
             category,
             min_price: minPrice,
             max_price: maxPrice,
+            // Honor the type chip on first paint so the SSR'd grid already
+            // matches the URL state (the client-side query then takes over).
+            is_recurring:
+              type === 'subscription'
+                ? true
+                : type === 'one_time'
+                  ? false
+                  : undefined,
             sort: sort === 'trending' ? 'newest' : sort,
             page,
             limit: 24,
-          },
+          } as Record<string, unknown>,
         },
       }),
     ).catch(() => ({

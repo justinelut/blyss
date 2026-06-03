@@ -157,6 +157,10 @@ export interface UsePublicProductsParams {
   maxPrice?: number
   sort?: 'newest' | 'price_asc' | 'price_desc'
   isFeatured?: boolean
+  /** true = subscriptions only, false = one-time only, undefined = both */
+  isRecurring?: boolean
+  /** Filter by creator/organization id */
+  organizationId?: string
   page?: number
   limit?: number
 }
@@ -182,9 +186,11 @@ export const usePublicProducts = (
               max_price: parameters?.maxPrice,
               sort: parameters?.sort || 'newest',
               is_featured: parameters?.isFeatured,
+              is_recurring: parameters?.isRecurring,
+              organization_id: parameters?.organizationId,
               page: parameters?.page || 1,
               limit: parameters?.limit || 24,
-            },
+            } as Record<string, unknown>,
           },
         }),
       ),
