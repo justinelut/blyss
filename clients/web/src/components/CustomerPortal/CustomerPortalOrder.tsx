@@ -11,6 +11,7 @@ import { twMerge } from 'tailwind-merge'
 import { DownloadInvoicePortal } from '../Orders/DownloadInvoice'
 import { DetailRow } from '../Shared/DetailRow'
 import { CustomerPortalGrants } from './CustomerPortalGrants'
+import { LeaveReviewCard } from './LeaveReviewCard'
 import { OrderPaymentRetryModal } from './OrderPaymentRetryModal'
 import { SeatManagementTable } from './SeatManagementTable'
 
@@ -78,6 +79,11 @@ const CustomerPortalOrder = ({
             </Button>
           )}
         </div>
+
+        {/* Inline review submission — shows for paid orders with a product.
+            Powered by the existing /v1/reviews/ endpoint (verified-purchase
+            gate) so the storefront aggregates real buyer reviews. */}
+        <LeaveReviewCard api={api} order={order} />
 
         <div className="flex flex-col gap-8">
           <div className="flex flex-col">

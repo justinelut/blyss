@@ -108,7 +108,7 @@ export const StorefrontHero = ({
       ) : (
         // No banner: a tonal block sized to the overlay's natural height.
         // No scrim, no aspect ratio. Overlay below renders in dark text.
-        <div className="h-[260px] w-full bg-[var(--surface)] md:h-[320px]" />
+        <div className="h-[200px] w-full bg-[var(--surface)] md:h-[240px]" />
       )}
 
       {/* Overlay content — anchored bottom-left of the banner via absolute

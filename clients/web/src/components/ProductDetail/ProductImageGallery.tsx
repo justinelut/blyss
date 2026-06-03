@@ -45,61 +45,107 @@ export const ProductImageGallery = ({
   return (
     <div className={cn('flex flex-col gap-4', className)}>
       {/* Hero — desktop view. The 4:5 ratio is enforced regardless of source
-          dimensions so the column above-the-fold stays predictable. */}
+          dimensions so the column above-the-fold stays predictable. When
+          there are NO images we fall back to a shorter typographic block so
+          the empty PDP doesn't read as broken. */}
       <div className="hidden md:block">
-        <motion.div
-          initial={false}
-          whileHover={reduce ? undefined : { scale: 1.02 }}
-          transition={{
-            duration: reduce ? 0 : 0.5,
-            ease: [0.32, 0.72, 0, 1],
-          }}
-          className="relative aspect-[4/5] w-full overflow-hidden rounded-md bg-[var(--surface-sunken)]"
-        >
-          <OptimizedImage
-            src={heroSrc}
-            alt={`${productName} — image ${activeIndex + 1} of ${valid.length || 1}`}
-            fill
-            sizes="(max-width: 1024px) 50vw, 600px"
-            priority
-            className="rounded-md"
-          />
-          {/* Warm overlay tint per §3.4 — harmonizes mismatched creator
-              photography to the palette. Single-tone, not a gradient. */}
+        {hasImages ? (
+          <motion.div
+            initial={false}
+            whileHover={reduce ? undefined : { scale: 1.02 }}
+            transition={{
+              duration: reduce ? 0 : 0.5,
+              ease: [0.32, 0.72, 0, 1],
+            }}
+            className="relative aspect-[4/5] w-full overflow-hidden rounded-md bg-[var(--surface-sunken)]"
+          >
+            <OptimizedImage
+              src={heroSrc}
+              alt={`${productName} — image ${activeIndex + 1} of ${valid.length || 1}`}
+              fill
+              sizes="(max-width: 1024px) 50vw, 600px"
+              priority
+              className="rounded-md"
+            />
+            {/* Warm overlay tint per §3.4 — harmonizes mismatched creator
+                photography to the palette. Single-tone, not a gradient. */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 bg-[rgba(26,26,23,0.04)] mix-blend-multiply"
+            />
+          </motion.div>
+        ) : (
           <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 bg-[rgba(26,26,23,0.04)] mix-blend-multiply"
-          />
-        </motion.div>
+            className="relative aspect-[4/5] w-full max-h-[520px] overflow-hidden rounded-md bg-[var(--surface)] p-10"
+            aria-label={`${productName} — no images uploaded yet`}
+          >
+            <div className="flex h-full flex-col justify-between">
+              <span className="font-display text-[12px] font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
+                Blyss · Digital
+              </span>
+              <span
+                aria-hidden="true"
+                className="font-display text-[clamp(120px,16vw,220px)] font-semibold leading-none tracking-[-0.04em] text-[var(--border-strong)]"
+              >
+                {productName.charAt(0).toUpperCase()}
+              </span>
+              <span className="max-w-[24ch] font-display text-[20px] font-semibold leading-[1.15] text-[var(--text-primary)]">
+                {productName}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Mobile — horizontal swipe with scroll-snap. CSS-driven; no JS swipe
           handler needed for this UX. Dots below indicate position. */}
       <div className="md:hidden">
-        <div
-          className="flex snap-x snap-mandatory overflow-x-auto rounded-md bg-[var(--surface-sunken)]"
-          aria-label={`${productName} image carousel`}
-        >
-          {(hasImages ? valid : [undefined]).map((src, i) => (
-            <div
-              key={i}
-              className="relative aspect-[4/5] w-full shrink-0 snap-center"
-            >
-              <OptimizedImage
-                src={src}
-                alt={`${productName} — image ${i + 1} of ${valid.length || 1}`}
-                fill
-                sizes="100vw"
-                priority={i === 0}
-                className="rounded-md"
-              />
+        {hasImages ? (
+          <div
+            className="flex snap-x snap-mandatory overflow-x-auto rounded-md bg-[var(--surface-sunken)]"
+            aria-label={`${productName} image carousel`}
+          >
+            {valid.map((src, i) => (
               <div
+                key={i}
+                className="relative aspect-[4/5] w-full shrink-0 snap-center"
+              >
+                <OptimizedImage
+                  src={src}
+                  alt={`${productName} — image ${i + 1} of ${valid.length}`}
+                  fill
+                  sizes="100vw"
+                  priority={i === 0}
+                  className="rounded-md"
+                />
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 bg-[rgba(26,26,23,0.04)] mix-blend-multiply"
+                />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div
+            className="relative aspect-[4/5] w-full overflow-hidden rounded-md bg-[var(--surface)] p-6"
+            aria-label={`${productName} — no images uploaded yet`}
+          >
+            <div className="flex h-full flex-col justify-between">
+              <span className="font-display text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
+                Blyss · Digital
+              </span>
+              <span
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-0 bg-[rgba(26,26,23,0.04)] mix-blend-multiply"
-              />
+                className="font-display text-[clamp(96px,30vw,160px)] font-semibold leading-none tracking-[-0.04em] text-[var(--border-strong)]"
+              >
+                {productName.charAt(0).toUpperCase()}
+              </span>
+              <span className="max-w-[24ch] font-display text-[18px] font-semibold leading-[1.15] text-[var(--text-primary)]">
+                {productName}
+              </span>
             </div>
-          ))}
-        </div>
+          </div>
+        )}
 
         {/* Dot pagination — purely visual cue. Mobile users navigate via
             swipe; the dots reflect position via JS index but on first paint

@@ -10,6 +10,7 @@ import {
   ProductImageGallery,
   ProductInfoColumn,
   ProductTabs,
+  ProductReviews,
   CreatorInlineCard,
   RelatedProducts,
   RecentlyViewed,
@@ -88,7 +89,7 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
           <ProductImageGallery images={images} productName={product.name} />
         </div>
 
-        {/* Right — info + tabs + creator card */}
+        {/* Right — info + creator card */}
         <div className="flex flex-col gap-10">
           <ProductInfoColumn
             product={product}
@@ -98,8 +99,6 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
             isInWishlist={isInWishlist}
             isBuyLoading={cartStatus === 'pending'}
           />
-
-          <ProductTabs product={product} />
 
           {org && (
             <CreatorInlineCard
@@ -112,8 +111,19 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
         </div>
       </div>
 
+      {/* Tabs — full width below the grid so all four tab labels fit and the
+          panels (description, included, benefits, reviews) get readable
+          measure (was constrained to the 420px right column where 'Reviews'
+          got truncated to 'Revie'). */}
+      <div className="border-t border-[var(--border)] pt-8">
+        <ProductTabs
+          product={product}
+          reviewsContent={<ProductReviews productId={product.id} />}
+        />
+      </div>
+
       {/* Related + Recently viewed */}
-      <div className="flex flex-col gap-20 pb-16 md:pb-24">
+      <div className="flex flex-col gap-20 pb-16 md:pb-24 pt-12">
         <RelatedProducts productId={product.id} />
         <RecentlyViewed currentId={product.id} />
       </div>
