@@ -61,14 +61,14 @@ jobs:
             echo "═══════════════════════════════════════"
             echo " 1. seed_admin: ${{ inputs.admin_email }}"
             echo "═══════════════════════════════════════"
-            sudo kubectl -n $NS exec "$POD" -- sh -c "cd /app && python /tmp/seed_admin.py '${{ inputs.admin_email }}'"
+            sudo kubectl -n $NS exec "$POD" -- sh -c "cd /app && uv run python /tmp/seed_admin.py '${{ inputs.admin_email }}'"
 
             if [ "${{ inputs.run_import }}" = "true" ]; then
               echo ""
               echo "═══════════════════════════════════════"
               echo " 2. import_users: /tmp/users.json"
               echo "═══════════════════════════════════════"
-              sudo kubectl -n $NS exec "$POD" -- sh -c "cd /app && python /tmp/import_users.py /tmp/users.json"
+              sudo kubectl -n $NS exec "$POD" -- sh -c "cd /app && uv run python /tmp/import_users.py /tmp/users.json"
             else
               echo "Skipping users.json import (run_import=${{ inputs.run_import }})"
             fi
