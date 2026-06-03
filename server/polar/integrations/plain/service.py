@@ -126,7 +126,13 @@ async def _card_getter_task(
 
 
 class PlainService:
-    enabled = settings.PLAIN_TOKEN is not None
+    # Treat both `None` AND an empty / whitespace string as "disabled". When
+    # the env file ships `POLAR_PLAIN_TOKEN=` (empty value), pydantic-settings
+    # parses it as `""`, which the previous `is not None` check accepted as
+    # "configured" and let httpx fire requests with `Authorization: Bearer `,
+    # crashing with `httpx.LocalProtocolError: Illegal header value`. Any
+    # falsy value now disables Plain cleanly.
+    enabled = bool(settings.PLAIN_TOKEN) and bool(settings.PLAIN_TOKEN.strip())
 
     async def get_cards(
         self, session: AsyncSession, request: CustomerCardsRequest
