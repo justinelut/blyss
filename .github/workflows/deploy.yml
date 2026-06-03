@@ -110,6 +110,10 @@ jobs:
           ENV_SECRET: ${{ secrets.ENV_SECRET }}
           JWKS_SECRET: ${{ secrets.JWKS_SECRET }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           if [ -z "${ENV_SECRET:-}" ]; then
             echo "::error::ENV_SECRET repo secret is empty."
@@ -122,21 +126,49 @@ jobs:
           mkdir -p k8s/_staged
           printf '%s\n' "$ENV_SECRET" > k8s/_staged/blyss.env.secret
           printf '%s\n' "$JWKS_SECRET" > k8s/_staged/.jwks.json
-          # Inject GEMINI_API_KEY (separate GitHub secret) as POLAR_GOOGLE_AI_API_KEY
-          # so the AI marketplace-review analyzer can reach Gemini. We append/
-          # replace rather than require it inside ENV_SECRET so the API key can
-          # be rotated independently of the rest of the env blob.
-          if [ -n "${GEMINI_API_KEY:-}" ]; then
-            grep -v '^POLAR_GOOGLE_AI_API_KEY=' k8s/_staged/blyss.env.secret > k8s/_staged/blyss.env.secret.tmp || true
+          # ─────────────────────────────────────────────────────────────────
+          # AI provider keys — multi-provider FallbackModel chain.
+          # ─────────────────────────────────────────────────────────────────
+          # The analyzer (server/polar/organization_review/analyzer.py) builds
+          # a chain of every available provider via pydantic-ai's
+          # FallbackModel. We inject any GH secret that's set as the matching
+          # POLAR_*_API_KEY env var. Setting POLAR_AI_PROVIDER=auto unlocks
+          # chain mode; legacy single-provider deployments can still pin
+          # POLAR_AI_PROVIDER=openai or =gemini inside ENV_SECRET to override.
+          #
+          # Each line below: strip any stale value from ENV_SECRET, then
+          # append from the GH secret if it's set. Idempotent.
+          inject_kv() {
+            local key="$1" value="$2"
+            grep -v "^${key}=" k8s/_staged/blyss.env.secret > k8s/_staged/blyss.env.secret.tmp || true
             mv k8s/_staged/blyss.env.secret.tmp k8s/_staged/blyss.env.secret
-            grep -v '^POLAR_AI_PROVIDER=' k8s/_staged/blyss.env.secret > k8s/_staged/blyss.env.secret.tmp || true
-            mv k8s/_staged/blyss.env.secret.tmp k8s/_staged/blyss.env.secret
-            printf 'POLAR_AI_PROVIDER=gemini\n' >> k8s/_staged/blyss.env.secret
-            printf 'POLAR_GOOGLE_AI_API_KEY=%s\n' "$GEMINI_API_KEY" >> k8s/_staged/blyss.env.secret
+            if [ -n "$value" ]; then
+              printf '%s=%s\n' "$key" "$value" >> k8s/_staged/blyss.env.secret
+            fi
+          }
+
+          # Default to auto-chain mode unless ENV_SECRET pins a provider.
+          if ! grep -q '^POLAR_AI_PROVIDER=' k8s/_staged/blyss.env.secret; then
+            printf 'POLAR_AI_PROVIDER=auto\n' >> k8s/_staged/blyss.env.secret
           fi
+
+          inject_kv POLAR_GOOGLE_AI_API_KEY "${GEMINI_API_KEY:-}"
+          inject_kv POLAR_GROQ_API_KEY      "${GROQ_API_KEY:-}"
+          inject_kv POLAR_OPENROUTER_API_KEY "${OPENROUTER_API_KEY:-}"
+          inject_kv POLAR_CEREBRAS_API_KEY  "${CEREBRAS_API_KEY:-}"
+          inject_kv POLAR_OPENAI_API_KEY    "${OPENAI_API_KEY:-}"
+
           chmod 644 k8s/_staged/blyss.env.secret k8s/_staged/.jwks.json
           echo "Staged env: $(wc -l < k8s/_staged/blyss.env.secret) lines"
           echo "Staged jwks: $(wc -c < k8s/_staged/.jwks.json) bytes"
+          echo "AI providers configured:"
+          for k in POLAR_GROQ_API_KEY POLAR_CEREBRAS_API_KEY POLAR_OPENROUTER_API_KEY POLAR_GOOGLE_AI_API_KEY POLAR_OPENAI_API_KEY; do
+            if grep -q "^${k}=" k8s/_staged/blyss.env.secret; then
+              echo "  $k: set"
+            else
+              echo "  $k: unset"
+            fi
+          done
 
       - name: Wipe stale manifest dir on server
         uses: appleboy/ssh-action@v1.0.3

@@ -2,10 +2,15 @@ import asyncio
 
 import structlog
 from pydantic_ai import Agent
+from pydantic_ai.models import Model
+from pydantic_ai.models.fallback import FallbackModel
 from pydantic_ai.models.google import GoogleModel
+from pydantic_ai.models.groq import GroqModel
 from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.providers.google import GoogleProvider
+from pydantic_ai.providers.groq import GroqProvider
 from pydantic_ai.providers.openai import OpenAIProvider
+from pydantic_ai.providers.openrouter import OpenRouterProvider
 
 from polar.config import settings
 
@@ -385,42 +390,146 @@ def _annotate_domains(domains: list[str]) -> str:
     return ", ".join(parts)
 
 
+def _build_provider_chain() -> tuple[Model, list[str]]:
+    """Build a list of pydantic-ai Model instances from whichever provider
+    keys are present in settings, then wrap them in a FallbackModel so the
+    analyzer auto-switches when one fails (4xx from Google quota, 429 from
+    Groq, network blip, etc.).
+
+    Order is free-tier-first, paid-last:
+        1. Groq        — fast, generous free tier
+        2. Cerebras    — fastest inference, generous free tier (OpenAI-compat)
+        3. OpenRouter  — gateway with free Llama/Gemma models
+        4. Google Gemini — 1500 req/day free
+        5. OpenAI      — paid, last resort
+
+    Returns the model (single Model if one provider is configured, FallbackModel
+    if 2+) and the list of provider names in order — used for the init log.
+
+    Raises ValueError if no provider keys are configured.
+    """
+    candidates: list[Model] = []
+    names: list[str] = []
+
+    # 1. Groq
+    if settings.GROQ_API_KEY:
+        candidates.append(
+            GroqModel(
+                settings.GROQ_MODEL,
+                provider=GroqProvider(api_key=settings.GROQ_API_KEY),
+            )
+        )
+        names.append(f"groq:{settings.GROQ_MODEL}")
+
+    # 2. Cerebras (OpenAI-compatible API)
+    if settings.CEREBRAS_API_KEY:
+        candidates.append(
+            OpenAIChatModel(
+                settings.CEREBRAS_MODEL,
+                provider=OpenAIProvider(
+                    api_key=settings.CEREBRAS_API_KEY,
+                    base_url=settings.CEREBRAS_BASE_URL,
+                ),
+            )
+        )
+        names.append(f"cerebras:{settings.CEREBRAS_MODEL}")
+
+    # 3. OpenRouter
+    if settings.OPENROUTER_API_KEY:
+        candidates.append(
+            OpenAIChatModel(
+                settings.OPENROUTER_MODEL,
+                provider=OpenRouterProvider(api_key=settings.OPENROUTER_API_KEY),
+            )
+        )
+        names.append(f"openrouter:{settings.OPENROUTER_MODEL}")
+
+    # 4. Gemini
+    if settings.GOOGLE_AI_API_KEY:
+        candidates.append(
+            GoogleModel(
+                settings.GOOGLE_AI_MODEL,
+                provider=GoogleProvider(api_key=settings.GOOGLE_AI_API_KEY),
+            )
+        )
+        names.append(f"gemini:{settings.GOOGLE_AI_MODEL}")
+
+    # 5. OpenAI (paid, last)
+    if settings.OPENAI_API_KEY:
+        candidates.append(
+            OpenAIChatModel(
+                settings.OPENAI_MODEL,
+                provider=OpenAIProvider(api_key=settings.OPENAI_API_KEY),
+            )
+        )
+        names.append(f"openai:{settings.OPENAI_MODEL}")
+
+    if not candidates:
+        raise ValueError(
+            "No AI provider configured. Set at least one of: "
+            "POLAR_GROQ_API_KEY (free, https://console.groq.com), "
+            "POLAR_CEREBRAS_API_KEY (free, https://cloud.cerebras.ai), "
+            "POLAR_OPENROUTER_API_KEY (free models, https://openrouter.ai), "
+            "POLAR_GOOGLE_AI_API_KEY (free, https://aistudio.google.com), "
+            "or POLAR_OPENAI_API_KEY (paid)."
+        )
+
+    if len(candidates) == 1:
+        return candidates[0], names
+
+    # 2+ providers — wrap in FallbackModel. Default fallback_on triggers on
+    # ModelAPIError (4xx/5xx), which covers 429 quota-exhausted, 401 invalid
+    # key, 503 unavailable, etc.
+    return FallbackModel(*candidates), names
+
+
 class ReviewAnalyzer:
     def __init__(self) -> None:
-        # Select AI provider based on configuration
-        provider_name = settings.AI_PROVIDER.lower()
-        
-        if provider_name == "gemini":
-            # Google Gemini provider
+        provider_override = settings.AI_PROVIDER.lower().strip()
+
+        # Legacy single-provider mode: AI_PROVIDER=openai or =gemini forces
+        # the analyzer to that one provider, ignoring everything else. Kept
+        # for back-compat with deployments that pin a single provider.
+        if provider_override == "gemini":
             if not settings.GOOGLE_AI_API_KEY:
                 raise ValueError(
                     "GOOGLE_AI_API_KEY is required when AI_PROVIDER is set to 'gemini'. "
                     "Get your API key from https://aistudio.google.com"
                 )
-            provider = GoogleProvider(api_key=settings.GOOGLE_AI_API_KEY)
-            self.model = GoogleModel(settings.GOOGLE_AI_MODEL, provider=provider)
+            self.model = GoogleModel(
+                settings.GOOGLE_AI_MODEL,
+                provider=GoogleProvider(api_key=settings.GOOGLE_AI_API_KEY),
+            )
             log.info(
                 "review_analyzer.initialized",
+                mode="single",
                 provider="gemini",
                 model=settings.GOOGLE_AI_MODEL,
             )
-        elif provider_name == "openai":
-            # OpenAI provider (default)
+        elif provider_override == "openai":
             if not settings.OPENAI_API_KEY:
                 raise ValueError(
                     "OPENAI_API_KEY is required when AI_PROVIDER is set to 'openai'"
                 )
-            provider = OpenAIProvider(api_key=settings.OPENAI_API_KEY)
-            self.model = OpenAIChatModel(settings.OPENAI_MODEL, provider=provider)
+            self.model = OpenAIChatModel(
+                settings.OPENAI_MODEL,
+                provider=OpenAIProvider(api_key=settings.OPENAI_API_KEY),
+            )
             log.info(
                 "review_analyzer.initialized",
+                mode="single",
                 provider="openai",
                 model=settings.OPENAI_MODEL,
             )
         else:
-            raise ValueError(
-                f"Unsupported AI_PROVIDER: {provider_name}. "
-                f"Supported providers: 'openai', 'gemini'"
+            # auto / chain mode (the default): build a FallbackModel from
+            # whichever keys are present.
+            self.model, chain = _build_provider_chain()
+            log.info(
+                "review_analyzer.initialized",
+                mode="chain" if len(chain) > 1 else "single",
+                providers=chain,
+                count=len(chain),
             )
         
         self.agent = Agent(

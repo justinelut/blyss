@@ -228,16 +228,44 @@ class Settings(BaseSettings):
     APPLE_KEY_VALUE: str = ""
 
     # AI Provider Configuration (for organization review)
-    # Supported providers: "openai", "gemini"
-    AI_PROVIDER: str = "gemini"
-    
+    #
+    # The analyzer chains every available provider via pydantic-ai's
+    # FallbackModel. Set any subset of the env vars below — the chain
+    # auto-builds in this order, free tiers first, paid last:
+    #
+    #   1. Groq          (POLAR_GROQ_API_KEY)        — llama-3.3-70b, ~30 req/min free
+    #   2. Cerebras      (POLAR_CEREBRAS_API_KEY)    — llama-3.3-70b, fastest, ~30 req/min free
+    #   3. OpenRouter    (POLAR_OPENROUTER_API_KEY)  — gateway, free models available
+    #   4. Gemini        (POLAR_GOOGLE_AI_API_KEY)   — gemini-2.0-flash, 1500 req/day free
+    #   5. OpenAI        (POLAR_OPENAI_API_KEY)      — paid, last resort
+    #
+    # AI_PROVIDER is a legacy single-provider override. Leave it as the
+    # default and the analyzer auto-builds the chain from whichever keys
+    # are present.
+    AI_PROVIDER: str = "auto"
+
     # OpenAI Configuration
     OPENAI_API_KEY: str = ""
-    OPENAI_MODEL: str = "gpt-4o-2024-12-11"
-    
+    OPENAI_MODEL: str = "gpt-4o-mini"
+
     # Google Gemini Configuration
     GOOGLE_AI_API_KEY: str = ""
-    GOOGLE_AI_MODEL: str = "gemini-2.0-flash"  # Free tier: gemini-2.0-flash, gemini-2.5-flash, gemini-2.5-pro
+    GOOGLE_AI_MODEL: str = "gemini-2.0-flash"
+
+    # Groq Configuration — get a free key at https://console.groq.com
+    GROQ_API_KEY: str = ""
+    GROQ_MODEL: str = "llama-3.3-70b-versatile"
+
+    # OpenRouter Configuration — get a free key at https://openrouter.ai
+    # The default model is OpenRouter's free Llama 3.3 70B endpoint.
+    OPENROUTER_API_KEY: str = ""
+    OPENROUTER_MODEL: str = "meta-llama/llama-3.3-70b-instruct:free"
+
+    # Cerebras Configuration — get a free key at https://cloud.cerebras.ai
+    # Uses the OpenAI-compatible API at api.cerebras.ai/v1.
+    CEREBRAS_API_KEY: str = ""
+    CEREBRAS_MODEL: str = "llama-3.3-70b"
+    CEREBRAS_BASE_URL: str = "https://api.cerebras.ai/v1"
 
     # Stripe
     STRIPE_SECRET_KEY: str = ""
