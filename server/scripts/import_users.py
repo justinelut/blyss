@@ -72,8 +72,12 @@ async def import_users(source_path: Path) -> tuple[int, int, int]:
             created_at = _parse_dt(raw.get("created_at")) or datetime.now(UTC)
 
             existing = (
-                await session.execute(select(User).where(User.email == email))
-            ).scalar_one_or_none()
+                (
+                    await session.execute(select(User).where(User.email == email))
+                )
+                .unique()
+                .scalar_one_or_none()
+            )
 
             if existing is None:
                 user = User(

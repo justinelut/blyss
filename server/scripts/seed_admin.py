@@ -29,7 +29,10 @@ async def seed_admin(email: str) -> None:
         result = await session.execute(
             select(User).where(User.email == email.lower())
         )
-        user = result.scalar_one_or_none()
+        # User has joined eager loads (oauth_accounts), so we must call
+        # .unique() before scalar_one_or_none() — otherwise SQLAlchemy raises
+        # InvalidRequestError.
+        user = result.unique().scalar_one_or_none()
 
         if user is None:
             user = User(
