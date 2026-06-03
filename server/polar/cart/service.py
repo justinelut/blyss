@@ -85,6 +85,12 @@ class CartService:
             flush=True,
         )
 
+        # The upsert's RETURNING + populate_existing can invalidate the
+        # eager-loaded relations on Product in the identity map. Re-fetch
+        # to guarantee product.product_medias and friends are populated
+        # before the endpoint serializes CartItemResponse.
+        product = await self._get_product(session, product_id)
+
         return cart_item, product
 
     async def remove_item(
