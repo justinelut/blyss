@@ -178,7 +178,7 @@ const CustomerPortalSubscription = ({
                   accessorKey: 'amount',
                   header: 'Amount',
                   cell: ({ row }) => (
-                    <span className="dark:text-polar-500 text-sm text-gray-500">
+                    <span className="dark:text-polar-500 text-sm text-[var(--text-muted)]">
                       {formatCurrency('compact')(
                         row.original.total_amount,
                         row.original.currency,

@@ -34,7 +34,7 @@ const seatStatusToDisplayName = {
   ],
   revoked: [
     'Revoked',
-    'bg-gray-100 text-gray-500 dark:bg-polar-700 dark:text-polar-500',
+    'bg-[var(--surface)] text-[var(--text-muted)] dark:bg-polar-700 dark:text-polar-500',
   ],
 } as const
 
@@ -199,10 +199,10 @@ export const SeatManagementTable = ({
       )}
 
       {!isLoadingSeats && (seats.length > 0 || availableSeats > 0) && (
-        <div className="dark:border-polar-700 overflow-hidden rounded-2xl border border-gray-200">
+        <div className="dark:border-polar-700 overflow-hidden rounded-2xl border border-[var(--border)]">
           <table className="w-full caption-bottom text-sm">
             <thead className="[&_tr]:border-b">
-              <tr className="dark:bg-polar-800 border-b bg-gray-50">
+              <tr className="dark:bg-polar-800 border-b bg-[var(--surface)]">
                 <th className="text-muted-foreground h-12 px-4 text-left align-middle font-medium">
                   Email
                 </th>
@@ -301,7 +301,7 @@ export const SeatManagementTable = ({
                             }}
                           />
                           {error && (
-                            <p className="dark:text-polar-400 mt-1 text-xs text-gray-500">
+                            <p className="dark:text-polar-400 mt-1 text-xs text-[var(--text-muted)]">
                               {error}
                             </p>
                           )}
@@ -330,12 +330,12 @@ export const SeatManagementTable = ({
                         className="flex w-full items-center justify-between px-4 py-4 text-left transition-colors"
                         onClick={() => setIsInviting(true)}
                       >
-                        <span className="dark:text-polar-400 text-gray-500">
+                        <span className="dark:text-polar-400 text-[var(--text-muted)]">
                           {availableSeats === 1
                             ? 'One more seat available'
                             : `${availableSeats} more seats available`}
                         </span>
-                        <span className="dark:bg-polar-700 dark:hover:bg-polar-600 flex h-10 cursor-pointer items-center rounded-xl border border-black/4 bg-gray-100 px-3 text-sm font-medium text-black hover:bg-gray-200 dark:border-white/5 dark:text-white">
+                        <span className="dark:bg-polar-700 dark:hover:bg-polar-600 flex h-10 cursor-pointer items-center rounded-xl border border-black/4 bg-[var(--surface)] px-3 text-sm font-medium text-black hover:bg-[var(--surface-sunken)] dark:border-white/5 dark:text-white">
                           Invite member
                         </span>
                       </button>

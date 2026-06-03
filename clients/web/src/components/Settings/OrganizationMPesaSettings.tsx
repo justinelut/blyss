@@ -6,6 +6,7 @@ import { schemas, unwrap } from '@/lib/api'
 import Button from '@/components/atoms/Button'
 import Input from '@/components/atoms/Input'
 import Pill from '@/components/atoms/Pill'
+import Link from 'next/link'
 import {
   Select,
   SelectContent,
@@ -20,7 +21,14 @@ import {
   FormItem,
   FormMessage,
 } from '@/components/ui/form'
-import { CheckCircle, Loader2, Phone, RefreshCw, XCircle } from 'lucide-react'
+import {
+  ArrowUpRight,
+  CheckCircle,
+  Loader2,
+  Phone,
+  RefreshCw,
+  XCircle,
+} from 'lucide-react'
 import React, { useCallback, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from '../Toast/use-toast'
@@ -234,6 +242,28 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
   return (
     <Form {...form}>
       <form onSubmit={handleSubmit(onConfigureMPesa)}>
+        <Link
+          href={`/dashboard/${organization.slug}/finance/account`}
+          className="group mb-4 flex items-start justify-between gap-4 rounded-md border border-[var(--border)] bg-[var(--surface-elevated)] px-5 py-4 transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface)]"
+        >
+          <div className="space-y-1">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
+              Finance · Full setup
+            </p>
+            <p className="text-[15px] font-medium text-[var(--text-primary)]">
+              Set up your full payout account in Finance
+            </p>
+            <p className="text-sm text-[var(--text-secondary)]">
+              Submit business details, verify identity, and activate
+              M&#8209;Pesa or Kenyan bank payouts. Required before your first
+              withdrawal.
+            </p>
+          </div>
+          <span className="mt-1 inline-flex h-9 w-9 flex-none items-center justify-center rounded-md border border-[var(--border)] text-[var(--text-secondary)] transition-colors group-hover:border-[var(--accent)] group-hover:text-[var(--accent)]">
+            <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+          </span>
+        </Link>
+
         <SettingsGroup>
           <SettingsGroupItem
             title="Payout account"
@@ -363,7 +393,7 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
                   {currentMPesaNumber && (
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium">Number:</span>
-                      <span className="text-sm text-gray-600">
+                      <span className="text-sm text-[var(--text-secondary)]">
                         {currentMPesaNumber}
                       </span>
                     </div>
@@ -434,7 +464,7 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
                   description="Complete M-Pesa verification to enable payouts"
                 >
                   <div className="space-y-3">
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-[var(--text-secondary)]">
                       A KES 10 verification transaction was sent to your M-Pesa
                       number. Click verify once you receive it.
                     </p>

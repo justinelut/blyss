@@ -98,11 +98,11 @@ const ProgressIndicator = ({
   return (
     <div className="relative">
       {/* Progress bar background */}
-      <div className="dark:bg-polar-700 absolute top-6 right-6 left-6 h-0.5 bg-gray-200" />
+      <div className="dark:bg-polar-700 absolute top-6 right-6 left-6 h-0.5 bg-[var(--surface-sunken)]" />
 
       {/* Progress bar fill */}
       <div
-        className="dark:bg-polar-400 absolute top-6 left-6 h-0.5 bg-gray-500 transition-all duration-500 ease-out"
+        className="dark:bg-polar-400 absolute top-6 left-6 h-0.5 bg-[var(--text-primary)] transition-all duration-500 ease-out"
         style={{
           width: `calc(${calculateProgress()}% - 24px)`,
         }}
@@ -131,7 +131,7 @@ const ProgressIndicator = ({
               <div
                 className={`flex h-12 w-12 items-center justify-center rounded-full border-2 transition-all duration-300 ${
                   isCompleted
-                    ? 'dark:bg-polar-400 dark:text-polar-950 dark:border-polar-400 border-gray-500 bg-gray-500 text-white'
+                    ? 'dark:bg-polar-400 dark:text-polar-950 dark:border-polar-400 border-[var(--border-strong)] bg-[var(--text-primary)] text-white'
                     : isPending
                       ? 'border-blue-500 bg-blue-400 text-white'
                       : isFailed
@@ -139,9 +139,9 @@ const ProgressIndicator = ({
                         : isCurrent
                           ? 'border-blue-500 bg-blue-400 text-white'
                           : isBlocked
-                            ? 'dark:bg-polar-800 dark:border-polar-600 border-gray-300 bg-gray-100 text-gray-400'
-                            : 'dark:bg-polar-900 dark:border-polar-600 border-gray-300 bg-white text-gray-400'
-                } ${isClickable ? 'cursor-pointer hover:border-gray-400 hover:bg-gray-400' : ''}`}
+                            ? 'dark:bg-polar-800 dark:border-polar-600 border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)]'
+                            : 'dark:bg-polar-900 dark:border-polar-600 border-[var(--border)] bg-white text-[var(--text-muted)]'
+                } ${isClickable ? 'cursor-pointer hover:border-[var(--border-strong)] hover:bg-[var(--border)]' : ''}`}
                 onClick={() => isClickable && onStepClick(step.id)}
               >
                 {isCompleted ? (
@@ -179,14 +179,14 @@ const ProgressIndicator = ({
                 <p
                   className={`text-xs font-medium ${
                     isCompleted
-                      ? 'dark:text-polar-300 text-gray-600'
+                      ? 'dark:text-polar-300 text-[var(--text-secondary)]'
                       : isPending
-                        ? 'dark:text-polar-300 text-gray-600'
+                        ? 'dark:text-polar-300 text-[var(--text-secondary)]'
                         : isFailed
                           ? 'text-red-600 dark:text-red-400'
                           : isCurrent
-                            ? 'dark:text-polar-300 text-gray-600'
-                            : 'dark:text-polar-400 text-gray-500'
+                            ? 'dark:text-polar-300 text-[var(--text-secondary)]'
+                            : 'dark:text-polar-400 text-[var(--text-muted)]'
                   }`}
                 >
                   {step.title}
@@ -425,7 +425,7 @@ export default function StreamlinedAccountReview({
       {/* Header */}
       <div className="space-y-2 text-center">
         <h1 className="text-2xl font-semibold">Set up your payout account</h1>
-        <p className="dark:text-polar-400 text-gray-600">
+        <p className="dark:text-polar-400 text-[var(--text-secondary)]">
           Complete these steps to start accepting payments
         </p>
       </div>
@@ -453,7 +453,7 @@ export default function StreamlinedAccountReview({
               <div className="flex items-center justify-center space-x-3">
                 <h1 className="text-2xl font-semibold">Organization Details</h1>
               </div>
-              <p className="dark:text-polar-400 mx-auto max-w-2xl text-lg text-gray-600">
+              <p className="dark:text-polar-400 mx-auto max-w-2xl text-lg text-[var(--text-secondary)]">
                 {requireDetails
                   ? "Tell us about your organization so we can review if it's an acceptable use case for Blyss."
                   : 'Review your submitted organization details below.'}
@@ -489,7 +489,7 @@ export default function StreamlinedAccountReview({
               <div className="flex items-center justify-center space-x-3">
                 <h1 className="text-2xl font-semibold">Compliance Check</h1>
               </div>
-              <p className="dark:text-polar-400 mx-auto max-w-2xl text-lg text-gray-600">
+              <p className="dark:text-polar-400 mx-auto max-w-2xl text-lg text-[var(--text-secondary)]">
                 {organizationReviewStatus?.verdict
                   ? 'Review your validation results and appeal status below.'
                   : 'Our AI is reviewing your organization details against our acceptable use policy.'}
@@ -525,7 +525,7 @@ export default function StreamlinedAccountReview({
       {/* Status footer */}
       {currentStepConfig && (
         <div className="text-center">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-[var(--text-muted)]">
             Step {steps.findIndex((s) => s.id === currentStep) + 1} of{' '}
             {steps.length}: {currentStepConfig.description}
           </p>

@@ -43,7 +43,7 @@ export default function AccountStep({
         <div className="flex items-center justify-center space-x-3">
           <h1 className="text-2xl font-semibold">Payout Account</h1>
         </div>
-        <p className="dark:text-polar-400 mx-auto max-w-2xl text-lg text-gray-600">
+        <p className="dark:text-polar-400 mx-auto max-w-2xl text-lg text-[var(--text-secondary)]">
           {isAccountSetupComplete
             ? 'Your payout account details and status.'
             : isNotAdmin
@@ -54,19 +54,19 @@ export default function AccountStep({
 
       {/* Account Information */}
       {isNotAdmin ? (
-        <StepCard className="dark:border-polar-600 border-gray-300">
+        <StepCard className="dark:border-polar-600 border-[var(--border)]">
           <div className="space-y-4">
             <div className="space-y-4 text-center">
-              <div className="dark:bg-polar-800 dark:border-polar-600 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-8">
+              <div className="dark:bg-polar-800 dark:border-polar-600 rounded-lg border-2 border-dashed border-[var(--border)] bg-[var(--surface)] p-8">
                 <div className="mb-4 flex justify-center">
-                  <div className="dark:bg-polar-700 flex h-12 w-12 items-center justify-center rounded-full bg-gray-200">
-                    <UserCheck className="dark:text-polar-400 h-6 w-6 text-gray-500" />
+                  <div className="dark:bg-polar-700 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--surface-sunken)]">
+                    <UserCheck className="dark:text-polar-400 h-6 w-6 text-[var(--text-muted)]" />
                   </div>
                 </div>
-                <h4 className="dark:text-polar-400 mb-2 font-medium text-gray-600">
+                <h4 className="dark:text-polar-400 mb-2 font-medium text-[var(--text-secondary)]">
                   Account Setup Restricted
                 </h4>
-                <p className="dark:text-polar-500 mx-auto mb-4 max-w-md text-sm text-gray-500">
+                <p className="dark:text-polar-500 mx-auto mb-4 max-w-md text-sm text-[var(--text-muted)]">
                   You are not the admin of the account. Only the account admin
                   can set up payout accounts.
                 </p>
@@ -80,7 +80,7 @@ export default function AccountStep({
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 )}
-                <p className="dark:text-polar-400 mt-3 text-xs text-gray-500">
+                <p className="dark:text-polar-400 mt-3 text-xs text-[var(--text-muted)]">
                   The account admin will need to complete this step separately
                 </p>
               </div>

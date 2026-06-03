@@ -48,8 +48,8 @@ export const OrganizationNavigation = ({
               className={twMerge(
                 'flex flex-row items-center rounded-lg border border-transparent px-2 transition-colors dark:border-transparent',
                 route.isActive
-                  ? 'dark:!bg-polar-900 dark:border-polar-800 border-gray-200 bg-white! text-black shadow-xs dark:text-white'
-                  : 'dark:text-polar-500 dark:hover:text-polar-200 text-gray-500 hover:text-black',
+                  ? 'dark:!bg-polar-900 dark:border-polar-800 border-[var(--border)] bg-white! text-black shadow-xs dark:text-white'
+                  : 'dark:text-polar-500 dark:hover:text-polar-200 text-[var(--text-muted)] hover:text-black',
                 isCollapsed && '!dark:text-polar-600',
               )}
               href={route.link}
@@ -78,7 +78,7 @@ export const OrganizationNavigation = ({
                       href={subRoute.link}
                       prefetch={true}
                       className={twMerge(
-                        'dark:text-polar-500 ml-4 inline-flex flex-row items-center gap-x-2 text-sm font-medium text-gray-500 transition-colors hover:text-black dark:hover:text-white',
+                        'dark:text-polar-500 ml-4 inline-flex flex-row items-center gap-x-2 text-sm font-medium text-[var(--text-muted)] transition-colors hover:text-black dark:hover:text-white',
                         subRoute.isActive && 'text-black dark:text-white',
                       )}
                     >
@@ -131,8 +131,8 @@ export const AccountNavigation = () => {
               className={twMerge(
                 'flex flex-row items-center rounded-lg border border-transparent px-2 transition-colors dark:border-transparent',
                 route.isActive
-                  ? 'dark:bg-polar-900 dark:border-polar-800 border-gray-200 bg-white text-black shadow-xs dark:text-white'
-                  : 'dark:text-polar-500 dark:hover:text-polar-200 text-gray-500 hover:text-black',
+                  ? 'dark:bg-polar-900 dark:border-polar-800 border-[var(--border)] bg-white text-black shadow-xs dark:text-white'
+                  : 'dark:text-polar-500 dark:hover:text-polar-200 text-[var(--text-muted)] hover:text-black',
                 isCollapsed && '!dark:text-polar-600',
               )}
               href={route.link}
@@ -161,7 +161,7 @@ export const AccountNavigation = () => {
                       href={subRoute.link}
                       prefetch={true}
                       className={twMerge(
-                        'dark:text-polar-500 ml-4 inline-flex flex-row items-center gap-x-2 text-sm font-medium text-gray-500',
+                        'dark:text-polar-500 ml-4 inline-flex flex-row items-center gap-x-2 text-sm font-medium text-[var(--text-muted)]',
                         subRoute.isActive && 'text-blue-500 dark:text-white',
                       )}
                     >

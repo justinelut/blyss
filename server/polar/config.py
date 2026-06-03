@@ -229,7 +229,7 @@ class Settings(BaseSettings):
 
     # AI Provider Configuration (for organization review)
     # Supported providers: "openai", "gemini"
-    AI_PROVIDER: str = "openai"
+    AI_PROVIDER: str = "gemini"
     
     # OpenAI Configuration
     OPENAI_API_KEY: str = ""

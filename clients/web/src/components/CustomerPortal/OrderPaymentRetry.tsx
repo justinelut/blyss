@@ -373,7 +373,7 @@ export const OrderPaymentRetry = ({
   return (
     <div className="space-y-4">
       {/* Order Summary */}
-      <div className="dark:bg-polar-800 rounded-lg bg-gray-50 p-4">
+      <div className="dark:bg-polar-800 rounded-lg bg-[var(--surface)] p-4">
         <h3 className="mb-2 font-medium">Order Summary</h3>
         <div className="space-y-1 text-sm">
           <div className="flex justify-between">
@@ -412,7 +412,7 @@ export const OrderPaymentRetry = ({
             <p className="text-lg font-medium">
               {showRetryButton ? 'Payment Failed' : 'Payment Successful!'}
             </p>
-            <p className="dark:text-polar-500 mt-2 text-sm text-gray-500">
+            <p className="dark:text-polar-500 mt-2 text-sm text-[var(--text-muted)]">
               {showRetryButton
                 ? 'You can try again or contact support if the issue persists.'
                 : 'Thank you for your payment. You can now close this window.'}
@@ -442,7 +442,7 @@ export const OrderPaymentRetry = ({
             </span>
           </div>
           <p className="text-lg font-medium">Processing your payment...</p>
-          <p className="mt-2 text-sm text-gray-500">
+          <p className="mt-2 text-sm text-[var(--text-muted)]">
             This may take a few moments. Please don&apos;t close this window.
           </p>
         </div>
@@ -454,7 +454,7 @@ export const OrderPaymentRetry = ({
               <WalletCards className="h-8 w-8 text-blue-600" />
             </div>
             <p className="text-lg font-medium">Processing payment...</p>
-            <p className="mt-2 text-sm text-gray-500">
+            <p className="mt-2 text-sm text-[var(--text-muted)]">
               Using your saved payment method
             </p>
           </div>

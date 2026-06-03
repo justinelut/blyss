@@ -201,10 +201,10 @@ export const CustomerPortalTeamSection = ({
         </div>
       </div>
 
-      <div className="dark:border-polar-700 overflow-hidden rounded-2xl border border-gray-200">
+      <div className="dark:border-polar-700 overflow-hidden rounded-2xl border border-[var(--border)]">
         <table className="w-full table-fixed caption-bottom text-sm">
           <thead className="[&_tr]:border-b">
-            <tr className="dark:bg-polar-800 border-b bg-gray-50 transition-colors">
+            <tr className="dark:bg-polar-800 border-b bg-[var(--surface)] transition-colors">
               <th className="text-muted-foreground h-12 px-4 text-left align-middle font-medium">
                 Member
               </th>
@@ -228,13 +228,13 @@ export const CustomerPortalTeamSection = ({
                           {member.name || member.email}
                         </span>
                         {isCurrentUser && (
-                          <span className="dark:text-polar-500 text-xs text-gray-500">
+                          <span className="dark:text-polar-500 text-xs text-[var(--text-muted)]">
                             (you)
                           </span>
                         )}
                       </div>
                       {member.name && (
-                        <span className="dark:text-polar-500 text-xs text-gray-500">
+                        <span className="dark:text-polar-500 text-xs text-[var(--text-muted)]">
                           {member.email}
                         </span>
                       )}

@@ -73,10 +73,10 @@ export const CurrentPeriodOverview = ({
   }
 
   return (
-    <div className="dark:border-polar-700 flex flex-col gap-4 rounded-3xl border border-gray-200 p-8">
+    <div className="dark:border-polar-700 flex flex-col gap-4 rounded-3xl border border-[var(--border)] p-8">
       <div className="items-center justify-between space-y-1.5 sm:flex sm:space-y-0">
         <h4 className="text-lg font-medium">{headerTitle}</h4>
-        <span className="dark:text-polar-500 text-sm text-gray-500">
+        <span className="dark:text-polar-500 text-sm text-[var(--text-muted)]">
           {dateLabel} —{' '}
           {chargeDate
             ? new Date(chargeDate).toLocaleDateString('en-US', {
@@ -89,12 +89,12 @@ export const CurrentPeriodOverview = ({
       <div className="flex flex-col gap-2">
         {product && subscriptionPreview && (
           <div className="flex items-center justify-between">
-            <span className="dark:text-polar-400 text-gray-600">
+            <span className="dark:text-polar-400 text-[var(--text-secondary)]">
               {product.name}
             </span>
             <span
               className={
-                isCancelingAtPeriodEnd ? 'text-gray-500' : 'font-medium'
+                isCancelingAtPeriodEnd ? 'text-[var(--text-muted)]' : 'font-medium'
               }
             >
               {isCancelingAtPeriodEnd ? (
@@ -115,7 +115,7 @@ export const CurrentPeriodOverview = ({
 
             {subscription.meters.map((meter) => (
               <div key={meter.id} className="flex items-center justify-between">
-                <span className="dark:text-polar-400 text-gray-600">
+                <span className="dark:text-polar-400 text-[var(--text-secondary)]">
                   {meter.meter.name}
                 </span>
                 <span className="font-medium">
@@ -129,9 +129,9 @@ export const CurrentPeriodOverview = ({
           </>
         )}
 
-        <div className="dark:border-polar-700 mt-2 border-t border-gray-200 pt-2">
+        <div className="dark:border-polar-700 mt-2 border-t border-[var(--border)] pt-2">
           {(hasTaxes || hasDiscount) && (
-            <div className="dark:text-polar-500 mb-1.5 flex items-center justify-between text-gray-500">
+            <div className="dark:text-polar-500 mb-1.5 flex items-center justify-between text-[var(--text-muted)]">
               <span>Subtotal</span>
               <span>
                 {formatCurrency('compact')(
@@ -143,7 +143,7 @@ export const CurrentPeriodOverview = ({
           )}
 
           {hasDiscount && (
-            <div className="dark:text-polar-500 mb-1 flex items-center justify-between text-gray-500">
+            <div className="dark:text-polar-500 mb-1 flex items-center justify-between text-[var(--text-muted)]">
               <span>Discount</span>
               <span>
                 {formatCurrency('compact')(
@@ -155,7 +155,7 @@ export const CurrentPeriodOverview = ({
           )}
 
           {hasTaxes && (
-            <div className="dark:text-polar-500 mb-1 flex items-center justify-between text-gray-500">
+            <div className="dark:text-polar-500 mb-1 flex items-center justify-between text-[var(--text-muted)]">
               <span>Taxes</span>
               <span>
                 {formatCurrency('compact')(
@@ -177,7 +177,7 @@ export const CurrentPeriodOverview = ({
                   subscription.currency,
                 )
               ) : (
-                <span className="dark:text-polar-500 animate-pulse text-gray-500">
+                <span className="dark:text-polar-500 animate-pulse text-[var(--text-muted)]">
                   Loading…
                 </span>
               )}
@@ -185,7 +185,7 @@ export const CurrentPeriodOverview = ({
           </div>
 
           {isCancelingAtPeriodEnd && (
-            <p className="max-w-sm text-xs text-gray-500">
+            <p className="max-w-sm text-xs text-[var(--text-muted)]">
               This will be the final charge before the subscription ends.
               {hasMeters &&
                 ' Final amount may vary based on usage until the end of the billing period.'}
@@ -193,7 +193,7 @@ export const CurrentPeriodOverview = ({
           )}
 
           {!isCancelingAtPeriodEnd && hasMeters && (
-            <p className="max-w-sm text-xs text-gray-500">
+            <p className="max-w-sm text-xs text-[var(--text-muted)]">
               {isActive
                 ? 'Final charges may vary based on usage until the end of the billing period.'
                 : isTrialing

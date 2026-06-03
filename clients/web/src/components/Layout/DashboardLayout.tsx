@@ -43,7 +43,7 @@ const DashboardLayout = (
 
   return (
     <DashboardProvider organization={organization}>
-      <div className="relative flex h-full w-full flex-col bg-white md:flex-row md:bg-gray-100 md:p-2 dark:bg-transparent">
+      <div className="relative flex h-full w-full flex-col bg-white md:flex-row md:bg-[var(--surface)] md:p-2 dark:bg-transparent">
         <MobileNav
           organization={organization}
           organizations={organizations ?? []}
@@ -92,7 +92,7 @@ const MobileNav = ({
   }, [pathname])
 
   const header = (
-    <div className="dark:bg-polar-900 sticky top-0 right-0 left-0 flex w-full flex-row items-center justify-between bg-gray-50 p-4">
+    <div className="dark:bg-polar-900 sticky top-0 right-0 left-0 flex w-full flex-row items-center justify-between bg-[var(--surface)] p-4">
       {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
       <a
         href="/"
@@ -109,11 +109,11 @@ const MobileNav = ({
   )
 
   return (
-    <div className="dark:bg-polar-900 relative z-20 flex w-screen flex-col items-center justify-between bg-gray-50 md:hidden">
+    <div className="dark:bg-polar-900 relative z-20 flex w-screen flex-col items-center justify-between bg-[var(--surface)] md:hidden">
       {mobileNavOpen ? (
         <div className="relative flex h-full w-full flex-col">
           {header}
-          <div className="dark:bg-polar-900 flex h-full flex-col bg-gray-50 px-4">
+          <div className="dark:bg-polar-900 flex h-full flex-col bg-[var(--surface)] px-4">
             <DashboardSidebar
               organization={organization}
               organizations={organizations}
@@ -194,7 +194,7 @@ export const DashboardBody = ({
       animate="animate"
       exit="exit"
     >
-      <div className="dark:bg-polar-900 dark:border-polar-800 relative flex min-w-0 flex-2 flex-col items-center rounded-2xl border-gray-200 bg-white px-4 md:overflow-y-auto md:border md:px-8 md:shadow-xs">
+      <div className="dark:bg-polar-900 dark:border-polar-800 relative flex min-w-0 flex-2 flex-col items-center rounded-2xl border-[var(--border)] bg-white px-4 md:overflow-y-auto md:border md:px-8 md:shadow-xs">
         <div
           className={twMerge(
             'flex h-full w-full flex-col gap-8 pt-8',
@@ -241,7 +241,7 @@ export const DashboardBody = ({
             exit: { opacity: 0, transition: { duration: 0.3 } },
           }}
           className={twMerge(
-            'dark:bg-polar-900 dark:border-polar-800 w-full flex-1 overflow-y-auto rounded-2xl border border-gray-200 bg-white md:max-w-[320px] md:shadow-xs xl:max-w-[440px]',
+            'dark:bg-polar-900 dark:border-polar-800 w-full flex-1 overflow-y-auto rounded-2xl border border-[var(--border)] bg-white md:max-w-[320px] md:shadow-xs xl:max-w-[440px]',
             contextViewClassName,
           )}
         >

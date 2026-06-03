@@ -70,7 +70,7 @@ export const CustomerTrendStatBox = ({
                         ? trendUpIsBad
                           ? 'text-emerald-500'
                           : 'text-red-500'
-                        : 'dark:text-polar-500 text-gray-500'
+                        : 'dark:text-polar-500 text-[var(--text-muted)]'
                   }`}
                 >
                   {trend.direction === 'up' ? (
@@ -83,7 +83,7 @@ export const CustomerTrendStatBox = ({
               </div>
             </TooltipTrigger>
             <TooltipContent className="flex flex-col gap-1">
-              <span className="dark:text-polar-500 font-sans text-sm text-gray-500">
+              <span className="dark:text-polar-500 font-sans text-sm text-[var(--text-muted)]">
                 Previous Period
               </span>
               <span>{formatter?.(trend.previousValue, currency)}</span>

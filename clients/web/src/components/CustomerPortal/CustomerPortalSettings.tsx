@@ -53,11 +53,11 @@ export const CustomerPortalSettings = ({
   return (
     <div className="flex flex-col gap-y-8">
       <h3 className="text-2xl">Billing Settings</h3>
-      <Well className="dark:bg-polar-900 flex flex-col gap-y-6 bg-gray-50">
+      <Well className="dark:bg-polar-900 flex flex-col gap-y-6 bg-[var(--surface)]">
         <WellHeader className="flex-row items-start justify-between">
           <div className="flex flex-col gap-y-2">
             <h3 className="text-xl">Payment Methods</h3>
-            <p className="dark:text-polar-500 text-gray-500">
+            <p className="dark:text-polar-500 text-[var(--text-muted)]">
               Methods used for subscriptions & one-time purchases
             </p>
           </div>
@@ -77,11 +77,11 @@ export const CustomerPortalSettings = ({
           ))}
         </WellContent>
       </Well>
-      <Well className="dark:bg-polar-900 flex flex-col gap-y-6 bg-gray-50">
+      <Well className="dark:bg-polar-900 flex flex-col gap-y-6 bg-[var(--surface)]">
         <WellHeader className="flex-row items-center justify-between">
           <div className="flex flex-col gap-y-2">
             <h3 className="text-xl">Billing Details</h3>
-            <p className="dark:text-polar-500 text-gray-500">
+            <p className="dark:text-polar-500 text-[var(--text-muted)]">
               Update your billing details
             </p>
           </div>
@@ -99,11 +99,11 @@ export const CustomerPortalSettings = ({
 
       {customer.type === 'team' &&
         organization.organization_features?.member_model_enabled && (
-          <Well className="dark:bg-polar-900 flex flex-col gap-y-6 bg-gray-50">
+          <Well className="dark:bg-polar-900 flex flex-col gap-y-6 bg-[var(--surface)]">
             <WellHeader className="flex-row items-start justify-between">
               <div className="flex flex-col gap-y-2">
                 <h3 className="text-xl">Billing Managers</h3>
-                <p className="dark:text-polar-500 text-gray-500">
+                <p className="dark:text-polar-500 text-[var(--text-muted)]">
                   Billing Managers can manage billing details, payment methods,
                   and subscriptions.
                 </p>

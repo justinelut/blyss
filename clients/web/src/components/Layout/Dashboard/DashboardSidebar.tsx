@@ -113,20 +113,20 @@ export const DashboardSidebar = ({
               onClick={() => setSearchOpen(true)}
               className={twMerge(
                 'flex cursor-pointer items-center gap-4 rounded-lg border px-2 py-2 text-sm transition-colors',
-                'dark:bg-polar-950 dark:border-polar-800 dark:hover:bg-polar-900 border-gray-200 bg-white hover:bg-gray-50',
+                'dark:bg-polar-950 dark:border-polar-800 dark:hover:bg-polar-900 border-[var(--border)] bg-white hover:bg-[var(--surface)]',
                 isCollapsed && 'justify-center px-2',
               )}
             >
               <Search
-                className="dark:text-polar-500 text-gray-500"
+                className="dark:text-polar-500 text-[var(--text-muted)]"
                 fontSize="inherit"
               />
               {!isCollapsed && (
                 <>
-                  <span className="dark:text-polar-500 flex-1 text-left text-gray-500">
+                  <span className="dark:text-polar-500 flex-1 text-left text-[var(--text-muted)]">
                     Search...
                   </span>
-                  <kbd className="dark:border-polar-700 dark:bg-polar-800 dark:text-polar-400 pointer-events-none inline-flex h-5 items-center gap-1 rounded border border-gray-200 bg-gray-100 px-1.5 font-mono text-[11px] text-gray-600 select-none">
+                  <kbd className="dark:border-polar-700 dark:bg-polar-800 dark:text-polar-400 pointer-events-none inline-flex h-5 items-center gap-1 rounded border border-[var(--border)] bg-[var(--surface)] px-1.5 font-mono text-[11px] text-[var(--text-secondary)] select-none">
                     <span className="text-sm">⌘</span>K
                   </kbd>
                 </>
@@ -157,7 +157,7 @@ export const DashboardSidebar = ({
           href="mailto:support@blyss.co.ke"
           className={twMerge(
             'mt-2 flex cursor-pointer flex-row items-center rounded-lg border border-transparent px-2 text-sm transition-colors dark:border-transparent',
-            'dark:text-polar-500 dark:hover:text-polar-200 text-gray-500 hover:text-black',
+            'dark:text-polar-500 dark:hover:text-polar-200 text-[var(--text-muted)] hover:text-black',
             isCollapsed && '!dark:text-polar-600',
           )}
         >
@@ -167,7 +167,7 @@ export const DashboardSidebar = ({
         <Link
           className={twMerge(
             'flex flex-row items-center rounded-lg border border-transparent text-sm transition-colors dark:border-transparent',
-            'dark:text-polar-500 dark:hover:text-polar-200 text-gray-500 hover:text-black',
+            'dark:text-polar-500 dark:hover:text-polar-200 text-[var(--text-muted)] hover:text-black',
             isCollapsed && '!dark:text-polar-600',
           )}
           href="https://blyss.co.ke/help"

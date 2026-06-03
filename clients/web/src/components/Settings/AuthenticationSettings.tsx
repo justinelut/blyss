@@ -39,7 +39,7 @@ const AuthenticationMethod = ({
       {!hideTitle && (
         <div className="grow">
           <div className="font-medium">{title}</div>
-          <div className="dark:text-polar-500 text-sm text-gray-500">
+          <div className="dark:text-polar-500 text-sm text-[var(--text-muted)]">
             {subtitle}
           </div>
         </div>
@@ -190,7 +190,7 @@ const AuthenticationSettings = () => {
       />
     ),
     request: (
-      <div className="dark:text-polar-300 dark:bg-polar-600 flex h-10 items-center justify-center rounded-lg bg-gray-100 text-center text-sm text-gray-500">
+      <div className="dark:text-polar-300 dark:bg-polar-600 flex h-10 items-center justify-center rounded-lg bg-[var(--surface)] text-center text-sm text-[var(--text-muted)]">
         A verification email was sent to this address.
       </div>
     ),

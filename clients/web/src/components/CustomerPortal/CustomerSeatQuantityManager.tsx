@@ -164,7 +164,7 @@ export const CustomerSeatQuantityManager = ({
       {!hasChanges &&
         pendingUpdate?.seats != null &&
         pendingUpdate.seats !== totalSeats && (
-          <span className="dark:text-polar-500 mt-3 text-sm text-gray-500">
+          <span className="dark:text-polar-500 mt-3 text-sm text-[var(--text-muted)]">
             A change to{' '}
             <span className="font-medium">
               {pendingUpdate.seats}{' '}
@@ -177,7 +177,7 @@ export const CustomerSeatQuantityManager = ({
       {hasChanges && (
         <div className="mt-4 flex flex-col gap-3">
           {invoicingMessage && (
-            <span className="dark:text-polar-500 text-sm text-gray-500">
+            <span className="dark:text-polar-500 text-sm text-[var(--text-muted)]">
               {invoicingMessage}
             </span>
           )}

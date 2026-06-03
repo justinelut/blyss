@@ -109,6 +109,7 @@ jobs:
         env:
           ENV_SECRET: ${{ secrets.ENV_SECRET }}
           JWKS_SECRET: ${{ secrets.JWKS_SECRET }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           if [ -z "${ENV_SECRET:-}" ]; then
             echo "::error::ENV_SECRET repo secret is empty."
@@ -121,6 +122,18 @@ jobs:
           mkdir -p k8s/_staged
           printf '%s\n' "$ENV_SECRET" > k8s/_staged/blyss.env.secret
           printf '%s\n' "$JWKS_SECRET" > k8s/_staged/.jwks.json
+          # Inject GEMINI_API_KEY (separate GitHub secret) as POLAR_GOOGLE_AI_API_KEY
+          # so the AI marketplace-review analyzer can reach Gemini. We append/
+          # replace rather than require it inside ENV_SECRET so the API key can
+          # be rotated independently of the rest of the env blob.
+          if [ -n "${GEMINI_API_KEY:-}" ]; then
+            grep -v '^POLAR_GOOGLE_AI_API_KEY=' k8s/_staged/blyss.env.secret > k8s/_staged/blyss.env.secret.tmp || true
+            mv k8s/_staged/blyss.env.secret.tmp k8s/_staged/blyss.env.secret
+            grep -v '^POLAR_AI_PROVIDER=' k8s/_staged/blyss.env.secret > k8s/_staged/blyss.env.secret.tmp || true
+            mv k8s/_staged/blyss.env.secret.tmp k8s/_staged/blyss.env.secret
+            printf 'POLAR_AI_PROVIDER=gemini\n' >> k8s/_staged/blyss.env.secret
+            printf 'POLAR_GOOGLE_AI_API_KEY=%s\n' "$GEMINI_API_KEY" >> k8s/_staged/blyss.env.secret
+          fi
           chmod 644 k8s/_staged/blyss.env.secret k8s/_staged/.jwks.json
           echo "Staged env: $(wc -l < k8s/_staged/blyss.env.secret) lines"
           echo "Staged jwks: $(wc -c < k8s/_staged/.jwks.json) bytes"

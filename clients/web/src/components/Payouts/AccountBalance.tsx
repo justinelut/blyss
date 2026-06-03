@@ -49,7 +49,7 @@ const AccountBalance: React.FC<AccountBalanceProps> = ({
 
   return (
     <div className="flex flex-col gap-8 md:flex-row">
-      <Well className="flex-1 justify-between rounded-2xl bg-gray-50 p-6">
+      <Well className="flex-1 justify-between rounded-2xl bg-[var(--surface)] p-6">
         <WellHeader className="flex flex-row items-center justify-between gap-x-6">
           <h2 className="text-lg font-medium capitalize">Balance</h2>
           <Button className="self-start" onClick={showPayoutConfirmModal}>
@@ -59,7 +59,7 @@ const AccountBalance: React.FC<AccountBalanceProps> = ({
         <WellContent>
           <div className="text-4xl">
             {isLoading ? (
-              <div className="animate-pulse rounded-lg bg-gray-200 text-gray-200">
+              <div className="animate-pulse rounded-lg bg-[var(--surface-sunken)] text-[var(--surface-sunken)]">
                 &nbps;
               </div>
             ) : (
@@ -74,12 +74,12 @@ const AccountBalance: React.FC<AccountBalanceProps> = ({
           </div>
         </WellContent>
         <WellFooter>
-          <p className="dark:text-polar-500 text-gray-500">
+          <p className="dark:text-polar-500 text-[var(--text-muted)]">
             You may only withdraw funds above $10.
           </p>
         </WellFooter>
       </Well>
-      <Well className="flex-1 justify-between rounded-2xl bg-gray-50 p-6">
+      <Well className="flex-1 justify-between rounded-2xl bg-[var(--surface)] p-6">
         <WellHeader className="flex flex-row items-center justify-between gap-x-6">
           <h2 className="text-lg font-medium capitalize">Fee Credits</h2>
           <Button
@@ -93,7 +93,7 @@ const AccountBalance: React.FC<AccountBalanceProps> = ({
         <WellContent>
           <div className="text-4xl">
             {isLoading ? (
-              <div className="animate-pulse rounded-lg bg-gray-200 text-gray-200">
+              <div className="animate-pulse rounded-lg bg-[var(--surface-sunken)] text-[var(--surface-sunken)]">
                 &nbps;
               </div>
             ) : (
@@ -105,7 +105,7 @@ const AccountBalance: React.FC<AccountBalanceProps> = ({
           </div>
         </WellContent>
         <WellFooter>
-          <p className="dark:text-polar-500 text-gray-500">
+          <p className="dark:text-polar-500 text-[var(--text-muted)]">
             Fees are first deducted from any available credits.
           </p>
         </WellFooter>

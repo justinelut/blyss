@@ -171,7 +171,7 @@ const OrganizationSocialLinks = ({
       {socials.map((social, index) => (
         <div key={index} className="flex items-center gap-3">
           <div className="flex w-5 justify-center">
-            {getIcon(social.platform, 'text-gray-400 h-4 w-4')}
+            {getIcon(social.platform, 'text-[var(--text-muted)] h-4 w-4')}
           </div>
           <Input
             value={social.url || ''}
@@ -184,7 +184,7 @@ const OrganizationSocialLinks = ({
             variant="ghost"
             size="icon"
             onClick={() => handleRemoveSocial(index)}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
           >
             <CloseOutlined fontSize="small" />
           </Button>
@@ -323,7 +323,7 @@ export const OrganizationDetailsForm: React.FC<
       {/* Banner / cover image — shown on the public storefront hero */}
       <div>
         <label className="mb-2 block text-sm font-medium">Banner</label>
-        <p className="mb-3 text-xs text-gray-500">
+        <p className="mb-3 text-xs text-[var(--text-muted)]">
           Wide image shown on your storefront. PNG / JPG / WebP, up to 5 MB.
           Recommended 1920×1080 or larger.
         </p>
@@ -385,7 +385,7 @@ export const OrganizationDetailsForm: React.FC<
                       className="h-16 w-16 transition-opacity hover:opacity-75"
                     />
                     <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity hover:opacity-100">
-                      <AddPhotoAlternateOutlined className="text-gray-600" />
+                      <AddPhotoAlternateOutlined className="text-[var(--text-secondary)]" />
                     </div>
                   </div>
                   <FormMessage className="mt-2 text-xs/snug" />
@@ -487,7 +487,7 @@ export const OrganizationDetailsForm: React.FC<
                   }}
                   postSlot={
                     urlStatus === 'validating' ? (
-                      <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                      <Loader2 className="h-4 w-4 animate-spin text-[var(--text-muted)]" />
                     ) : urlStatus === 'valid' ? (
                       <CheckCircle className="h-4 w-4 text-green-500" />
                     ) : urlStatus === 'invalid' ? (
@@ -512,7 +512,7 @@ export const OrganizationDetailsForm: React.FC<
             <label className="block text-sm font-medium">
               Social Media {inKYCMode && '*'}
             </label>
-            <p className="mt-2 text-xs text-gray-600">
+            <p className="mt-2 text-xs text-[var(--text-secondary)]">
               Your personal social media links are used for identity
               verification. They will never be shown publicly.
             </p>
@@ -526,7 +526,7 @@ export const OrganizationDetailsForm: React.FC<
         <div className="border-t pt-8">
           <div className="mb-6">
             <h3 className="mb-2 text-lg font-medium">Business Details</h3>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-[var(--text-secondary)]">
               Help us understand your business for compliance and payment setup.
             </p>
           </div>
@@ -536,7 +536,7 @@ export const OrganizationDetailsForm: React.FC<
               <label className="mb-2 block text-sm font-medium">
                 Describe your business *
               </label>
-              <p className="mb-2 text-xs text-gray-600">
+              <p className="mb-2 text-xs text-[var(--text-secondary)]">
                 Tell us: what industry you&apos;re in, what problem you solve,
                 and who your customers are
               </p>
@@ -562,7 +562,7 @@ export const OrganizationDetailsForm: React.FC<
                     />
                     <div className="mt-1 flex items-center justify-between">
                       <FormMessage />
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-[var(--text-muted)]">
                         {field.value?.length || 0}/3000 characters (min 50)
                       </span>
                     </div>
@@ -575,7 +575,7 @@ export const OrganizationDetailsForm: React.FC<
               <label className="mb-2 block text-sm font-medium">
                 What do you sell? Include type and features that are granted *
               </label>
-              <p className="mb-2 text-xs text-gray-600">
+              <p className="mb-2 text-xs text-[var(--text-secondary)]">
                 Tell us: product type (SaaS, course, service, etc.) and main
                 features (advanced reporting, team collaboration, etc.)
               </p>
@@ -601,7 +601,7 @@ export const OrganizationDetailsForm: React.FC<
                     />
                     <div className="mt-1 flex items-center justify-between">
                       <FormMessage />
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-[var(--text-muted)]">
                         {field.value?.length || 0}/3000 characters (min 50)
                       </span>
                     </div>
@@ -614,7 +614,7 @@ export const OrganizationDetailsForm: React.FC<
               <label className="mb-2 block text-sm font-medium">
                 How will you use Blyss for your business? *
               </label>
-              <p className="mb-2 text-xs text-gray-600">
+              <p className="mb-2 text-xs text-[var(--text-secondary)]">
                 Tell us: what you&apos;ll sell, where customers will find your
                 storefront, and how Blyss fits your workflow
               </p>
@@ -640,7 +640,7 @@ export const OrganizationDetailsForm: React.FC<
                     />
                     <div className="mt-1 flex items-center justify-between">
                       <FormMessage />
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-[var(--text-muted)]">
                         {field.value?.length || 0}/3000 characters (min 30)
                       </span>
                     </div>
@@ -707,10 +707,19 @@ export const OrganizationDetailsForm: React.FC<
                     <div>
                       <MoneyInput
                         {...field}
-                        placeholder={100_000_000}
-                        currency="usd"
+                        placeholder={1_000_000_00}
+                        currency={
+                          organization.default_presentment_currency || 'kes'
+                        }
                         className="w-full"
                       />
+                      <p className="mt-1.5 text-xs text-[var(--text-muted)]">
+                        Approximate sales in the next 12 months, in{' '}
+                        {(
+                          organization.default_presentment_currency || 'kes'
+                        ).toUpperCase()}
+                        .
+                      </p>
                       <FormMessage />
                     </div>
                   )}

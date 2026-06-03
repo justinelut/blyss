@@ -35,7 +35,7 @@ export const SavedCardsSelector = ({
   if (paymentMethods.length === 0) {
     return (
       <div className="space-y-4">
-        <p className="text-sm text-gray-500">No saved payment methods found.</p>
+        <p className="text-sm text-[var(--text-muted)]">No saved payment methods found.</p>
         <Button
           onClick={handleAddNewCard}
           disabled={disabled}
@@ -65,20 +65,20 @@ export const SavedCardsSelector = ({
                 className={`w-full rounded-lg border p-3 text-left transition-colors ${
                   isSelected
                     ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20'
-                    : 'dark:border-polar-700 dark:hover:bg-polar-800 border-gray-200 hover:bg-gray-50'
+                    : 'dark:border-polar-700 dark:hover:bg-polar-800 border-[var(--border)] hover:bg-[var(--surface)]'
                 } ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} `}
               >
                 <div className="flex items-center gap-3">
                   <CreditCardBrandIcon
                     width="2.5em"
                     brand={brand}
-                    className="dark:border-polar-700 shrink-0 rounded-sm border border-gray-200 p-1"
+                    className="dark:border-polar-700 shrink-0 rounded-sm border border-[var(--border)] p-1"
                   />
                   <div className="grow">
                     <div className="font-medium capitalize">
                       {brand} •••• {last4}
                     </div>
-                    <div className="dark:text-polar-500 text-sm text-gray-500">
+                    <div className="dark:text-polar-500 text-sm text-[var(--text-muted)]">
                       Expires {exp_month.toString().padStart(2, '0')}/{exp_year}
                     </div>
                   </div>
