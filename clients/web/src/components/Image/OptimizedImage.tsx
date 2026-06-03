@@ -81,7 +81,14 @@ export const OptimizedImage = ({
 
   if (fill) {
     return (
-      <div className="relative" style={aspectRatio ? { aspectRatio } : undefined}>
+      <div
+        // h-full w-full so this wrapper actually fills its parent — without
+        // these the wrapper collapses to 0 and Next/Image (positioned
+        // absolute via `fill`) becomes invisible. This was the storefront
+        // 'banner + avatar load 200 but show nothing' bug.
+        className="relative h-full w-full"
+        style={aspectRatio ? { aspectRatio } : undefined}
+      >
         <Image
           {...imageProps}
           fill
@@ -103,7 +110,7 @@ export const OptimizedImage = ({
 
   // Fallback to fill mode if no dimensions provided
   return (
-    <div className="relative" style={aspectRatio ? { aspectRatio } : { aspectRatio: '1/1' }}>
+    <div className="relative h-full w-full" style={aspectRatio ? { aspectRatio } : { aspectRatio: '1/1' }}>
       <Image
         {...imageProps}
         fill
