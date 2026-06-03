@@ -28,14 +28,13 @@ async def add_cart_item(
     session: AsyncSession = Depends(get_db_session),
 ) -> CartItemResponse:
     """Add a product to the cart or increment quantity if it already exists."""
-    cart_item = await cart.add_item(
+    cart_item, product = await cart.add_item(
         session=session,
         auth_subject=auth_subject,
         product_id=item.product_id,
         quantity=item.quantity,
     )
 
-    product = cart_item.product
     item_subtotal = cart._calculate_item_subtotal(product, cart_item.quantity)
 
     return CartItemResponse(

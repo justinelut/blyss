@@ -28,6 +28,11 @@ _CART_ITEM_PRODUCT_EAGER_OPTIONS = (
 class CartRepository(RepositoryBase[CartItem]):
     model = CartItem
 
+    async def delete(self, cart_item: CartItem) -> None:
+        """Hard-delete a single cart item. The session manages flushing."""
+        await self.session.delete(cart_item)
+        await self.session.flush()
+
     async def get_by_user(
         self,
         user_id: UUID,
@@ -112,7 +117,14 @@ class CartRepository(RepositoryBase[CartItem]):
             },
         ).returning(CartItem)
 
-        result = await self.session.execute(upsert_stmt)
+        # populate_existing=True tells SQLAlchemy to overwrite the identity
+        # map's cached row with the values RETURNING gives back. Without
+        # this, a second upsert on the same conflict-target row returns the
+        # cached (pre-update) instance — making the cart appear to never
+        # increment quantity.
+        result = await self.session.execute(
+            upsert_stmt, execution_options={"populate_existing": True}
+        )
         cart_item = result.scalar_one()
 
         if flush:

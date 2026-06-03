@@ -41,14 +41,15 @@ class TestAddItem:
         product = await create_product(
             save_fixture,
             organization=organization,
+            recurring_interval=None,
         )
 
         cart_repository = CartRepository(session)
-        cart_service = CartService(cart_repository)
-        auth_subject = AuthSubject(subject=user, scopes=set())
+        cart_service = CartService()
+        auth_subject = AuthSubject(subject=user, scopes=set(), session=None)
 
         # Act
-        cart_item = await cart_service.add_item(
+        cart_item, _ = await cart_service.add_item(
             session=session,
             auth_subject=auth_subject,
             product_id=product.id,
@@ -77,14 +78,15 @@ class TestAddItem:
         product = await create_product(
             save_fixture,
             organization=organization,
+            recurring_interval=None,
         )
 
         cart_repository = CartRepository(session)
-        cart_service = CartService(cart_repository)
-        auth_subject = AuthSubject(subject=user, scopes=set())
+        cart_service = CartService()
+        auth_subject = AuthSubject(subject=user, scopes=set(), session=None)
 
         # Add item first time
-        first_item = await cart_service.add_item(
+        first_item, _ = await cart_service.add_item(
             session=session,
             auth_subject=auth_subject,
             product_id=product.id,
@@ -93,7 +95,7 @@ class TestAddItem:
         original_quantity = first_item.quantity
 
         # Act - Add same product again
-        second_item = await cart_service.add_item(
+        second_item, _ = await cart_service.add_item(
             session=session,
             auth_subject=auth_subject,
             product_id=product.id,
@@ -121,12 +123,13 @@ class TestAddItem:
         product = await create_product(
             save_fixture,
             organization=organization,
+            recurring_interval=None,
             is_archived=True,
         )
 
         cart_repository = CartRepository(session)
-        cart_service = CartService(cart_repository)
-        auth_subject = AuthSubject(subject=user, scopes=set())
+        cart_service = CartService()
+        auth_subject = AuthSubject(subject=user, scopes=set(), session=None)
 
         # Act & Assert
         with pytest.raises(ProductOutOfStock) as exc_info:
@@ -154,8 +157,8 @@ class TestAddItem:
         non_existent_product_id = uuid4()
 
         cart_repository = CartRepository(session)
-        cart_service = CartService(cart_repository)
-        auth_subject = AuthSubject(subject=user, scopes=set())
+        cart_service = CartService()
+        auth_subject = AuthSubject(subject=user, scopes=set(), session=None)
 
         # Act & Assert
         with pytest.raises(ProductNotFound) as exc_info:
@@ -190,14 +193,15 @@ class TestRemoveItem:
         product = await create_product(
             save_fixture,
             organization=organization,
+            recurring_interval=None,
         )
 
         cart_repository = CartRepository(session)
-        cart_service = CartService(cart_repository)
-        auth_subject = AuthSubject(subject=user, scopes=set())
+        cart_service = CartService()
+        auth_subject = AuthSubject(subject=user, scopes=set(), session=None)
 
         # Add item first
-        cart_item = await cart_service.add_item(
+        cart_item, _ = await cart_service.add_item(
             session=session,
             auth_subject=auth_subject,
             product_id=product.id,
@@ -234,15 +238,16 @@ class TestClearCart:
         """
         # Arrange
         cart_repository = CartRepository(session)
-        cart_service = CartService(cart_repository)
-        auth_subject = AuthSubject(subject=user, scopes=set())
+        cart_service = CartService()
+        auth_subject = AuthSubject(subject=user, scopes=set(), session=None)
 
         # Add multiple items
         for _ in range(3):
             product = await create_product(
-                save_fixture,
-                organization=organization,
-            )
+            save_fixture,
+            organization=organization,
+            recurring_interval=None,
+        )
             await cart_service.add_item(
                 session=session,
                 auth_subject=auth_subject,

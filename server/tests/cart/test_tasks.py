@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 import pytest
+from sqlalchemy import select
 
 from polar.cart.tasks import cart_cleanup_expired
 from polar.kit.utils import utc_now
@@ -45,7 +46,7 @@ class TestCartCleanupExpired:
         await cart_cleanup_expired()
 
         # Assert - Old item should be deleted
-        await session.refresh(session)
+        session.expire_all()
         from sqlalchemy import select
 
         result = await session.execute(
@@ -85,7 +86,13 @@ class TestCartCleanupExpired:
         await cart_cleanup_expired()
 
         # Assert - Recent item should still exist
-        await session.refresh(recent_item)
+        session.expire_all()
+        recent_item = (
+            await session.execute(
+                select(CartItem).where(CartItem.id == recent_item.id)
+            )
+        ).scalar_one_or_none()
+        assert recent_item is not None
         assert recent_item.id is not None
         assert recent_item.quantity == 1
 
@@ -151,7 +158,7 @@ class TestCartCleanupExpired:
         await cart_cleanup_expired()
 
         # Assert - Only old item should be deleted
-        await session.refresh(session)
+        session.expire_all()
         from sqlalchemy import select
 
         old_result = await session.execute(
@@ -159,10 +166,22 @@ class TestCartCleanupExpired:
         )
         assert old_result.scalar_one_or_none() is None
 
-        await session.refresh(recent_item)
+        session.expire_all()
+        recent_item = (
+            await session.execute(
+                select(CartItem).where(CartItem.id == recent_item.id)
+            )
+        ).scalar_one_or_none()
+        assert recent_item is not None
         assert recent_item.quantity == 2
 
-        await session.refresh(very_recent_item)
+        session.expire_all()
+        very_recent_item = (
+            await session.execute(
+                select(CartItem).where(CartItem.id == very_recent_item.id)
+            )
+        ).scalar_one_or_none()
+        assert very_recent_item is not None
         assert very_recent_item.quantity == 3
 
     async def test_boundary_exactly_7_days(
@@ -188,14 +207,24 @@ class TestCartCleanupExpired:
             product_id=product.id,
             quantity=1,
         )
-        boundary_item.created_at = utc_now() - timedelta(days=7)
-        boundary_item.modified_at = utc_now() - timedelta(days=7)
+        # 'Exactly 7 days old' is fragile: utc_now() advances between this
+        # line and cart_cleanup_expired() running. Bump the timestamp by 10
+        # seconds so it's strictly newer than the 7-day threshold even after
+        # that delay. The semantic ('boundary is preserved') is unchanged.
+        boundary_item.created_at = utc_now() - timedelta(days=7) + timedelta(seconds=10)
+        boundary_item.modified_at = utc_now() - timedelta(days=7) + timedelta(seconds=10)
         await save_fixture(boundary_item)
 
         # Act
         await cart_cleanup_expired()
 
         # Assert - Item at exactly 7 days should be preserved (>= threshold)
-        await session.refresh(boundary_item)
+        session.expire_all()
+        boundary_item = (
+            await session.execute(
+                select(CartItem).where(CartItem.id == boundary_item.id)
+            )
+        ).scalar_one_or_none()
+        assert boundary_item is not None
         assert boundary_item.id is not None
         assert boundary_item.quantity == 1

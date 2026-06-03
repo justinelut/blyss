@@ -56,8 +56,13 @@ class CartService:
         auth_subject: AuthSubject[User | Anonymous],
         product_id: UUID,
         quantity: int = 1,
-    ) -> CartItem:
-        """Add a product to the cart or increment quantity if exists."""
+    ) -> tuple[CartItem, Product]:
+        """Add a product to the cart or increment quantity if exists.
+
+        Returns (cart_item, product) where product has all relations eagerly
+        loaded — endpoints serialize this as CartItemResponse and need
+        product.medias and product.attached_custom_fields populated.
+        """
         if quantity < 1 or quantity > 100:
             raise InvalidQuantity(quantity)
 
@@ -80,7 +85,7 @@ class CartService:
             flush=True,
         )
 
-        return cart_item
+        return cart_item, product
 
     async def remove_item(
         self,
