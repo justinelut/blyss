@@ -1,4 +1,4 @@
-import { unwrap } from '@/lib/api'
+import { unwrap, schemas } from '@/lib/api'
 import { createServerSideAPI } from '@/utils/client'
 import { Metadata } from 'next'
 import { cookies, headers } from 'next/headers'
@@ -47,14 +47,25 @@ async function getFeaturedProducts() {
     const cookieStore = await cookies()
     const headersList = await headers()
     const serverApi = await createServerSideAPI(headersList, cookieStore)
-    const result = await unwrap(
+
+    // Prefer hand-curated featured products, but fall back to most-recent
+    // public products so the home page never reads empty just because the
+    // operator hasn't flagged anything yet.
+    const featured = await unwrap(
       serverApi.GET('/v1/products/public', {
         params: { query: { is_featured: true, limit: 8, page: 1 } },
       }),
     )
-    return result.items
+    if (featured.items?.length) return featured.items
+
+    const recent = await unwrap(
+      serverApi.GET('/v1/products/public', {
+        params: { query: { limit: 8, page: 1 } },
+      }),
+    )
+    return recent.items ?? []
   } catch (error) {
-    console.error('Failed to fetch featured products:', error)
+    console.error('Failed to fetch products:', error)
     return []
   }
 }
@@ -64,14 +75,28 @@ async function getFeaturedSubscriptions() {
     const cookieStore = await cookies()
     const headersList = await headers()
     const serverApi = await createServerSideAPI(headersList, cookieStore)
-    const result = await unwrap(
+
+    // Featured subscriptions first, then any recurring product as fallback.
+    const featured = await unwrap(
       serverApi.GET('/v1/subscriptions/public', {
         params: { query: { is_featured: true, limit: 6 } },
       }),
     )
-    return result.items
+    if (featured.items?.length) return featured.items
+
+    // No /v1/subscriptions/public without is_featured? Use products with
+    // is_recurring=true instead — same shape from the consumer's POV.
+    const recurring = await unwrap(
+      serverApi.GET('/v1/products/public', {
+        params: { query: { is_recurring: true, limit: 6 } },
+      }),
+    )
+    // The home's FeaturedSubscriptions component accepts Subscription-shape
+    // but Product-shape works for the rendered cards (they share name +
+    // prices + organization).
+    return (recurring.items ?? []) as unknown as schemas['Subscription'][]
   } catch (error) {
-    console.error('Failed to fetch featured subscriptions:', error)
+    console.error('Failed to fetch subscriptions:', error)
     return []
   }
 }
@@ -81,14 +106,26 @@ async function getTrendingCreators() {
     const cookieStore = await cookies()
     const headersList = await headers()
     const serverApi = await createServerSideAPI(headersList, cookieStore)
-    const result = await unwrap(
+
+    // Featured creators, falling back to the public creators directory.
+    const featured = await unwrap(
       serverApi.GET('/v1/organizations/public', {
         params: { query: { is_featured: true, limit: 4 } },
       }),
     )
-    return result.items
+    if (featured.items?.length) return featured.items
+
+    // Public creators directory returns an array of creators directly.
+    const directory = await unwrap(
+      serverApi.GET('/v1/organizations/creators', {
+        params: { query: { limit: 4 } },
+      }),
+    )
+    // The directory endpoint returns Organization-shape items.
+    const items = Array.isArray(directory) ? directory : (directory as { items?: unknown[] }).items ?? []
+    return items as schemas['Organization'][]
   } catch (error) {
-    console.error('Failed to fetch trending creators:', error)
+    console.error('Failed to fetch creators:', error)
     return []
   }
 }

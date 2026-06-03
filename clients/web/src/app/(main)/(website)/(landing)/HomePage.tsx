@@ -8,12 +8,6 @@ import { FeaturedSubscriptions } from '@/components/Marketplace/FeaturedSubscrip
 import { NoteFromMakers } from '@/components/Marketplace/NoteFromMakers'
 import { HowItWorks } from '@/components/Marketplace/HowItWorks'
 import { ClosingCtaBand } from '@/components/Marketplace/ClosingCtaBand'
-import {
-  SEED_PRODUCTS,
-  SEED_SUBSCRIPTIONS,
-  SEED_CREATORS,
-  SEED_CATEGORIES,
-} from '@/data/seed-marketplace'
 
 interface HomePageProps {
   featuredProducts: schemas['Product'][]
@@ -28,6 +22,16 @@ interface HomePageProps {
  * Sections in order: Hero · TrendingProducts · BrowseByCraft · FeaturedCreators
  * · FeaturedSubscriptions · NoteFromMakers · HowItWorks · ClosingCtaBand.
  *
+ * Production-grade content rules (no fake / seed fallbacks):
+ * - Hero scales gracefully from 0 → 4+ products. The right-column showcase
+ *   pulls in real creators when products are sparse.
+ * - TrendingProducts hides itself when zero products exist.
+ * - BrowseByCraft hides when no real categories are configured.
+ * - FeaturedCreators hides when no creators exist.
+ * - FeaturedSubscriptions hides when no recurring products exist.
+ * - NoteFromMakers + HowItWorks + ClosingCtaBand always render — they are
+ *   editorial about-Blyss copy, not catalog data.
+ *
  * No `'use client'` directive — this is a pure RSC. Individual sections that
  * need motion are themselves client components.
  *
@@ -40,11 +44,11 @@ export default function HomePage({
   trendingCreators,
   categories,
 }: HomePageProps) {
-  // Use seed data as fallback when API is empty so the landing never feels barren.
-  const products = featuredProducts?.length ? featuredProducts : SEED_PRODUCTS
-  const subs = featuredSubscriptions?.length ? featuredSubscriptions : (SEED_SUBSCRIPTIONS as unknown as schemas['Subscription'][])
-  const creators = trendingCreators?.length ? trendingCreators : SEED_CREATORS
-  const cats = categories?.length ? categories : SEED_CATEGORIES
+  // Real data only — no seed fallbacks. Sections handle empty states.
+  const products = featuredProducts ?? []
+  const subs = featuredSubscriptions ?? []
+  const creators = trendingCreators ?? []
+  const cats = categories ?? []
 
   return (
     <>
@@ -83,11 +87,14 @@ export default function HomePage({
         }}
       />
 
-      <Hero showcaseProducts={products.slice(0, 4)} />
-      <TrendingProducts products={products} />
-      <BrowseByCraft categories={cats} />
-      <FeaturedCreators creators={creators} />
-      <FeaturedSubscriptions subscriptions={subs} />
+      <Hero
+        showcaseProducts={products.slice(0, 4)}
+        showcaseCreators={creators.slice(0, 4)}
+      />
+      {products.length > 0 && <TrendingProducts products={products} />}
+      {cats.length > 0 && <BrowseByCraft categories={cats} />}
+      {creators.length > 0 && <FeaturedCreators creators={creators} />}
+      {subs.length > 0 && <FeaturedSubscriptions subscriptions={subs} />}
       <NoteFromMakers />
       <HowItWorks />
       <ClosingCtaBand />

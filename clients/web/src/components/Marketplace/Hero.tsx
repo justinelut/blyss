@@ -4,15 +4,19 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { motion, useReducedMotion, useScroll, useTransform } from 'motion/react'
 import { useRef } from 'react'
-import { FiArrowRight } from 'react-icons/fi'
+import { FiArrowRight, FiArrowUpRight } from 'react-icons/fi'
 import { schemas } from '@/lib/api'
 import { Eyebrow } from '@/design'
 import { cn } from '@/lib/utils'
 
 interface HeroProps {
-  /** Optional showcase products — if provided, renders real product images
-   *  in the mosaic instead of typographic placeholders. */
+  /** Real products from the backend. The mosaic adapts to whatever's
+   *  available — single product, multiple, or none. No fake fallbacks. */
   showcaseProducts?: schemas['Product'][]
+  /** Real creators from the backend. Used to fill the right-column mosaic
+   *  when products alone aren't enough for 4 tiles, and as the editorial
+   *  empty state when there are no products at all. */
+  showcaseCreators?: schemas['Organization'][]
 }
 
 /**
@@ -21,16 +25,19 @@ interface HeroProps {
  * Layout: 7/12 content column on left, 5/12 showcase mosaic on right.
  * Mobile collapses to single column with showcase below.
  *
- * Motion (respects prefers-reduced-motion):
- * - Eyebrow fades + slides up
- * - Headline: word-by-word stagger with italic emphasis
- * - Lede + CTAs cascade in
- * - Right mosaic tiles fade up with stagger
- * - Subtle parallax on scroll for the entire section
+ * Right column adapts to backend content:
+ * - 4+ products → full product mosaic (1 hero tile + 3 secondary)
+ * - 1-3 products → product hero tile + creator tiles to fill
+ * - 0 products, 1+ creators → editorial creator-feature panel
+ * - 0 of everything → minimal editorial typographic block ("Be the first")
  *
- * Per plan §3 + §6.1 + §17 (Bandcamp/Aimé Leon Dore reference).
+ * No hardcoded placeholder content — every visible element is sourced
+ * from the backend.
  */
-export const Hero = ({ showcaseProducts = [] }: HeroProps) => {
+export const Hero = ({
+  showcaseProducts = [],
+  showcaseCreators = [],
+}: HeroProps) => {
   const reduce = useReducedMotion()
   const ref = useRef<HTMLElement>(null)
   const { scrollYProgress } = useScroll({
@@ -137,9 +144,14 @@ export const Hero = ({ showcaseProducts = [] }: HeroProps) => {
           </motion.div>
         </motion.div>
 
-        {/* Right — showcase mosaic */}
+        {/* Right — adaptive showcase */}
         <div className="relative lg:col-span-5">
-          <ShowcaseMosaic reduce={reduce ?? false} ease={ease} products={showcaseProducts} />
+          <ShowcaseRight
+            reduce={reduce ?? false}
+            ease={ease}
+            products={showcaseProducts}
+            creators={showcaseCreators}
+          />
         </div>
       </div>
     </section>
@@ -147,117 +159,82 @@ export const Hero = ({ showcaseProducts = [] }: HeroProps) => {
 }
 
 /**
- * ShowcaseMosaic — renders 4 product tiles. When real products are passed in,
- * uses their images. Falls back to typographic placeholders.
+ * ShowcaseRight — adapts to whatever real content is available. Picks one of
+ * three modes:
+ *
+ *   1. Mosaic        — when there are 1+ real products to show
+ *   2. CreatorPanel  — when there are 0 products but 1+ creators
+ *   3. Editorial     — when both are empty (genuinely brand-new platform)
+ */
+function ShowcaseRight({
+  reduce,
+  ease,
+  products,
+  creators,
+}: {
+  reduce: boolean
+  ease: readonly [number, number, number, number]
+  products: schemas['Product'][]
+  creators: schemas['Organization'][]
+}) {
+  if (products.length > 0) {
+    return (
+      <ShowcaseMosaic
+        reduce={reduce}
+        ease={ease}
+        products={products}
+        creators={creators}
+      />
+    )
+  }
+  if (creators.length > 0) {
+    return <ShowcaseCreatorPanel reduce={reduce} ease={ease} creators={creators} />
+  }
+  return <ShowcaseEditorial reduce={reduce} ease={ease} />
+}
+
+type Tile =
+  | { kind: 'product'; product: schemas['Product']; span: string }
+  | { kind: 'creator'; creator: schemas['Organization']; span: string }
+
+/**
+ * ShowcaseMosaic — 4 tiles. Hero tile (col-span-2 row-span-2) is always the
+ * first product. The 3 secondary tiles are filled with: more products if
+ * available, then creator highlights to round it out, then nothing (the
+ * grid drops to fewer tiles rather than rendering placeholder content).
  */
 function ShowcaseMosaic({
   reduce,
   ease,
   products,
+  creators,
 }: {
   reduce: boolean
   ease: readonly [number, number, number, number]
   products: schemas['Product'][]
+  creators: schemas['Organization'][]
 }) {
-  const placeholderTiles = [
-    { eyebrow: 'Templates', title: 'Notion OS', price: 'KSh 2,400', tone: 'bg-[var(--surface-sunken)]', accent: '#C2410C', span: 'col-span-2 row-span-2' },
-    { eyebrow: 'Beats', title: 'Lagos Drum Kit', price: 'KSh 1,200', tone: 'bg-[var(--surface)]', accent: '#1A1A17', span: 'col-span-2' },
-    { eyebrow: 'Course', title: 'M-Pesa for Devs', price: 'KSh 4,500', tone: 'dark bg-[var(--background)] text-[var(--text-primary)]', accent: '#FAFAF7', span: 'col-span-2' },
-    { eyebrow: 'Subscription', title: 'Kenyan Type', price: 'KSh 800/mo', tone: 'bg-[var(--accent)] text-[var(--accent-foreground)]', accent: '#FAFAF7', span: 'col-span-2' },
-  ]
+  const tiles: Tile[] = []
 
-  // If real products passed, render image tiles
-  if (products.length >= 4) {
-    // Tonal cycle for image-less tiles — varies per index so the mosaic
-    // doesn't read as four identical blocks. Stays inside the Blyss palette.
-    const tones = [
-      'bg-[var(--surface-sunken)] text-[var(--text-primary)]',
-      'bg-[var(--surface)] text-[var(--text-primary)]',
-      'dark bg-[var(--background)] text-[var(--text-primary)]',
-      'bg-[var(--accent)] text-[var(--accent-foreground)]',
-    ] as const
-    return (
-      <div className="grid grid-cols-4 grid-rows-3 gap-3 md:gap-4">
-        {products.slice(0, 4).map((p, i) => {
-          const span = i === 0 ? 'col-span-2 row-span-2' : 'col-span-2'
-          const img = p.medias?.[0]?.public_url
-          const price = p.prices?.[0] as any
-          const priceLabel = price
-            ? `KSh ${(price.price_amount / 100).toLocaleString('en-KE')}`
-            : ''
-          const org = (p as any).organization
-          return (
-            <motion.div
-              key={p.id}
-              {...(reduce
-                ? { initial: false }
-                : {
-                    initial: { opacity: 0, y: 32, scale: 0.96 },
-                    animate: { opacity: 1, y: 0, scale: 1 },
-                    transition: { duration: 0.7, ease, delay: 0.4 + i * 0.08 },
-                  })}
-              whileHover={reduce ? undefined : { y: -4 }}
-              className={cn(
-                'group relative aspect-[4/5] overflow-hidden rounded-md',
-                img ? 'bg-[var(--surface-sunken)]' : tones[i % tones.length],
-                span,
-              )}
-            >
-              <Link href={p.id.startsWith('seed_') ? '/marketplace' : `/product/${p.id}`} className="block h-full w-full">
-                {img ? (
-                  <>
-                    <Image
-                      src={img}
-                      alt={p.name}
-                      fill
-                      sizes="(max-width: 1024px) 50vw, 25vw"
-                      className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-                    />
-                    <div className="absolute inset-0 bg-[rgba(15,14,12,0.32)]" />
-                    <div className="absolute inset-0 flex flex-col justify-between p-4 text-white md:p-5">
-                      <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-white/85">
-                        {org?.name || 'Blyss'}
-                      </span>
-                      <div>
-                        <h3 className="font-display text-[16px] font-medium leading-tight md:text-[18px]">
-                          {p.name}
-                        </h3>
-                        <p className="mt-1 font-sans text-[12px] tabular-nums text-white/85">
-                          {priceLabel}
-                        </p>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  /* Editorial typographic tile — no image */
-                  <div className="absolute inset-0 flex flex-col justify-between p-4 md:p-5">
-                    <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.14em] opacity-75">
-                      {org?.name || 'Blyss'}
-                    </span>
-                    <div>
-                      <h3 className="font-display text-[16px] font-medium leading-tight md:text-[18px]">
-                        {p.name}
-                      </h3>
-                      <p className="mt-1 font-sans text-[12px] tabular-nums opacity-80">
-                        {priceLabel}
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </Link>
-            </motion.div>
-          )
-        })}
-      </div>
-    )
+  // Hero tile — first product.
+  tiles.push({ kind: 'product', product: products[0], span: 'col-span-2 row-span-2' })
+
+  // Secondary tiles — up to 3 more, drawing from products first then creators.
+  const remainingProducts = products.slice(1, 4)
+  for (const p of remainingProducts) {
+    tiles.push({ kind: 'product', product: p, span: 'col-span-2' })
+  }
+  // Pad with creator tiles if fewer than 4 products.
+  const slotsLeft = 4 - tiles.length
+  for (let i = 0; i < slotsLeft && i < creators.length; i++) {
+    tiles.push({ kind: 'creator', creator: creators[i], span: 'col-span-2' })
   }
 
-  // Placeholder typography tiles
   return (
     <div className="grid grid-cols-4 grid-rows-3 gap-3 md:gap-4">
-      {placeholderTiles.map((tile, i) => (
+      {tiles.map((tile, i) => (
         <motion.div
-          key={tile.title}
+          key={tile.kind === 'product' ? tile.product.id : tile.creator.id}
           {...(reduce
             ? { initial: false }
             : {
@@ -267,24 +244,254 @@ function ShowcaseMosaic({
               })}
           whileHover={reduce ? undefined : { y: -4 }}
           className={cn(
-            'group relative flex aspect-[4/5] flex-col justify-between overflow-hidden rounded-md p-4',
-            tile.tone,
+            'group relative aspect-[4/5] overflow-hidden rounded-md bg-[var(--surface-sunken)]',
             tile.span,
           )}
         >
-          <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.14em] opacity-70">
-            {tile.eyebrow}
-          </span>
-          <div>
-            <h3 className="font-display text-[18px] font-medium leading-tight">
-              {tile.title}
-            </h3>
-            <p className="mt-1 font-sans text-[12px] tabular-nums opacity-80">
-              {tile.price}
-            </p>
-          </div>
+          {tile.kind === 'product' ? (
+            <ProductTileBody product={tile.product} />
+          ) : (
+            <CreatorTileBody creator={tile.creator} />
+          )}
         </motion.div>
       ))}
     </div>
+  )
+}
+
+function ProductTileBody({ product }: { product: schemas['Product'] }) {
+  const img = product.medias?.[0]?.public_url
+  const price = product.prices?.[0] as
+    | { price_amount?: number; price_currency?: string }
+    | undefined
+  const priceLabel = price?.price_amount
+    ? `KSh ${(price.price_amount / 100).toLocaleString('en-KE')}`
+    : ''
+  const org = (product as unknown as { organization?: { name?: string } }).organization
+
+  return (
+    <Link href={`/product/${product.id}`} className="block h-full w-full">
+      {img ? (
+        <>
+          <Image
+            src={img}
+            alt={product.name}
+            fill
+            sizes="(max-width: 1024px) 50vw, 25vw"
+            className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+          />
+          <div className="absolute inset-0 bg-[rgba(15,14,12,0.32)]" />
+          <div className="absolute inset-0 flex flex-col justify-between p-4 text-white md:p-5">
+            <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-white/85">
+              {org?.name || 'Blyss'}
+            </span>
+            <div>
+              <h3 className="font-display text-[16px] font-medium leading-tight md:text-[18px]">
+                {product.name}
+              </h3>
+              {priceLabel && (
+                <p className="mt-1 font-sans text-[12px] tabular-nums text-white/85">
+                  {priceLabel}
+                </p>
+              )}
+            </div>
+          </div>
+        </>
+      ) : (
+        /* No image — typographic tile with the product's first letter as
+         * a decorative oversized glyph. Pure backend content, no fake copy. */
+        <div className="absolute inset-0 flex flex-col justify-between p-4 md:p-5">
+          <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+            {org?.name || 'Blyss'}
+          </span>
+          <span
+            aria-hidden
+            className="absolute right-2 top-1 font-display text-[clamp(60px,10vw,120px)] font-light leading-none text-[var(--accent)] opacity-15"
+          >
+            {product.name.charAt(0).toUpperCase()}
+          </span>
+          <div className="relative">
+            <h3 className="font-display text-[16px] font-medium leading-tight text-[var(--text-primary)] md:text-[18px]">
+              {product.name}
+            </h3>
+            {priceLabel && (
+              <p className="mt-1 font-sans text-[12px] tabular-nums text-[var(--text-secondary)]">
+                {priceLabel}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+    </Link>
+  )
+}
+
+function CreatorTileBody({ creator }: { creator: schemas['Organization'] }) {
+  const avatarUrl = creator.avatar_url
+  const productCount = (creator as unknown as { product_count?: number }).product_count
+
+  return (
+    <Link href={`/creators/${creator.slug}`} className="block h-full w-full">
+      {avatarUrl ? (
+        <>
+          <Image
+            src={avatarUrl}
+            alt={creator.name}
+            fill
+            sizes="(max-width: 1024px) 50vw, 25vw"
+            className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+          />
+          <div className="absolute inset-0 bg-[rgba(15,14,12,0.42)]" />
+          <div className="absolute inset-0 flex flex-col justify-between p-4 text-white md:p-5">
+            <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-white/85">
+              Creator
+            </span>
+            <div>
+              <h3 className="font-display text-[16px] font-medium leading-tight md:text-[18px]">
+                {creator.name}
+              </h3>
+              {typeof productCount === 'number' && (
+                <p className="mt-1 font-sans text-[12px] tabular-nums text-white/85">
+                  {productCount} {productCount === 1 ? 'product' : 'products'}
+                </p>
+              )}
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="absolute inset-0 flex flex-col justify-between p-4 md:p-5">
+          <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+            Creator
+          </span>
+          <span
+            aria-hidden
+            className="absolute right-2 top-1 font-display text-[clamp(60px,10vw,120px)] font-light leading-none text-[var(--accent)] opacity-15"
+          >
+            {creator.name.charAt(0).toUpperCase()}
+          </span>
+          <div className="relative">
+            <h3 className="font-display text-[16px] font-medium leading-tight text-[var(--text-primary)] md:text-[18px]">
+              {creator.name}
+            </h3>
+            {typeof productCount === 'number' && (
+              <p className="mt-1 font-sans text-[12px] tabular-nums text-[var(--text-secondary)]">
+                {productCount} {productCount === 1 ? 'product' : 'products'}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+    </Link>
+  )
+}
+
+/**
+ * ShowcaseCreatorPanel — when there are 0 products but creators exist.
+ * Shows the first creator as a hero panel with their avatar / banner.
+ */
+function ShowcaseCreatorPanel({
+  reduce,
+  ease,
+  creators,
+}: {
+  reduce: boolean
+  ease: readonly [number, number, number, number]
+  creators: schemas['Organization'][]
+}) {
+  const primary = creators[0]
+  const banner =
+    (primary as unknown as { profile_settings?: { cover_image_url?: string } })
+      .profile_settings?.cover_image_url ||
+    (primary as unknown as { cover_image_url?: string }).cover_image_url ||
+    primary.avatar_url
+
+  return (
+    <motion.div
+      {...(reduce
+        ? { initial: false }
+        : {
+            initial: { opacity: 0, y: 32 },
+            animate: { opacity: 1, y: 0 },
+            transition: { duration: 0.7, ease, delay: 0.4 },
+          })}
+      className="relative aspect-[4/5] overflow-hidden rounded-md bg-[var(--surface-sunken)]"
+    >
+      <Link
+        href={`/creators/${primary.slug}`}
+        className="group block h-full w-full"
+      >
+        {banner && (
+          <>
+            <Image
+              src={banner}
+              alt={primary.name}
+              fill
+              sizes="(max-width: 1024px) 90vw, 40vw"
+              className="object-cover transition-transform duration-700 group-hover:scale-[1.02]"
+            />
+            <div className="absolute inset-0 bg-[rgba(15,14,12,0.45)]" />
+          </>
+        )}
+        <div className="absolute inset-0 flex flex-col justify-between p-6 md:p-10 text-white">
+          <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-white/85">
+            Creator on Blyss
+          </span>
+          <div>
+            <h3 className="font-display text-[28px] font-semibold leading-tight md:text-[40px]">
+              {primary.name}
+            </h3>
+            <p className="mt-3 font-sans text-[14px] text-white/90">
+              Visit storefront
+              <FiArrowUpRight className="ml-1 inline-block align-middle" size={14} />
+            </p>
+          </div>
+        </div>
+      </Link>
+    </motion.div>
+  )
+}
+
+/**
+ * ShowcaseEditorial — last-resort empty state. Genuinely-brand-new platform.
+ * Editorial typographic block; no fake products, no fake creators.
+ */
+function ShowcaseEditorial({
+  reduce,
+  ease,
+}: {
+  reduce: boolean
+  ease: readonly [number, number, number, number]
+}) {
+  return (
+    <motion.div
+      {...(reduce
+        ? { initial: false }
+        : {
+            initial: { opacity: 0, y: 32 },
+            animate: { opacity: 1, y: 0 },
+            transition: { duration: 0.7, ease, delay: 0.4 },
+          })}
+      className="relative flex aspect-[4/5] flex-col justify-between overflow-hidden rounded-md bg-[var(--surface-sunken)] p-6 md:p-10"
+    >
+      <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+        Coming up
+      </span>
+      <div>
+        <h3 className="font-display text-[clamp(32px,4vw,48px)] font-semibold leading-[1.05] tracking-[-0.02em] text-[var(--text-primary)]">
+          The next chapter of Kenyan craft, online.
+        </h3>
+        <p className="mt-4 max-w-[28ch] font-sans text-[14px] text-[var(--text-secondary)]">
+          Be among the first creators to publish here. Your work, your terms,
+          paid out by the next sunset.
+        </p>
+        <Link
+          href="/start"
+          className="mt-6 inline-flex items-center gap-1.5 font-sans text-[14px] font-medium text-[var(--accent)] underline-offset-4 hover:underline"
+        >
+          Start a storefront
+          <FiArrowRight size={14} />
+        </Link>
+      </div>
+    </motion.div>
   )
 }
