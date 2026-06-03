@@ -675,3 +675,64 @@ class TestListPublicProducts:
 
         assert json["items"] == []
         assert json["pagination"]["total_count"] == 0
+
+    async def test_filters_by_is_recurring_subscription(
+        self,
+        client: AsyncClient,
+        save_fixture: SaveFixture,
+        organization: Organization,
+    ) -> None:
+        """is_recurring=true returns only subscription products."""
+        # Local import to avoid pulling SubscriptionRecurringInterval at top.
+        from polar.enums import SubscriptionRecurringInterval
+
+        sub = await create_product(
+            save_fixture,
+            organization=organization,
+            recurring_interval=SubscriptionRecurringInterval.month,
+            name="Recurring Tier",
+        )
+        one_time = await create_product(
+            save_fixture,
+            organization=organization,
+            recurring_interval=None,
+            name="One Time Pack",
+        )
+
+        response = await client.get(
+            "/v1/products/public", params={"is_recurring": "true"}
+        )
+        assert response.status_code == 200
+        ids = [item["id"] for item in response.json()["items"]]
+        assert str(sub.id) in ids
+        assert str(one_time.id) not in ids
+
+    async def test_filters_by_is_recurring_one_time(
+        self,
+        client: AsyncClient,
+        save_fixture: SaveFixture,
+        organization: Organization,
+    ) -> None:
+        """is_recurring=false returns only one-time products."""
+        from polar.enums import SubscriptionRecurringInterval
+
+        sub = await create_product(
+            save_fixture,
+            organization=organization,
+            recurring_interval=SubscriptionRecurringInterval.month,
+            name="Recurring Tier",
+        )
+        one_time = await create_product(
+            save_fixture,
+            organization=organization,
+            recurring_interval=None,
+            name="One Time Pack",
+        )
+
+        response = await client.get(
+            "/v1/products/public", params={"is_recurring": "false"}
+        )
+        assert response.status_code == 200
+        ids = [item["id"] for item in response.json()["items"]]
+        assert str(one_time.id) in ids
+        assert str(sub.id) not in ids
