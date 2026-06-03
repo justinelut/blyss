@@ -147,10 +147,15 @@ jobs:
             fi
           }
 
-          # Default to auto-chain mode unless ENV_SECRET pins a provider.
-          if ! grep -q '^POLAR_AI_PROVIDER=' k8s/_staged/blyss.env.secret; then
-            printf 'POLAR_AI_PROVIDER=auto\n' >> k8s/_staged/blyss.env.secret
-          fi
+          # Default to auto-chain mode. We strip any existing
+          # POLAR_AI_PROVIDER= line first so a stale `=gemini` or `=openai`
+          # value left over from previous deploys can't override the new
+          # default. To pin to a single provider on purpose, set
+          # POLAR_AI_PROVIDER explicitly in ENV_SECRET _below this line_
+          # — the inject runs before ENV_SECRET wins.
+          grep -v '^POLAR_AI_PROVIDER=' k8s/_staged/blyss.env.secret > k8s/_staged/blyss.env.secret.tmp || true
+          mv k8s/_staged/blyss.env.secret.tmp k8s/_staged/blyss.env.secret
+          printf 'POLAR_AI_PROVIDER=auto\n' >> k8s/_staged/blyss.env.secret
 
           inject_kv POLAR_GOOGLE_AI_API_KEY "${GEMINI_API_KEY:-}"
           inject_kv POLAR_GROQ_API_KEY      "${GROQ_API_KEY:-}"
