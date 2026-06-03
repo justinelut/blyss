@@ -87,6 +87,8 @@ jobs:
             sudo kubectl -n $NS logs deployment/blyss-api --tail=200 2>&1 | grep -iE "error|exception|traceback|creator" | tail -20
             echo "-- API errors mentioning /appeal --"
             sudo kubectl -n $NS logs deployment/blyss-api --tail=400 2>&1 | grep -iE "appeal|submit_appeal" -A 20 | tail -60
+            echo "-- python discovery in API pod --"
+            sudo kubectl -n $NS exec $POD -- sh -c 'echo "  which python="; which python; echo "  which python3="; which python3; echo "  /app contents="; ls /app | head -20; echo "  pyproject?"; ls /app/pyproject.toml /app/uv.lock 2>&1 | head; echo "  venv probe="; ls /app/.venv/bin/python 2>&1; ls /opt/venv/bin/python 2>&1; echo "  PYTHONPATH=$PYTHONPATH"; python -c "import sqlalchemy; print(\"  sqlalchemy:\", sqlalchemy.__version__)" 2>&1 || true' 2>&1 | head -25
             echo "-- worker logs (last 30 lines) --"
             sudo kubectl -n $NS logs deployment/blyss-worker --tail=30 2>&1 | tail -20
             echo
