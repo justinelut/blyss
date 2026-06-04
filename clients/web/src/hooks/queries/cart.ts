@@ -13,6 +13,29 @@ export const useCart = () => {
   })
 }
 
+export const useCheckoutCart = () => {
+  return useMutation({
+    mutationFn: () =>
+      unwrap((api as any).POST('/v1/cart/checkout')) as Promise<{
+        client_secret: string
+        url: string
+      }>,
+    onError: (error: any) => {
+      const errorMessage =
+        error?.error?.detail ||
+        error?.body?.detail ||
+        error?.message ||
+        'Failed to start checkout'
+
+      toast({
+        title: 'Checkout failed',
+        description: errorMessage,
+        variant: 'error',
+      })
+    },
+  })
+}
+
 interface AddToCartParams {
   productId: string
   quantity?: number

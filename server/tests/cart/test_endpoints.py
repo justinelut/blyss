@@ -5,10 +5,12 @@ Tests the complete HTTP API for cart operations including authentication,
 request/response handling, and error cases.
 """
 
+from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
 from httpx import AsyncClient
+from pytest_mock import MockerFixture
 
 from polar.models import Organization
 from polar.postgres import AsyncSession
@@ -256,6 +258,35 @@ class TestAddCartItem:
         # Assert
         assert response_low.status_code == 422
         assert response_high.status_code == 422
+
+
+@pytest.mark.asyncio
+class TestCheckoutCart:
+    """E2E tests for POST /v1/cart/checkout endpoint."""
+
+    @pytest.mark.auth(
+        AuthSubjectFixture(subject="user"),
+    )
+    async def test_returns_hosted_checkout_url(
+        self,
+        client: AsyncClient,
+        mocker: MockerFixture,
+    ) -> None:
+        create_checkout_mock = mocker.patch(
+            "polar.cart.endpoints.cart.create_checkout_from_cart",
+            mocker.AsyncMock(
+                return_value=SimpleNamespace(client_secret="polar_cs_test")
+            ),
+        )
+
+        response = await client.post("/v1/cart/checkout")
+
+        assert response.status_code == 201
+        assert response.json() == {
+            "client_secret": "polar_cs_test",
+            "url": "/checkout/polar_cs_test",
+        }
+        create_checkout_mock.assert_awaited_once()
 
 
 @pytest.mark.asyncio

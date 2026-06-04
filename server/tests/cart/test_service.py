@@ -4,18 +4,24 @@ Unit tests for cart service.
 Tests specific examples, edge cases, and error conditions for cart operations.
 """
 
+from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
+from pytest_mock import MockerFixture
 
 from polar.auth.models import AuthSubject
+from polar.auth.scope import Scope
 from polar.cart.repository import CartRepository
 from polar.cart.service import (
     CartService,
+    EmptyCart,
+    MultiOrganizationCart,
     ProductNotFound,
     ProductOutOfStock,
 )
-from polar.models import User
+from polar.checkout.schemas import CheckoutCartCreate
+from polar.models import Organization, User
 from polar.postgres import AsyncSession
 from tests.fixtures.database import SaveFixture
 from tests.fixtures.random_objects import create_product
@@ -268,3 +274,124 @@ class TestClearCart:
         # Assert - Verify all items are gone
         cart_items_after = await cart_repository.get_by_user(user_id=user.id)
         assert len(cart_items_after) == 0
+
+
+@pytest.mark.asyncio
+class TestCreateCheckoutFromCart:
+    """Unit tests for creating a hosted checkout from a buyer cart."""
+
+    async def test_empty_cart_raises_422(
+        self,
+        session: AsyncSession,
+        user: User,
+    ) -> None:
+        cart_service = CartService()
+        auth_subject = AuthSubject(subject=user, scopes=set(), session=None)
+
+        with pytest.raises(EmptyCart) as exc_info:
+            await cart_service.create_checkout_from_cart(
+                session=session,
+                auth_subject=auth_subject,
+            )
+
+        assert exc_info.value.status_code == 422
+
+    async def test_creates_checkout_with_all_same_creator_cart_items(
+        self,
+        session: AsyncSession,
+        save_fixture: SaveFixture,
+        user: User,
+        organization: Organization,
+        mocker: MockerFixture,
+    ) -> None:
+        cart_service = CartService()
+        auth_subject = AuthSubject(subject=user, scopes=set(), session=None)
+
+        product_a = await create_product(
+            save_fixture,
+            organization=organization,
+            recurring_interval=None,
+        )
+        product_b = await create_product(
+            save_fixture,
+            organization=organization,
+            recurring_interval=None,
+        )
+        item_a, _ = await cart_service.add_item(
+            session=session,
+            auth_subject=auth_subject,
+            product_id=product_a.id,
+            quantity=1,
+        )
+        item_b, _ = await cart_service.add_item(
+            session=session,
+            auth_subject=auth_subject,
+            product_id=product_b.id,
+            quantity=2,
+        )
+
+        create_mock = mocker.patch(
+            "polar.checkout.service.checkout.create",
+            mocker.AsyncMock(return_value=SimpleNamespace(client_secret="polar_cs_test")),
+        )
+
+        checkout = await cart_service.create_checkout_from_cart(
+            session=session,
+            auth_subject=auth_subject,
+        )
+
+        assert checkout.client_secret == "polar_cs_test"
+        create_mock.assert_awaited_once()
+        _, checkout_create, creator_auth, _ = create_mock.await_args.args
+        assert isinstance(checkout_create, CheckoutCartCreate)
+        assert checkout_create.cart_items == [item_a.id, item_b.id]
+        assert creator_auth.subject.id == organization.id
+        assert Scope.checkouts_write in creator_auth.scopes
+
+    async def test_rejects_cart_items_from_multiple_creators(
+        self,
+        session: AsyncSession,
+        save_fixture: SaveFixture,
+        user: User,
+        organization: Organization,
+        organization_second: Organization,
+        mocker: MockerFixture,
+    ) -> None:
+        cart_service = CartService()
+        auth_subject = AuthSubject(subject=user, scopes=set(), session=None)
+
+        product_a = await create_product(
+            save_fixture,
+            organization=organization,
+            recurring_interval=None,
+        )
+        product_b = await create_product(
+            save_fixture,
+            organization=organization_second,
+            recurring_interval=None,
+        )
+        await cart_service.add_item(
+            session=session,
+            auth_subject=auth_subject,
+            product_id=product_a.id,
+            quantity=1,
+        )
+        await cart_service.add_item(
+            session=session,
+            auth_subject=auth_subject,
+            product_id=product_b.id,
+            quantity=1,
+        )
+        create_mock = mocker.patch(
+            "polar.checkout.service.checkout.create",
+            mocker.AsyncMock(),
+        )
+
+        with pytest.raises(MultiOrganizationCart) as exc_info:
+            await cart_service.create_checkout_from_cart(
+                session=session,
+                auth_subject=auth_subject,
+            )
+
+        assert exc_info.value.status_code == 422
+        create_mock.assert_not_awaited()

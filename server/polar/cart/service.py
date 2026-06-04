@@ -1,3 +1,4 @@
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from sqlalchemy import select
@@ -7,7 +8,10 @@ from sqlalchemy.orm import joinedload, selectinload
 from polar.auth.models import Anonymous, AuthSubject, User, is_user
 from polar.cart.repository import CartRepository
 from polar.exceptions import PolarError
-from polar.models import CartItem, Product
+from polar.models import CartItem, Organization, Product
+
+if TYPE_CHECKING:
+    from polar.models.checkout import Checkout
 
 
 class CartError(PolarError):
@@ -40,6 +44,19 @@ class InvalidQuantity(CartError):
         self.quantity = quantity
         message = f"Quantity must be between 1 and 100. Received: {quantity}"
         super().__init__(message, 422)
+
+
+class EmptyCart(CartError):
+    def __init__(self) -> None:
+        super().__init__("Cart is empty.", 422)
+
+
+class MultiOrganizationCart(CartError):
+    def __init__(self) -> None:
+        super().__init__(
+            "Cart contains products from multiple creators. Check out one creator at a time.",
+            422,
+        )
 
 
 class ProductOutOfStock(CartError):
@@ -250,6 +267,82 @@ class CartService:
     def _calculate_tax(self, subtotal: int) -> int:
         """Calculate estimated tax based on subtotal."""
         return 0
+
+    async def create_checkout_from_cart(
+        self,
+        session: AsyncSession,
+        auth_subject: AuthSubject[User | Anonymous],
+        ip_geolocation_client: object | None = None,
+    ) -> "Checkout":
+        """Create a hosted Polar checkout session from the buyer's cart.
+
+        Loads the cart items belonging to the requesting user / guest
+        session, builds a CheckoutCartCreate referencing every cart item,
+        then dispatches to the existing checkout_service.create() flow which
+        already supports the cart_items branch (multi-product hosted
+        checkout where the buyer can complete payment for everything in
+        one transaction). Returns the new Checkout — the endpoint exposes
+        its `client_secret` so the frontend can redirect to
+        `/checkout/{client_secret}`.
+
+        Raises:
+          EmptyCart                  — cart is empty
+          MultiOrganizationCart      — cart spans creators (one-org rule)
+          (any error from checkout_service.create — e.g. recurring product)
+        """
+        # Local imports to avoid heavy module-load circular imports between
+        # cart and checkout.
+        from typing import cast as _cast
+
+        from polar.auth.models import AuthSubject as _AuthSubject
+        from polar.auth.scope import Scope
+        from polar.checkout.schemas import CheckoutCartCreate
+        from polar.checkout.service import checkout as checkout_service
+
+        user_id, session_token = self._extract_owner_identifiers(auth_subject)
+
+        repository = CartRepository(session)
+        if user_id is not None:
+            cart_items = await repository.get_by_user(user_id)
+        else:
+            assert session_token is not None
+            cart_items = await repository.get_by_session(session_token)
+
+        if not cart_items:
+            raise EmptyCart()
+
+        # All cart items must belong to one organization. The downstream
+        # checkout_service also enforces this, but we check up-front so the
+        # buyer sees a clean 422 instead of a deeper validation error.
+        org_ids = {ci.product.organization_id for ci in cart_items}
+        if len(org_ids) > 1:
+            raise MultiOrganizationCart()
+
+        organization = cart_items[0].product.organization
+
+        # The downstream service is typed for AuthSubject[User|Organization]
+        # but only uses auth_subject for org-scoped product lookups. The
+        # cart-create branch uses cart_repository.get_by_id directly without
+        # consulting auth_subject for cart-item ownership (the buyer owns
+        # the cart by virtue of session-token / user-id; we already filtered
+        # above). We construct an org-scoped AuthSubject so the downstream
+        # path resolves cleanly.
+        creator_auth = _AuthSubject(
+            subject=organization,
+            scopes={Scope.web_read, Scope.web_write, Scope.checkouts_write},
+            session=None,
+        )
+
+        create_payload = CheckoutCartCreate(
+            cart_items=[ci.id for ci in cart_items],
+        )
+
+        return await checkout_service.create(
+            session,
+            create_payload,
+            _cast("_AuthSubject[User | Organization]", creator_auth),
+            ip_geolocation_client,  # type: ignore[arg-type]
+        )
 
 
 cart = CartService()

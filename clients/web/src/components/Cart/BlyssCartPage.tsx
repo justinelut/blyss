@@ -3,7 +3,11 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react'
-import { useCart, useRemoveFromCart } from '@/hooks/queries/cart'
+import {
+  useCart,
+  useCheckoutCart,
+  useRemoveFromCart,
+} from '@/hooks/queries/cart'
 import { CartItemRow } from './CartItemRow'
 import { Skeleton, Eyebrow, typography } from '@/design'
 import { cn } from '@/lib/utils'
@@ -23,6 +27,7 @@ export const BlyssCartPage = () => {
   const router = useRouter()
   const { data: cart, isLoading } = useCart()
   const { mutate: removeItem, variables: removingId } = useRemoveFromCart()
+  const { mutate: checkoutCart, isPending: isCheckingOut } = useCheckoutCart()
 
   const items = (cart as any)?.items ?? []
   const subtotal = (cart as any)?.subtotal ?? 0
@@ -51,10 +56,16 @@ export const BlyssCartPage = () => {
   if (!items.length) {
     return (
       <div className="mx-auto max-w-[1280px] px-6 py-16 md:px-16 md:py-24">
-        <h1 className={cn(typography.h2, 'text-[var(--text-primary)]')}>Your cart</h1>
+        <h1 className={cn(typography.h2, 'text-[var(--text-primary)]')}>
+          Your cart
+        </h1>
         <div className="mt-12 max-w-[44ch]">
-          <h2 className={cn(typography.h3, 'text-[var(--text-primary)]')}>Nothing here yet.</h2>
-          <p className={cn(typography.body, 'mt-4 text-[var(--text-secondary)]')}>
+          <h2 className={cn(typography.h3, 'text-[var(--text-primary)]')}>
+            Nothing here yet.
+          </h2>
+          <p
+            className={cn(typography.body, 'mt-4 text-[var(--text-secondary)]')}
+          >
             Browse the marketplace and find something worth your while.
           </p>
           <Link
@@ -108,27 +119,40 @@ export const BlyssCartPage = () => {
             <div className="mt-6 flex flex-col gap-3 font-sans text-[14px]">
               <div className="flex justify-between">
                 <span className="text-[var(--text-secondary)]">Subtotal</span>
-                <span className="font-medium tabular-nums text-[var(--text-primary)]">{fmtPrice(subtotal)}</span>
+                <span className="font-medium tabular-nums text-[var(--text-primary)]">
+                  {fmtPrice(subtotal)}
+                </span>
               </div>
               {tax > 0 && (
                 <div className="flex justify-between">
                   <span className="text-[var(--text-secondary)]">Tax</span>
-                  <span className="font-medium tabular-nums text-[var(--text-primary)]">{fmtPrice(tax)}</span>
+                  <span className="font-medium tabular-nums text-[var(--text-primary)]">
+                    {fmtPrice(tax)}
+                  </span>
                 </div>
               )}
               <div className="mt-3 border-t border-[var(--border)] pt-3">
                 <div className="flex justify-between">
-                  <span className="font-display text-[16px] font-semibold text-[var(--text-primary)]">Total</span>
-                  <span className="font-display text-[20px] font-semibold tabular-nums text-[var(--text-primary)]">{fmtPrice(total)}</span>
+                  <span className="font-display text-[16px] font-semibold text-[var(--text-primary)]">
+                    Total
+                  </span>
+                  <span className="font-display text-[20px] font-semibold tabular-nums text-[var(--text-primary)]">
+                    {fmtPrice(total)}
+                  </span>
                 </div>
               </div>
             </div>
             <button
               type="button"
-              onClick={() => router.push('/checkout')}
-              className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-md bg-[var(--accent)] font-sans text-[15px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)]"
+              onClick={() => {
+                checkoutCart(undefined, {
+                  onSuccess: ({ url }) => router.push(url),
+                })
+              }}
+              disabled={isCheckingOut}
+              className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-md bg-[var(--accent)] font-sans text-[15px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Checkout
+              {isCheckingOut ? 'Starting checkout...' : 'Checkout'}
             </button>
           </div>
         </aside>
