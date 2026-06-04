@@ -87,7 +87,8 @@ class PaystackService:
         amount: int,
         currency: str = "KES",
         reference: str,
-        subaccount: str,
+        subaccount: str | None = None,
+        channels: list[str] | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """
@@ -98,7 +99,12 @@ class PaystackService:
             amount: Amount in kobo (KES cents) - 100 kobo = 1 KES
             currency: Transaction currency (default: KES)
             reference: Unique transaction reference
-            subaccount: Subaccount code for payment splitting
+            subaccount: Subaccount code for payment splitting (optional).
+                When None, the full amount goes to Blyss's main Paystack
+                account and creator earnings are tracked in Blyss's DB.
+            channels: Restrict the channels Paystack offers the buyer
+                (e.g. ["card", "mobile_money"]). When None, Paystack shows
+                every channel enabled on the merchant account.
             metadata: Optional transaction metadata
 
         Returns:
@@ -110,15 +116,18 @@ class PaystackService:
             PaystackNetworkError: If network communication fails
             PaystackTransactionError: If transaction initialization fails
         """
-        # Prepare request payload
-        payload = {
+        # Prepare request payload — only include subaccount when provided so
+        # Paystack doesn't choke on a literal null value.
+        payload: dict[str, Any] = {
             "email": email,
             "amount": amount,
             "currency": currency,
             "reference": reference,
-            "subaccount": subaccount,
         }
-
+        if subaccount:
+            payload["subaccount"] = subaccount
+        if channels:
+            payload["channels"] = channels
         if metadata:
             payload["metadata"] = metadata
 
@@ -302,6 +311,142 @@ class PaystackService:
                 "paystack.api.error",
                 error_type="network",
                 error_message=str(e),
+            )
+            raise PaystackNetworkError(
+                f"Network error communicating with Paystack: {e}"
+            )
+
+    async def charge_mobile_money(
+        self,
+        *,
+        email: str,
+        amount: int,
+        phone: str,
+        provider: str = "mpesa",
+        currency: str = "KES",
+        reference: str | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Initiate an inbound mobile-money charge (M-Pesa STK push).
+
+        Hits Paystack `POST /charge` with the `mobile_money` channel. This is
+        used for two flows:
+
+          1. Buyer-side checkout where the customer chooses M-Pesa as the
+             payment method (a buyer pays for a product).
+          2. Creator-side payout-method verification — Blyss charges the
+             creator's M-Pesa with KSh 100 (10000 kobo) before activating
+             their payouts. The KSh 100 is non-refundable and stays in
+             Blyss's main account; it's both proof that the number is
+             real and a cheap anti-fraud signal.
+
+        Returns a dict with the charge `reference`, `status`
+        (`success` | `pending` | `failed`), and `display_text` — the
+        instruction string Paystack returns for the buyer (e.g. the
+        STK push prompt the user sees on their phone).
+
+        Args:
+            email: Customer email address
+            amount: Amount in kobo (100 kobo = KES 1)
+            phone: Mobile money phone number, Kenyan format (+254XXXXXXXXX)
+            provider: Mobile money provider code (default "mpesa" for KE)
+            currency: Currency code (default KES)
+            reference: Optional unique reference. If None we generate one.
+            metadata: Optional metadata stored on the charge
+
+        Raises:
+            PaystackAuthenticationError: If API authentication fails
+            PaystackValidationError: If Paystack rejects the payload
+            PaystackNetworkError: If network communication fails
+            PaystackTransactionError: If charge creation fails
+        """
+        import uuid
+
+        if reference is None:
+            reference = f"momo_{uuid.uuid4().hex[:16]}"
+
+        payload: dict[str, Any] = {
+            "email": email,
+            "amount": amount,
+            "currency": currency,
+            "reference": reference,
+            "mobile_money": {"phone": phone, "provider": provider},
+        }
+        if metadata:
+            payload["metadata"] = metadata
+
+        log.info(
+            "paystack.charge.mobile_money",
+            email=email,
+            amount=amount,
+            phone=phone,
+            provider=provider,
+            reference=reference,
+        )
+
+        try:
+            response = await self._client.post("/charge", json=payload)
+
+            if response.status_code == 401:
+                raise PaystackAuthenticationError(
+                    "Paystack API authentication failed"
+                )
+
+            if response.status_code == 422:
+                response_data = response.json()
+                error_message = response_data.get("message", "Validation error")
+                log.error(
+                    "paystack.api.error",
+                    error_type="validation",
+                    error_message=error_message,
+                    status_code=response.status_code,
+                )
+                raise PaystackValidationError(error_message)
+
+            if response.status_code >= 500:
+                log.error(
+                    "paystack.api.error",
+                    error_type="server_error",
+                    status_code=response.status_code,
+                )
+                raise PaystackNetworkError(
+                    f"Paystack API server error: {response.status_code}"
+                )
+
+            response_data = response.json()
+            if not response_data.get("status"):
+                error_message = response_data.get(
+                    "message", "Mobile money charge failed"
+                )
+                log.error(
+                    "paystack.charge.mobile_money.failed",
+                    error_message=error_message,
+                    reference=reference,
+                )
+                raise PaystackTransactionError(error_message, reference)
+
+            data = response_data.get("data", {})
+            return {
+                "reference": data.get("reference", reference),
+                "status": data.get("status"),
+                "display_text": data.get("display_text")
+                or response_data.get("message")
+                or "Check your phone for the M-Pesa STK push prompt.",
+                "raw": data,
+            }
+
+        except (
+            PaystackAuthenticationError,
+            PaystackValidationError,
+            PaystackNetworkError,
+            PaystackTransactionError,
+        ):
+            raise
+        except Exception as e:
+            log.error(
+                "paystack.charge.mobile_money.network_error",
+                reference=reference,
+                error=str(e),
             )
             raise PaystackNetworkError(
                 f"Network error communicating with Paystack: {e}"

@@ -8,6 +8,7 @@ import CountryPicker from '@/components/atoms/CountryPicker'
 import CountryStatePicker from '@/components/atoms/CountryStatePicker'
 import Input from '@/components/atoms/Input'
 import { Checkbox } from '@/components/ui/checkbox'
+import PaystackPaymentInterface from './PaystackPaymentInterface'
 import {
   Form,
   FormControl,
@@ -877,7 +878,52 @@ const DummyCheckoutForm = (props: CheckoutFormProps) => {
   )
 }
 
+const PaystackCheckoutForm = (props: CheckoutFormProps) => {
+  const { checkout } = props
+  const [selectedChannel, setSelectedChannel] = useState<string>('card')
+
+  // Confirm wrapper: Paystack doesn't use a Stripe ConfirmationToken, so we
+  // call the backend's _confirm() directly with no Stripe SDK objects. The
+  // backend's checkout_service.confirm() initializes the Paystack
+  // transaction and persists the authorization_url on the checkout. We
+  // navigate the buyer there once confirm resolves.
+  const confirmPaystack = useCallback(
+    async (data: any) => {
+      // Paystack does not need Stripe ConfirmationToken/Elements; pass null.
+      const updated = await props.confirm(data, null, null)
+      const meta = (updated.payment_processor_metadata ?? {}) as {
+        authorization_url?: string
+      }
+      if (meta.authorization_url) {
+        window.location.href = meta.authorization_url
+      }
+      return updated
+    },
+    [props],
+  )
+
+  return (
+    <BaseCheckoutForm
+      {...props}
+      checkout={checkout}
+      confirm={confirmPaystack}
+      beforeSubmit={
+        <div className="mb-6">
+          <PaystackPaymentInterface
+            checkout={checkout}
+            disabled={props.disabled}
+            onPaymentMethodSelect={setSelectedChannel}
+          />
+        </div>
+      }
+    />
+  )
+}
+
 const CheckoutForm = (props: CheckoutFormProps) => {
+  if (props.checkout.payment_processor === 'paystack') {
+    return <PaystackCheckoutForm {...props} />
+  }
   return <StripeCheckoutForm {...props} />
 }
 

@@ -55,6 +55,8 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
   const [isConfiguring, setIsConfiguring] = useState(false)
   const [isVerifying, setIsVerifying] = useState(false)
   const [isRetrying, setIsRetrying] = useState(false)
+  const [verifyReference, setVerifyReference] = useState<string | null>(null)
+  const [verifyDisplayText, setVerifyDisplayText] = useState<string | null>(null)
 
   const form = useForm<MPesaConfigurationForm>({
     mode: 'onChange',
@@ -101,29 +103,36 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
 
       setIsConfiguring(true)
       try {
-        await unwrap(
-          (api as any).POST('/v1/integrations/paystack/organizations/{id}/mpesa', {
-            params: {
-              path: { id: organization.id },
+        const response = await unwrap(
+          (api as any).POST(
+            '/v1/integrations/paystack/organizations/{id}/mpesa/initiate-verification',
+            {
+              params: { path: { id: organization.id } },
+              body: { mpesa_number: data.mpesa_number },
             },
-            body: {
-              mpesa_number: data.mpesa_number,
-            },
-          }),
+          ),
         )
 
-        toast({
-          title: 'M-Pesa Configuration Started',
-          description:
-            'Verification transaction sent. Please check your M-Pesa for KES 10 transaction.',
-        })
+        const ref = (response as any).reference as string
+        const displayText =
+          (response as any).display_text ||
+          'Check your phone for the M-Pesa STK push prompt.'
 
-        // Refresh the page to show updated status
-        window.location.reload()
+        setVerifyReference(ref)
+        setVerifyDisplayText(displayText)
+
+        toast({
+          title: 'STK push sent',
+          description:
+            'A KSh 100 verification charge was sent to your M-Pesa. Approve it on your phone to activate payouts.',
+        })
       } catch (error: any) {
         toast({
-          title: 'Configuration Failed',
-          description: error.message || 'Failed to configure M-Pesa number',
+          title: 'Could not start verification',
+          description:
+            error?.body?.detail ||
+            error?.message ||
+            'Failed to send the M-Pesa verification charge.',
           variant: 'error',
         })
       } finally {
@@ -133,37 +142,42 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
     [currentUser, organization.id],
   )
 
-  const onVerifyMPesa = useCallback(async () => {
-    if (!currentUser) return
+  const onFinalizeMPesa = useCallback(async () => {
+    if (!currentUser || !verifyReference) return
 
     setIsVerifying(true)
     try {
       await unwrap(
-        (api as any).POST('/v1/integrations/paystack/organizations/{id}/mpesa/verify', {
-          params: {
-            path: { id: organization.id },
+        (api as any).POST(
+          '/v1/integrations/paystack/organizations/{id}/mpesa/finalize-verification',
+          {
+            params: { path: { id: organization.id } },
+            body: { reference: verifyReference },
           },
-        }),
+        ),
       )
 
       toast({
-        title: 'M-Pesa Verified',
+        title: 'M-Pesa active',
         description:
-          'Your M-Pesa number has been successfully verified for payouts.',
+          'Your M-Pesa number is verified and your payout subaccount is set up.',
       })
 
-      // Refresh the page to show updated status
+      // Refresh to pick up subaccount_status from the server.
       window.location.reload()
     } catch (error: any) {
       toast({
-        title: 'Verification Failed',
-        description: error.message || 'Failed to verify M-Pesa number',
+        title: 'Verification failed',
+        description:
+          error?.body?.detail ||
+          error?.message ||
+          "We couldn't confirm the KSh 100 charge. Please retry.",
         variant: 'error',
       })
     } finally {
       setIsVerifying(false)
     }
-  }, [currentUser, organization.id])
+  }, [currentUser, organization.id, verifyReference])
 
   const onRetrySubaccount = useCallback(async () => {
     if (!currentUser) return
@@ -349,9 +363,9 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
                           />
                         </div>
                         <p className="font-sans text-[13px] leading-[1.5] text-[var(--text-secondary)]">
-                          Get paid straight to your phone. We send a KSh 10
-                          confirmation transaction the first time so we know
-                          the number is yours.
+                          Get paid straight to your phone. We charge a
+                          one-time KSh 100 from your M-Pesa to confirm the
+                          number is yours and protect against fraud.
                         </p>
                       </button>
 
@@ -474,31 +488,42 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
                 />
               </SettingsGroupItem>
 
-              {currentMPesaNumber && !mpesaVerified && (
+              {verifyReference && !mpesaVerified && (
                 <SettingsGroupItem
-                  title="Verification"
-                  description="Complete M-Pesa verification to enable payouts"
+                  title="Approve KSh 100 charge"
+                  description="Open M-Pesa and confirm the verification charge."
                 >
-                  <div className="space-y-3">
-                    <p className="text-sm text-[var(--text-secondary)]">
-                      A KES 10 verification transaction was sent to your M-Pesa
-                      number. Click verify once you receive it.
+                  <div className="space-y-3 rounded-md border border-[var(--border)] bg-[var(--surface-elevated)] p-4">
+                    <div className="flex items-start gap-3">
+                      <Phone
+                        aria-hidden="true"
+                        className="mt-0.5 h-4 w-4 flex-none text-[var(--accent)]"
+                      />
+                      <p className="text-sm text-[var(--text-primary)]">
+                        {verifyDisplayText ||
+                          'Check your phone for the M-Pesa STK push prompt.'}
+                      </p>
+                    </div>
+                    <p className="text-xs text-[var(--text-secondary)]">
+                      The KSh 100 charge is non-refundable and one-time. It
+                      proves the number is yours and protects the marketplace
+                      from fraud.
                     </p>
                     <Button
                       type="button"
-                      onClick={onVerifyMPesa}
+                      onClick={onFinalizeMPesa}
                       disabled={isVerifying}
                       size="sm"
                     >
                       {isVerifying ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Verifying...
+                          Confirming…
                         </>
                       ) : (
                         <>
                           <CheckCircle className="mr-2 h-4 w-4" />
-                          Verify M-Pesa
+                          I&apos;ve approved on M-Pesa
                         </>
                       )}
                     </Button>
@@ -520,7 +545,7 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
                   disabled={!formState.isValid || isConfiguring}
                   loading={isConfiguring}
                 >
-                  {isConfiguring ? 'Configuring...' : 'Configure M-Pesa'}
+                  {isConfiguring ? 'Sending STK push…' : 'Send STK push & verify'}
                 </Button>
               )}
           </SettingsGroupActions>

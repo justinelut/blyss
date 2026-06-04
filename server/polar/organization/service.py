@@ -1052,51 +1052,38 @@ class OrganizationService:
         self, session: AsyncReadSession, organization: Organization
     ) -> bool:
         """
-        Check if an organization is ready to accept payments.
-        This method loads the account and admin data as needed, avoiding the need
-        for eager loading in other services like checkout.
+        Check if an organization can accept payments.
+
+        Blyss is a single-merchant marketplace: Blyss is the merchant of record,
+        Blyss's Paystack account receives all funds, and creator earnings are
+        tracked in Blyss's DB. Settlements to creators happen via Paystack
+        subaccounts when those subaccounts exist (creator has configured M-Pesa
+        or bank in Settings → Finance), otherwise 100% of the transaction goes
+        to Blyss's main account and is held until manual payout.
+
+        Therefore the only reasons to block payments are real moderation gates:
+        the org is blocked or its status was set to DENIED. Fresh orgs without
+        a payout account, without details submitted, or without identity
+        verification are still allowed to sell — Blyss handles the money.
+
+        The legacy Stripe-Connect-style readiness checks (account_id,
+        details_submitted_at, identity_verification_status) are intentionally
+        gone. They belonged to Polar's per-creator-merchant model and don't
+        apply here.
         """
-        # In sandbox environment, always allow payments regardless of account setup
+        # In sandbox environment, always allow payments
         if settings.ENV == Environment.sandbox:
             return True
 
-        # First check basic conditions that don't require account data
+        # Real moderation gates only.
         if (
             organization.is_blocked()
             or organization.status == OrganizationStatus.DENIED
         ):
             return False
 
-        # Check grandfathering - if grandfathered, they're ready
-        cutoff_date = datetime(2025, 8, 4, 9, 0, tzinfo=UTC)
-        if organization.created_at <= cutoff_date:
-            return True
-
-        # For new organizations, check basic conditions first
+        # Active and review-pending orgs can sell.
         if organization.status not in OrganizationStatus.payment_ready_statuses():
-            return False
-
-        # Details must be submitted (check for empty dict as well)
-        if not organization.details_submitted_at or not organization.details:
-            return False
-
-        # Must have an active payout account
-        if organization.account_id is None:
-            return False
-
-        account_repository = AccountRepository.from_session(session)
-        account = await account_repository.get_by_id(
-            organization.account_id, options=(joinedload(Account.admin),)
-        )
-        if not account:
-            return False
-
-        # Check admin identity verification status
-        admin = account.admin
-        if not admin or admin.identity_verification_status not in [
-            IdentityVerificationStatus.verified,
-            IdentityVerificationStatus.pending,
-        ]:
             return False
 
         return True

@@ -154,59 +154,270 @@ async def webhook(
     )
 
 
-@router.post("/organizations/{id}/mpesa", response_model=OrganizationSchema)
-async def configure_mpesa(
+class MPesaInitiateVerificationRequest(BaseModel):
+    """Request schema for kicking off the M-Pesa verification charge.
+
+    The creator submits their M-Pesa number; Blyss charges KSh 100 from it
+    via Paystack `/charge` (mobile_money channel). The KSh 100 is
+    non-refundable, kept by Blyss, and used as proof-of-ownership +
+    anti-fraud signal before activating their payouts.
+    """
+
+    mpesa_number: str = Field(
+        ..., description="M-Pesa phone number in Kenyan format (+254XXXXXXXXX)"
+    )
+
+    @field_validator("mpesa_number")
+    @classmethod
+    def validate_mpesa_number(cls, v: str) -> str:
+        cleaned = re.sub(r"[\s\-]", "", v)
+        if not re.match(r"^\+254[17]\d{8}$", cleaned):
+            raise ValueError(
+                "M-Pesa number must be in Kenyan format (+254XXXXXXXXX) "
+                "where X is a digit and the number starts with 7 or 1 after country code"
+            )
+        return cleaned
+
+
+class MPesaFinalizeVerificationRequest(BaseModel):
+    """Request schema for finalizing the M-Pesa verification charge."""
+
+    reference: str = Field(
+        ..., min_length=4,
+        description="Paystack charge reference returned by initiate-verification.",
+    )
+
+
+class MPesaInitiateVerificationResponse(BaseModel):
+    """Response from initiate-verification — the buyer-facing STK push prompt."""
+
+    reference: str
+    status: str
+    display_text: str
+
+
+# Anti-fraud verification charge amount in kobo (KES cents).
+# 100 KES = 10000 kobo. Non-refundable, kept by Blyss.
+MPESA_VERIFICATION_AMOUNT_KOBO = 10000
+
+
+@router.post(
+    "/organizations/{id}/mpesa/initiate-verification",
+    response_model=MPesaInitiateVerificationResponse,
+)
+async def initiate_mpesa_verification(
     id: UUID,
-    request: MPesaConfigurationRequest,
+    request: MPesaInitiateVerificationRequest,
     auth_subject: WebUserWrite,
     session: AsyncSession = Depends(get_db_session),
-) -> OrganizationSchema:
-    """Configure M-Pesa payout for organization."""
-    repository = OrganizationRepository.from_session(session)
+) -> MPesaInitiateVerificationResponse:
+    """Charge KSh 100 from the creator's M-Pesa to verify ownership.
 
-    # Get organization and verify user has access
+    Saves the M-Pesa number on the org with `mpesa_verified=False` and
+    pushes an STK prompt to the creator's phone via Paystack. The
+    creator authorizes the KSh 100 charge in their M-Pesa app, then the
+    frontend calls `finalize-verification` with the returned reference.
+    """
+    repository = OrganizationRepository.from_session(session)
     organization = await repository.get_by_id(id)
     if not organization:
         raise ResourceNotFound("Organization not found")
 
-    # TODO: Add proper authorization check to ensure user can modify this organization
-
     try:
-        # Send verification transaction
-        verification_result = await paystack.send_verification_transaction(
-            mpesa_number=request.mpesa_number
-        )
-
-        log.info(
-            "paystack.mpesa.verification_transaction_sent",
-            organization_id=organization.id,
-            mpesa_number=request.mpesa_number,
-            transaction_reference=verification_result.get("reference"),
-        )
-
-        # Store M-Pesa number with verified=false
-        organization = await repository.update(
-            organization,
-            update_dict={
-                "mpesa_number": request.mpesa_number,
-                "mpesa_verified": False,
-                "payout_method": PayoutMethod.MPESA,
+        charge = await paystack.charge_mobile_money(
+            email=auth_subject.subject.email,
+            amount=MPESA_VERIFICATION_AMOUNT_KOBO,
+            phone=request.mpesa_number,
+            provider="mpesa",
+            metadata={
+                "purpose": "blyss.payout_method.mpesa.verification",
+                "organization_id": str(organization.id),
             },
-            flush=True,
         )
-
-        return OrganizationSchema.model_validate(organization)
-
     except Exception as e:
         log.error(
-            "paystack.mpesa.configuration_failed",
+            "paystack.mpesa.initiate_verification.failed",
             organization_id=organization.id,
             mpesa_number=request.mpesa_number,
             error=str(e),
         )
         raise HTTPException(
-            status_code=422, detail=f"Failed to configure M-Pesa: {str(e)}"
+            status_code=422,
+            detail=f"Failed to start M-Pesa verification: {str(e)}",
         ) from e
+
+    # Save number with mpesa_verified=False; finalize-verification will
+    # promote it to True once the charge succeeds.
+    await repository.update(
+        organization,
+        update_dict={
+            "mpesa_number": request.mpesa_number,
+            "mpesa_verified": False,
+            "payout_method": PayoutMethod.MPESA,
+        },
+        flush=True,
+    )
+
+    log.info(
+        "paystack.mpesa.initiate_verification.ok",
+        organization_id=organization.id,
+        mpesa_number=request.mpesa_number,
+        reference=charge["reference"],
+    )
+
+    return MPesaInitiateVerificationResponse(
+        reference=charge["reference"],
+        status=charge["status"] or "pending",
+        display_text=charge["display_text"],
+    )
+
+
+@router.post(
+    "/organizations/{id}/mpesa/finalize-verification",
+    response_model=OrganizationSchema,
+)
+async def finalize_mpesa_verification(
+    id: UUID,
+    request: MPesaFinalizeVerificationRequest,
+    auth_subject: WebUserWrite,
+    session: AsyncSession = Depends(get_db_session),
+) -> OrganizationSchema:
+    """Verify the M-Pesa charge succeeded and provision the subaccount.
+
+    Polls Paystack `GET /transaction/verify/{reference}`. On success:
+    sets `mpesa_verified=True` and creates a Paystack subaccount with
+    `settlement_bank=MPESA` so future buyer payments to this creator's
+    products auto-split (80% creator / 20% Blyss).
+
+    On failure: marks `subaccount_status=failed` and returns 422 so the
+    creator can retry from the UI.
+    """
+    repository = OrganizationRepository.from_session(session)
+    organization = await repository.get_by_id(id)
+    if not organization:
+        raise ResourceNotFound("Organization not found")
+
+    if not organization.mpesa_number:
+        raise HTTPException(
+            status_code=422,
+            detail="No M-Pesa number on file. Call initiate-verification first.",
+        )
+
+    # 1. Verify the charge with Paystack.
+    try:
+        verification = await paystack.verify_transaction(request.reference)
+    except Exception as e:
+        log.error(
+            "paystack.mpesa.finalize_verification.verify_failed",
+            organization_id=organization.id,
+            reference=request.reference,
+            error=str(e),
+        )
+        raise HTTPException(
+            status_code=422,
+            detail=f"Failed to verify M-Pesa charge: {str(e)}",
+        ) from e
+
+    charge_status = verification.get("status")
+    if charge_status != "success":
+        await repository.update(
+            organization,
+            update_dict={"subaccount_status": "failed"},
+            flush=True,
+        )
+        log.info(
+            "paystack.mpesa.finalize_verification.charge_not_success",
+            organization_id=organization.id,
+            reference=request.reference,
+            status=charge_status,
+        )
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"M-Pesa verification charge did not succeed (status={charge_status}). "
+                "Please retry."
+            ),
+        )
+
+    # 2. Charge succeeded — mark verified and provision subaccount.
+    organization = await repository.update(
+        organization,
+        update_dict={"mpesa_verified": True},
+        flush=True,
+    )
+
+    try:
+        if organization.subaccount_code:
+            await paystack.update_subaccount(
+                subaccount_code=organization.subaccount_code,
+                settlement_bank="MPESA",
+                account_number=organization.mpesa_number,
+            )
+            organization = await repository.update(
+                organization,
+                update_dict={"subaccount_status": "active"},
+                flush=True,
+            )
+        else:
+            sub = await paystack.create_subaccount(
+                business_name=organization.name,
+                settlement_bank="MPESA",
+                account_number=organization.mpesa_number,
+                percentage_charge=20.0,
+            )
+            organization = await repository.update(
+                organization,
+                update_dict={
+                    "subaccount_code": sub["subaccount_code"],
+                    "subaccount_status": sub.get("status", "active"),
+                },
+                flush=True,
+            )
+        log.info(
+            "paystack.mpesa.finalize_verification.subaccount_ok",
+            organization_id=organization.id,
+            subaccount_code=organization.subaccount_code,
+        )
+    except Exception as e:
+        log.error(
+            "paystack.mpesa.finalize_verification.subaccount_failed",
+            organization_id=organization.id,
+            error=str(e),
+        )
+        organization = await repository.update(
+            organization,
+            update_dict={"subaccount_status": "failed"},
+            flush=True,
+        )
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "M-Pesa charge succeeded but Paystack rejected the subaccount "
+                "creation. Your M-Pesa number is saved — please retry from "
+                "Settings."
+            ),
+        ) from e
+
+    return OrganizationSchema.model_validate(organization)
+
+
+@router.post("/organizations/{id}/mpesa", response_model=MPesaInitiateVerificationResponse)
+async def configure_mpesa(
+    id: UUID,
+    request: MPesaConfigurationRequest,
+    auth_subject: WebUserWrite,
+    session: AsyncSession = Depends(get_db_session),
+) -> MPesaInitiateVerificationResponse:
+    """Legacy alias for initiate-verification. Kept for backward
+    compatibility with the existing dashboard call-site that POSTs here.
+    Delegates to `initiate_mpesa_verification`.
+    """
+    return await initiate_mpesa_verification(
+        id=id,
+        request=MPesaInitiateVerificationRequest(mpesa_number=request.mpesa_number),
+        auth_subject=auth_subject,
+        session=session,
+    )
 
 
 @router.post("/organizations/{id}/mpesa/verify", response_model=OrganizationSchema)
@@ -215,121 +426,20 @@ async def verify_mpesa(
     auth_subject: WebUserWrite,
     session: AsyncSession = Depends(get_db_session),
 ) -> OrganizationSchema:
-    """Mark M-Pesa number as verified after successful transaction."""
-    repository = OrganizationRepository.from_session(session)
+    """Legacy no-op kept for backward compatibility.
 
-    # Get organization and verify user has access
+    The new verification flow is two endpoints:
+      1. POST /mpesa/initiate-verification — charges KSh 100 from the creator
+      2. POST /mpesa/finalize-verification — confirms charge + provisions subaccount
+
+    Calling this old endpoint just returns the current organization state.
+    The frontend should be updated to call the new pair.
+    """
+    repository = OrganizationRepository.from_session(session)
     organization = await repository.get_by_id(id)
     if not organization:
         raise ResourceNotFound("Organization not found")
-
-    if not organization.mpesa_number:
-        raise HTTPException(
-            status_code=422, detail="No M-Pesa number configured for this organization"
-        )
-
-    if organization.mpesa_verified:
-        # Already verified, return current state
-        return OrganizationSchema.model_validate(organization)
-
-    # TODO: Add proper authorization check to ensure user can modify this organization
-
-    try:
-        # Check verification transaction status with Paystack
-        # For now, we'll assume verification is successful
-        # In a real implementation, you would check the transaction status
-
-        # Update mpesa_verified to true
-        organization = await repository.update(
-            organization,
-            update_dict={"mpesa_verified": True},
-            flush=True,
-        )
-
-        # Create OR update the Paystack subaccount with the verified M-Pesa
-        # number as the settlement account. We do this lazily here (rather
-        # than auto-creating on org-create) because Paystack rejects
-        # subaccount creation without settlement_bank + account_number.
-        try:
-            if organization.subaccount_code:
-                await paystack.update_subaccount(
-                    subaccount_code=organization.subaccount_code,
-                    settlement_bank="mpesa",
-                    account_number=organization.mpesa_number,
-                )
-                organization = await repository.update(
-                    organization,
-                    update_dict={"subaccount_status": "active"},
-                    flush=True,
-                )
-                log.info(
-                    "paystack.mpesa.subaccount_updated",
-                    organization_id=organization.id,
-                    subaccount_code=organization.subaccount_code,
-                    mpesa_number=organization.mpesa_number,
-                )
-            else:
-                sub = await paystack.create_subaccount(
-                    business_name=organization.name,
-                    settlement_bank="mpesa",
-                    account_number=organization.mpesa_number,
-                    percentage_charge=20.0,
-                )
-                organization = await repository.update(
-                    organization,
-                    update_dict={
-                        "subaccount_code": sub["subaccount_code"],
-                        "subaccount_status": sub["status"],
-                    },
-                    flush=True,
-                )
-                log.info(
-                    "paystack.mpesa.subaccount_created",
-                    organization_id=organization.id,
-                    subaccount_code=sub["subaccount_code"],
-                    status=sub["status"],
-                    mpesa_number=organization.mpesa_number,
-                )
-        except Exception as e:
-            log.error(
-                "paystack.mpesa.subaccount_setup_failed",
-                organization_id=organization.id,
-                subaccount_code=organization.subaccount_code,
-                error=str(e),
-            )
-            # Persist the failure so the UI can offer Retry. M-Pesa number is
-            # still marked verified — only the subaccount setup failed.
-            organization = await repository.update(
-                organization,
-                update_dict={"subaccount_status": "failed"},
-                flush=True,
-            )
-            raise HTTPException(
-                status_code=422,
-                detail=(
-                    "M-Pesa was verified but the payout account could not be "
-                    "created. Please retry — your M-Pesa number is saved."
-                ),
-            ) from e
-
-        log.info(
-            "paystack.mpesa.verification_completed",
-            organization_id=organization.id,
-            mpesa_number=organization.mpesa_number,
-        )
-
-        return OrganizationSchema.model_validate(organization)
-
-    except Exception as e:
-        log.error(
-            "paystack.mpesa.verification_failed",
-            organization_id=organization.id,
-            mpesa_number=organization.mpesa_number,
-            error=str(e),
-        )
-        raise HTTPException(
-            status_code=422, detail=f"Failed to verify M-Pesa: {str(e)}"
-        ) from e
+    return OrganizationSchema.model_validate(organization)
 
 
 class BankConfigurationRequest(BaseModel):
