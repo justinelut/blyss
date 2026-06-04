@@ -1329,17 +1329,18 @@ class OrganizationService:
         """
         Determine if an organization uses Paystack for payments.
 
-        For now, we'll use a simple heuristic: if the organization has a subaccount_code,
-        it uses Paystack. In the future, this could be based on a feature flag or
-        organization setting.
+        Blyss is a single-merchant marketplace running entirely on Paystack
+        (Kenya). Buyer-side, every checkout flows through Blyss's Paystack
+        account. Creator-side, the existence of a `subaccount_code` only
+        decides whether Paystack auto-splits the settlement to the creator
+        or whether 100% lands in Blyss's main account for manual payout
+        later — it does NOT change the payment processor.
 
-        Args:
-            organization: Organization to check
-
-        Returns:
-            True if organization uses Paystack, False otherwise
+        Therefore: always True. The hook is preserved (rather than ripped
+        out) so a future global expansion to Stripe-served regions can flip
+        a single switch here without rewriting checkout creation paths.
         """
-        return organization.subaccount_code is not None
+        return True
 
     async def update_creator_profile(
         self,
