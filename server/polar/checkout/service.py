@@ -541,8 +541,11 @@ class CheckoutService:
             validate_required=False,
         )
 
-        # Store cart item IDs in user metadata for cart-based checkouts
-        user_metadata = checkout_create.user_metadata or {}
+        # Store cart item IDs in user metadata for cart-based checkouts.
+        # CheckoutCartCreate (the buyer-cart path) doesn't carry user_metadata
+        # — it inherits from CheckoutCreateBase which doesn't expose that
+        # field on Blyss. Default to {} when absent.
+        user_metadata = getattr(checkout_create, "user_metadata", None) or {}
         if isinstance(checkout_create, CheckoutCartCreate):
             user_metadata["cart_item_ids"] = [str(item.id) for item in cart_items]
 
