@@ -6,7 +6,7 @@ from sqlalchemy import delete, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import joinedload, selectinload
 
-from polar.kit.repository import RepositoryBase
+from polar.kit.repository import RepositoryBase, RepositoryIDMixin
 from polar.kit.utils import utc_now
 from polar.models import CartItem, Product
 
@@ -25,7 +25,10 @@ _CART_ITEM_PRODUCT_EAGER_OPTIONS = (
 )
 
 
-class CartRepository(RepositoryBase[CartItem]):
+class CartRepository(
+    RepositoryIDMixin[CartItem, UUID],
+    RepositoryBase[CartItem],
+):
     model = CartItem
 
     async def delete(self, cart_item: CartItem) -> None:
