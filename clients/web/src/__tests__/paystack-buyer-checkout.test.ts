@@ -40,8 +40,9 @@ describe('Paystack-native buyer checkout', () => {
     expect(src).toContain('beforeSubmit=')
   })
 
-  test('Paystack confirm redirects to authorization_url', () => {
-    expect(src).toMatch(
+  test('Paystack confirm does NOT redirect to authorization_url', () => {
+    // Buyer must never leave Polar's own UI for Paystack's hosted checkout.
+    expect(src).not.toMatch(
       /window\.location\.href\s*=\s*meta\.authorization_url/,
     )
   })
