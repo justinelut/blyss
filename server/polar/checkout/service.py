@@ -544,9 +544,13 @@ class CheckoutService:
         # Store cart item IDs in user metadata for cart-based checkouts.
         # MetadataInputMixin exposes `metadata` (Pydantic attr) which is
         # serialized as `user_metadata` (alias). Read by attribute name.
+        # NOTE: webhook payload validation rejects non-scalar metadata
+        # values, so we store cart_item_ids as a comma-separated string.
         user_metadata = getattr(checkout_create, "metadata", None) or {}
         if isinstance(checkout_create, CheckoutCartCreate):
-            user_metadata["cart_item_ids"] = [str(item.id) for item in cart_items]
+            user_metadata["cart_item_ids"] = ",".join(
+                str(item.id) for item in cart_items
+            )
 
         checkout_products = [
             CheckoutProduct(product=product, order=i, ad_hoc_prices=[])
@@ -1350,15 +1354,26 @@ class CheckoutService:
                 else None,
             )
 
-        # Clear cart items if this was a cart-based checkout
+        # Clear cart items if this was a cart-based checkout. The IDs were
+        # stored as a comma-separated string (webhook payload metadata
+        # values must be scalars).
         if checkout.user_metadata and "cart_item_ids" in checkout.user_metadata:
-            cart_item_ids = checkout.user_metadata["cart_item_ids"]
-            if cart_item_ids:
+            cart_item_ids_raw = checkout.user_metadata["cart_item_ids"]
+            if cart_item_ids_raw:
                 from polar.cart.repository import CartRepository
 
                 cart_repository = CartRepository.from_session(session)
 
-                for cart_item_id_str in cart_item_ids:
+                if isinstance(cart_item_ids_raw, str):
+                    cart_item_id_strs = [
+                        s for s in cart_item_ids_raw.split(",") if s
+                    ]
+                elif isinstance(cart_item_ids_raw, (list, tuple)):
+                    cart_item_id_strs = list(cart_item_ids_raw)
+                else:
+                    cart_item_id_strs = []
+
+                for cart_item_id_str in cart_item_id_strs:
                     try:
                         cart_item_id = uuid.UUID(cart_item_id_str)
                         cart_item = await cart_repository.get_by_id(cart_item_id)
