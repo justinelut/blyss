@@ -316,6 +316,216 @@ class PaystackService:
                 f"Network error communicating with Paystack: {e}"
             )
 
+    def _mask_payload_for_logging(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Return a copy of the charge payload safe for logging.
+
+        Masks card.number to last 4 digits and omits cvv/pin entirely.
+        """
+        safe = dict(payload)
+        if "card" in safe:
+            card = dict(safe["card"])
+            if "number" in card:
+                last4 = str(card["number"])[-4:]
+                card["number"] = f"**** **** **** {last4}"
+            card.pop("cvv", None)
+            card.pop("pin", None)
+            safe["card"] = card
+        safe.pop("pin", None)
+        return safe
+
+    async def charge(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Generic wrapper around Paystack POST /charge.
+
+        Accepts the full payload dict and returns
+        {reference, status, display_text, raw}.
+        """
+        log.info(
+            "paystack.charge",
+            payload=self._mask_payload_for_logging(payload),
+        )
+
+        try:
+            response = await self._client.post("/charge", json=payload)
+
+            if response.status_code == 401:
+                raise PaystackAuthenticationError(
+                    "Paystack API authentication failed"
+                )
+
+            if response.status_code == 422:
+                response_data = response.json()
+                error_message = response_data.get("message", "Validation error")
+                log.error(
+                    "paystack.charge.error",
+                    error_type="validation",
+                    error_message=error_message,
+                )
+                raise PaystackValidationError(error_message)
+
+            if response.status_code >= 500:
+                log.error(
+                    "paystack.charge.error",
+                    error_type="server_error",
+                    status_code=response.status_code,
+                )
+                raise PaystackNetworkError(
+                    f"Paystack API server error: {response.status_code}"
+                )
+
+            response_data = response.json()
+            if not response_data.get("status"):
+                error_message = response_data.get("message", "Charge failed")
+                log.error(
+                    "paystack.charge.failed",
+                    error_message=error_message,
+                )
+                raise PaystackTransactionError(error_message)
+
+            data = response_data.get("data", {})
+            return {
+                "reference": data.get("reference", payload.get("reference")),
+                "status": data.get("status"),
+                "display_text": data.get("display_text")
+                or response_data.get("message")
+                or "",
+                "raw": data,
+            }
+
+        except (
+            PaystackAuthenticationError,
+            PaystackValidationError,
+            PaystackNetworkError,
+            PaystackTransactionError,
+        ):
+            raise
+        except Exception as e:
+            log.error("paystack.charge.network_error", error=str(e))
+            raise PaystackNetworkError(
+                f"Network error communicating with Paystack: {e}"
+            )
+
+    async def submit_charge_step(
+        self, action: str, reference: str, value: str
+    ) -> dict[str, Any]:
+        """Call POST /charge/submit_{action} (otp, pin, phone, birthday)."""
+        if action not in ("otp", "pin", "phone", "birthday"):
+            raise PaystackValidationError(f"Invalid charge step action: {action}")
+
+        log.info(
+            "paystack.charge.submit_step",
+            action=action,
+            reference=reference,
+        )
+
+        try:
+            response = await self._client.post(
+                f"/charge/submit_{action}",
+                json={"reference": reference, action: value},
+            )
+
+            if response.status_code == 401:
+                raise PaystackAuthenticationError(
+                    "Paystack API authentication failed"
+                )
+
+            if response.status_code == 422:
+                response_data = response.json()
+                error_message = response_data.get("message", "Validation error")
+                raise PaystackValidationError(error_message)
+
+            if response.status_code >= 500:
+                raise PaystackNetworkError(
+                    f"Paystack API server error: {response.status_code}"
+                )
+
+            response_data = response.json()
+            if not response_data.get("status"):
+                error_message = response_data.get("message", "Submit step failed")
+                raise PaystackTransactionError(error_message, reference)
+
+            data = response_data.get("data", {})
+            return {
+                "reference": data.get("reference", reference),
+                "status": data.get("status"),
+                "display_text": data.get("display_text")
+                or response_data.get("message")
+                or "",
+                "raw": data,
+            }
+
+        except (
+            PaystackAuthenticationError,
+            PaystackValidationError,
+            PaystackNetworkError,
+            PaystackTransactionError,
+        ):
+            raise
+        except Exception as e:
+            log.error(
+                "paystack.charge.submit_step.network_error",
+                action=action,
+                error=str(e),
+            )
+            raise PaystackNetworkError(
+                f"Network error communicating with Paystack: {e}"
+            )
+
+    async def check_pending_charge(self, reference: str) -> dict[str, Any]:
+        """Call GET /charge/{reference} to check a pending charge."""
+        log.info("paystack.charge.check_pending", reference=reference)
+
+        try:
+            response = await self._client.get(f"/charge/{reference}")
+
+            if response.status_code == 401:
+                raise PaystackAuthenticationError(
+                    "Paystack API authentication failed"
+                )
+
+            if response.status_code == 422:
+                response_data = response.json()
+                error_message = response_data.get("message", "Validation error")
+                raise PaystackValidationError(error_message)
+
+            if response.status_code >= 500:
+                raise PaystackNetworkError(
+                    f"Paystack API server error: {response.status_code}"
+                )
+
+            response_data = response.json()
+            if not response_data.get("status"):
+                error_message = response_data.get(
+                    "message", "Check pending charge failed"
+                )
+                raise PaystackTransactionError(error_message, reference)
+
+            data = response_data.get("data", {})
+            return {
+                "reference": data.get("reference", reference),
+                "status": data.get("status"),
+                "display_text": data.get("display_text")
+                or response_data.get("message")
+                or "",
+                "raw": data,
+            }
+
+        except (
+            PaystackAuthenticationError,
+            PaystackValidationError,
+            PaystackNetworkError,
+            PaystackTransactionError,
+        ):
+            raise
+        except Exception as e:
+            log.error(
+                "paystack.charge.check_pending.network_error",
+                reference=reference,
+                error=str(e),
+            )
+            raise PaystackNetworkError(
+                f"Network error communicating with Paystack: {e}"
+            )
+
     async def charge_mobile_money(
         self,
         *,
@@ -329,36 +539,7 @@ class PaystackService:
     ) -> dict[str, Any]:
         """Initiate an inbound mobile-money charge (M-Pesa STK push).
 
-        Hits Paystack `POST /charge` with the `mobile_money` channel. This is
-        used for two flows:
-
-          1. Buyer-side checkout where the customer chooses M-Pesa as the
-             payment method (a buyer pays for a product).
-          2. Creator-side payout-method verification — Blyss charges the
-             creator's M-Pesa with KSh 100 (10000 kobo) before activating
-             their payouts. The KSh 100 is non-refundable and stays in
-             Blyss's main account; it's both proof that the number is
-             real and a cheap anti-fraud signal.
-
-        Returns a dict with the charge `reference`, `status`
-        (`success` | `pending` | `failed`), and `display_text` — the
-        instruction string Paystack returns for the buyer (e.g. the
-        STK push prompt the user sees on their phone).
-
-        Args:
-            email: Customer email address
-            amount: Amount in kobo (100 kobo = KES 1)
-            phone: Mobile money phone number, Kenyan format (+254XXXXXXXXX)
-            provider: Mobile money provider code (default "mpesa" for KE)
-            currency: Currency code (default KES)
-            reference: Optional unique reference. If None we generate one.
-            metadata: Optional metadata stored on the charge
-
-        Raises:
-            PaystackAuthenticationError: If API authentication fails
-            PaystackValidationError: If Paystack rejects the payload
-            PaystackNetworkError: If network communication fails
-            PaystackTransactionError: If charge creation fails
+        Delegates to the generic charge() helper.
         """
         import uuid
 
@@ -375,82 +556,13 @@ class PaystackService:
         if metadata:
             payload["metadata"] = metadata
 
-        log.info(
-            "paystack.charge.mobile_money",
-            email=email,
-            amount=amount,
-            phone=phone,
-            provider=provider,
-            reference=reference,
-        )
-
-        try:
-            response = await self._client.post("/charge", json=payload)
-
-            if response.status_code == 401:
-                raise PaystackAuthenticationError(
-                    "Paystack API authentication failed"
-                )
-
-            if response.status_code == 422:
-                response_data = response.json()
-                error_message = response_data.get("message", "Validation error")
-                log.error(
-                    "paystack.api.error",
-                    error_type="validation",
-                    error_message=error_message,
-                    status_code=response.status_code,
-                )
-                raise PaystackValidationError(error_message)
-
-            if response.status_code >= 500:
-                log.error(
-                    "paystack.api.error",
-                    error_type="server_error",
-                    status_code=response.status_code,
-                )
-                raise PaystackNetworkError(
-                    f"Paystack API server error: {response.status_code}"
-                )
-
-            response_data = response.json()
-            if not response_data.get("status"):
-                error_message = response_data.get(
-                    "message", "Mobile money charge failed"
-                )
-                log.error(
-                    "paystack.charge.mobile_money.failed",
-                    error_message=error_message,
-                    reference=reference,
-                )
-                raise PaystackTransactionError(error_message, reference)
-
-            data = response_data.get("data", {})
-            return {
-                "reference": data.get("reference", reference),
-                "status": data.get("status"),
-                "display_text": data.get("display_text")
-                or response_data.get("message")
-                or "Check your phone for the M-Pesa STK push prompt.",
-                "raw": data,
-            }
-
-        except (
-            PaystackAuthenticationError,
-            PaystackValidationError,
-            PaystackNetworkError,
-            PaystackTransactionError,
-        ):
-            raise
-        except Exception as e:
-            log.error(
-                "paystack.charge.mobile_money.network_error",
-                reference=reference,
-                error=str(e),
+        result = await self.charge(payload)
+        # Provide M-Pesa-specific default display_text
+        if not result.get("display_text"):
+            result["display_text"] = (
+                "Check your phone for the M-Pesa STK push prompt."
             )
-            raise PaystackNetworkError(
-                f"Network error communicating with Paystack: {e}"
-            )
+        return result
 
     async def send_verification_transaction(
         self,

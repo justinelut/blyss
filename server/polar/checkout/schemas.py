@@ -777,3 +777,106 @@ class CheckoutCartCreate(CheckoutCreateBase):
         if len(v) != len(set(v)):
             raise ValueError("Cart item IDs must be unique.")
         return v
+
+
+# --- Inline Paystack Charge Schemas ---
+
+
+class CheckoutPaymentChannel(Schema):
+    """A payment channel available for a checkout."""
+
+    id: str = Field(description="Channel identifier, e.g. 'card', 'mobile_money'.")
+    name: str = Field(description="Display name.")
+    description: str = Field(description="Human-readable description.")
+    fields: list[str] = Field(description="Required input fields for this channel.")
+    providers: list[dict[str, str]] | None = Field(
+        default=None,
+        description="Available providers (e.g. M-Pesa, MTN) with code/name/country.",
+    )
+
+
+class CheckoutChargeRequest(Schema):
+    """Request body for initiating a charge."""
+
+    channel: Literal[
+        "card", "mobile_money", "bank", "bank_transfer", "ussd", "qr", "eft"
+    ]
+    # Card fields
+    card_number: str | None = None
+    cvv: str | None = None
+    expiry_month: str | None = None
+    expiry_year: str | None = None
+    pin: str | None = None
+    # Mobile money fields
+    phone: str | None = None
+    provider: str | None = None
+    # Bank fields
+    bank_code: str | None = None
+    bank_account_number: str | None = None
+    # Bank transfer
+    account_expires_at: str | None = None
+    # USSD
+    ussd_type: str | None = None
+    # QR
+    qr_provider: str | None = None
+    # EFT
+    eft_provider: str | None = None
+
+    @model_validator(mode="after")
+    def _validate_channel_fields(self) -> "CheckoutChargeRequest":
+        ch = self.channel
+        if ch == "card":
+            if not all([self.card_number, self.cvv, self.expiry_month, self.expiry_year]):
+                raise ValueError(
+                    "card channel requires card_number, cvv, expiry_month, expiry_year"
+                )
+        elif ch == "mobile_money":
+            if not self.phone:
+                raise ValueError("mobile_money channel requires phone")
+        elif ch == "bank":
+            if not (self.bank_code and self.bank_account_number):
+                raise ValueError(
+                    "bank channel requires bank_code and bank_account_number"
+                )
+        elif ch == "ussd":
+            if not self.ussd_type:
+                raise ValueError("ussd channel requires ussd_type")
+        elif ch == "qr":
+            if not self.qr_provider:
+                raise ValueError("qr channel requires qr_provider")
+        elif ch == "eft":
+            if not self.eft_provider:
+                raise ValueError("eft channel requires eft_provider")
+        # bank_transfer requires no extra fields
+        return self
+
+
+class CheckoutChargeResponse(Schema):
+    """Response from a charge initiation or step submission."""
+
+    reference: str
+    status: str
+    display_text: str | None = None
+    # Channel-specific response fields
+    ussd_code: str | None = None
+    qr_code: str | None = None
+    qr_image_url: str | None = None
+    account_number: str | None = None
+    account_name: str | None = None
+    bank_name: str | None = None
+    account_expires_at: str | None = None
+    redirect_url: str | None = None
+
+
+class CheckoutChargeStepSubmitRequest(Schema):
+    """Submit a value for a pending charge step (OTP, PIN, phone, birthday)."""
+
+    value: str
+
+
+class CheckoutPaymentStatus(Schema):
+    """Simplified payment status for the frontend."""
+
+    status: Literal["pending", "success", "failed", "requires_action"]
+    message: str | None = None
+    next_action: dict[str, Any] | None = None

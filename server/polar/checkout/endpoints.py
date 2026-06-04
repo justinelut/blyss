@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, List
 
 from fastapi import Depends, Path, Query, Request
 from pydantic import UUID4
@@ -301,6 +301,226 @@ async def client_stream(
 
     receivers = Receivers(checkout_client_secret=checkout.client_secret)
     return EventSourceResponse(subscribe(redis, receivers.get_channels(), request))
+
+
+# --- Inline Paystack Charge Endpoints ---
+
+from polar.integrations.paystack.service import paystack as paystack_service
+
+from .payment_channels import get_channels_for_currency
+from .schemas import (
+    CheckoutChargeRequest,
+    CheckoutChargeResponse,
+    CheckoutChargeStepSubmitRequest,
+    CheckoutPaymentChannel,
+    CheckoutPaymentStatus,
+)
+
+
+@inner_router.get(
+    "/client/{client_secret}/payment-channels",
+    summary="Get Payment Channels",
+    response_model=List[CheckoutPaymentChannel],
+    responses={404: CheckoutNotFound, 410: CheckoutExpired},
+)
+async def client_payment_channels(
+    client_secret: CheckoutClientSecret,
+    session: AsyncSession = Depends(get_db_session),
+) -> List[CheckoutPaymentChannel]:
+    """Get available payment channels for a checkout session."""
+    checkout = await checkout_service.get_by_client_secret(session, client_secret)
+    return get_channels_for_currency(checkout.currency or "USD")
+
+
+@inner_router.post(
+    "/client/{client_secret}/charge",
+    summary="Initiate Charge",
+    response_model=CheckoutChargeResponse,
+    responses={404: CheckoutNotFound, 410: CheckoutExpired},
+)
+async def client_charge(
+    client_secret: CheckoutClientSecret,
+    body: CheckoutChargeRequest,
+    session: AsyncSession = Depends(get_db_session),
+) -> CheckoutChargeResponse:
+    """Initiate a Paystack charge for the checkout session."""
+    checkout = await checkout_service.get_by_client_secret(session, client_secret)
+    email = checkout.customer_email or "customer@checkout.blyss.africa"
+    amount = checkout.total_amount
+
+    # Build Paystack /charge payload
+    payload: dict = {
+        "email": email,
+        "amount": amount,
+        "currency": checkout.currency or "KES",
+    }
+
+    ch = body.channel
+    if ch == "card":
+        payload["card"] = {
+            "number": body.card_number,
+            "cvv": body.cvv,
+            "expiry_month": body.expiry_month,
+            "expiry_year": body.expiry_year,
+        }
+        if body.pin:
+            payload["pin"] = body.pin
+    elif ch == "mobile_money":
+        payload["mobile_money"] = {
+            "phone": body.phone,
+            "provider": body.provider or "mpesa",
+        }
+    elif ch == "bank":
+        payload["bank"] = {
+            "code": body.bank_code,
+            "account_number": body.bank_account_number,
+        }
+    elif ch == "bank_transfer":
+        payload["bank_transfer"] = {"account_expires_at": body.account_expires_at}
+    elif ch == "ussd":
+        payload["ussd"] = {"type": body.ussd_type}
+    elif ch == "qr":
+        payload["qr"] = {"provider": body.qr_provider}
+    elif ch == "eft":
+        payload["eft"] = {"provider": body.eft_provider}
+
+    result = await paystack_service.charge(payload)
+
+    # Persist reference + status to checkout metadata
+    meta = dict(checkout.payment_processor_metadata or {})
+    meta["charge_reference"] = result["reference"]
+    meta["charge_status"] = result["status"]
+    checkout.payment_processor_metadata = meta
+    session.add(checkout)
+    await session.commit()
+
+    raw = result.get("raw", {})
+    return CheckoutChargeResponse(
+        reference=result["reference"],
+        status=result["status"],
+        display_text=result.get("display_text"),
+        ussd_code=raw.get("ussd_code"),
+        qr_code=raw.get("qr_code"),
+        qr_image_url=raw.get("qr_image_url"),
+        account_number=raw.get("account_number"),
+        account_name=raw.get("account_name"),
+        bank_name=raw.get("bank_name"),
+        account_expires_at=raw.get("account_expires_at"),
+        redirect_url=raw.get("redirect_url"),
+    )
+
+
+@inner_router.post(
+    "/client/{client_secret}/charge/submit/{action}",
+    summary="Submit Charge Step",
+    response_model=CheckoutChargeResponse,
+    responses={404: CheckoutNotFound, 410: CheckoutExpired},
+)
+async def client_charge_submit(
+    client_secret: CheckoutClientSecret,
+    action: str,
+    body: CheckoutChargeStepSubmitRequest,
+    session: AsyncSession = Depends(get_db_session),
+) -> CheckoutChargeResponse:
+    """Submit an OTP/PIN/phone/birthday for a pending charge."""
+    if action not in ("otp", "pin", "phone", "birthday"):
+        raise ResourceNotFound()
+
+    checkout = await checkout_service.get_by_client_secret(session, client_secret)
+    meta = checkout.payment_processor_metadata or {}
+    reference = meta.get("charge_reference")
+    if not reference:
+        raise ResourceNotFound()
+
+    result = await paystack_service.submit_charge_step(action, reference, body.value)
+
+    # Update metadata
+    meta = dict(meta)
+    meta["charge_status"] = result["status"]
+    checkout.payment_processor_metadata = meta
+    session.add(checkout)
+    await session.commit()
+
+    raw = result.get("raw", {})
+    return CheckoutChargeResponse(
+        reference=result["reference"],
+        status=result["status"],
+        display_text=result.get("display_text"),
+        ussd_code=raw.get("ussd_code"),
+        qr_code=raw.get("qr_code"),
+        qr_image_url=raw.get("qr_image_url"),
+        account_number=raw.get("account_number"),
+        account_name=raw.get("account_name"),
+        bank_name=raw.get("bank_name"),
+        account_expires_at=raw.get("account_expires_at"),
+        redirect_url=raw.get("redirect_url"),
+    )
+
+
+@inner_router.get(
+    "/client/{client_secret}/payment-status",
+    summary="Get Payment Status",
+    response_model=CheckoutPaymentStatus,
+    responses={404: CheckoutNotFound, 410: CheckoutExpired},
+)
+async def client_payment_status(
+    client_secret: CheckoutClientSecret,
+    session: AsyncSession = Depends(get_db_session),
+) -> CheckoutPaymentStatus:
+    """Check the current payment status of a checkout's charge."""
+    checkout = await checkout_service.get_by_client_secret(session, client_secret)
+    meta = checkout.payment_processor_metadata or {}
+    reference = meta.get("charge_reference")
+    if not reference:
+        return CheckoutPaymentStatus(
+            status="pending", message="No charge initiated yet."
+        )
+
+    # Try verify_transaction first
+    try:
+        tx = await paystack_service.verify_transaction(reference)
+        tx_status = tx.get("status")
+        if tx_status == "success":
+            return CheckoutPaymentStatus(status="success", message="Payment successful.")
+        if tx_status == "failed":
+            return CheckoutPaymentStatus(
+                status="failed",
+                message=tx.get("gateway_response", "Payment failed."),
+            )
+    except Exception:
+        pass
+
+    # If still pending, check /charge/{reference} for next-action info
+    try:
+        pending = await paystack_service.check_pending_charge(reference)
+        p_status = pending.get("status")
+        if p_status == "success":
+            return CheckoutPaymentStatus(status="success", message="Payment successful.")
+        if p_status in ("send_otp", "send_pin", "send_phone", "send_birthday"):
+            action = p_status.replace("send_", "")
+            return CheckoutPaymentStatus(
+                status="requires_action",
+                message=pending.get("display_text"),
+                next_action={"action": action, "display_text": pending.get("display_text")},
+            )
+        if p_status == "open_url":
+            return CheckoutPaymentStatus(
+                status="requires_action",
+                message=pending.get("display_text"),
+                next_action={
+                    "action": "redirect",
+                    "url": pending.get("raw", {}).get("url"),
+                    "display_text": pending.get("display_text"),
+                },
+            )
+        if p_status == "failed":
+            return CheckoutPaymentStatus(
+                status="failed", message=pending.get("display_text") or "Payment failed."
+            )
+    except Exception:
+        pass
+
+    return CheckoutPaymentStatus(status="pending", message="Payment is being processed.")
 
 
 router = APIRouter(prefix="/checkouts")
