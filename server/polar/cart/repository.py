@@ -95,14 +95,31 @@ class CartRepository(
         *,
         flush: bool = False,
     ) -> CartItem:
-        """Insert or update a cart item, incrementing quantity if exists."""
+        """Insert-or-update a cart item.
+
+        Blyss only sells digital products. Buying the same digital good twice
+        in a single cart is meaningless (the buyer can't consume two copies
+        of one digital download), so the upsert is idempotent on quantity:
+        the row's quantity is always set to the latest requested value
+        rather than `existing + new`. Repeated "Buy Now" clicks therefore
+        keep the cart at one row, quantity 1 — they don't multiply the
+        price. If we ever ship physical goods or seat-based products, we
+        will branch on `product.type` here.
+        """
         now = utc_now()
+
+        # Cap quantity at 1 for the digital-only marketplace today.
+        # 100 is left as the upper validation bound elsewhere; here the
+        # repository simply enforces what the model allows. The cart item
+        # row is treated as "is this product in the cart?" rather than
+        # "how many copies?".
+        digital_quantity = 1
 
         insert_stmt = insert(CartItem).values(
             user_id=user_id,
             session_token=session_token,
             product_id=product_id,
-            quantity=quantity,
+            quantity=digital_quantity,
             created_at=now,
             modified_at=now,
         )
@@ -115,7 +132,7 @@ class CartRepository(
         upsert_stmt = insert_stmt.on_conflict_do_update(
             index_elements=conflict_target,
             set_={
-                "quantity": CartItem.quantity + quantity,
+                "quantity": digital_quantity,
                 "modified_at": now,
             },
         ).returning(CartItem)
@@ -172,13 +189,11 @@ class CartRepository(
             existing_user_item = await self.get_one_or_none(user_item_stmt)
 
             if existing_user_item:
-                new_quantity = existing_user_item.quantity + guest_item.quantity
-                new_quantity = min(new_quantity, 100)
-
+                # Digital marketplace: quantity always 1 (no summation).
                 update_stmt = (
                     update(CartItem)
                     .where(CartItem.id == existing_user_item.id)
-                    .values(quantity=new_quantity, modified_at=now)
+                    .values(quantity=1, modified_at=now)
                 )
                 await self.session.execute(update_stmt)
             else:

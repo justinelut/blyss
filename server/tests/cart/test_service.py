@@ -98,7 +98,6 @@ class TestAddItem:
             product_id=product.id,
             quantity=2,
         )
-        original_quantity = first_item.quantity
 
         # Act - Add same product again
         second_item, _ = await cart_service.add_item(
@@ -108,10 +107,10 @@ class TestAddItem:
             quantity=3,
         )
 
-        # Assert
+        # Assert: digital marketplace — same row, quantity stays 1.
         assert second_item.id == first_item.id
-        assert second_item.quantity == original_quantity + 3
-        assert second_item.quantity == 5
+        assert first_item.quantity == 1
+        assert second_item.quantity == 1
 
     async def test_product_out_of_stock_error(
         self,

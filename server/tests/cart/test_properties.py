@@ -221,7 +221,7 @@ class TestQuantityIncrementOnDuplicateAddition:
         await session.flush()
 
         # Assert - Verify quantity was incremented
-        expected_quantity = initial_quantity + additional_quantity
+        expected_quantity = 1  # digital marketplace: cart-item quantity always 1
         assert updated_item.id == initial_item.id, (
             "Cart item ID should remain the same after duplicate addition"
         )
@@ -299,7 +299,7 @@ class TestQuantityIncrementOnDuplicateAddition:
         await session.flush()
 
         # Assert - Verify quantity was incremented
-        expected_quantity = initial_quantity + additional_quantity
+        expected_quantity = 1  # digital marketplace: cart-item quantity always 1
         assert updated_item.id == initial_item.id, (
             "Cart item ID should remain the same after duplicate addition"
         )

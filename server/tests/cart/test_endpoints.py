@@ -65,7 +65,7 @@ class TestAddCartItem:
     @pytest.mark.auth(
         AuthSubjectFixture(subject="user"),
     )
-    async def test_authenticated_user_increments_quantity_for_duplicate(
+    async def test_authenticated_user_duplicate_add_stays_at_quantity_1(
         self,
         client: AsyncClient,
         session: AsyncSession,
@@ -73,18 +73,21 @@ class TestAddCartItem:
         organization: Organization,
     ) -> None:
         """
-        Test that adding the same product twice increments quantity.
+        Adding the same digital product twice must NOT multiply the price.
+        Blyss only sells digital goods — buying two copies of the same
+        digital download is meaningless. The cart upsert is idempotent:
+        the row stays at quantity 1 no matter how many times Buy Now is
+        clicked.
 
-        Validates: Requirements 2.2, 5.1
+        Validates: Digital marketplace quantity rule
         """
-        # Arrange
         product = await create_product(
             save_fixture,
             organization=organization,
             recurring_interval=None,
         )
 
-        # Add item first time
+        # First add — explicitly request quantity 2.
         first_response = await client.post(
             "/v1/cart/items",
             json={
@@ -93,10 +96,11 @@ class TestAddCartItem:
             },
         )
         assert first_response.status_code == 201
-        first_data = first_response.json()
-        first_item_id = first_data["id"]
+        first_item_id = first_response.json()["id"]
+        # Even with quantity=2 in the request, server enforces quantity=1.
+        assert first_response.json()["quantity"] == 1
 
-        # Act - Add same product again
+        # Second add — same row, quantity stays at 1 (no multiplication).
         second_response = await client.post(
             "/v1/cart/items",
             json={
@@ -104,12 +108,10 @@ class TestAddCartItem:
                 "quantity": 3,
             },
         )
-
-        # Assert
         assert second_response.status_code == 201
         second_data = second_response.json()
         assert second_data["id"] == first_item_id  # Same cart item
-        assert second_data["quantity"] == 5  # 2 + 3
+        assert second_data["quantity"] == 1
 
     @pytest.mark.auth(
         AuthSubjectFixture(subject="anonymous", scopes={Scope.web_read, Scope.web_write, Scope.cart_read, Scope.cart_write}, session_token="test-guest-session-token"),
@@ -449,7 +451,7 @@ class TestGetCart:
         data = response.json()
         assert len(data["items"]) == 2
         assert data["item_count"] == 2
-        assert data["subtotal"] == 4000  # (1000 * 2) + (2000 * 1)
+        assert data["subtotal"] == 3000  # 1000 + 2000 (qty always 1 for digital)
         assert "tax" in data
         assert "total" in data
 
@@ -457,8 +459,8 @@ class TestGetCart:
         items = {item["product_id"]: item for item in data["items"]}
         assert str(product1.id) in items
         assert str(product2.id) in items
-        assert items[str(product1.id)]["quantity"] == 2
-        assert items[str(product1.id)]["subtotal"] == 2000
+        assert items[str(product1.id)]["quantity"] == 1
+        assert items[str(product1.id)]["subtotal"] == 1000
         assert items[str(product2.id)]["quantity"] == 1
         assert items[str(product2.id)]["subtotal"] == 2000
 

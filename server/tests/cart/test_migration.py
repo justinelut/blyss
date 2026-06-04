@@ -99,7 +99,7 @@ class TestGuestCartMigrationOnLogin:
         # 3. Response should clear guest session cookie
         assert response.status_code == 303
 
-    async def test_duplicate_products_have_quantities_summed(
+    async def test_duplicate_products_after_migration_stay_at_quantity_1(
         self,
         session: AsyncSession,
         save_fixture: SaveFixture,
@@ -107,9 +107,13 @@ class TestGuestCartMigrationOnLogin:
         user: User,
     ) -> None:
         """
-        Test that duplicate products have quantities summed during migration.
+        Test that migrating a guest cart into a user cart that already has
+        the same product keeps the row at quantity 1.
 
-        Validates: Requirement 7.2
+        Blyss only sells digital products. Two copies of one digital good
+        is meaningless; migration must NOT sum quantities.
+
+        Validates: Digital marketplace quantity rule
         """
         from unittest.mock import MagicMock
 
@@ -118,17 +122,15 @@ class TestGuestCartMigrationOnLogin:
         from polar.auth.service import auth as auth_service
         from polar.cart.repository import CartRepository
 
-        # Arrange
         cart_repository = CartRepository(session)
 
-        # Create product
         product = await create_product(
             save_fixture,
             organization=organization,
             recurring_interval=None,
         )
 
-        # Create user cart item with quantity 3
+        # User cart item — server caps at 1 regardless of input.
         await cart_repository.upsert_item(
             user_id=user.id,
             session_token=None,
@@ -137,7 +139,7 @@ class TestGuestCartMigrationOnLogin:
             flush=True,
         )
 
-        # Create guest cart item with same product, quantity 2
+        # Guest cart item, same product — also capped at 1.
         guest_session_token = "guest_session_456"
         await cart_repository.upsert_item(
             user_id=None,
@@ -147,13 +149,11 @@ class TestGuestCartMigrationOnLogin:
             flush=True,
         )
 
-        # Mock request with guest session cookie
         mock_request = MagicMock(spec=Request)
         mock_request.cookies = {"polar_guest_session": guest_session_token}
         mock_request.headers = {"User-Agent": "test"}
         mock_request.url.hostname = "127.0.0.1"
 
-        # Act - Simulate login
         await auth_service.get_login_response(
             session=session,
             request=mock_request,
@@ -161,14 +161,11 @@ class TestGuestCartMigrationOnLogin:
             return_to="/",
         )
 
-        # Assert
-        # User cart should have one item with summed quantity (3 + 2 = 5)
         user_items = await cart_repository.get_by_user(user.id)
         assert len(user_items) == 1
         assert user_items[0].product_id == product.id
-        assert user_items[0].quantity == 5
+        assert user_items[0].quantity == 1  # digital marketplace cap
 
-        # Guest cart should be empty
         guest_items = await cart_repository.get_by_session(guest_session_token)
         assert len(guest_items) == 0
 

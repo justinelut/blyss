@@ -88,9 +88,10 @@ export const CartItem = ({ item, currency }: CartItemProps) => {
           <span className="text-[var(--color-on-surface)]" aria-label={`Price: ${formatCurrency('compact')(priceAmount, priceCurrency)}`}>
             {formatCurrency('compact')(priceAmount, priceCurrency)}
           </span>
-          <span className="text-[var(--color-on-surface-variant)]" aria-label={`Quantity: ${item.quantity}`}>
-            Quantity: {item.quantity}
-          </span>
+          {/*
+            Quantity intentionally not shown — Blyss is digital-only and the
+            cart row is always quantity 1.
+          */}
         </div>
       </div>
 

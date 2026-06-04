@@ -58,9 +58,13 @@ export const CartItemRow = ({ item, onRemove, isRemoving }: CartItemRowProps) =>
             by {org.name}
           </span>
         )}
-        <span className="mt-1 font-sans text-[12px] text-[var(--text-muted)]">
-          Qty: {item.quantity}
-        </span>
+        {/*
+          Quantity intentionally not shown. Blyss only sells digital
+          products and the cart-item row is always quantity 1, so a "Qty: 1"
+          label adds noise without information. If the marketplace ever
+          starts selling physical/seat-based goods this can be revived
+          conditional on the product type.
+        */}
       </div>
 
       {/* Price + remove */}
