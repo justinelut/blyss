@@ -163,8 +163,10 @@ jobs:
           inject_kv POLAR_CEREBRAS_API_KEY  "${CEREBRAS_API_KEY:-}"
           inject_kv POLAR_OPENAI_API_KEY    "${OPENAI_API_KEY:-}"
 
-          # Blyss frontend origins get credentialed CORS (cookies allowed)
-          inject_kv POLAR_CORS_ORIGINS "https://blyss.co.ke,https://www.blyss.co.ke,https://buy.blyss.co.ke"
+          # Blyss frontend origins get credentialed CORS (cookies allowed).
+          # Pydantic-settings parses list[str] env vars as JSON, so we need
+          # the value to be a valid JSON array literal — not a CSV.
+          inject_kv POLAR_CORS_ORIGINS '["https://blyss.co.ke","https://www.blyss.co.ke","https://buy.blyss.co.ke"]'
 
           chmod 644 k8s/_staged/blyss.env.secret k8s/_staged/.jwks.json
           echo "Staged env: $(wc -l < k8s/_staged/blyss.env.secret) lines"
