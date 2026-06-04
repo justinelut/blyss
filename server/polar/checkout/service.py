@@ -542,10 +542,9 @@ class CheckoutService:
         )
 
         # Store cart item IDs in user metadata for cart-based checkouts.
-        # CheckoutCartCreate (the buyer-cart path) doesn't carry user_metadata
-        # — it inherits from CheckoutCreateBase which doesn't expose that
-        # field on Blyss. Default to {} when absent.
-        user_metadata = getattr(checkout_create, "user_metadata", None) or {}
+        # MetadataInputMixin exposes `metadata` (Pydantic attr) which is
+        # serialized as `user_metadata` (alias). Read by attribute name.
+        user_metadata = getattr(checkout_create, "metadata", None) or {}
         if isinstance(checkout_create, CheckoutCartCreate):
             user_metadata["cart_item_ids"] = [str(item.id) for item in cart_items]
 
@@ -598,6 +597,7 @@ class CheckoutService:
                     "customer_tax_id",
                     "subscription_id",
                     "custom_field_data",
+                    "metadata",
                     "user_metadata",
                 },
                 by_alias=True,
