@@ -335,6 +335,15 @@ class Organization(RateLimitGroupMixin, RecordModel):
         nullable=False,
         default=PayoutMethod.BANK,
     )
+    bank_code: Mapped[str | None] = mapped_column(
+        String, nullable=True, default=None
+    )
+    bank_account_number: Mapped[str | None] = mapped_column(
+        String, nullable=True, default=None
+    )
+    bank_account_name: Mapped[str | None] = mapped_column(
+        String, nullable=True, default=None
+    )
 
     @property
     def allow_customer_updates(self) -> bool:

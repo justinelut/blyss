@@ -37,6 +37,7 @@ import {
   SettingsGroupActions,
   SettingsGroupItem,
 } from './SettingsGroup'
+import OrganizationBankSettings from './OrganizationBankSettings'
 
 interface MPesaConfigurationForm {
   mpesa_number: string
@@ -56,9 +57,10 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
   const [isRetrying, setIsRetrying] = useState(false)
 
   const form = useForm<MPesaConfigurationForm>({
+    mode: 'onChange',
     defaultValues: {
-      mpesa_number: (organization as any).mpesa_number || '',
-      payout_method: (organization as any).payout_method || 'bank',
+      mpesa_number: organization.mpesa_number || '',
+      payout_method: organization.payout_method || 'bank',
     },
   })
 
@@ -66,11 +68,11 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
   const mpesaNumber = watch('mpesa_number')
   const payoutMethod = watch('payout_method')
 
-  // Get M-Pesa related fields from organization (these would be added to the Organization schema)
-  const currentMPesaNumber = (organization as any).mpesa_number
-  const mpesaVerified = (organization as any).mpesa_verified || false
-  const subaccountCode = (organization as any).subaccount_code as string | null
-  const subaccountStatus = (organization as any).subaccount_status || 'pending'
+  // Get M-Pesa related fields from organization
+  const currentMPesaNumber = organization.mpesa_number
+  const mpesaVerified = organization.mpesa_verified || false
+  const subaccountCode = organization.subaccount_code
+  const subaccountStatus = organization.subaccount_status || 'pending'
   // The DB column defaults to "pending" so a fresh org with no subaccount
   // looks indistinguishable from one whose subaccount is in-flight. We use
   // the presence of subaccount_code as the actual signal — if there's no
@@ -100,7 +102,7 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
       setIsConfiguring(true)
       try {
         await unwrap(
-          api.POST('/v1/integrations/paystack/organizations/{id}/mpesa', {
+          (api as any).POST('/v1/integrations/paystack/organizations/{id}/mpesa', {
             params: {
               path: { id: organization.id },
             },
@@ -137,7 +139,7 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
     setIsVerifying(true)
     try {
       await unwrap(
-        api.POST('/v1/integrations/paystack/organizations/{id}/mpesa/verify', {
+        (api as any).POST('/v1/integrations/paystack/organizations/{id}/mpesa/verify', {
           params: {
             path: { id: organization.id },
           },
@@ -156,7 +158,7 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
       toast({
         title: 'Verification Failed',
         description: error.message || 'Failed to verify M-Pesa number',
-        variant: 'destructive',
+        variant: 'error',
       })
     } finally {
       setIsVerifying(false)
@@ -169,7 +171,7 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
     setIsRetrying(true)
     try {
       await unwrap(
-        api.POST(
+        (api as any).POST(
           '/v1/integrations/paystack/organizations/{id}/subaccount/retry',
           {
             params: {
@@ -190,7 +192,7 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
       toast({
         title: 'Retry Failed',
         description: error.message || 'Failed to set up your payout account',
-        variant: 'destructive',
+        variant: 'error',
       })
     } finally {
       setIsRetrying(false)
@@ -506,16 +508,16 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
             </>
           )}
 
+          {payoutMethod === 'bank' && (
+            <OrganizationBankSettings organization={organization} />
+          )}
+
           <SettingsGroupActions>
             {payoutMethod === 'mpesa' &&
               (!currentMPesaNumber || mpesaNumber !== currentMPesaNumber) && (
                 <Button
                   type="submit"
-                  disabled={
-                    !formState.isValid ||
-                    isConfiguring ||
-                    subaccountStatus !== 'active'
-                  }
+                  disabled={!formState.isValid || isConfiguring}
                   loading={isConfiguring}
                 >
                   {isConfiguring ? 'Configuring...' : 'Configure M-Pesa'}

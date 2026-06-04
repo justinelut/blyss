@@ -683,5 +683,38 @@ class PaystackService:
                 f"Network error communicating with Paystack: {e}"
             )
 
+    async def list_banks(self, country: str = "kenya") -> list[dict[str, Any]]:
+        """List Paystack-recognized banks for the given country.
+
+        Returns the raw `data` array from Paystack's `/bank` endpoint —
+        each item is a dict with `code`, `name`, `slug`, etc. The
+        dashboard's bank-payout dropdown consumes this list.
+        """
+        try:
+            response = await self._client.get(
+                "/bank", params={"country": country}
+            )
+            if response.status_code == 401:
+                raise PaystackAuthenticationError(
+                    "Paystack API authentication failed"
+                )
+            if response.status_code >= 500:
+                raise PaystackNetworkError(
+                    f"Paystack API server error: {response.status_code}"
+                )
+            payload = response.json()
+            if not payload.get("status"):
+                raise PaystackTransactionError(
+                    payload.get("message", "Failed to fetch banks")
+                )
+            return list(payload.get("data") or [])
+        except (PaystackError,):
+            raise
+        except Exception as e:
+            log.error("paystack.banks.list_failed", country=country, error=str(e))
+            raise PaystackNetworkError(
+                f"Network error communicating with Paystack: {e}"
+            )
+
 
 paystack = PaystackService()

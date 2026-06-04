@@ -35,6 +35,8 @@ from polar.models.organization import (
     OrganizationNotificationSettings,
     OrganizationStatus,
     OrganizationSubscriptionSettings,
+    PayoutMethod,
+    SubaccountStatus,
 )
 from polar.models.organization_review import OrganizationReview
 
@@ -347,6 +349,53 @@ class Organization(OrganizationBase):
     )
     customer_portal_settings: OrganizationCustomerPortalSettings = Field(
         description="Settings related to the customer portal",
+    )
+
+    # ── Payout configuration ─────────────────────────────────────────
+    # Exposed so the dashboard can drive the M-Pesa / Bank settings flows
+    # without reaching for `(organization as any).field` casts. Most are
+    # nullable: a fresh org has none of these set until a creator opens
+    # Settings → Finance → Payouts.
+    payout_method: PayoutMethod = Field(
+        default=PayoutMethod.BANK,
+        description="Payout method selected by the creator: bank | mpesa",
+    )
+    mpesa_number: str | None = Field(
+        default=None,
+        description=(
+            "Configured M-Pesa phone number (Kenyan format, +254XXXXXXXXX). "
+            "Set when the creator picks M-Pesa as their payout method."
+        ),
+    )
+    mpesa_verified: bool = Field(
+        default=False,
+        description=(
+            "Whether the creator's M-Pesa number was verified via the "
+            "KSh 10 verification transaction."
+        ),
+    )
+    subaccount_code: str | None = Field(
+        default=None,
+        description=(
+            "Paystack subaccount code. Presence indicates payout setup has "
+            "started; absence means the creator has not configured payouts."
+        ),
+    )
+    subaccount_status: SubaccountStatus = Field(
+        default=SubaccountStatus.PENDING,
+        description="Paystack subaccount status: pending | active | failed",
+    )
+    bank_code: str | None = Field(
+        default=None,
+        description="Paystack-recognized KE bank code (when payout_method=bank).",
+    )
+    bank_account_number: str | None = Field(
+        default=None,
+        description="Settlement bank account number (when payout_method=bank).",
+    )
+    bank_account_name: str | None = Field(
+        default=None,
+        description="Settlement bank account holder name (when payout_method=bank).",
     )
 
 

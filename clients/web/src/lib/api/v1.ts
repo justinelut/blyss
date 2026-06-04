@@ -22070,6 +22070,22 @@ export interface components {
       customer_email_settings: components['schemas']['OrganizationCustomerEmailSettings']
       /** @description Settings related to the customer portal */
       customer_portal_settings: components['schemas']['OrganizationCustomerPortalSettings']
+      /** @description Payout method selected by the creator: bank | mpesa */
+      payout_method?: 'bank' | 'mpesa'
+      /** @description Configured M-Pesa phone number (Kenyan format, +254XXXXXXXXX). */
+      mpesa_number?: string | null
+      /** @description Whether the creator's M-Pesa number was verified via the KSh 10 transaction. */
+      mpesa_verified?: boolean
+      /** @description Paystack subaccount code; presence indicates payout setup has started. */
+      subaccount_code?: string | null
+      /** @description Paystack subaccount status: pending | active | failed */
+      subaccount_status?: 'pending' | 'active' | 'failed'
+      /** @description Paystack-recognized KE bank code (when payout_method=bank). */
+      bank_code?: string | null
+      /** @description Settlement bank account number (when payout_method=bank). */
+      bank_account_number?: string | null
+      /** @description Settlement bank account holder name (when payout_method=bank). */
+      bank_account_name?: string | null
     }
     /** OrganizationAccessToken */
     OrganizationAccessToken: {

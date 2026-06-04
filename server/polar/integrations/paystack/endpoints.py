@@ -332,6 +332,120 @@ async def verify_mpesa(
         ) from e
 
 
+class BankConfigurationRequest(BaseModel):
+    """Request schema for bank-account payout configuration."""
+
+    bank_code: str = Field(
+        ..., min_length=2, max_length=10,
+        description="Paystack KE bank code (from GET /v1/integrations/paystack/banks).",
+    )
+    account_number: str = Field(
+        ..., min_length=4, max_length=20,
+        description="Settlement bank account number.",
+    )
+    account_name: str = Field(
+        ..., min_length=2, max_length=200,
+        description="Account holder's name on the settlement account.",
+    )
+
+
+@router.post(
+    "/organizations/{id}/bank",
+    response_model=OrganizationSchema,
+    name="integrations.paystack.configure_bank",
+)
+async def configure_bank(
+    id: UUID,
+    request: BankConfigurationRequest,
+    auth_subject: WebUserWrite,
+    session: AsyncSession = Depends(get_db_session),
+) -> OrganizationSchema:
+    """Configure bank-account payout for an organization.
+
+    Creates (or updates) the Paystack subaccount with bank settlement and
+    persists the bank fields. Unlike M-Pesa, no verification transaction
+    is required — Paystack validates the bank account on subaccount
+    creation/update.
+    """
+    repository = OrganizationRepository.from_session(session)
+    organization = await repository.get_by_id(id)
+    if not organization:
+        raise ResourceNotFound("Organization not found")
+
+    try:
+        if organization.subaccount_code:
+            await paystack.update_subaccount(
+                subaccount_code=organization.subaccount_code,
+                settlement_bank=request.bank_code,
+                account_number=request.account_number,
+            )
+            update_dict = {
+                "bank_code": request.bank_code,
+                "bank_account_number": request.account_number,
+                "bank_account_name": request.account_name,
+                "payout_method": PayoutMethod.BANK,
+                "subaccount_status": "active",
+            }
+        else:
+            sub = await paystack.create_subaccount(
+                business_name=organization.name,
+                settlement_bank=request.bank_code,
+                account_number=request.account_number,
+                percentage_charge=20.0,
+            )
+            update_dict = {
+                "bank_code": request.bank_code,
+                "bank_account_number": request.account_number,
+                "bank_account_name": request.account_name,
+                "payout_method": PayoutMethod.BANK,
+                "subaccount_code": sub["subaccount_code"],
+                "subaccount_status": sub["status"],
+            }
+
+        organization = await repository.update(
+            organization, update_dict=update_dict, flush=True
+        )
+        log.info(
+            "paystack.bank.configured",
+            organization_id=organization.id,
+            bank_code=request.bank_code,
+            subaccount_code=organization.subaccount_code,
+        )
+        return OrganizationSchema.model_validate(organization)
+    except Exception as e:
+        log.error(
+            "paystack.bank.configuration_failed",
+            organization_id=organization.id,
+            bank_code=request.bank_code,
+            error=str(e),
+        )
+        raise HTTPException(
+            status_code=422, detail=f"Failed to configure bank: {str(e)}"
+        ) from e
+
+
+@router.get(
+    "/banks",
+    name="integrations.paystack.list_banks",
+)
+async def list_banks(
+    country: str = "kenya",
+) -> list[dict[str, Any]]:
+    """Public list of Paystack-recognized banks for the given country.
+
+    Used by the dashboard's bank-payout dropdown. The response items match
+    Paystack's `/bank` shape — each item has `code`, `name`, `slug`, etc.
+    """
+    try:
+        return await paystack.list_banks(country=country)
+    except Exception as e:
+        log.error("paystack.banks.list_failed", country=country, error=str(e))
+        raise HTTPException(
+            status_code=502,
+            detail="Failed to load banks from Paystack",
+        ) from e
+
+
 @router.post("/organizations/{id}/subaccount/retry", response_model=OrganizationSchema)
 async def retry_subaccount_creation(
     id: UUID,
