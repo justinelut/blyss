@@ -1977,12 +1977,35 @@ class CheckoutService:
 
         # Validate organization access
         if organization_id:
-            organization_repository = organization_service.repository
+            from polar.organization.repository import OrganizationRepository
+
+            organization_repository = OrganizationRepository.from_session(session)
             organization = await organization_repository.get_by_id(organization_id)
-            if organization is None or not organization_service.can_access(
-                auth_subject, organization
-            ):
+            if organization is None:
                 raise NotPermitted()
+
+            # Cart-checkout is invoked with an Organization auth_subject scoped
+            # to the cart's owning org (built in CartService.create_checkout_from_cart),
+            # so this assertion is always true for the buyer-cart flow. For
+            # creator-driven calls, verify the user has access to the org via
+            # UserOrganization membership.
+            from polar.auth.models import is_organization, is_user
+
+            if is_organization(auth_subject):
+                if auth_subject.subject.id != organization.id:
+                    raise NotPermitted()
+            elif is_user(auth_subject):
+                from polar.models import UserOrganization
+                from sqlalchemy import select as _sa_select
+
+                membership_stmt = _sa_select(UserOrganization).where(
+                    UserOrganization.user_id == auth_subject.subject.id,
+                    UserOrganization.organization_id == organization.id,
+                    UserOrganization.is_deleted.is_(False),
+                )
+                result = await session.execute(membership_stmt)
+                if result.scalar_one_or_none() is None:
+                    raise NotPermitted()
 
         return products, cart_items
 
