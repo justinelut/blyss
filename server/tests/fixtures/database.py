@@ -6,6 +6,7 @@ from alembic_utils.pg_trigger import PGTrigger
 from alembic_utils.replaceable_entity import registry as entities_registry
 from pydantic_core import Url
 from pytest_mock import MockerFixture
+from sqlalchemy import exc as sa_exc
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.schema import CreateSequence
 from sqlalchemy_utils import create_database, database_exists, drop_database
@@ -88,6 +89,36 @@ SaveFixture = Callable[[Model], Coroutine[None, None, None]]
 
 def save_fixture_factory(session: AsyncSession) -> SaveFixture:
     async def _save_fixture(model: Model) -> None:
+        # If an instance with the same primary key is already in the session
+        # identity map (e.g. eagerly loaded by a previous endpoint call on the
+        # shared test session), expunge it first so add() doesn't conflict.
+        from sqlalchemy import inspect as sa_inspect
+
+        state = sa_inspect(model)
+        if state.persistent or state.detached:
+            # Already tracked — just flush
+            await session.flush()
+            return
+
+        # Walk the immediate relationships of the new object and evict any
+        # conflicting instances for related objects that are already present
+        # in the session under a different Python identity.
+        mapper = state.mapper
+        for rel in mapper.relationships:
+            try:
+                related = getattr(model, rel.key)
+            except Exception:
+                continue
+            if related is None:
+                continue
+            items = related if rel.uselist else [related]
+            for item in items:
+                item_state = sa_inspect(item)
+                if item_state.key and item_state.key in session.identity_map:
+                    existing = session.identity_map[item_state.key]
+                    if existing is not item:
+                        session.expunge(existing)
+
         session.add(model)
         await session.flush()
 

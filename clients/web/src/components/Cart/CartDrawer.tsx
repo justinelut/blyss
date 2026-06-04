@@ -9,7 +9,7 @@ import {
   SheetTitle,
   SheetClose,
 } from '@/components/ui/sheet'
-import { useCart, useRemoveFromCart } from '@/hooks/queries/cart'
+import { useCart, useCheckoutCart, useRemoveFromCart } from '@/hooks/queries/cart'
 import { CartItemRow } from './CartItemRow'
 import { typography } from '@/design'
 import { cn } from '@/lib/utils'
@@ -39,9 +39,15 @@ export const CartDrawer = ({ open, onOpenChange }: CartDrawerProps) => {
   const subtotal = (cart as any)?.subtotal ?? 0
   const itemCount = (cart as any)?.item_count ?? items.length
 
+  const { mutate: checkoutCart, isPending: isCheckingOut } = useCheckoutCart()
+
   const handleCheckout = () => {
-    onOpenChange(false)
-    router.push('/checkout')
+    checkoutCart(undefined, {
+      onSuccess: ({ url }) => {
+        onOpenChange(false)
+        router.push(url)
+      },
+    })
   }
 
   return (
@@ -106,9 +112,10 @@ export const CartDrawer = ({ open, onOpenChange }: CartDrawerProps) => {
             <button
               type="button"
               onClick={handleCheckout}
-              className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-md bg-[var(--accent)] font-sans text-[15px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)]"
+              disabled={isCheckingOut}
+              className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-md bg-[var(--accent)] font-sans text-[15px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Checkout
+              {isCheckingOut ? 'Starting checkout...' : 'Checkout'}
             </button>
             <button
               type="button"

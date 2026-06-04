@@ -3,22 +3,27 @@ import { redirect } from 'next/navigation'
 export const dynamic = 'force-dynamic'
 
 interface Props {
-  searchParams: Promise<{ product_id?: string }>
+  searchParams: Promise<{ client_secret?: string; product_id?: string }>
 }
 
 /**
  * /checkout — entry broker.
  *
- * NOTE: anonymous checkout creation is not yet supported by the API
- * (`POST /v1/checkouts/` and `POST /v1/checkout-links/` both require creator
- * auth, scope `checkouts:write`). Until a public buy path exists — either a
- * per-product checkout link surfaced on the public product payload, or a
- * public checkout-create endpoint — we cannot mint a hosted checkout for an
- * anonymous buyer here. We send the user back to the product page rather than
- * 404 or 500. See FINDINGS in the session summary: this is the remaining
- * blocker for completing a purchase.
+ * The cart Checkout button POSTs to /v1/cart/checkout and gets back a
+ * client_secret, then navigates to /checkout/{client_secret}.  This page
+ * handles any legacy /checkout?client_secret=... query-param redirects and
+ * falls back to /marketplace for bare direct navigation.
  */
 export default async function CheckoutEntry({ searchParams }: Props) {
-  const { product_id } = await searchParams
-  redirect(product_id ? `/product/${product_id}` : '/marketplace')
+  const { client_secret, product_id } = await searchParams
+
+  if (client_secret) {
+    redirect(`/checkout/${client_secret}`)
+  }
+
+  if (product_id) {
+    redirect(`/product/${product_id}`)
+  }
+
+  redirect('/marketplace')
 }

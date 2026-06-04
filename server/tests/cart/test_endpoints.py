@@ -14,6 +14,7 @@ from pytest_mock import MockerFixture
 
 from polar.models import Organization
 from polar.postgres import AsyncSession
+from polar.auth.scope import Scope
 from tests.fixtures.auth import AuthSubjectFixture
 from tests.fixtures.database import SaveFixture
 from tests.fixtures.random_objects import create_product
@@ -111,7 +112,7 @@ class TestAddCartItem:
         assert second_data["quantity"] == 5  # 2 + 3
 
     @pytest.mark.auth(
-        AuthSubjectFixture(subject="anonymous"),
+        AuthSubjectFixture(subject="anonymous", scopes={Scope.web_read, Scope.web_write, Scope.cart_read, Scope.cart_write}, session_token="test-guest-session-token"),
     )
     async def test_guest_session_token_handling(
         self,
@@ -142,6 +143,7 @@ class TestAddCartItem:
         )
 
         # Assert
+        import sys; print("\nRESP:", response.status_code, response.text[:200], file=sys.stderr)
         assert response.status_code == 201
         data = response.json()
         assert data["product_id"] == str(product.id)
@@ -338,7 +340,7 @@ class TestRemoveCartItem:
         assert len(cart_data["items"]) == 0
 
     @pytest.mark.auth(
-        AuthSubjectFixture(subject="anonymous"),
+        AuthSubjectFixture(subject="anonymous", scopes={Scope.web_read, Scope.web_write, Scope.cart_read, Scope.cart_write}, session_token="test-guest-session-token"),
     )
     async def test_guest_removes_item(
         self,
@@ -485,7 +487,7 @@ class TestGetCart:
         assert data["total"] == 0
 
     @pytest.mark.auth(
-        AuthSubjectFixture(subject="anonymous"),
+        AuthSubjectFixture(subject="anonymous", scopes={Scope.web_read, Scope.web_write, Scope.cart_read, Scope.cart_write}, session_token="test-guest-session-token"),
     )
     async def test_guest_gets_cart(
         self,
@@ -568,7 +570,7 @@ class TestClearCart:
         assert len(cart_after.json()["items"]) == 0
 
     @pytest.mark.auth(
-        AuthSubjectFixture(subject="anonymous"),
+        AuthSubjectFixture(subject="anonymous", scopes={Scope.web_read, Scope.web_write, Scope.cart_read, Scope.cart_write}, session_token="test-guest-session-token"),
     )
     async def test_guest_clears_cart(
         self,

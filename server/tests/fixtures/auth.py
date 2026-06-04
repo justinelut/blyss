@@ -23,9 +23,11 @@ class AuthSubjectFixture:
             "member",
         ] = "user",
         scopes: set[Scope] = {Scope.web_read, Scope.web_write},
+        session_token: str | None = None,
     ):
         self.subject = subject
         self.scopes = scopes
+        self.session_token = session_token
 
     def __repr__(self) -> str:
         scopes = (
@@ -98,7 +100,16 @@ def auth_subject(
         )
         subjects_map["member_billing_manager"] = member_billing_manager
 
-    return AuthSubject(subjects_map[subject_key], auth_subject_fixture.scopes, None)
+    subject = subjects_map[subject_key]
+
+    # For anonymous subjects, wrap in a GuestSession if a session_token is provided
+    if subject_key == "anonymous" and auth_subject_fixture.session_token is not None:
+        from polar.auth.guest_session import GuestSession
+        session = GuestSession(auth_subject_fixture.session_token)
+    else:
+        session = None
+
+    return AuthSubject(subject, auth_subject_fixture.scopes, session)
 
 
 def pytest_generate_tests(metafunc: pytest.Metafunc) -> None:

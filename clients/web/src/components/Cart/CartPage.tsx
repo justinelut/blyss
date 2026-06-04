@@ -1,7 +1,7 @@
 'use client'
 import Spinner from '@/components/Shared/Spinner'
 import { ErrorState } from '@/components/Shared/ErrorState'
-import { useCart } from '@/hooks/queries/cart'
+import { useCart, useCheckoutCart } from '@/hooks/queries/cart'
 import { useCurrencyStore } from '@/stores/currencyStore'
 import { formatCurrency } from '@/lib/currency'
 import { Button } from '@/components/ui/button'
@@ -15,10 +15,12 @@ export const CartPage = () => {
   const { currency } = useCurrencyStore()
   const router = useRouter()
 
+  const { mutate: checkoutCart, isPending: isCheckingOut } = useCheckoutCart()
+
   const handleCheckout = () => {
-    // TODO: Implement checkout navigation with cart items
-    // This will be implemented when integrating with the checkout service
-    router.push('/checkout')
+    checkoutCart(undefined, {
+      onSuccess: ({ url }) => router.push(url),
+    })
   }
 
   if (isLoading) {
@@ -100,8 +102,8 @@ export const CartPage = () => {
           </div>
         </div>
 
-        <Button onClick={handleCheckout} className="mt-6 w-full" size="lg" aria-label="Proceed to checkout">
-          Proceed to Checkout
+        <Button onClick={handleCheckout} disabled={isCheckingOut} className="mt-6 w-full" size="lg" aria-label="Proceed to checkout">
+          {isCheckingOut ? 'Starting checkout...' : 'Proceed to Checkout'}
         </Button>
       </section>
     </div>
