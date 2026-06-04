@@ -1,15 +1,25 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Charcoal tile with the same corner radius as the rest of the brand -->
   <rect width="64" height="64" rx="14" fill="#0F0E0C"/>
-  <text
-    x="50%"
-    y="56%"
-    text-anchor="middle"
-    dominant-baseline="middle"
-    font-family="'Inter Display', 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif"
-    font-size="42"
-    font-weight="800"
-    letter-spacing="-1"
-    fill="#F97316"
-  >B</text>
-  <circle cx="46" cy="50" r="2.5" fill="#FAFAF7"/>
+  <!--
+    Geometric "B" monogram, drawn as filled paths so it renders crisp at
+    any resolution and doesn't depend on a system-font fallback (the old
+    mark used <text> with Inter Display which made the favicon look
+    slightly different in every browser tab).
+
+    Construction:
+      1. Vertical stem (the spine of the B)
+      2. Top lobe — semicircle bulging right of the spine
+      3. Bottom lobe — semicircle, marginally wider than the top so the
+         B sits properly on the optical baseline
+      4. A single orange brand dot to the right of the bottom lobe — the
+         "moment of bliss" signature that pairs with the dot under the
+         "y" in the wordmark.
+  -->
+  <g fill="#F5F0E8">
+    <rect x="14" y="10" width="9" height="44" rx="0.5"/>
+    <path d="M23 10 H37 A12 12 0 0 1 37 34 H23 Z"/>
+    <path d="M23 30 H39 A13 13 0 0 1 39 56 H23 Z"/>
+  </g>
+  <circle cx="51" cy="50" r="3" fill="#F97316"/>
 </svg>
