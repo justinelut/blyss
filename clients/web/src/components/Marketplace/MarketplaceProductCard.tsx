@@ -26,9 +26,12 @@ const formatPrice = (product: Product): string => {
   const amount = (price as any).price_amount ?? 0
   const currency = ((price as any).price_currency ?? 'KES').toUpperCase()
   const major = amount / 100
+  // Use UNAMBIGUOUS currency labels so an international visitor isn't left
+  // guessing what "$" or a bare number means. KES keeps the local "KSh"
+  // convention; USD shows "US$"; everything else prefixes the ISO code.
   if (currency === 'KES') return `KSh ${major.toLocaleString('en-KE')}`
-  if (currency === 'USD') return `$${major.toLocaleString('en-US')}`
-  return `${major.toLocaleString()} ${currency}`
+  if (currency === 'USD') return `US$ ${major.toLocaleString('en-US')}`
+  return `${currency} ${major.toLocaleString()}`
 }
 
 /**

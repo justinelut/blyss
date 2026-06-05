@@ -63,7 +63,7 @@ export const Hero = ({
       ref={ref}
       className="relative isolate overflow-hidden bg-[var(--background)]"
     >
-      <div className="mx-auto grid max-w-[1280px] grid-cols-1 gap-12 px-6 pt-20 pb-16 md:px-16 md:pt-32 md:pb-24 lg:grid-cols-12 lg:gap-16 lg:pt-40 lg:pb-32">
+      <div className="mx-auto grid max-w-[1280px] grid-cols-1 gap-12 px-6 pt-10 pb-16 md:px-16 md:pt-14 md:pb-24 lg:grid-cols-12 lg:gap-16 lg:pt-16 lg:pb-32">
         {/* Left — content column */}
         <motion.div style={{ y: parallaxY }} className="flex flex-col lg:col-span-7">
           <motion.div {...fadeUp(0.05)}>

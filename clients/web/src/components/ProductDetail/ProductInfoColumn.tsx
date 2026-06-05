@@ -35,8 +35,8 @@ const formatPrice = (product: Product): string => {
   const currency = ((price as any).price_currency ?? 'KES').toUpperCase()
   const major = amount / 100
   if (currency === 'KES') return `KSh ${major.toLocaleString('en-KE')}`
-  if (currency === 'USD') return `$${major.toLocaleString('en-US')}`
-  return `${major.toLocaleString()} ${currency}`
+  if (currency === 'USD') return `US$ ${major.toLocaleString('en-US')}`
+  return `${currency} ${major.toLocaleString()}`
 }
 
 const getBuyLabel = (product: Product): string => {

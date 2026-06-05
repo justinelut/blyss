@@ -32,8 +32,8 @@ const formatMonthlyPrice = (product: Product): { amount: string; cadence: string
     currency === 'KES'
       ? `KSh ${major.toLocaleString('en-KE')}`
       : currency === 'USD'
-        ? `$${major.toLocaleString('en-US')}`
-        : `${major.toLocaleString()} ${currency}`
+        ? `US$ ${major.toLocaleString('en-US')}`
+        : `${currency} ${major.toLocaleString()}`
 
   // Cadence — recurring_interval is "month" or "year"
   const interval = product.recurring_interval ?? 'month'
