@@ -161,8 +161,8 @@ class TestEmailBrandingIntegration:
             f"{email_reply['from_name']}"
         )
 
-        # Verify email domain uses Blyss domain
-        assert settings.EMAIL_FROM_DOMAIN == "notifications.blyss.co.ke"
+        # Verify email domain uses the verified Blyss sender domain
+        assert settings.EMAIL_FROM_DOMAIN == "blyss.co.ke"
 
     @pytest.mark.asyncio
     async def test_email_configuration_validation(
@@ -260,9 +260,9 @@ class TestEmailBrandingIntegration:
 
         Requirements: 5.2
         """
-        # Verify email domain is set to Blyss domain
-        assert settings.EMAIL_FROM_DOMAIN == "notifications.blyss.co.ke", (
-            f"EMAIL_FROM_DOMAIN should be 'notifications.blyss.co.ke', "
+        # Verify email domain is the verified Blyss sender domain
+        assert settings.EMAIL_FROM_DOMAIN == "blyss.co.ke", (
+            f"EMAIL_FROM_DOMAIN should be 'blyss.co.ke', "
             f"got: {settings.EMAIL_FROM_DOMAIN}"
         )
 
@@ -302,7 +302,7 @@ class TestEmailBrandingIntegration:
 
         # Verify sender configuration
         assert settings.EMAIL_FROM_NAME == "Blyss"
-        assert settings.EMAIL_FROM_DOMAIN == "notifications.blyss.co.ke"
+        assert settings.EMAIL_FROM_DOMAIN == "blyss.co.ke"
 
         # Verify no "Polar" in any email configuration
         assert "polar" not in settings.EMAIL_FROM_NAME.lower()

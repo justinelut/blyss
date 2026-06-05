@@ -150,7 +150,17 @@ class TestProviderChainBuilder:
 
 
 class TestAnalyzerInit:
-    def test_auto_mode_with_two_keys_uses_chain(self, monkeypatch):
+    """The analyzer builds its model per-call via the async `_build_model`
+    (so it can read keys from the backoffice runtime_settings overlay), rather
+    than pinning a `.model` at construction time. These tests exercise that
+    async builder with `session=None` (env-only path)."""
+
+    async def _build(self, analyzer_mod):
+        analyzer = analyzer_mod.ReviewAnalyzer()
+        return await analyzer._build_model(session=None)
+
+    @pytest.mark.asyncio
+    async def test_auto_mode_with_two_keys_uses_chain(self, monkeypatch):
         analyzer_mod = _set_env(
             monkeypatch,
             POLAR_AI_PROVIDER="auto",
@@ -159,10 +169,12 @@ class TestAnalyzerInit:
         )
         from pydantic_ai.models.fallback import FallbackModel
 
-        analyzer = analyzer_mod.ReviewAnalyzer()
-        assert isinstance(analyzer.model, FallbackModel)
+        model, names = await self._build(analyzer_mod)
+        assert isinstance(model, FallbackModel)
+        assert len(names) == 2
 
-    def test_auto_mode_with_one_key_uses_single_model(self, monkeypatch):
+    @pytest.mark.asyncio
+    async def test_auto_mode_with_one_key_uses_single_model(self, monkeypatch):
         analyzer_mod = _set_env(
             monkeypatch,
             POLAR_AI_PROVIDER="auto",
@@ -170,15 +182,19 @@ class TestAnalyzerInit:
         )
         from pydantic_ai.models.fallback import FallbackModel
 
-        analyzer = analyzer_mod.ReviewAnalyzer()
-        assert not isinstance(analyzer.model, FallbackModel)
+        model, names = await self._build(analyzer_mod)
+        assert not isinstance(model, FallbackModel)
+        assert names == ["groq:llama-3.3-70b-versatile"]
 
-    def test_auto_mode_no_keys_raises(self, monkeypatch):
+    @pytest.mark.asyncio
+    async def test_auto_mode_no_keys_raises(self, monkeypatch):
         analyzer_mod = _set_env(monkeypatch, POLAR_AI_PROVIDER="auto")
+        analyzer = analyzer_mod.ReviewAnalyzer()
         with pytest.raises(ValueError, match="No AI provider configured"):
-            analyzer_mod.ReviewAnalyzer()
+            await analyzer._build_model(session=None)
 
-    def test_legacy_gemini_override_pins_single_provider(self, monkeypatch):
+    @pytest.mark.asyncio
+    async def test_legacy_gemini_override_pins_single_provider(self, monkeypatch):
         # Even with Groq + OpenAI keys present, AI_PROVIDER=gemini must pin
         # to Gemini-only (legacy contract). FallbackModel must NOT be used.
         analyzer_mod = _set_env(
@@ -191,11 +207,12 @@ class TestAnalyzerInit:
         from pydantic_ai.models.fallback import FallbackModel
         from pydantic_ai.models.google import GoogleModel
 
-        analyzer = analyzer_mod.ReviewAnalyzer()
-        assert not isinstance(analyzer.model, FallbackModel)
-        assert isinstance(analyzer.model, GoogleModel)
+        model, _names = await self._build(analyzer_mod)
+        assert not isinstance(model, FallbackModel)
+        assert isinstance(model, GoogleModel)
 
-    def test_legacy_openai_override_pins_single_provider(self, monkeypatch):
+    @pytest.mark.asyncio
+    async def test_legacy_openai_override_pins_single_provider(self, monkeypatch):
         analyzer_mod = _set_env(
             monkeypatch,
             POLAR_AI_PROVIDER="openai",
@@ -205,15 +222,17 @@ class TestAnalyzerInit:
         from pydantic_ai.models.fallback import FallbackModel
         from pydantic_ai.models.openai import OpenAIChatModel
 
-        analyzer = analyzer_mod.ReviewAnalyzer()
-        assert not isinstance(analyzer.model, FallbackModel)
-        assert isinstance(analyzer.model, OpenAIChatModel)
+        model, _names = await self._build(analyzer_mod)
+        assert not isinstance(model, FallbackModel)
+        assert isinstance(model, OpenAIChatModel)
 
-    def test_legacy_gemini_override_without_key_raises(self, monkeypatch):
+    @pytest.mark.asyncio
+    async def test_legacy_gemini_override_without_key_raises(self, monkeypatch):
         analyzer_mod = _set_env(
             monkeypatch,
             POLAR_AI_PROVIDER="gemini",
-            POLAR_GROQ_API_KEY="test-groq",  # plenty of other keys, doesn't matter
+            POLAR_GROQ_API_KEY="test-groq",  # other keys present, doesn't matter
         )
+        analyzer = analyzer_mod.ReviewAnalyzer()
         with pytest.raises(ValueError, match="GOOGLE_AI_API_KEY is required"):
-            analyzer_mod.ReviewAnalyzer()
+            await analyzer._build_model(session=None)

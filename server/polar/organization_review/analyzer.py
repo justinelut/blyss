@@ -485,65 +485,119 @@ def _build_provider_chain() -> tuple[Model, list[str]]:
 
 class ReviewAnalyzer:
     def __init__(self) -> None:
+        # Set per-call by analyze() to the resolved provider chain string.
+        self.last_model_name: str = "unknown"
+
+    async def _build_model(self, session: AsyncSession | None = None) -> tuple[Model, list[str]]:
+        """Build the AI model chain per-call, reading keys from runtime_settings."""
+        from polar.runtime_settings import runtime_settings
+
+        async def _get_key(registry_key: str, settings_attr: str) -> str | None:
+            if session is not None:
+                return await runtime_settings.get(session, registry_key)
+            return getattr(settings, settings_attr, None) or None
+
         provider_override = settings.AI_PROVIDER.lower().strip()
 
-        # Legacy single-provider mode: AI_PROVIDER=openai or =gemini forces
-        # the analyzer to that one provider, ignoring everything else. Kept
-        # for back-compat with deployments that pin a single provider.
         if provider_override == "gemini":
-            if not settings.GOOGLE_AI_API_KEY:
+            key = await _get_key("POLAR_GOOGLE_AI_API_KEY", "GOOGLE_AI_API_KEY")
+            if not key:
                 raise ValueError(
                     "GOOGLE_AI_API_KEY is required when AI_PROVIDER is set to 'gemini'. "
                     "Get your API key from https://aistudio.google.com"
                 )
-            self.model = GoogleModel(
+            return GoogleModel(
                 settings.GOOGLE_AI_MODEL,
-                provider=GoogleProvider(api_key=settings.GOOGLE_AI_API_KEY),
-            )
-            log.info(
-                "review_analyzer.initialized",
-                mode="single",
-                provider="gemini",
-                model=settings.GOOGLE_AI_MODEL,
-            )
-        elif provider_override == "openai":
-            if not settings.OPENAI_API_KEY:
+                provider=GoogleProvider(api_key=key),
+            ), [f"gemini:{settings.GOOGLE_AI_MODEL}"]
+
+        if provider_override == "openai":
+            key = await _get_key("POLAR_OPENAI_API_KEY", "OPENAI_API_KEY")
+            if not key:
                 raise ValueError(
                     "OPENAI_API_KEY is required when AI_PROVIDER is set to 'openai'"
                 )
-            self.model = OpenAIChatModel(
+            return OpenAIChatModel(
                 settings.OPENAI_MODEL,
-                provider=OpenAIProvider(api_key=settings.OPENAI_API_KEY),
+                provider=OpenAIProvider(api_key=key),
+            ), [f"openai:{settings.OPENAI_MODEL}"]
+
+        # auto / chain mode
+        candidates: list[Model] = []
+        names: list[str] = []
+
+        groq_key = await _get_key("POLAR_GROQ_API_KEY", "GROQ_API_KEY")
+        if groq_key:
+            candidates.append(GroqModel(settings.GROQ_MODEL, provider=GroqProvider(api_key=groq_key)))
+            names.append(f"groq:{settings.GROQ_MODEL}")
+
+        cerebras_key = await _get_key("POLAR_CEREBRAS_API_KEY", "CEREBRAS_API_KEY")
+        if cerebras_key:
+            candidates.append(OpenAIChatModel(
+                settings.CEREBRAS_MODEL,
+                provider=OpenAIProvider(api_key=cerebras_key, base_url=settings.CEREBRAS_BASE_URL),
+            ))
+            names.append(f"cerebras:{settings.CEREBRAS_MODEL}")
+
+        openrouter_key = await _get_key("POLAR_OPENROUTER_API_KEY", "OPENROUTER_API_KEY")
+        if openrouter_key:
+            candidates.append(OpenAIChatModel(
+                settings.OPENROUTER_MODEL,
+                provider=OpenRouterProvider(api_key=openrouter_key),
+            ))
+            names.append(f"openrouter:{settings.OPENROUTER_MODEL}")
+
+        google_key = await _get_key("POLAR_GOOGLE_AI_API_KEY", "GOOGLE_AI_API_KEY")
+        if google_key:
+            candidates.append(GoogleModel(
+                settings.GOOGLE_AI_MODEL,
+                provider=GoogleProvider(api_key=google_key),
+            ))
+            names.append(f"gemini:{settings.GOOGLE_AI_MODEL}")
+
+        openai_key = await _get_key("POLAR_OPENAI_API_KEY", "OPENAI_API_KEY")
+        if openai_key:
+            candidates.append(OpenAIChatModel(
+                settings.OPENAI_MODEL,
+                provider=OpenAIProvider(api_key=openai_key),
+            ))
+            names.append(f"openai:{settings.OPENAI_MODEL}")
+
+        if not candidates:
+            raise ValueError(
+                "No AI provider configured. Set at least one of: "
+                "POLAR_GROQ_API_KEY (free, https://console.groq.com), "
+                "POLAR_CEREBRAS_API_KEY (free, https://cloud.cerebras.ai), "
+                "POLAR_OPENROUTER_API_KEY (free models, https://openrouter.ai), "
+                "POLAR_GOOGLE_AI_API_KEY (free, https://aistudio.google.com), "
+                "or POLAR_OPENAI_API_KEY (paid)."
             )
-            log.info(
-                "review_analyzer.initialized",
-                mode="single",
-                provider="openai",
-                model=settings.OPENAI_MODEL,
-            )
-        else:
-            # auto / chain mode (the default): build a FallbackModel from
-            # whichever keys are present.
-            self.model, chain = _build_provider_chain()
-            log.info(
-                "review_analyzer.initialized",
-                mode="chain" if len(chain) > 1 else "single",
-                providers=chain,
-                count=len(chain),
-            )
-        
-        self.agent = Agent(
-            self.model,
-            output_type=ReviewAgentReport,
-            system_prompt=SYSTEM_PROMPT,
-        )
+
+        if len(candidates) == 1:
+            return candidates[0], names
+        return FallbackModel(*candidates), names
 
     async def analyze(
         self,
         snapshot: DataSnapshot,
         context: ReviewContext = ReviewContext.THRESHOLD,
         timeout_seconds: int = 60,
+        session: AsyncSession | None = None,
     ) -> tuple[ReviewAgentReport, UsageInfo]:
+        model, chain_names = await self._build_model(session)
+        # Record the resolved chain so callers (agent.run_organization_review)
+        # can report which model(s) were used without reaching into pydantic-ai
+        # internals. The analyzer has no persistent `.model` — it's built
+        # per-call from runtime_settings — so this is the source of truth.
+        self.last_model_name = ",".join(chain_names) if chain_names else "unknown"
+        log.info("review_analyzer.model_built", providers=chain_names)
+
+        agent = Agent(
+            model,
+            output_type=ReviewAgentReport,
+            system_prompt=SYSTEM_PROMPT,
+        )
+
         policy_content = await fetch_policy_content()
 
         prompt = self._build_prompt(snapshot, policy_content)
@@ -557,11 +611,11 @@ class ReviewAnalyzer:
 
         try:
             result = await asyncio.wait_for(
-                self.agent.run(prompt, instructions=instructions),
+                agent.run(prompt, instructions=instructions),
                 timeout=timeout_seconds,
             )
             # Get model name for usage tracking
-            model_name = getattr(self.model, "model_name", settings.AI_PROVIDER)
+            model_name = getattr(model, "model_name", settings.AI_PROVIDER)
             usage = UsageInfo.from_agent_usage(result.usage(), model_name)
             return result.output, usage
         except TimeoutError:

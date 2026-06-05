@@ -60,7 +60,7 @@ async def run_organization_review(
         snapshot = await _collect_data(organization, context)
 
         report, analyzer_usage = await review_analyzer.analyze(
-            snapshot, context=context
+            snapshot, context=context, session=session
         )
 
         duration = time.monotonic() - start_time
@@ -84,7 +84,7 @@ async def run_organization_review(
         return AgentReviewResult(
             report=report,
             data_snapshot=snapshot,
-            model_used=review_analyzer.model.model_name,
+            model_used=review_analyzer.last_model_name,
             duration_seconds=round(duration, 2),
             usage=usage,
         )

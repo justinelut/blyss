@@ -170,6 +170,14 @@ jobs:
           # RuntimeSettingsDisabled and saving any key in the backoffice 500s.
           inject_kv POLAR_RUNTIME_SETTINGS_KEY "${RUNTIME_SETTINGS_KEY:-}"
 
+          # Email from-address — the domain MUST be verified in Resend or sends
+          # 403. blyss.co.ke is the verified sender domain; pin it here so a
+          # stale POLAR_EMAIL_FROM_DOMAIN (e.g. notifications.blyss.co.ke) left
+          # in ENV_SECRET can't reintroduce the 403.
+          inject_kv POLAR_EMAIL_FROM_NAME "Blyss"
+          inject_kv POLAR_EMAIL_FROM_LOCAL "hello"
+          inject_kv POLAR_EMAIL_FROM_DOMAIN "blyss.co.ke"
+
           # Blyss frontend origins get credentialed CORS (cookies allowed).
           # Pydantic-settings parses list[str] env vars as JSON, so we need
           # the value to be a valid JSON array literal — not a CSV.

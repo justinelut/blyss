@@ -10,11 +10,14 @@ from polar.config import settings
 from polar.enums import EmailSender as EmailSenderType
 from polar.exceptions import PolarError
 from polar.logging import Logger
+from polar.runtime_settings import runtime_settings
 from polar.worker import enqueue_job
 
 from .react import serialize_email_props
 
 if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
+
     from .schemas import Email
 
 log: Logger = structlog.get_logger()
@@ -60,6 +63,7 @@ class EmailSender(ABC):
         reply_to_name: str | None = DEFAULT_REPLY_TO_NAME,
         reply_to_email_addr: str | None = DEFAULT_REPLY_TO_EMAIL_ADDRESS,
         attachments: Iterable[Attachment] | None = None,
+        session: "AsyncSession | None" = None,
     ) -> str | None:
         pass
 
@@ -77,6 +81,7 @@ class LoggingEmailSender(EmailSender):
         reply_to_name: str | None = DEFAULT_REPLY_TO_NAME,
         reply_to_email_addr: str | None = DEFAULT_REPLY_TO_EMAIL_ADDRESS,
         attachments: Iterable[Attachment] | None = None,
+        session: "AsyncSession | None" = None,
     ) -> str | None:
         log.info(
             "Sending an email",
@@ -92,7 +97,6 @@ class ResendEmailSender(EmailSender):
     def __init__(self) -> None:
         self.client = httpx.AsyncClient(
             base_url=settings.RESEND_API_BASE_URL,
-            headers={"Authorization": f"Bearer {settings.RESEND_API_KEY}"},
         )
 
     async def send(
@@ -107,7 +111,18 @@ class ResendEmailSender(EmailSender):
         reply_to_name: str | None = DEFAULT_REPLY_TO_NAME,
         reply_to_email_addr: str | None = DEFAULT_REPLY_TO_EMAIL_ADDRESS,
         attachments: Iterable[Attachment] | None = None,
+        session: "AsyncSession | None" = None,
     ) -> str | None:
+        # Look up API key via runtime_settings overlay
+        api_key: str | None = None
+        if session is not None:
+            api_key = await runtime_settings.get(session, "RESEND_API_KEY")
+        else:
+            api_key = settings.RESEND_API_KEY or None
+
+        if not api_key:
+            log.warning("resend.disabled: no api key on file")
+            return None
         to_email_addr_ascii = to_ascii_email(to_email_addr)
         payload: dict[str, Any] = {
             "from": f"{from_name} <{to_ascii_email(from_email_addr)}>",
@@ -131,15 +146,40 @@ class ResendEmailSender(EmailSender):
             )
 
         try:
-            response = await self.client.post("/emails", json=payload)
+            response = await self.client.post(
+                "/emails", json=payload,
+                headers={"Authorization": f"Bearer {api_key}"},
+            )
             response.raise_for_status()
             email = response.json()
+        except httpx.HTTPStatusError as e:
+            # Surface Resend's actual error body — a 403 here almost always
+            # means the `from` domain isn't verified in the Resend account
+            # ("The <domain> domain is not verified"). Logging the body makes
+            # the required action obvious instead of a bare status code.
+            body_text = ""
+            try:
+                body_text = e.response.text[:500]
+            except Exception:
+                pass
+            log.warning(
+                "resend.send_error",
+                to_email_addr=to_email_addr_ascii,
+                subject=subject,
+                from_email_addr=to_ascii_email(from_email_addr),
+                status_code=e.response.status_code,
+                response_body=body_text,
+                error=str(e),
+            )
+            raise SendEmailError(
+                f"Resend HTTP {e.response.status_code}: {body_text or str(e)}"
+            ) from e
         except httpx.HTTPError as e:
             log.warning(
                 "resend.send_error",
                 to_email_addr=to_email_addr_ascii,
                 subject=subject,
-                error=e,
+                error=str(e),
             )
             raise SendEmailError(str(e)) from e
 

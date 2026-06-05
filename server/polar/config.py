@@ -196,8 +196,11 @@ class Settings(BaseSettings):
     RESEND_API_KEY: str = ""
     RESEND_API_BASE_URL: str = "https://api.resend.com"
     EMAIL_FROM_NAME: str = "Blyss"
-    EMAIL_FROM_DOMAIN: str = "notifications.blyss.co.ke"
-    EMAIL_FROM_LOCAL: str = "mail"
+    # Must be a domain verified in the Resend account, otherwise Resend rejects
+    # sends with 403 "The <domain> domain is not verified". blyss.co.ke is the
+    # verified sender domain.
+    EMAIL_FROM_DOMAIN: str = "blyss.co.ke"
+    EMAIL_FROM_LOCAL: str = "hello"
     EMAIL_DEFAULT_REPLY_TO_NAME: str = "Blyss Support"
     EMAIL_DEFAULT_REPLY_TO_EMAIL_ADDRESS: str = "support@blyss.co.ke"
 
