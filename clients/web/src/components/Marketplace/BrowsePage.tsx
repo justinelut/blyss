@@ -1,5 +1,20 @@
 'use client'
 
+/* Hallmark · macrostructure: Catalogue · genre: editorial
+ * theme: blyss-design (light cream + burnt orange #C2410C accent)
+ * sections: Page header · Filter rail (sticky 240px) · Search row · Active
+ *           chips · Result count · Grid (4-col 4:5 cards) · Mobile sheet
+ * nav: N5 floating-pill (inherited from MarketplaceShell)
+ * footer: Ft5 statement (inherited)
+ * contrast: pass · slop: pass (gates 1, 2, 7, 8, 9, 24, 26, 36, 51–55, 66)
+ *
+ * Reference DNA: SSENSE catalog — editorial-first home, type-led filter rail,
+ * hairline rules, count right-flushed. Currency selection lives in the
+ * header CountrySwitcher (via CurrencyProvider) — not duplicated in the
+ * filter rail. Geo currency drives the hard product filter (no FX
+ * conversion); rail price input shows the active currency code as a label.
+ */
+
 import { useEffect, useMemo, useState } from 'react'
 import {
   parseAsInteger,
