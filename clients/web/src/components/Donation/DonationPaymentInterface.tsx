@@ -1,13 +1,8 @@
 'use client'
 
-/* Hallmark · component: donation-payment-interface · genre: modern-minimal
- * theme: project tokens (Blyss burnt-orange light)
- * states: default · hover · focus · loading · requires-action · error · success
- *
- * Inline Paystack-native tipping. Mirrors the buyer-checkout
- * PaystackPaymentInterface channel-tab UX + payment-icons, but is
- * self-contained (owns its Pay button) so it can live inside the
- * DonationModal. The donor never leaves Blyss.
+/* Inline Paystack-native tipping. Channel-tab strip + per-channel fields.
+ * Fixed: all fields use w-full/min-w-0, card expiry/cvv grid wraps on narrow
+ * viewports, channel tabs scroll without pushing dialog width.
  */
 
 import Button from '@/components/atoms/Button'
@@ -42,19 +37,12 @@ import {
 } from '@/components/Brand/payment-icons'
 
 interface Props {
-  /** Creator slug — the charge targets POST /v1/donation/{slug}/. */
   slug: string
-  /** Tip amount in KES minor units. */
   amount: number
-  /** Donor email — required for the receipt. */
   donorEmail: string
-  /** Optional donor display name. */
   donorName?: string
-  /** Optional message to the creator. */
   message?: string
-  /** Whether the parent form fields are valid (gates the Pay button). */
   canPay: boolean
-  /** Called when payment reaches a terminal success state. */
   onPaymentSuccess?: () => void
 }
 
@@ -154,7 +142,6 @@ export const DonationPaymentInterface = ({
   const [selectedKey, setSelectedKey] = useState<string>('mobile_money')
   useEffect(() => {
     if (tabs.length === 0) return
-    // Default to mobile money in Kenya — that's how most tips are paid.
     const momo = tabs.find((t) => t.channel.id === 'mobile_money')
     setSelectedKey(momo?.key ?? tabs[0].key)
   }, [tabs])
@@ -266,12 +253,10 @@ export const DonationPaymentInterface = ({
     }
   }
 
-  // 1. Loading channels.
   if (channelsQ.isLoading) {
     return <ChannelsSkeleton />
   }
 
-  // 2. Charge submitted — waiting / next-action / failed.
   if (chargeResponse) {
     return (
       <ActiveChargePanel
@@ -287,9 +272,8 @@ export const DonationPaymentInterface = ({
     )
   }
 
-  // 3. Default — channel selector + per-channel fields + Pay button.
   return (
-    <div className="space-y-4" data-testid="donation-payment-interface">
+    <div className="min-w-0 space-y-4" data-testid="donation-payment-interface">
       <ChannelTabsStrip
         tabs={tabs}
         selectedKey={selectedKey}
@@ -360,7 +344,7 @@ export const DonationPaymentInterface = ({
   )
 }
 
-// ── Channel tabs strip ───────────────────────────────────────────
+// ── Channel tabs strip — scrollable horizontally, contained within parent ──
 
 const ChannelTabsStrip = ({
   tabs,
@@ -382,7 +366,7 @@ const ChannelTabsStrip = ({
     role="tablist"
     aria-label="Payment method"
     className={cn(
-      'relative -mx-1 flex items-stretch gap-2 overflow-x-auto px-1 pb-2',
+      'relative flex min-w-0 items-stretch gap-2 overflow-x-auto pb-2',
       'scroll-smooth [scroll-snap-type:x_mandatory]',
       '[&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]',
     )}
@@ -402,12 +386,12 @@ const ChannelTabsStrip = ({
           disabled={disabled}
           className={cn(
             'group relative flex flex-none cursor-pointer flex-col items-center justify-center gap-2',
-            'min-w-[7rem] rounded-xl border px-3 py-3 transition-colors duration-150',
+            'min-w-[6rem] rounded-xl border px-3 py-3 transition-colors duration-150',
             '[scroll-snap-align:start]',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2',
             'disabled:cursor-not-allowed disabled:opacity-50',
             active
-              ? 'border-[var(--accent)] bg-[var(--surface-elevated)] shadow-[0_1px_0_var(--accent)_inset]'
+              ? 'border-[var(--accent)] bg-[var(--surface-elevated)]'
               : 'border-[var(--border)] bg-transparent hover:bg-[var(--surface-sunken)]',
           )}
         >
@@ -433,13 +417,13 @@ const ChannelsSkeleton = () => (
     role="status"
     aria-live="polite"
     aria-label="Loading payment methods"
-    className="-mx-1 flex items-stretch gap-2 px-1 pb-2"
+    className="flex min-w-0 items-stretch gap-2 pb-2"
   >
     {[0, 1, 2].map((i) => (
       <div
         key={i}
         className={cn(
-          'h-[78px] min-w-[7rem] flex-none animate-pulse rounded-xl',
+          'h-[72px] min-w-[6rem] flex-none animate-pulse rounded-xl',
           'border border-[var(--border)] bg-[var(--surface-sunken)]',
         )}
       />
@@ -447,7 +431,7 @@ const ChannelsSkeleton = () => (
   </div>
 )
 
-// ── Per-channel field blocks (Polar FormLabel + atoms/Input) ─────
+// ── Per-channel field blocks — all use w-full, card grid wraps on mobile ──
 
 const CardFieldsBlock = ({
   card,
@@ -458,7 +442,7 @@ const CardFieldsBlock = ({
   setCard: (v: CardFields) => void
   disabled?: boolean
 }) => (
-  <div className="space-y-4">
+  <div className="min-w-0 space-y-3">
     <div className="space-y-2">
       <FormLabel className="text-sm">Card number</FormLabel>
       <Input
@@ -466,12 +450,14 @@ const CardFieldsBlock = ({
         inputMode="numeric"
         autoComplete="cc-number"
         placeholder="1234 1234 1234 1234"
+        className="w-full"
         value={card.card_number}
         disabled={disabled}
         onChange={(e) => setCard({ ...card, card_number: e.target.value })}
       />
     </div>
-    <div className="grid grid-cols-3 gap-3">
+    {/* Grid wraps: 2 cols on very narrow (≤360), 3 cols on wider */}
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
       <div className="space-y-2">
         <FormLabel className="text-sm">Month</FormLabel>
         <Input
@@ -480,6 +466,7 @@ const CardFieldsBlock = ({
           autoComplete="cc-exp-month"
           placeholder="MM"
           maxLength={2}
+          className="w-full"
           value={card.expiry_month}
           disabled={disabled}
           onChange={(e) => setCard({ ...card, expiry_month: e.target.value })}
@@ -493,12 +480,13 @@ const CardFieldsBlock = ({
           autoComplete="cc-exp-year"
           placeholder="YY"
           maxLength={2}
+          className="w-full"
           value={card.expiry_year}
           disabled={disabled}
           onChange={(e) => setCard({ ...card, expiry_year: e.target.value })}
         />
       </div>
-      <div className="space-y-2">
+      <div className="col-span-2 space-y-2 sm:col-span-1">
         <FormLabel className="text-sm">CVC</FormLabel>
         <Input
           type="text"
@@ -506,6 +494,7 @@ const CardFieldsBlock = ({
           autoComplete="cc-csc"
           placeholder="CVC"
           maxLength={4}
+          className="w-full"
           value={card.cvv}
           disabled={disabled}
           onChange={(e) => setCard({ ...card, cvv: e.target.value })}
@@ -524,12 +513,13 @@ const MoMoFieldsBlock = ({
   setMomo: (v: MoMoFields) => void
   disabled?: boolean
 }) => (
-  <div className="space-y-2">
+  <div className="min-w-0 space-y-2">
     <FormLabel className="text-sm">Mobile money number</FormLabel>
     <Input
       type="tel"
       inputMode="tel"
       placeholder="+254 712 345 678"
+      className="w-full"
       value={momo.phone}
       disabled={disabled}
       onChange={(e) => setMomo({ ...momo, phone: e.target.value })}
@@ -546,12 +536,13 @@ const BankFieldsBlock = ({
   setBank: (v: BankFields) => void
   disabled?: boolean
 }) => (
-  <div className="space-y-4">
+  <div className="min-w-0 space-y-3">
     <div className="space-y-2">
       <FormLabel className="text-sm">Bank</FormLabel>
       <Input
         type="text"
         placeholder="Bank code (e.g. 057 GTBank)"
+        className="w-full"
         value={bank.bank_code}
         disabled={disabled}
         onChange={(e) => setBank({ ...bank, bank_code: e.target.value })}
@@ -563,6 +554,7 @@ const BankFieldsBlock = ({
         type="text"
         inputMode="numeric"
         placeholder="0123456789"
+        className="w-full"
         value={bank.bank_account_number}
         disabled={disabled}
         onChange={(e) =>
@@ -584,7 +576,7 @@ const USSDFieldsBlock = ({
   providers: DonationPaymentChannelProvider[]
   disabled?: boolean
 }) => (
-  <div className="space-y-2">
+  <div className="min-w-0 space-y-2">
     <FormLabel className="text-sm">Bank</FormLabel>
     <div className="grid grid-cols-2 gap-2">
       {providers.map((p) => (
@@ -619,7 +611,7 @@ const QRFieldsBlock = ({
   providers: DonationPaymentChannelProvider[]
   disabled?: boolean
 }) => (
-  <div className="space-y-2">
+  <div className="min-w-0 space-y-2">
     <FormLabel className="text-sm">QR provider</FormLabel>
     <div className="grid grid-cols-2 gap-2">
       {providers.map((p) => (
@@ -654,7 +646,7 @@ const EFTFieldsBlock = ({
   providers: DonationPaymentChannelProvider[]
   disabled?: boolean
 }) => (
-  <div className="space-y-2">
+  <div className="min-w-0 space-y-2">
     <FormLabel className="text-sm">EFT provider</FormLabel>
     {providers.map((p) => (
       <button
@@ -703,7 +695,7 @@ const ActiveChargePanel = ({
 
   if (failed) {
     return (
-      <div className="space-y-3 rounded-xl border border-red-300 bg-red-50 p-4 text-sm text-red-900">
+      <div className="min-w-0 space-y-3 rounded-xl border border-red-300 bg-red-50 p-4 text-sm text-red-900">
         <div>
           <span className="font-medium">Payment failed.</span>{' '}
           {charge.display_text || 'Please try a different method.'}
@@ -727,12 +719,13 @@ const ActiveChargePanel = ({
       birthday: 'Enter your date of birth',
     }
     return (
-      <div className="space-y-2">
+      <div className="min-w-0 space-y-2">
         <FormLabel className="text-sm">
           {labelByType[action.action] || action.display_text}
         </FormLabel>
         <Input
           type="text"
+          className="w-full"
           value={stepValue}
           disabled={submitting}
           onChange={(e) => setStepValue(e.target.value)}
@@ -756,16 +749,17 @@ const ActiveChargePanel = ({
     )
   }
 
-  // Pending — waiting for the donor to authorise on their phone.
   return (
     <div
       role="status"
       aria-live="polite"
-      className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-sunken)] p-4 text-sm text-[var(--text-secondary)]"
+      className="flex min-w-0 items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-sunken)] p-4 text-sm text-[var(--text-secondary)]"
     >
-      <span className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
-      {charge.display_text ||
-        'Waiting for you to authorise the payment on your phone…'}
+      <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
+      <span className="min-w-0 break-words">
+        {charge.display_text ||
+          'Waiting for you to authorise the payment on your phone…'}
+      </span>
     </div>
   )
 }

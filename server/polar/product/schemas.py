@@ -798,6 +798,18 @@ ProductPrice = Annotated[
 ]
 
 
+class ProductRatingSummary(Schema):
+    """Compact aggregate rating for a product, shown on cards + listings.
+
+    `average_rating` is 0.0 when there are no reviews; `total_reviews` is 0.
+    Optional on the public Product schema — null when not computed for a given
+    surface to avoid an N+1.
+    """
+
+    average_rating: float = Field(description="Average rating (0–5).")
+    total_reviews: int = Field(description="Number of reviews.")
+
+
 class ProductBase(TrialConfigurationOutputMixin, TimestampedSchema, IDSchema):
     name: str = Field(description="The name of the product.")
     description: str | None = Field(description="The description of the product.")
@@ -825,6 +837,13 @@ class ProductBase(TrialConfigurationOutputMixin, TimestampedSchema, IDSchema):
         description=(
             "Whether the creator accepts tips / donations on this product. "
             "When true, the product detail page shows a 'Tip the creator' CTA."
+        ),
+    )
+    review_summary: ProductRatingSummary | None = Field(
+        default=None,
+        description=(
+            "Aggregate rating for the product (average + count). Null when the "
+            "surface didn't compute it. Powers the rating shown on cards."
         ),
     )
     organization_id: UUID4 = Field(

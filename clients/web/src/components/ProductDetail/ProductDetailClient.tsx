@@ -26,8 +26,10 @@ interface ProductDetailClientProps {
 
 /**
  * ProductDetailClient — client island orchestrating the PDP interactivity.
- * Renders the two-column layout (gallery left / info right), tabs, creator
- * card, related, and recently viewed.
+ *
+ * Layout: Two-column editorial grid (gallery left / info right), full-width
+ * tabs section, then related & recently viewed. Premium spacing rhythm per
+ * §3.4: 96px desktop / 56px mobile between major sections.
  */
 export function ProductDetailClient({ product }: ProductDetailClientProps) {
   const router = useRouter()
@@ -48,24 +50,19 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
     .filter((m) => m.public_url)
     .map((m) => m.public_url!)
 
-  // Record view for recently-viewed
   useEffect(() => { recordProductView(product) }, [product])
 
   const handleBuy = () => {
-    // Guests can't have a server-side cart/checkout — show the sign-in modal
-    // instead of firing a request that 401s silently.
     if (!authenticated) {
       setAuthModalOpen(true)
       return
     }
     if (product.is_recurring) {
-      // Subscriptions skip cart, go direct to checkout per §6.5
       router.push(`/checkout?product_id=${product.id}`)
     } else {
       const price = product.prices?.[0]
       const amount = (price as any)?.price_amount ?? 0
       if (amount === 0) {
-        // Free product — claim instantly (phase 5.7 wires real handler)
         router.push(`/checkout?product_id=${product.id}`)
       } else {
         addToCart({ productId: product.id, quantity: 1 })
@@ -92,16 +89,16 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
   }
 
   return (
-    <div className="mx-auto max-w-[1280px] px-6 md:px-16">
-      {/* Two-column layout: gallery sticky left, info right */}
-      <div className="grid grid-cols-1 gap-12 py-8 md:py-12 lg:grid-cols-[1fr_420px] lg:gap-16">
-        {/* Left — gallery (sticky on desktop) */}
-        <div className="lg:sticky lg:top-28 lg:self-start">
+    <article className="mx-auto max-w-[1280px] px-5 sm:px-8 md:px-16">
+      {/* Two-column: gallery sticky left, buy-box right */}
+      <div className="grid grid-cols-1 gap-10 pt-8 pb-16 md:pt-12 md:pb-24 lg:grid-cols-[1.15fr_1fr] lg:gap-20 xl:gap-24">
+        {/* Gallery — sticky on desktop so buy-box scrolls independently */}
+        <div className="lg:sticky lg:top-24 lg:self-start">
           <ProductImageGallery images={images} productName={product.name} />
         </div>
 
-        {/* Right — info + creator card */}
-        <div className="flex flex-col gap-10">
+        {/* Info column — buy-box + creator card */}
+        <div className="flex flex-col gap-12 lg:pt-2">
           <ProductInfoColumn
             product={product}
             onBuy={handleBuy}
@@ -123,19 +120,16 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
         </div>
       </div>
 
-      {/* Tabs — full width below the grid so all four tab labels fit and the
-          panels (description, included, benefits, reviews) get readable
-          measure (was constrained to the 420px right column where 'Reviews'
-          got truncated to 'Revie'). */}
-      <div className="border-t border-[var(--border)] pt-8">
+      {/* Tabs — full-width editorial section */}
+      <section className="border-t border-[var(--border)] py-14 md:py-20">
         <ProductTabs
           product={product}
           reviewsContent={<ProductReviews productId={product.id} />}
         />
-      </div>
+      </section>
 
       {/* Related + Recently viewed */}
-      <div className="flex flex-col gap-20 pb-16 md:pb-24 pt-12">
+      <div className="flex flex-col gap-14 pb-16 md:gap-20 md:pb-24">
         <RelatedProducts productId={product.id} />
         <RecentlyViewed currentId={product.id} />
       </div>
@@ -149,8 +143,6 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
         />
       )}
 
-      {/* Sign-in modal — shown when a guest tries to buy or wishlist. After
-          auth they return to this product to complete the action. */}
       <Modal
         title="Log In"
         isShown={authModalOpen}
@@ -162,6 +154,6 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
           />
         }
       />
-    </div>
+    </article>
   )
 }

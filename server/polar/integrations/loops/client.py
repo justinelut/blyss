@@ -2,6 +2,7 @@ from typing import TypedDict, Unpack
 
 import httpx
 import structlog
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from polar.config import settings
 from polar.enums import AccountType
@@ -63,29 +64,41 @@ class LoopsClientLogicalError(LoopsClientError):
 
 
 class LoopsClient:
-    def __init__(self, api_key: str | None) -> None:
+    def __init__(self) -> None:
         self.client = httpx.AsyncClient(
             base_url="https://app.loops.so/api/v1",
-            headers={"Authorization": f"Bearer {api_key}"},
-            # Set a MockTransport if API key is None
-            # Basically, we disable Loops request.
-            transport=(
-                httpx.MockTransport(lambda _: httpx.Response(200))
-                if api_key is None
-                else None
-            ),
         )
 
+    async def _auth_headers(self, session: AsyncSession | None = None) -> dict[str, str]:
+        """Fetch Loops API key via runtime_settings overlay."""
+        from polar.runtime_settings import runtime_settings
+
+        api_key: str | None = None
+        if session is not None:
+            api_key = await runtime_settings.get(session, "LOOPS_API_KEY")
+        else:
+            api_key = settings.LOOPS_API_KEY or None
+
+        if not api_key:
+            log.warning("loops.disabled: no api key on file")
+            return {}
+        return {"Authorization": f"Bearer {api_key}"}
+
     async def update_contact(
-        self, email: str, id: str, **properties: Unpack[Properties]
+        self, email: str, id: str, session: AsyncSession | None = None, **properties: Unpack[Properties]
     ) -> None:
         log.debug("loops.contact.update", email=email, id=id, **properties)
+
+        headers = await self._auth_headers(session)
+        if not headers:
+            return
 
         await self._make_request(
             self.client.build_request(
                 "POST",
                 "/contacts/update",
                 json={"email": email, "userId": id, **properties},
+                headers=headers,
             )
         )
 
@@ -94,6 +107,7 @@ class LoopsClient:
         email: str,
         event_name: str,
         event_properties: dict[str, str | int | bool] | None = None,
+        session: AsyncSession | None = None,
         **contact_properties: Unpack[Properties],
     ) -> None:
         log.debug(
@@ -103,6 +117,10 @@ class LoopsClient:
             event_properties=event_properties,
             **contact_properties,
         )
+
+        headers = await self._auth_headers(session)
+        if not headers:
+            return
 
         await self._make_request(
             self.client.build_request(
@@ -114,6 +132,7 @@ class LoopsClient:
                     "eventProperties": event_properties or {},
                     **contact_properties,
                 },
+                headers=headers,
             )
         )
 
@@ -131,6 +150,6 @@ class LoopsClient:
         return response
 
 
-client = LoopsClient(settings.LOOPS_API_KEY)
+client = LoopsClient()
 
 __all__ = ["Properties", "client"]

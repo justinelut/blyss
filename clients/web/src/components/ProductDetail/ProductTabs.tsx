@@ -18,13 +18,15 @@ interface Tab {
 
 export interface ProductTabsProps {
   product: Product
-  /** Reviews rendered externally — passed as children for the reviews panel */
   reviewsContent?: React.ReactNode
 }
 
 /**
  * ProductTabs — Description / What's included / Benefits / Reviews.
- * Per plan §6.5 step 4.
+ *
+ * Editorial tab strip with accent underline. Panels use generous padding and
+ * the design type scale. Benefits render `benefit.description` only (no `name`
+ * field exists on the Benefit object).
  */
 export const ProductTabs = ({ product, reviewsContent }: ProductTabsProps) => {
   const [active, setActive] = useState<TabId>('description')
@@ -45,71 +47,73 @@ export const ProductTabs = ({ product, reviewsContent }: ProductTabsProps) => {
   return (
     <div>
       {/* Tab strip */}
-      <div className="border-b border-[var(--border)]">
-        <nav aria-label="Product details" className="-mx-6 overflow-x-auto px-6 md:mx-0 md:px-0">
-          <div className="flex min-w-max items-center gap-1">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                role="tab"
-                aria-selected={tab.id === active}
-                disabled={tab.disabled}
-                onClick={() => !tab.disabled && setActive(tab.id)}
-                className={cn(
-                  'relative inline-flex h-12 items-center px-4 font-sans text-[14px] font-medium transition-colors',
-                  tab.id === active
-                    ? 'text-[var(--text-primary)]'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
-                  tab.disabled && 'cursor-not-allowed opacity-40',
-                )}
-              >
-                {tab.label}
+      <nav
+        aria-label="Product details"
+        className="-mx-5 overflow-x-auto px-5 sm:mx-0 sm:px-0"
+      >
+        <div className="flex min-w-max items-center gap-0 border-b border-[var(--border)]">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={tab.id === active}
+              disabled={tab.disabled}
+              onClick={() => !tab.disabled && setActive(tab.id)}
+              className={cn(
+                'relative inline-flex h-12 items-center px-5 font-sans text-[14px] font-medium transition-colors duration-200',
+                tab.id === active
+                  ? 'text-[var(--text-primary)]'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]',
+                tab.disabled && 'cursor-not-allowed opacity-30',
+              )}
+            >
+              {tab.label}
+              {tab.id === active && (
                 <span
                   aria-hidden="true"
-                  className={cn(
-                    'absolute inset-x-3 bottom-0 h-[2px] rounded-full',
-                    tab.id === active ? 'bg-[var(--accent)]' : 'bg-transparent',
-                  )}
+                  className="absolute inset-x-4 -bottom-px h-[2px] rounded-full bg-[var(--accent)]"
                 />
-              </button>
-            ))}
-          </div>
-        </nav>
-      </div>
+              )}
+            </button>
+          ))}
+        </div>
+      </nav>
 
       {/* Panels */}
-      <div className="py-8">
+      <div className="pt-10 pb-2">
         {active === 'description' && hasDescription && (
-          <LegalDoc>{product.description!}</LegalDoc>
+          <div className="max-w-[64ch]">
+            <LegalDoc>{product.description!}</LegalDoc>
+          </div>
         )}
 
         {active === 'included' && (
-          <div className="flex flex-col gap-3">
+          <div className="flex max-w-[56ch] flex-col gap-3">
             {medias.map((m, i) => (
               <div
                 key={i}
-                className="flex items-center gap-3 rounded-md bg-[var(--surface-sunken)] p-3"
+                className="flex items-center gap-4 rounded-lg bg-[var(--surface-sunken)] px-5 py-4"
               >
                 <FiFileText size={18} className="shrink-0 text-[var(--text-muted)]" />
-                <span className="flex-1 font-sans text-[14px] text-[var(--text-primary)]">
+                <span className="flex-1 font-sans text-[14px] font-medium text-[var(--text-primary)]">
                   {(m as any).name || `File ${i + 1}`}
                 </span>
-                <span className="font-sans text-[12px] text-[var(--text-muted)]">
-                  {((m as any).mime_type ?? '').split('/')[1]?.toUpperCase() || ''}
+                <span className="font-sans text-[12px] uppercase tracking-wide text-[var(--text-muted)]">
+                  {((m as any).mime_type ?? '').split('/')[1] || ''}
                 </span>
               </div>
             ))}
             {product.is_recurring && benefits.length > 0 && (
-              <div className="mt-4">
-                <p className={cn(typography.small, 'mb-3 text-[var(--text-muted)]')}>
-                  Subscription includes:
+              <div className="mt-6">
+                <p className={cn(typography.eyebrow, 'mb-4')}>
+                  Subscription includes
                 </p>
-                <ul className="flex flex-col gap-2">
+                <ul className="flex flex-col gap-3">
                   {benefits.map((b: any, i: number) => (
-                    <li key={i} className="flex items-start gap-2 font-sans text-[14px] text-[var(--text-secondary)]">
+                    <li key={i} className="flex items-start gap-3 font-sans text-[14px] leading-[1.5] text-[var(--text-secondary)]">
                       <FiCheck size={15} className="mt-0.5 shrink-0 text-[var(--accent)]" />
-                      {b.description || b.name || 'Benefit'}
+                      {b.description || 'Benefit'}
                     </li>
                   ))}
                 </ul>
@@ -119,16 +123,11 @@ export const ProductTabs = ({ product, reviewsContent }: ProductTabsProps) => {
         )}
 
         {active === 'benefits' && (
-          <ul className="flex flex-col gap-3">
+          <ul className="flex max-w-[56ch] flex-col gap-4">
             {benefits.map((b: any, i: number) => (
-              <li key={i} className="flex items-start gap-3 font-sans text-[15px] text-[var(--text-secondary)]">
+              <li key={i} className="flex items-start gap-3 font-sans text-[15px] leading-[1.55] text-[var(--text-secondary)]">
                 <FiCheck size={16} className="mt-0.5 shrink-0 text-[var(--accent)]" />
-                <div>
-                  <span className="font-medium text-[var(--text-primary)]">{b.name || b.description}</span>
-                  {b.description && b.name && (
-                    <p className="mt-1 text-[13px] text-[var(--text-muted)]">{b.description}</p>
-                  )}
-                </div>
+                <span>{b.description}</span>
               </li>
             ))}
           </ul>
@@ -145,9 +144,9 @@ export const ProductTabs = ({ product, reviewsContent }: ProductTabsProps) => {
 function EmptyReviews() {
   return (
     <div className="max-w-[44ch]">
-      <h3 className={cn(typography.h4, 'text-[var(--text-primary)]')}>No reviews yet.</h3>
-      <p className={cn(typography.body, 'mt-3 text-[var(--text-secondary)]')}>
-        Be the first to leave a review after purchasing this product.
+      <h3 className={cn(typography.h4, 'text-[var(--text-primary)]')}>No reviews yet</h3>
+      <p className="mt-3 font-sans text-[15px] leading-[1.55] text-[var(--text-secondary)]">
+        Only verified buyers can leave a review. Be the first after purchasing.
       </p>
     </div>
   )

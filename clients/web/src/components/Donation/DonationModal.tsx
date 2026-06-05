@@ -24,9 +24,7 @@ import { DonationPaymentInterface } from './DonationPaymentInterface'
 interface DonationModalProps {
   isOpen: boolean
   onClose: () => void
-  /** Creator slug — the inline charge targets POST /v1/donation/{slug}/. */
   creatorSlug: string
-  /** Creator display name shown in the modal header. */
   creatorName: string
 }
 
@@ -37,18 +35,15 @@ interface DonationFormData {
   message?: string
 }
 
-// KES bounds — min 50, max 50,000 (whole KES in the form; converted to minor
-// units for the charge).
 const MIN_KES = 50
 const MAX_KES = 50_000
 
 /**
  * DonationModal — inline Paystack-native tipping.
  *
- * Collects amount (KES) + optional message + optional name, then renders the
- * DonationPaymentInterface channel selector inline. On success it flips to a
- * thank-you state and auto-closes after 3s. The donor never leaves Blyss — no
- * redirect to a Paystack hosted page.
+ * Fixed: overflow-hidden on content, min-w-0 on form to prevent child elements
+ * from pushing the dialog wider than viewport. Mobile-first responsive at
+ * 320/375/414/768.
  */
 export const DonationModal = ({
   isOpen,
@@ -84,7 +79,6 @@ export const DonationModal = ({
     onClose()
   }
 
-  // On success, auto-close after 3s.
   useEffect(() => {
     if (!succeeded) return
     autoCloseRef.current = setTimeout(() => {
@@ -103,7 +97,7 @@ export const DonationModal = ({
         if (!open) handleClose()
       }}
     >
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[500px]">
+      <DialogContent className="max-h-[90vh] w-[calc(100vw-2rem)] max-w-[500px] overflow-y-auto overflow-x-hidden p-4 sm:p-6">
         {succeeded ? (
           <div
             className="flex flex-col items-center gap-3 py-8 text-center"
@@ -144,7 +138,7 @@ export const DonationModal = ({
 
             <Form {...form}>
               <form
-                className="flex flex-col gap-3 sm:gap-4"
+                className="flex min-w-0 flex-col gap-3 sm:gap-4"
                 onSubmit={(e) => e.preventDefault()}
               >
                 <FormField
@@ -176,7 +170,7 @@ export const DonationModal = ({
                             type="text"
                             inputMode="decimal"
                             placeholder="500"
-                            className="pl-14 text-base sm:text-sm"
+                            className="w-full pl-14 text-base sm:text-sm"
                             {...field}
                           />
                         </div>
@@ -198,7 +192,7 @@ export const DonationModal = ({
                         <Input
                           type="text"
                           placeholder="Jane"
-                          className="text-base sm:text-sm"
+                          className="w-full text-base sm:text-sm"
                           {...field}
                         />
                       </FormControl>
@@ -225,7 +219,7 @@ export const DonationModal = ({
                           type="email"
                           placeholder="jane@example.com"
                           autoComplete="email"
-                          className="text-base sm:text-sm"
+                          className="w-full text-base sm:text-sm"
                           {...field}
                         />
                       </FormControl>
@@ -251,7 +245,7 @@ export const DonationModal = ({
                       <FormControl>
                         <Textarea
                           placeholder="Leave a message for the creator…"
-                          className="resize-none text-base sm:text-sm"
+                          className="w-full resize-none text-base sm:text-sm"
                           rows={3}
                           maxLength={200}
                           {...field}
@@ -262,8 +256,7 @@ export const DonationModal = ({
                   )}
                 />
 
-                {/* Inline channel selector — reuses the buyer-checkout
-                    PaystackPaymentInterface shape. No redirect. */}
+                {/* Inline channel selector */}
                 <DonationPaymentInterface
                   slug={creatorSlug}
                   amount={amountMinorUnits}

@@ -14,26 +14,10 @@ export interface CreatorInlineCardProps {
 }
 
 /**
- * CreatorInlineCard — the handoff back to the creator's universe (per plan
- * §6.5 step 5). Editorial, surface-sunken card sitting under the price /
- * benefits column.
+ * CreatorInlineCard — editorial creator block on the PDP.
  *
- * Visual rhythm:
- *
- *   ┌──────────────────────────────────────────────┐
- *   │  CREATOR                                     │
- *   │  ─────────────────                           │
- *   │  ┌────┐  Maya Wanjiru                        │
- *   │  │ MW │  @maya-wanjiru · 12 products         │
- *   │  └────┘                                      │
- *   │  Bio body, two lines, --text-secondary…      │
- *   │  ─────────────────                           │
- *   │  Visit storefront ->                         │
- *   └──────────────────────────────────────────────┘
- *
- * The CTA uses an outward-arrow icon to signal "this leaves the product
- * page" — matching the marketplace cards system (`FiArrowUpRight` at the
- * exit, `FiArrowRight` for in-flow continuation).
+ * Surface-sunken tone-shift (no shadow, no heavy border). Avatar + name +
+ * slug + product count, optional bio, and a Visit storefront link.
  */
 export const CreatorInlineCard = ({
   name,
@@ -47,19 +31,19 @@ export const CreatorInlineCard = ({
     <aside
       aria-label={`About ${name}`}
       className={cn(
-        'rounded-md bg-[var(--surface-sunken)] p-6 md:p-8',
+        'rounded-lg bg-[var(--surface-sunken)] p-6 md:p-8',
         className,
       )}
     >
       <Eyebrow>Creator</Eyebrow>
 
-      <div className="mt-4 flex items-start gap-4">
-        <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full bg-[var(--surface)] ring-1 ring-[var(--border)]">
+      <div className="mt-5 flex items-start gap-4">
+        <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-[var(--surface)] ring-1 ring-[var(--border)]">
           <OptimizedImage
             src={avatarUrl}
             alt={`${name} avatar`}
             fill
-            sizes="56px"
+            sizes="48px"
           />
         </div>
         <div className="min-w-0 flex-1">
@@ -71,13 +55,11 @@ export const CreatorInlineCard = ({
           >
             {name}
           </h3>
-          <p className="mt-1 font-sans text-[13px] text-[var(--text-muted)] tabular-nums">
+          <p className="mt-1 font-sans text-[13px] text-[var(--text-muted)] [font-variant-numeric:tabular-nums]">
             <span className="text-[var(--text-secondary)]">@{slug}</span>
             {typeof productCount === 'number' && (
               <>
-                <span aria-hidden="true" className="mx-1.5">
-                  ·
-                </span>
+                <span aria-hidden="true" className="mx-1.5">·</span>
                 {productCount} {productCount === 1 ? 'product' : 'products'}
               </>
             )}
@@ -91,7 +73,7 @@ export const CreatorInlineCard = ({
         </p>
       )}
 
-      <div className="mt-6 border-t border-[var(--border)] pt-4">
+      <div className="mt-6 border-t border-[var(--border)] pt-5">
         <Link
           href={`/creators/${slug}`}
           prefetch
@@ -100,7 +82,7 @@ export const CreatorInlineCard = ({
           Visit storefront
           <FiArrowUpRight
             size={14}
-            className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+            className="transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
             aria-hidden="true"
           />
         </Link>

@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils'
 const steps = [
   { n: '1', text: 'Set up your storefront in 10 minutes.' },
   { n: '2', text: 'Upload your work — files, links, or markdown.' },
-  { n: '3', text: 'Buyers pay with M-Pesa or card.' },
+  { n: '3', text: 'Buyers pay with card or mobile money.' },
   { n: '4', text: 'We pay you out within 24 hours.' },
 ]
 

@@ -201,14 +201,32 @@ async def get_creator(
     # Lazy-import the schema to avoid a circular import (product.schemas
     # imports OrganizationID from organization.schemas).
     from polar.product.schemas import Product as ProductSchema
+    from polar.review.repository import ReviewRepository
 
-    products = [
-        ProductSchema.model_validate(p, from_attributes=True).model_dump(
-            mode="json"
+    visible_products = [p for p in organization.products if not p.is_archived]
+
+    # Batch-fetch aggregate ratings for all visible products in ONE query so
+    # the storefront cards can show "4.8 · 32 reviews" without an N+1.
+    review_repo = ReviewRepository.from_session(session)
+    rating_map = await review_repo.get_rating_summaries_for_products(
+        [p.id for p in visible_products]
+    )
+
+    products = []
+    for p in visible_products:
+        product_dict = ProductSchema.model_validate(
+            p, from_attributes=True
+        ).model_dump(mode="json")
+        summary = rating_map.get(p.id)
+        product_dict["review_summary"] = (
+            {
+                "average_rating": summary["average_rating"],
+                "total_reviews": summary["total_reviews"],
+            }
+            if summary
+            else None
         )
-        for p in organization.products
-        if not p.is_archived
-    ]
+        products.append(product_dict)
 
     # Convert socials list to SocialLinks format
     social_links_dict = {}

@@ -11,19 +11,11 @@ type Product = schemas['Product']
 
 export interface ProductInfoColumnProps {
   product: Product
-  /** Callback when "Buy" / "Add to cart" is clicked */
   onBuy: () => void
-  /** Callback for wishlist toggle */
   onWishlistToggle: () => void
-  /** Callback for share button */
   onShare: () => void
-  /** Whether the product is already in the user's wishlist */
   isInWishlist?: boolean
-  /** Buy button loading state */
   isBuyLoading?: boolean
-  /** Opens the donation modal targeting this product's creator. Rendered only
-   *  when the product opts in via accepts_donations and the creator slug is
-   *  known. */
   onTip?: () => void
 }
 
@@ -42,23 +34,20 @@ const formatPrice = (product: Product): string => {
 const getBuyLabel = (product: Product): string => {
   const price = product.prices?.[0]
   const amount = (price as any)?.price_amount ?? 0
-  if (amount === 0) return 'Get it'
+  if (amount === 0) return 'Get it free'
   if (product.is_recurring) {
     const interval = product.recurring_interval ?? 'month'
-    return `Subscribe — ${formatPrice(product)} / ${interval}`
+    return `Subscribe · ${formatPrice(product)} / ${interval}`
   }
-  return `Buy for ${formatPrice(product)}`
+  return `Buy · ${formatPrice(product)}`
 }
 
 /**
- * ProductInfoColumn — the right column of the PDP per plan §6.5 step 3.
+ * ProductInfoColumn — the editorial buy-box.
  *
- * Eyebrow: creator name + small avatar (link to /creators/[slug])
- * Title: Inter Display 500 36-48px clamp
- * Price: large tabular nums
- * Lede: 1-2 sentences (product description first paragraph)
- * Buy CTA: full-width accent filled, text varies by type
- * Secondary: Wishlist (heart ghost) + Share (icon ghost)
+ * Visual hierarchy: eyebrow → title → price → lede → CTA → secondary.
+ * Generous spacing (8px base, gap-8 between groups). Typography from the
+ * design scale. tabular-nums on prices. No shadows, no gradients.
  */
 export const ProductInfoColumn = ({
   product,
@@ -72,32 +61,30 @@ export const ProductInfoColumn = ({
   const org = (product as any).organization as
     | { name?: string; slug?: string; avatar_url?: string | null }
     | undefined
-  const lede = product.description?.split('\n')[0]?.slice(0, 200) ?? null
-  // `accepts_donations` is newer than the generated SDK Product type — read it
-  // defensively until the client types are regenerated from the OpenAPI spec.
+  const lede = product.description?.split('\n')[0]?.slice(0, 220) ?? null
   const acceptsDonations = (product as any).accepts_donations === true
   const showTip = acceptsDonations && !!org?.slug && !!onTip
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-8">
       {/* Creator eyebrow */}
       {org?.name && (
         <Link
           href={`/creators/${org.slug ?? ''}`}
           prefetch
-          className="group inline-flex items-center gap-2.5"
+          className="group inline-flex w-fit items-center gap-3"
         >
           {org.avatar_url && (
-            <div className="relative h-7 w-7 shrink-0 overflow-hidden rounded-full bg-[var(--surface-sunken)]">
+            <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-[var(--surface-sunken)] ring-1 ring-[var(--border)]">
               <OptimizedImage
                 src={org.avatar_url}
                 alt={`${org.name} avatar`}
                 fill
-                sizes="28px"
+                sizes="32px"
               />
             </div>
           )}
-          <span className="font-sans text-[13px] font-medium text-[var(--text-secondary)] transition-colors group-hover:text-[var(--accent)]">
+          <span className={cn(typography.eyebrow, 'transition-colors group-hover:text-[var(--accent)]')}>
             {org.name}
           </span>
         </Link>
@@ -106,15 +93,15 @@ export const ProductInfoColumn = ({
       {/* Title */}
       <h1
         className={cn(
-          'font-display font-medium tracking-[-0.015em] leading-[1.15]',
-          'text-[clamp(28px,3.5vw,48px)] text-[var(--text-primary)]',
+          'font-display font-semibold tracking-[-0.02em] leading-[1.08]',
+          'text-[clamp(28px,4vw,44px)] text-[var(--text-primary)]',
         )}
       >
         {product.name}
       </h1>
 
       {/* Price */}
-      <p className="font-display text-[28px] font-semibold tabular-nums text-[var(--text-primary)]">
+      <p className="font-display text-[clamp(24px,3vw,32px)] font-semibold leading-none text-[var(--text-primary)] [font-variant-numeric:tabular-nums]">
         {formatPrice(product)}
         {product.is_recurring && (
           <span className="ml-2 font-sans text-[14px] font-normal text-[var(--text-muted)]">
@@ -130,34 +117,43 @@ export const ProductInfoColumn = ({
         </p>
       )}
 
-      {/* Buy CTA */}
-      <button
-        type="button"
-        onClick={onBuy}
-        disabled={isBuyLoading || product.is_archived}
-        aria-busy={isBuyLoading}
-        className={cn(
-          'mt-2 inline-flex h-14 w-full items-center justify-center rounded-md bg-[var(--accent)] px-7 font-sans text-[15px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)]',
-          'disabled:cursor-not-allowed disabled:opacity-50',
-        )}
-      >
-        {isBuyLoading ? 'Adding…' : getBuyLabel(product)}
-      </button>
+      {/* Buy CTA — full-width, generous padding */}
+      <div className="flex flex-col gap-3 pt-2">
+        <button
+          type="button"
+          onClick={onBuy}
+          disabled={isBuyLoading || product.is_archived}
+          aria-busy={isBuyLoading}
+          className={cn(
+            'inline-flex h-[56px] w-full items-center justify-center rounded-lg',
+            'bg-[var(--accent)] px-7 font-sans text-[15px] font-medium text-[var(--accent-foreground)]',
+            'transition-colors duration-200 hover:bg-[var(--accent-hover)]',
+            'disabled:cursor-not-allowed disabled:opacity-50',
+          )}
+        >
+          {isBuyLoading ? 'Adding…' : getBuyLabel(product)}
+        </button>
 
-      {/* M-Pesa-first payment note (factual, not a badge strip) */}
-      <p className="-mt-2 flex items-center gap-2 font-sans text-[13px] text-[var(--text-muted)]">
-        <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
-        Pay with M-Pesa or card · instant download
-      </p>
+        {/* Payment note */}
+        <p className="flex items-center gap-2 font-sans text-[13px] text-[var(--text-muted)]">
+          <span className="h-1 w-1 rounded-full bg-[var(--accent)]" aria-hidden="true" />
+          Card or M-Pesa · Instant delivery
+        </p>
+      </div>
 
-      {/* Secondary actions — Wishlist + Share */}
+      {/* Secondary: Wishlist + Share */}
       <div className="flex items-center gap-3">
         <button
           type="button"
           onClick={onWishlistToggle}
           aria-label={isInWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
           aria-pressed={isInWishlist}
-          className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-md border border-[var(--border-strong)] bg-transparent font-sans text-[14px] font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-sunken)]"
+          className={cn(
+            'inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-lg',
+            'border border-[var(--border-strong)] bg-transparent',
+            'font-sans text-[14px] font-medium text-[var(--text-primary)]',
+            'transition-colors duration-200 hover:bg-[var(--surface-sunken)]',
+          )}
         >
           <FiHeart
             size={16}
@@ -173,20 +169,29 @@ export const ProductInfoColumn = ({
           type="button"
           onClick={onShare}
           aria-label="Share product"
-          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-[var(--border-strong)] bg-transparent text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-sunken)] hover:text-[var(--text-primary)]"
+          className={cn(
+            'inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-lg',
+            'border border-[var(--border-strong)] bg-transparent',
+            'text-[var(--text-secondary)] transition-colors duration-200',
+            'hover:bg-[var(--surface-sunken)] hover:text-[var(--text-primary)]',
+          )}
         >
           <FiShare2 size={16} />
         </button>
       </div>
 
-      {/* Tip the creator — only when the product opts into donations. Opens
-          the same inline DonationModal used across the marketplace. */}
+      {/* Tip the creator */}
       {showTip && (
         <button
           type="button"
           onClick={onTip}
           data-testid="product-tip-creator"
-          className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md border border-[var(--border-strong)] bg-transparent font-sans text-[14px] font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-sunken)]"
+          className={cn(
+            'inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg',
+            'border border-[var(--border-strong)] bg-transparent',
+            'font-sans text-[14px] font-medium text-[var(--text-primary)]',
+            'transition-colors duration-200 hover:bg-[var(--surface-sunken)]',
+          )}
         >
           <FiHeart size={16} className="text-[var(--accent)]" />
           Tip the creator

@@ -63,7 +63,7 @@
   --shadow-3xl: 0 0 50px rgba(0 0 0 / 0.02), 0 0 50px rgba(0 0 0 / 0.04);
 
   --font-sans: var(--sans), sans-serif;
-  --font-display: var(--display), sans-serif;
+  --font-display: var(--display), serif;
   --font-mono: var(--font-geist-mono), monospace;
   --font-louize: var(--louize), serif;
   --font-epilogue: 'Epilogue', var(--display), sans-serif;

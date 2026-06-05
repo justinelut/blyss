@@ -50,7 +50,7 @@ export const BlyssCartPage = () => {
             className={cn(typography.body, 'mt-4 text-[var(--text-secondary)]')}
           >
             Your cart is tied to your Blyss account. Sign in to add items and
-            check out with M-Pesa or card.
+            check out with card or mobile money.
           </p>
           <Link
             href={`/login?return_to=${encodeURIComponent('/cart')}`}

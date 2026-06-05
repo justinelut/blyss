@@ -100,8 +100,8 @@ export const Hero = ({
             className="mt-8 max-w-[52ch] font-sans text-[18px] leading-[1.55] text-[var(--text-secondary)] md:text-[22px]"
           >
             The modern marketplace for Kenyan creators. Templates, ebooks,
-            beats, courses, subscription tiers. M-Pesa or card. Paid out within
-            24&nbsp;hours.
+            beats, courses, subscription tiers. Card or mobile money. Paid out
+            within 24&nbsp;hours.
           </motion.p>
 
           {/* CTA cluster */}

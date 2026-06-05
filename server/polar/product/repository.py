@@ -70,11 +70,19 @@ class ProductRepository(
         return await self.get_one_or_none(statement)
 
     def get_eager_options(self) -> Options:
+        from polar.models.product_benefit import ProductBenefit
+
         return (
             joinedload(Product.organization),
             selectinload(Product.product_medias),
             selectinload(Product.attached_custom_fields),
             selectinload(Product.all_prices),
+            # product_benefits -> benefit powers the public product detail
+            # "What's included" / Benefits tabs. Without it product.benefits
+            # serializes empty on the public surface.
+            selectinload(Product.product_benefits).joinedload(
+                ProductBenefit.benefit
+            ),
         )
 
     def get_readable_statement(

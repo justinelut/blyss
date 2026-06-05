@@ -98,6 +98,16 @@ jobs:
             echo "-- worker logs (last 30 lines) --"
             sudo kubectl -n $NS logs deployment/blyss-worker --tail=30 2>&1 | tail -20
             echo
+            echo "-- RESEND verified domains (what 'from' is allowed) --"
+            sudo kubectl -n $NS exec $POD -- python3 -c 'import os,httpx;k=os.environ.get("POLAR_RESEND_API_KEY","");
+print("  env key len",len(k));
+r=httpx.get("https://api.resend.com/domains",headers={"Authorization":"Bearer "+k},timeout=10) if k else None;
+print("  /domains HTTP",r.status_code,"body[:400]=",r.text[:400]) if r is not None else print("  no env key")' 2>&1 | head -8 || true
+            echo "-- runtime_settings rows (key, status) — DB overlay that wins over env --"
+            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select key, status, last_verified_at, left(coalesce(last_error,''),60) as err from runtime_settings order by key;\"" 2>&1 | head -30
+            echo "-- effective from-address env --"
+            sudo kubectl -n $NS exec $POD -- sh -c 'echo "  EMAIL_FROM_LOCAL=$POLAR_EMAIL_FROM_LOCAL EMAIL_FROM_DOMAIN=$POLAR_EMAIL_FROM_DOMAIN"' 2>&1 | head -2
+            echo
 
             echo "═══════════════════════════════════════"
             echo " S3 / MINIO PROBE"

@@ -1467,6 +1467,7 @@ class OrganizationService:
         from sqlalchemy.orm import selectinload
 
         from polar.models import Product
+        from polar.models.product_benefit import ProductBenefit
 
         statement = (
             select(Organization)
@@ -1483,6 +1484,13 @@ class OrganizationService:
                     selectinload(Product.product_medias),
                     selectinload(Product.attached_custom_fields),
                     selectinload(Product.all_prices),
+                    # product_benefits -> benefit is what powers the
+                    # "What's included" / Benefits tabs on the public product
+                    # detail + storefront. Without this, product.benefits
+                    # serializes empty on the public surface.
+                    selectinload(Product.product_benefits).joinedload(
+                        ProductBenefit.benefit
+                    ),
                 )
             )
         )

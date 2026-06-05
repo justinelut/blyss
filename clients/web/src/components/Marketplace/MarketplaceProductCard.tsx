@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useReducedMotion, motion } from 'motion/react'
+import { FiStar } from 'react-icons/fi'
 import { schemas } from '@/lib/api'
 import { OptimizedImage } from '@/components/Image/OptimizedImage'
 import { typography } from '@/design'
@@ -156,6 +157,30 @@ export const MarketplaceProductCard = ({
             by {creatorName}
           </p>
         )}
+        {(() => {
+          // Compact rating per blyss-design (no 5-star graphic row): show
+          // "4.8 · 32 reviews" only when the product has reviews.
+          const summary = (product as any).review_summary as
+            | { average_rating: number; total_reviews: number }
+            | null
+            | undefined
+          if (!summary || summary.total_reviews <= 0) return null
+          return (
+            <p className="flex items-center gap-1.5 font-sans text-[13px] text-[var(--text-secondary)]">
+              <FiStar
+                size={13}
+                className="fill-[var(--accent)] text-[var(--accent)]"
+              />
+              <span className="font-medium tabular-nums">
+                {summary.average_rating.toFixed(1)}
+              </span>
+              <span className="text-[var(--text-muted)]">
+                · {summary.total_reviews}{' '}
+                {summary.total_reviews === 1 ? 'review' : 'reviews'}
+              </span>
+            </p>
+          )
+        })()}
         <p
           className={cn(
             'mt-1 font-display text-[18px] font-semibold tabular-nums text-[var(--text-primary)]',

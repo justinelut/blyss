@@ -9,6 +9,7 @@ from .accounts.endpoints import router as accounts_router
 from .benefits.endpoints import router as benefits_router
 from .customers.endpoints import router as customers_router
 from .creator_categories.endpoints import router as creator_categories_router
+from .loops.endpoints import router as loops_router
 from .dependencies import get_admin
 from .exception_handlers import add_backoffice_exception_handlers
 from .external_events.endpoints import router as external_events_router
@@ -72,6 +73,7 @@ app.include_router(runtime_settings_router, prefix="/runtime-settings")
 app.include_router(
     creator_categories_router, prefix="/creator-categories"
 )
+app.include_router(loops_router, prefix="/loops")
 
 @app.get("/", name="index")
 async def index(request: Request) -> None:

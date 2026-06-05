@@ -49,6 +49,39 @@ class ReviewRepository(
             "total_reviews": row.total_reviews,
         }
 
+    async def get_rating_summaries_for_products(
+        self,
+        product_ids: list[UUID],
+    ) -> dict[UUID, dict]:
+        """Batch: average rating + count for many products in ONE query.
+
+        Returns {product_id: {"average_rating": float, "total_reviews": int}}
+        for products that HAVE reviews. Callers default missing ids to 0/0.
+        Avoids the N+1 that per-card rating lookups would otherwise cause.
+        """
+        if not product_ids:
+            return {}
+
+        statement = (
+            select(
+                ProductReview.product_id,
+                func.avg(ProductReview.rating).label("average_rating"),
+                func.count(ProductReview.id).label("total_reviews"),
+            )
+            .where(ProductReview.product_id.in_(product_ids))
+            .group_by(ProductReview.product_id)
+        )
+        result = await self.session.execute(statement)
+        return {
+            row.product_id: {
+                "average_rating": float(row.average_rating)
+                if row.average_rating
+                else 0.0,
+                "total_reviews": row.total_reviews,
+            }
+            for row in result.all()
+        }
+
     async def get_rating_distribution(
         self,
         product_id: UUID,
