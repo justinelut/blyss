@@ -43,6 +43,7 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
         ),
         sa.Column("modified_at", sa.TIMESTAMP(timezone=True), nullable=True),
+        sa.Column("deleted_at", sa.TIMESTAMP(timezone=True), nullable=True),
         sa.Column("slug", postgresql_citext(), nullable=False),
         sa.Column("name", sa.String(length=100), nullable=False),
         sa.Column(
