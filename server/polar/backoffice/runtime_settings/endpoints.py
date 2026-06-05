@@ -9,7 +9,7 @@ from polar.postgres import AsyncSession, get_db_session
 from polar.runtime_settings.model import RuntimeSettingStatus
 from polar.runtime_settings.registry import REGISTRY, REGISTRY_MAP, RegisteredKey
 from polar.runtime_settings.repository import RuntimeSettingsRepository
-from polar.runtime_settings.service import runtime_settings
+from polar.runtime_settings.service import RuntimeSettingsDisabled, runtime_settings
 
 from ..components import button, modal
 from ..dependencies import get_admin
@@ -262,8 +262,24 @@ async def save(
         )
 
     user_id = admin.user.id  # type: ignore[attr-defined]
-    await runtime_settings.set(session, key, str(value).strip(), user_id)
-    await session.commit()
+    try:
+        await runtime_settings.set(session, key, str(value).strip(), user_id)
+        await session.commit()
+    except RuntimeSettingsDisabled:
+        # POLAR_RUNTIME_SETTINGS_KEY is not configured on this deployment, so
+        # values can't be encrypted at rest. Surface a clear, actionable toast
+        # instead of a raw 500 and leave the page intact.
+        await session.rollback()
+        await add_toast(
+            request,
+            "Runtime settings storage is disabled: POLAR_RUNTIME_SETTINGS_KEY "
+            "is not set on the server. Add it to the deployment secrets and "
+            "redeploy, then try again.",
+            "error",
+        )
+        return HXRedirectResponse(
+            request, str(request.url_for("runtime_settings:list"))
+        )
 
     if reg.requires_verification:
         await add_toast(request, "Saved. Click Test Connection to activate.", "success")
@@ -283,8 +299,21 @@ async def test_connection(
     if not reg:
         raise HTTPException(status_code=404, detail="Unknown key")
 
-    row = await runtime_settings.verify(session, key)
-    await session.commit()
+    try:
+        row = await runtime_settings.verify(session, key)
+        await session.commit()
+    except RuntimeSettingsDisabled:
+        await session.rollback()
+        await add_toast(
+            request,
+            "Runtime settings storage is disabled: POLAR_RUNTIME_SETTINGS_KEY "
+            "is not set on the server. Add it to the deployment secrets and "
+            "redeploy, then try again.",
+            "error",
+        )
+        return HXRedirectResponse(
+            request, str(request.url_for("runtime_settings:list"))
+        )
 
     if row.status == RuntimeSettingStatus.active:
         await add_toast(request, f"{reg.label}: verification passed ✓", "success")

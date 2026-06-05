@@ -175,6 +175,37 @@ class TestSave:
         await repo.delete(row)
         await session.commit()
 
+    async def test_save_without_master_key_does_not_500(
+        self, session: AsyncSession
+    ) -> None:
+        """Regression: saving when POLAR_RUNTIME_SETTINGS_KEY is unset must NOT
+        bubble up as a raw 500. It should degrade to a friendly toast/redirect
+        and persist nothing.
+
+        This reproduces the production incident where the backoffice returned a
+        bare 21-byte "Internal Server Error" because RuntimeSettingsService.set
+        raised RuntimeSettingsDisabled and the backoffice app had no PolarError
+        handler.
+        """
+        with patch("polar.runtime_settings.service.settings") as mock_settings:
+            mock_settings.RUNTIME_SETTINGS_KEY = None
+            async with await _client() as client:
+                resp = await client.post(
+                    "/runtime-settings/PAYSTACK_PUBLIC_KEY",
+                    data={"value": "pk_test_should_not_persist"},
+                    headers={"HX-Request": "true"},
+                    follow_redirects=False,
+                )
+
+        # Graceful: HX redirect (200) — never a 500.
+        assert resp.status_code != 500
+        assert resp.status_code in (200, 307)
+
+        # Nothing should have been written.
+        repo = RuntimeSettingsRepository(session)
+        row = await repo.get_by_key("PAYSTACK_PUBLIC_KEY")
+        assert row is None
+
     async def test_verifiable_key_stays_pending(
         self, session: AsyncSession, _patch_settings
     ) -> None:

@@ -5,7 +5,8 @@
   "scripts": {
     "build:css": "tailwindcss -i ./styles.css -o ./static/styles.css",
     "build:js": "esbuild scripts.mjs --bundle --minify --outfile=./static/scripts.js",
-    "build": "npm run build:css && npm run build:js"
+    "build:fonts": "node -e \"const fs=require('fs'),p='node_modules/lucide-static/font/';['lucide.woff2','lucide.woff','lucide.ttf'].forEach(f=>{try{fs.copyFileSync(p+f,'static/'+f)}catch(e){console.warn('skip '+f+': '+e.message)}})\"",
+    "build": "npm run build:css && npm run build:js && npm run build:fonts"
   },
   "dependencies": {
     "@tailwindcss/cli": "^4.1.17",

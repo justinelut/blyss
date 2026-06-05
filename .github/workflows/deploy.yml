@@ -114,6 +114,7 @@ jobs:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          RUNTIME_SETTINGS_KEY: ${{ secrets.RUNTIME_SETTINGS_KEY }}
         run: |
           if [ -z "${ENV_SECRET:-}" ]; then
             echo "::error::ENV_SECRET repo secret is empty."
@@ -162,6 +163,12 @@ jobs:
           inject_kv POLAR_OPENROUTER_API_KEY "${OPENROUTER_API_KEY:-}"
           inject_kv POLAR_CEREBRAS_API_KEY  "${CEREBRAS_API_KEY:-}"
           inject_kv POLAR_OPENAI_API_KEY    "${OPENAI_API_KEY:-}"
+
+          # Runtime settings master key — Fernet base64 32-byte key used to
+          # encrypt secrets stored in the DB via the backoffice runtime-settings
+          # page. Without it, RuntimeSettingsService.set() raises
+          # RuntimeSettingsDisabled and saving any key in the backoffice 500s.
+          inject_kv POLAR_RUNTIME_SETTINGS_KEY "${RUNTIME_SETTINGS_KEY:-}"
 
           # Blyss frontend origins get credentialed CORS (cookies allowed).
           # Pydantic-settings parses list[str] env vars as JSON, so we need

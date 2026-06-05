@@ -9,6 +9,7 @@ from .accounts.endpoints import router as accounts_router
 from .benefits.endpoints import router as benefits_router
 from .customers.endpoints import router as customers_router
 from .dependencies import get_admin
+from .exception_handlers import add_backoffice_exception_handlers
 from .external_events.endpoints import router as external_events_router
 from .impersonation.endpoints import router as impersonation_router
 from .layout import layout
@@ -39,6 +40,11 @@ app = FastAPI(
 exclude_app_from_metrics(app)
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(TagflowMiddleware)
+
+# Render PolarError (and subclasses) as inline toasts instead of bare 500s.
+# The backoffice is a standalone app and does not inherit the main app's
+# exception handlers.
+add_backoffice_exception_handlers(app)
 
 
 app.mount(
