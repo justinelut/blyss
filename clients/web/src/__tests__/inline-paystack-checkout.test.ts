@@ -83,8 +83,21 @@ describe('Inline Paystack-native checkout', () => {
 
   test('UI consumes channels dynamically (no hard-coded list)', () => {
     expect(ui).toContain('useCheckoutPaymentChannels')
-    expect(ui).toContain('channels.map')
+    // Iterate the dynamic channels array, however the implementation
+    // chooses to spread/flatten it. The forbidden pattern is a static
+    // hard-coded paymentMethods array.
+    expect(ui).toMatch(/channels\.(?:map|flatMap)\b/)
     expect(ui).not.toMatch(/const paymentMethods\s*=\s*\[/)
+  })
+
+  test('Mobile-money channels split into per-provider tabs', () => {
+    // The selector must render one tab per mobile-money provider —
+    // M-Pesa and Airtel Money each get their own logo/label, NOT a
+    // single shared "Mobile money" entry that hides the providers.
+    expect(ui).toMatch(/mobile_money:\$\{p\.code\}/)
+    // Per-provider icon dispatch (Kenya: airtel; GH: mtn/tgo/vod).
+    expect(ui).toContain("providerCode === 'airtel'")
+    expect(ui).toContain("providerCode === 'mtn'")
   })
 
   test('UI handles next-action steps inline', () => {

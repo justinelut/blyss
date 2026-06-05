@@ -28,78 +28,178 @@ const base = (size?: number, className?: string) => ({
 
 // ── Card brands ───────────────────────────────────────────────────
 
+/**
+ * Visa wordmark.
+ * Path data follows the simple-icons project (CC0 / public-domain
+ * geometry — Visa's wordmark is a simple geometric form not subject
+ * to copyright). Rendered in Visa's official navy ("classic blue"
+ * #1A1F71) on a transparent background so the badge can sit on any
+ * surface without a coloured tile.
+ */
 export const VisaLogo = ({ size, className, title = 'Visa' }: IconProps) => (
-  <svg {...base(size, className)} viewBox="0 0 64 32" aria-label={title}>
-    <rect width="64" height="32" rx="4" fill="#1A1F71" />
-    <path
-      d="M28.5 21.5h-3.5l2.2-11h3.5l-2.2 11Zm10.5-10.7c-.7-.3-1.8-.6-3.1-.6-3.5 0-6 1.7-6 4.2 0 1.8 1.7 2.8 3 3.4 1.3.6 1.8 1 1.8 1.5 0 .8-1 1.2-1.9 1.2-1.3 0-2-.2-3-.6l-.4-.2-.4 2.5c.7.3 2.1.6 3.5.6 3.7 0 6.2-1.7 6.2-4.3 0-1.4-.9-2.5-2.8-3.4-1.2-.6-1.9-.9-1.9-1.5 0-.5.6-1 1.9-1 1.1 0 1.9.2 2.5.5l.3.1.3-2.4Zm6.5 5.5c.3-.7 1.4-3.6 1.4-3.6l.4 3.6h-1.8Zm4-5.8h-2.7c-.8 0-1.4.2-1.8 1l-5 11.7h3.5l.7-1.9h4.2l.4 1.9H52l-2.5-12.7Zm-19.5 0L26.5 18l-.4-1.7c-.6-2-2.5-4.2-4.6-5.3L24.5 21.5h3.5l5.4-10.7H30l-.5 0Z"
-      fill="#fff"
-    />
+  <svg
+    {...base(size, className)}
+    viewBox="0 0 24 24"
+    aria-label={title}
+    fill="#1A1F71"
+  >
+    <path d="M9.112 8.262 5.97 15.758H3.92L2.374 9.775c-.094-.368-.175-.503-.461-.658C1.447 8.864.677 8.627 0 8.479l.046-.217h3.3a.904.904 0 0 1 .894.764l.817 4.338 2.018-5.102zm8.033 5.049c.008-1.979-2.736-2.088-2.717-2.972.006-.269.262-.555.822-.628a3.66 3.66 0 0 1 1.913.336l.34-1.59a5.207 5.207 0 0 0-1.814-.333c-1.917 0-3.266 1.02-3.278 2.479-.012 1.079.963 1.68 1.698 2.04.756.367 1.01.603 1.006.931-.005.502-.602.725-1.16.733-.975.015-1.54-.263-1.992-.473l-.351 1.642c.453.208 1.289.39 2.156.398 2.037 0 3.37-1.006 3.377-2.563m5.061 2.447H24l-1.565-7.496h-1.656a.883.883 0 0 0-.826.55l-2.909 6.946h2.036l.405-1.12h2.488zm-2.163-2.656 1.02-2.815.588 2.815zm-8.16-4.84-1.603 7.496H8.34l1.605-7.496z" />
   </svg>
 )
 
-export const MastercardLogo = ({ size, className, title = 'Mastercard' }: IconProps) => (
-  <svg {...base(size, className)} viewBox="0 0 64 32" aria-label={title}>
-    <rect width="64" height="32" rx="4" fill="#000" />
-    <circle cx="26" cy="16" r="8" fill="#EB001B" />
-    <circle cx="38" cy="16" r="8" fill="#F79E1B" />
+/**
+ * Mastercard mark — three intersecting circles.
+ * Mastercard dropped the wordmark in 2016. The mark itself is two
+ * circles (red + amber) overlapping in a brown/orange intersection.
+ */
+export const MastercardLogo = ({
+  size,
+  className,
+  title = 'Mastercard',
+}: IconProps) => (
+  <svg {...base(size, className)} viewBox="0 0 24 24" aria-label={title}>
+    <circle cx="9" cy="12" r="6" fill="#EB001B" />
+    <circle cx="15" cy="12" r="6" fill="#F79E1B" />
     <path
-      d="M32 22.4a8 8 0 0 0 0-12.8 8 8 0 0 0 0 12.8Z"
+      d="M12 7.06a6 6 0 0 1 0 9.88 6 6 0 0 1 0-9.88z"
       fill="#FF5F00"
     />
   </svg>
 )
 
+/**
+ * Verve card brand (Nigeria). Yellow + red split with the "V" mark.
+ */
 export const VerveLogo = ({ size, className, title = 'Verve' }: IconProps) => (
-  <svg {...base(size, className)} viewBox="0 0 64 32" aria-label={title}>
-    <rect width="64" height="32" rx="4" fill="#0033A0" />
+  <svg {...base(size, className)} viewBox="0 0 24 24" aria-label={title}>
+    <rect width="24" height="24" rx="4" fill="#0033A0" />
     <path
-      d="M14 11h4l3 7 3-7h4l-5 11h-4L14 11Zm17 0h9v3h-6v1.5h5.5V18H34v1.5h6V22h-9V11Zm12 11V11h5c2 0 3.5 1 3.5 3 0 1.4-.7 2.3-1.7 2.7l2 5.3h-3.2l-1.7-4.5H46V22h-3Zm3-7h2c.7 0 1-.4 1-1s-.3-1-1-1h-2v2Z"
+      d="M5 8h2.4l1.8 6 1.8-6h2.4l-3 10h-2.4L5 8Zm9.5 10V8h2.5v10h-2.5Z"
       fill="#fff"
     />
-    <circle cx="56" cy="16" r="3" fill="#FFCD00" />
+    <circle cx="20" cy="13" r="2.2" fill="#FFCD00" />
   </svg>
 )
 
 // ── Mobile money ──────────────────────────────────────────────────
 
+/**
+ * M-Pesa — Safaricom's mobile-money product (Kenya).
+ * Brand: Safaricom green roundel + "M-PESA" wordmark in white.
+ */
 export const MpesaLogo = ({ size, className, title = 'M-Pesa' }: IconProps) => (
-  <svg {...base(size, className)} viewBox="0 0 64 32" aria-label={title}>
-    <rect width="64" height="32" rx="4" fill="#43B02A" />
-    <path
-      d="M9 22V11h3l3 6 3-6h3v11h-3v-6l-2 4h-2l-2-4v6H9Zm15 0V11h7c2 0 3 1 3 2.8 0 1.5-1 2.5-2.5 2.6 1.7.2 2.8 1.3 2.8 3 0 1.8-1.2 2.6-3.3 2.6h-7Zm3-6.5h3c.8 0 1.2-.4 1.2-1s-.4-1-1.2-1h-3v2Zm0 4.5h3.3c.8 0 1.3-.4 1.3-1.1s-.5-1.1-1.3-1.1H27v2.2ZM39 22l4-11h3l4 11h-3.2l-.7-2H43l-.7 2H39Zm4.6-4.2h2.6L45 14.4l-1.4 3.4Z"
+  <svg {...base(size, className)} viewBox="0 0 64 24" aria-label={title}>
+    <rect width="64" height="24" rx="3" fill="#43B02A" />
+    <text
+      x="32"
+      y="17"
+      textAnchor="middle"
+      fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
+      fontWeight="800"
+      fontSize="11"
+      letterSpacing="0.5"
       fill="#fff"
-    />
+    >
+      M-PESA
+    </text>
   </svg>
 )
 
+/**
+ * Airtel Money — Kenya / Nigeria / Uganda etc. mobile money product.
+ * Brand: Airtel red roundel + "airtel money" wordmark.
+ */
+export const AirtelMoneyLogo = ({
+  size,
+  className,
+  title = 'Airtel Money',
+}: IconProps) => (
+  <svg {...base(size, className)} viewBox="0 0 64 24" aria-label={title}>
+    <rect width="64" height="24" rx="3" fill="#E40000" />
+    <text
+      x="32"
+      y="17"
+      textAnchor="middle"
+      fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
+      fontWeight="800"
+      fontSize="11"
+      letterSpacing="0.3"
+      fill="#fff"
+    >
+      airtel
+    </text>
+  </svg>
+)
+
+/**
+ * MTN MoMo — Ghana mobile money. Brand: MTN's signature yellow tile.
+ */
 export const MtnLogo = ({ size, className, title = 'MTN MoMo' }: IconProps) => (
-  <svg {...base(size, className)} viewBox="0 0 64 32" aria-label={title}>
-    <rect width="64" height="32" rx="4" fill="#FFCC00" />
-    <path
-      d="M14 22V10h4l4 7 4-7h4v12h-3v-7l-3.5 6h-2l-3.5-6v7h-4Zm22 0V10h11v3h-4v9h-3v-9h-4Z"
-      fill="#000"
-    />
+  <svg {...base(size, className)} viewBox="0 0 64 24" aria-label={title}>
+    <rect width="64" height="24" rx="3" fill="#FFCC00" />
+    <text
+      x="32"
+      y="17"
+      textAnchor="middle"
+      fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
+      fontWeight="900"
+      fontSize="11"
+      letterSpacing="0.4"
+      fill="#003F7E"
+    >
+      MTN MoMo
+    </text>
   </svg>
 )
 
-export const AirteltigoLogo = ({ size, className, title = 'AirtelTigo' }: IconProps) => (
-  <svg {...base(size, className)} viewBox="0 0 64 32" aria-label={title}>
-    <rect width="64" height="32" rx="4" fill="#ED1C24" />
-    <path
-      d="M12 22h-3l4.5-12h3.5L21.5 22h-3l-.8-2.3h-4.9L12 22Zm1.5-4.7h3.4l-1.7-5-1.7 5ZM23 22V10h3v12h-3Zm6 0V10h11v3h-4v9h-3v-9h-4Zm14 0V10h3v12h-3Zm6 0V10h3v9h6v3h-9Z"
+/**
+ * AirtelTigo — Ghana joint mobile-money product (legacy Tigo / Airtel
+ * combined). Brand: Airtel red.
+ */
+export const AirteltigoLogo = ({
+  size,
+  className,
+  title = 'AirtelTigo',
+}: IconProps) => (
+  <svg {...base(size, className)} viewBox="0 0 64 24" aria-label={title}>
+    <rect width="64" height="24" rx="3" fill="#ED1C24" />
+    <text
+      x="32"
+      y="17"
+      textAnchor="middle"
+      fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
+      fontWeight="800"
+      fontSize="10"
+      letterSpacing="0.3"
       fill="#fff"
-    />
+    >
+      AirtelTigo
+    </text>
   </svg>
 )
 
-export const VodafoneLogo = ({ size, className, title = 'Vodafone Cash' }: IconProps) => (
-  <svg {...base(size, className)} viewBox="0 0 64 32" aria-label={title}>
-    <rect width="64" height="32" rx="4" fill="#E60000" />
-    <path
-      d="M16 22 11 10h3.5l3.2 8.5L21 10h3.5L19 22h-3Zm12-12c4 0 6 2.5 6 6s-2 6-6 6-6-2.5-6-6 2-6 6-6Zm0 3c-1.7 0-2.7 1-2.7 3s1 3 2.7 3 2.7-1 2.7-3-1-3-2.7-3Z"
+/**
+ * Vodafone Cash — Ghana mobile money. Brand: Vodafone red.
+ */
+export const VodafoneLogo = ({
+  size,
+  className,
+  title = 'Vodafone Cash',
+}: IconProps) => (
+  <svg {...base(size, className)} viewBox="0 0 64 24" aria-label={title}>
+    <rect width="64" height="24" rx="3" fill="#E60000" />
+    <text
+      x="32"
+      y="17"
+      textAnchor="middle"
+      fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
+      fontWeight="800"
+      fontSize="10"
+      letterSpacing="0.3"
       fill="#fff"
-    />
+    >
+      Vodafone
+    </text>
   </svg>
 )
 

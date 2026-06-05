@@ -29,6 +29,7 @@ import { cn } from '@/lib/utils'
 import { useEffect, useMemo, useState } from 'react'
 import { useFormContext } from 'react-hook-form'
 import {
+  AirtelMoneyLogo,
   AirteltigoLogo,
   BankGlyph,
   BankTransferGlyph,
@@ -93,6 +94,8 @@ const ChannelIcon = ({
     if (providerCode === 'mtn') return <MtnLogo size={size + 8} />
     if (providerCode === 'tgo') return <AirteltigoLogo size={size + 8} />
     if (providerCode === 'vod') return <VodafoneLogo size={size + 8} />
+    if (providerCode === 'airtel')
+      return <AirtelMoneyLogo size={size + 8} />
     return <MpesaLogo size={size + 8} />
   }
   if (channel === 'bank') return <BankGlyph size={size} />
@@ -116,16 +119,48 @@ const PaystackPaymentInterface = ({
     [channelsQ.data],
   )
 
-  const [selectedId, setSelectedId] = useState<PaymentChannel['id']>('card')
-  useEffect(() => {
-    if (channels.length === 0) return
-    const card = channels.find((c) => c.id === 'card')
-    const next = card?.id ?? channels[0].id
-    setSelectedId(next)
-    onPaymentMethodSelect?.(next)
-  }, [channels, onPaymentMethodSelect])
+  /**
+   * Flatten the channel list into a tab list. Mobile-money channels
+   * with multiple providers (Kenya: M-Pesa + Airtel Money; Ghana:
+   * MTN + AirtelTigo + Vodafone) explode into one tab per provider so
+   * each provider gets its own brand mark in the strip — that's what
+   * Paystack itself surfaces and what buyers expect to see.
+   */
+  type Tab = {
+    key: string
+    channel: PaymentChannel
+    providerCode?: string
+    providerName?: string
+  }
+  const tabs = useMemo<Tab[]>(() => {
+    return channels.flatMap<Tab>((c) => {
+      if (
+        c.id === 'mobile_money' &&
+        c.providers &&
+        c.providers.length > 0
+      ) {
+        return c.providers.map<Tab>((p) => ({
+          key: `mobile_money:${p.code}`,
+          channel: c,
+          providerCode: p.code,
+          providerName: p.name,
+        }))
+      }
+      return [{ key: c.id, channel: c } as Tab]
+    })
+  }, [channels])
 
-  const selected = channels.find((c) => c.id === selectedId)
+  const [selectedKey, setSelectedKey] = useState<string>('card')
+  useEffect(() => {
+    if (tabs.length === 0) return
+    const card = tabs.find((t) => t.channel.id === 'card')
+    const next = card?.key ?? tabs[0].key
+    setSelectedKey(next)
+    onPaymentMethodSelect?.(next)
+  }, [tabs, onPaymentMethodSelect])
+
+  const selectedTab = tabs.find((t) => t.key === selectedKey)
+  const selected = selectedTab?.channel
 
   const [card, setCard] = useState<CardFields>({
     card_number: '',
@@ -142,24 +177,29 @@ const PaystackPaymentInterface = ({
   const [qr, setQr] = useState<QRFields>({ qr_provider: '' })
   const [eft, setEft] = useState<EFTFields>({ eft_provider: '' })
 
-  // Default the mobile-money / qr / eft / ussd provider to the channel's
-  // first option once channels load so the form can submit without
-  // forcing the buyer to think about defaults.
+  // Sync provider state when the active tab is a mobile-money provider
+  // tab (mobile_money:mpesa / mobile_money:airtel / etc.). For other
+  // channels with implicit single-provider lists (qr / eft / ussd),
+  // default to the first provider on first render.
   useEffect(() => {
-    if (!selected?.providers?.length) return
-    if (selected.id === 'mobile_money' && !momo.provider) {
-      setMomo((m) => ({ ...m, provider: selected.providers![0].code }))
+    if (!selectedTab || !selected) return
+    if (selected.id === 'mobile_money' && selectedTab.providerCode) {
+      if (momo.provider !== selectedTab.providerCode) {
+        setMomo((m) => ({ ...m, provider: selectedTab.providerCode! }))
+      }
+      return
     }
+    if (!selected.providers?.length) return
     if (selected.id === 'qr' && !qr.qr_provider) {
-      setQr({ qr_provider: selected.providers![0].code })
+      setQr({ qr_provider: selected.providers[0].code })
     }
     if (selected.id === 'eft' && !eft.eft_provider) {
-      setEft({ eft_provider: selected.providers![0].code })
+      setEft({ eft_provider: selected.providers[0].code })
     }
     if (selected.id === 'ussd' && !ussd.ussd_type) {
-      setUssd({ ussd_type: selected.providers![0].code })
+      setUssd({ ussd_type: selected.providers[0].code })
     }
-  }, [selected])
+  }, [selectedTab, selected])
 
   const charge = useCheckoutCharge(clientSecret)
   const submitStep = useCheckoutChargeSubmitStep(clientSecret)
@@ -182,9 +222,9 @@ const PaystackPaymentInterface = ({
     return () => sub?.unsubscribe?.()
   }, [form])
 
-  const onChannelClick = (id: PaymentChannel['id']) => {
-    setSelectedId(id)
-    onPaymentMethodSelect?.(id)
+  const onTabClick = (key: string) => {
+    setSelectedKey(key)
+    onPaymentMethodSelect?.(key)
   }
 
 
@@ -280,9 +320,9 @@ const PaystackPaymentInterface = ({
   return (
     <div className="space-y-4" data-testid="paystack-payment-interface">
       <ChannelTabsStrip
-        channels={channels}
-        selectedId={selectedId}
-        onSelect={onChannelClick}
+        tabs={tabs}
+        selectedKey={selectedKey}
+        onSelect={onTabClick}
         disabled={disabled}
       />
 
@@ -293,7 +333,6 @@ const PaystackPaymentInterface = ({
         <MoMoFieldsBlock
           momo={momo}
           setMomo={setMomo}
-          providers={selected.providers ?? []}
           disabled={disabled}
         />
       )}
@@ -375,14 +414,19 @@ const CHANNEL_LABEL: Record<PaymentChannel['id'], string> = {
 }
 
 const ChannelTabsStrip = ({
-  channels,
-  selectedId,
+  tabs,
+  selectedKey,
   onSelect,
   disabled,
 }: {
-  channels: PaymentChannel[]
-  selectedId: PaymentChannel['id']
-  onSelect: (id: PaymentChannel['id']) => void
+  tabs: {
+    key: string
+    channel: PaymentChannel
+    providerCode?: string
+    providerName?: string
+  }[]
+  selectedKey: string
+  onSelect: (key: string) => void
   disabled?: boolean
 }) => (
   <div
@@ -396,16 +440,18 @@ const ChannelTabsStrip = ({
       '[&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]',
     )}
   >
-    {channels.map((c) => {
-      const active = c.id === selectedId
+    {tabs.map((t) => {
+      const active = t.key === selectedKey
+      const label =
+        t.providerName || CHANNEL_LABEL[t.channel.id] || t.channel.name
       return (
         <button
-          key={c.id}
+          key={t.key}
           role="tab"
           type="button"
           aria-selected={active}
           tabIndex={active ? 0 : -1}
-          onClick={() => onSelect(c.id)}
+          onClick={() => onSelect(t.key)}
           disabled={disabled}
           className={cn(
             'group relative flex flex-none cursor-pointer flex-col items-center justify-center gap-2',
@@ -418,7 +464,7 @@ const ChannelTabsStrip = ({
               : 'border-[var(--border)] bg-transparent hover:bg-[var(--surface-sunken)]',
           )}
         >
-          <ChannelIcon channel={c.id} />
+          <ChannelIcon channel={t.channel.id} providerCode={t.providerCode} />
           <span
             className={cn(
               'text-[11px] font-medium leading-none tracking-tight',
@@ -427,7 +473,7 @@ const ChannelTabsStrip = ({
                 : 'text-[var(--text-secondary)]',
             )}
           >
-            {CHANNEL_LABEL[c.id] ?? c.name}
+            {label}
           </span>
         </button>
       )
@@ -542,50 +588,22 @@ const CardFieldsBlock = ({
 const MoMoFieldsBlock = ({
   momo,
   setMomo,
-  providers,
   disabled,
 }: {
   momo: MoMoFields
   setMomo: (v: MoMoFields) => void
-  providers: PaymentChannelProvider[]
   disabled?: boolean
 }) => (
-  <div className="space-y-4">
-    {providers.length > 1 && (
-      <div className="space-y-2">
-        <FormLabel className="text-sm">Provider</FormLabel>
-        <div className="grid grid-cols-3 gap-2">
-          {providers.map((p) => (
-            <button
-              key={p.code}
-              type="button"
-              disabled={disabled}
-              onClick={() => setMomo({ ...momo, provider: p.code })}
-              className={cn(
-                'cursor-pointer rounded-md border px-3 py-2 text-sm transition-colors',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2',
-                momo.provider === p.code
-                  ? 'border-[var(--accent)] bg-[var(--surface-elevated)] text-[var(--text-primary)]'
-                  : 'border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-sunken)]',
-              )}
-            >
-              {p.name}
-            </button>
-          ))}
-        </div>
-      </div>
-    )}
-    <div className="space-y-2">
-      <FormLabel className="text-sm">Mobile money number</FormLabel>
-      <Input
-        type="tel"
-        inputMode="tel"
-        placeholder="+254 712 345 678"
-        value={momo.phone}
-        disabled={disabled}
-        onChange={(e) => setMomo({ ...momo, phone: e.target.value })}
-      />
-    </div>
+  <div className="space-y-2">
+    <FormLabel className="text-sm">Mobile money number</FormLabel>
+    <Input
+      type="tel"
+      inputMode="tel"
+      placeholder="+254 712 345 678"
+      value={momo.phone}
+      disabled={disabled}
+      onChange={(e) => setMomo({ ...momo, phone: e.target.value })}
+    />
   </div>
 )
 

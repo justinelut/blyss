@@ -8,15 +8,18 @@ from polar.checkout.payment_channels import get_channels_for_currency
 
 
 class TestGetChannelsForCurrency:
-    def test_kes_has_card_mpesa_bank(self):
+    def test_kes_has_card_mpesa_airtel_bank(self):
         channels = get_channels_for_currency("KES")
         ids = [c.id for c in channels]
         assert "card" in ids
         assert "mobile_money" in ids
         assert "bank" in ids
-        # M-Pesa provider
+        # Both Kenyan mobile-money providers must be exposed so the
+        # frontend can render M-Pesa AND Airtel Money as separate tabs.
         momo = next(c for c in channels if c.id == "mobile_money")
-        assert any(p["code"] == "mpesa" for p in (momo.providers or []))
+        codes = {p["code"] for p in (momo.providers or [])}
+        assert "mpesa" in codes
+        assert "airtel" in codes
 
     def test_ngn_has_five_channels(self):
         channels = get_channels_for_currency("NGN")
