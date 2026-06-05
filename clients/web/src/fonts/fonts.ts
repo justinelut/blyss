@@ -1,5 +1,5 @@
 import localFont from 'next/font/local'
-import { Newsreader } from 'next/font/google'
+import { Space_Grotesk } from 'next/font/google'
 
 /**
  * Inter — body typeface.
@@ -19,29 +19,37 @@ export const inter = localFont({
 })
 
 /**
- * Newsreader — premium display serif for headlines (H1, H2, H3).
+ * Space Grotesk — display grotesk for headlines (H1, H2, H3, H4).
  *
- * Designed by Production Type for Google. Optical-size-aware editorial serif
- * with classical proportions and sharp detail at large sizes. Signals
- * "premium editorial publication" — the tension between a refined serif for
- * display and Inter for body is exactly what SSENSE, MR PORTER, and Cereal
- * Magazine use to read as high-end commerce, not template.
+ * Designed by Florian Karsten. A characterful geometric grotesk with
+ * squared counters and distinctive letterforms that signal "modern digital
+ * products / tech / creator tools" — the typographic register of Linear,
+ * Gumroad, and Fontshare. Pairs naturally with Inter (shared geometric DNA,
+ * distinct personality at display sizes).
  *
- * Variable font; we load the specific weights used by the type scale (400–600).
+ * Replaces Newsreader: the editorial serif read as "literary magazine" rather
+ * than "buy this Figma template / beat pack / Notion kit."
+ *
+ * Loaded via next/font/google for reproducibility (no binary asset management).
  */
-export const newsreader = Newsreader({
+export const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
-  weight: ['400', '500', '600'],
-  style: ['normal', 'italic'],
+  weight: ['400', '500', '600', '700'],
   display: 'swap',
   variable: '--display',
 })
 
 /**
- * @deprecated Alias for migration — components importing `interDisplay` still
- * compile. Points to Newsreader which now owns the --display variable.
+ * @deprecated Alias for migration — components importing `newsreader` still
+ * compile. Points to Space Grotesk which now owns the --display variable.
  */
-export const interDisplay = newsreader
+export const newsreader = spaceGrotesk
+
+/**
+ * @deprecated Alias for migration — components importing `interDisplay` still
+ * compile. Points to Space Grotesk which now owns the --display variable.
+ */
+export const interDisplay = spaceGrotesk
 
 /**
  * Louize — Polar's old display serif, retained as `--louize` for any legacy

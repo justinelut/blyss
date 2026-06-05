@@ -5,7 +5,7 @@ import { getExperimentNames } from '@/experiments'
 import { getDistinctId } from '@/experiments/distinct-id'
 import { ExperimentProvider } from '@/experiments/ExperimentProvider'
 import { getExperiments } from '@/experiments/server'
-import { inter, newsreader, louize } from '@/fonts/fonts'
+import { inter, spaceGrotesk, louize } from '@/fonts/fonts'
 import { UserContextProvider } from '@/providers/auth'
 import { getServerSideAPI } from '@/utils/client/serverside'
 import { CONFIG } from '@/utils/config'
@@ -114,7 +114,7 @@ export default async function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`antialiased ${inter.variable} ${newsreader.variable} ${louize.variable} ${GeistMono.variable}`}
+      className={`antialiased ${inter.variable} ${spaceGrotesk.variable} ${louize.variable} ${GeistMono.variable}`}
     >
       <head>
         {/* Light is the default, dominant mode (plan/04-ui-direction.md §3.2).

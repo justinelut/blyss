@@ -1,7 +1,7 @@
 /**
  * Blyss typography scale — plan/04-ui-direction.md §3.3
  *
- * Display: Newsreader (font-display). Refined editorial serif for headlines.
+ * Display: Space Grotesk (font-display). Geometric grotesk for headlines.
  * Body:    Inter (font-sans).
  *
  * Use these className constants instead of hand-rolling clamp() everywhere so

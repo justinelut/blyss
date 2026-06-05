@@ -184,6 +184,40 @@ const CheckoutProductSwitcher = ({
     }
   }
 
+  // Cart checkout: the `products` list is the buyer's BASKET (every cart
+  // item), not a set of mutually-exclusive alternatives. Render it as a
+  // read-only line-item list — the total is already aggregated server-side.
+  // A radio switcher here would (wrongly) let the buyer collapse the basket
+  // to a single product, which is the "I can only buy one product at a time"
+  // bug.
+  if ((checkout as { is_cart_checkout?: boolean }).is_cart_checkout) {
+    return (
+      <div className="dark:border-polar-700 dark:divide-polar-700 flex flex-col divide-y divide-gray-200 overflow-hidden rounded-xl border border-gray-200">
+        {items.map((item) => (
+          <div
+            key={item.key}
+            className="flex items-center gap-x-3 px-4 py-3"
+          >
+            <div className="min-w-0 flex-1">
+              <span className="line-clamp-2 text-sm">{item.productName}</span>
+              <span className="dark:text-polar-500 block text-xs text-gray-500">
+                {getDescription(item.product, item.price)}
+              </span>
+            </div>
+            <span className="dark:text-polar-400 shrink-0 text-sm text-gray-500">
+              <ProductPriceLabel
+                product={item.product}
+                price={item.price}
+                locale={locale}
+                mode="standard"
+              />
+            </span>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
   return (
     <RadioGroup
       value={`${selectedProduct.id}:${selectedPrice.id}`}

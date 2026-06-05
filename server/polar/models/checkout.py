@@ -294,6 +294,18 @@ class Checkout(
         return self.customer_tax_id[0] if self.customer_tax_id is not None else None
 
     @property
+    def is_cart_checkout(self) -> bool:
+        """True when this checkout was created from a multi-item cart.
+
+        Cart checkouts store the originating cart item IDs in user_metadata.
+        The public checkout UI uses this to render a read-only line-item list
+        (the full basket, with the already-aggregated total) instead of the
+        single-product radio switcher, which would otherwise let the buyer
+        collapse the basket down to one product.
+        """
+        return bool((self.user_metadata or {}).get("cart_item_ids"))
+
+    @property
     def discount_amount(self) -> int:
         return (
             self.discount.get_discount_amount(self.amount, self.currency)

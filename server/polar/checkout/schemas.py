@@ -534,6 +534,15 @@ class CheckoutBase(CustomFieldDataOutputMixin, TimestampedSchema, IDSchema):
     total_amount: int = Field(description="Amount in cents, after discounts and taxes.")
     currency: str = Field(description="Currency code of the checkout session.")
 
+    is_cart_checkout: bool = Field(
+        default=False,
+        description=(
+            "Whether this checkout was created from a multi-item cart. When "
+            "true, the UI shows the full basket as a read-only line-item list "
+            "(the total is already aggregated) instead of a product switcher."
+        ),
+    )
+
     allow_trial: bool | None = Field(description=_allow_trial_description)
     active_trial_interval: TrialInterval | None = Field(
         description=(
