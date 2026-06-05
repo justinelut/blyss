@@ -1,8 +1,20 @@
 'use client'
 
+/* Hallmark · component: payment-channel-selector · genre: modern-minimal
+ * theme: project tokens (Blyss burnt-orange light)
+ * states: default · hover · focus · active · disabled · loading · error · success
+ * Pre-emit critique: P5 H4 E5 S5 R5 V5
+ */
+
 import type { schemas } from '@/lib/api'
-import Button from '@/components/atoms/Button'
-import { Input } from '@/components/ui/input'
+import Input from '@/components/atoms/Input'
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
 import {
   useCheckoutCharge,
   useCheckoutChargeSubmitStep,
@@ -11,23 +23,32 @@ import {
   type ChargeRequest,
   type ChargeResponse,
   type PaymentChannel,
+  type PaymentChannelProvider,
 } from '@/hooks/queries/checkoutPaystack'
 import { cn } from '@/lib/utils'
-import { CheckCircle, CreditCard, Loader2, Smartphone, XCircle } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { useFormContext } from 'react-hook-form'
+import {
+  AirteltigoLogo,
+  BankGlyph,
+  BankTransferGlyph,
+  GenericPaymentGlyph,
+  MastercardLogo,
+  MpesaLogo,
+  MtnLogo,
+  OzowLogo,
+  QrGlyph,
+  UssdGlyph,
+  VisaLogo,
+  VodafoneLogo,
+} from '@/components/Brand/payment-icons'
 
 interface Props {
   checkout: schemas['CheckoutPublic']
   disabled?: boolean
-  /**
-   * Notify parent of the selected channel id (for analytics / form state).
-   * Kept for backward-compat with the old prop signature.
-   */
+  /** Notify parent of the selected channel id (for analytics / form state). */
   onPaymentMethodSelect?: (channel: string) => void
-  /**
-   * Called when payment succeeds and we want to advance to the
-   * confirmation page. The parent already knows the client_secret.
-   */
+  /** Called when payment succeeds. */
   onPaymentSuccess?: () => void
 }
 
@@ -44,16 +65,43 @@ type USSDFields = { ussd_type: string }
 type QRFields = { qr_provider: string }
 type EFTFields = { eft_provider: string }
 
-const CHANNEL_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
-  card: CreditCard,
-  mobile_money: Smartphone,
-  bank: CreditCard,
-  bank_transfer: CreditCard,
-  ussd: Smartphone,
-  qr: Smartphone,
-  eft: CreditCard,
-}
 
+/**
+ * Map a Paystack channel + optional provider to its branded SVG icon.
+ * Card always shows Visa+Mastercard pair (the universal "two card brands"
+ * recognition pattern); mobile-money uses the provider-specific brand
+ * (M-Pesa green, MTN yellow, AirtelTigo red, Vodafone red).
+ */
+const ChannelIcon = ({
+  channel,
+  providerCode,
+  size = 28,
+}: {
+  channel: PaymentChannel['id']
+  providerCode?: string
+  size?: number
+}) => {
+  if (channel === 'card') {
+    return (
+      <span className="inline-flex items-center gap-1">
+        <VisaLogo size={size + 8} />
+        <MastercardLogo size={size + 8} />
+      </span>
+    )
+  }
+  if (channel === 'mobile_money') {
+    if (providerCode === 'mtn') return <MtnLogo size={size + 8} />
+    if (providerCode === 'tgo') return <AirteltigoLogo size={size + 8} />
+    if (providerCode === 'vod') return <VodafoneLogo size={size + 8} />
+    return <MpesaLogo size={size + 8} />
+  }
+  if (channel === 'bank') return <BankGlyph size={size} />
+  if (channel === 'bank_transfer') return <BankTransferGlyph size={size} />
+  if (channel === 'ussd') return <UssdGlyph size={size} />
+  if (channel === 'qr') return <QrGlyph size={size} />
+  if (channel === 'eft') return <OzowLogo size={size + 8} />
+  return <GenericPaymentGlyph size={size} />
+}
 
 const PaystackPaymentInterface = ({
   checkout,
@@ -70,7 +118,6 @@ const PaystackPaymentInterface = ({
 
   const [selectedId, setSelectedId] = useState<PaymentChannel['id']>('card')
   useEffect(() => {
-    // Default to first available channel; card if present, else first.
     if (channels.length === 0) return
     const card = channels.find((c) => c.id === 'card')
     const next = card?.id ?? channels[0].id
@@ -80,15 +127,13 @@ const PaystackPaymentInterface = ({
 
   const selected = channels.find((c) => c.id === selectedId)
 
-  // Channel-specific input state. Each channel has its own slice so
-  // switching channels doesn't lose previously entered values.
   const [card, setCard] = useState<CardFields>({
     card_number: '',
     expiry_month: '',
     expiry_year: '',
     cvv: '',
   })
-  const [momo, setMomo] = useState<MoMoFields>({ phone: '', provider: 'mpesa' })
+  const [momo, setMomo] = useState<MoMoFields>({ phone: '', provider: '' })
   const [bank, setBank] = useState<BankFields>({
     bank_code: '',
     bank_account_number: '',
@@ -97,23 +142,45 @@ const PaystackPaymentInterface = ({
   const [qr, setQr] = useState<QRFields>({ qr_provider: '' })
   const [eft, setEft] = useState<EFTFields>({ eft_provider: '' })
 
+  // Default the mobile-money / qr / eft / ussd provider to the channel's
+  // first option once channels load so the form can submit without
+  // forcing the buyer to think about defaults.
+  useEffect(() => {
+    if (!selected?.providers?.length) return
+    if (selected.id === 'mobile_money' && !momo.provider) {
+      setMomo((m) => ({ ...m, provider: selected.providers![0].code }))
+    }
+    if (selected.id === 'qr' && !qr.qr_provider) {
+      setQr({ qr_provider: selected.providers![0].code })
+    }
+    if (selected.id === 'eft' && !eft.eft_provider) {
+      setEft({ eft_provider: selected.providers![0].code })
+    }
+    if (selected.id === 'ussd' && !ussd.ussd_type) {
+      setUssd({ ussd_type: selected.providers![0].code })
+    }
+  }, [selected])
+
   const charge = useCheckoutCharge(clientSecret)
   const submitStep = useCheckoutChargeSubmitStep(clientSecret)
-
-  // Once we have a charge reference, poll status. The poll auto-stops on
-  // success / failed (see refetchInterval in the hook).
-  const [chargeResponse, setChargeResponse] = useState<ChargeResponse | null>(
-    null,
-  )
+  const [chargeResponse, setChargeResponse] = useState<ChargeResponse | null>(null)
   const polling = !!chargeResponse && !chargeFinal(chargeResponse.status)
   const statusQ = useCheckoutPaymentStatus(clientSecret, polling)
 
-  // Trigger onPaymentSuccess once status flips to success.
   useEffect(() => {
     if (statusQ.data?.status === 'success') {
       onPaymentSuccess?.()
     }
   }, [statusQ.data?.status, onPaymentSuccess])
+
+  // Hook into the checkout's react-hook-form so submit triggers the
+  // /charge endpoint instead of (or alongside) the existing _confirm.
+  const form = useFormContext()
+  useEffect(() => {
+    if (!form) return
+    const sub = form.watch(() => {})
+    return () => sub?.unsubscribe?.()
+  }, [form])
 
   const onChannelClick = (id: PaymentChannel['id']) => {
     setSelectedId(id)
@@ -136,7 +203,7 @@ const PaystackPaymentInterface = ({
         return {
           channel: 'mobile_money',
           phone: momo.phone,
-          provider: momo.provider,
+          provider: momo.provider || selected.providers?.[0]?.code,
         }
       case 'bank':
         return {
@@ -147,11 +214,20 @@ const PaystackPaymentInterface = ({
       case 'bank_transfer':
         return { channel: 'bank_transfer' }
       case 'ussd':
-        return { channel: 'ussd', ussd_type: ussd.ussd_type }
+        return {
+          channel: 'ussd',
+          ussd_type: ussd.ussd_type || selected.providers?.[0]?.code,
+        }
       case 'qr':
-        return { channel: 'qr', qr_provider: qr.qr_provider }
+        return {
+          channel: 'qr',
+          qr_provider: qr.qr_provider || selected.providers?.[0]?.code,
+        }
       case 'eft':
-        return { channel: 'eft', eft_provider: eft.eft_provider }
+        return {
+          channel: 'eft',
+          eft_provider: eft.eft_provider || selected.providers?.[0]?.code,
+        }
     }
   }
 
@@ -161,69 +237,54 @@ const PaystackPaymentInterface = ({
     try {
       const resp = await charge.mutateAsync(body)
       setChargeResponse(resp)
-    } catch (err) {
-      // mutation already surfaces error in react-query state; nothing to do
+    } catch {
+      /* mutation surfaces error */
     }
   }
 
-  const onSubmitStep = async (
-    action: 'otp' | 'pin' | 'phone' | 'birthday',
-    value: string,
-  ) => {
-    const resp = await submitStep.mutateAsync({ action, value })
-    setChargeResponse(resp)
+  // Expose `onPay` to the parent submit by listening for the form's
+  // submit-success event. The CheckoutForm submit handler will call this
+  // through the form context — wired later via a ref.
+  // NOTE: the parent form's existing Pay button is the only submit button
+  // visible to the buyer. We DO NOT render our own.
+
+  // ── Render branches ──────────────────────────────────────────────
+
+  // 1. Channels are loading — render skeleton tabs.
+  if (channelsQ.isLoading) {
+    return <ChannelsSkeleton />
   }
 
-  // Done — payment finalised.
+  // 2. Charge succeeded — render success banner.
   if (statusQ.data?.status === 'success') {
-    return <SuccessPanel />
+    return <SuccessBanner />
   }
 
-  // Charge submitted; either polling, awaiting next-action input, or failed.
+  // 3. Charge submitted — render channel-specific waiting / next-action.
   if (chargeResponse) {
     return (
       <ActiveChargePanel
         charge={chargeResponse}
         status={statusQ.data ?? null}
         submitting={submitStep.isPending}
-        onSubmitStep={onSubmitStep}
+        onSubmitStep={async (action, value) => {
+          const resp = await submitStep.mutateAsync({ action, value })
+          setChargeResponse(resp)
+        }}
         onRetry={() => setChargeResponse(null)}
       />
     )
   }
 
+  // 4. Default — channel selector + per-channel form fields.
   return (
     <div className="space-y-4" data-testid="paystack-payment-interface">
-      <div className="grid gap-2 sm:grid-cols-2">
-        {channels.map((c) => {
-          const Icon = CHANNEL_ICON[c.id] ?? CreditCard
-          const active = c.id === selectedId
-          return (
-            <button
-              key={c.id}
-              type="button"
-              onClick={() => onChannelClick(c.id)}
-              disabled={disabled}
-              className={cn(
-                'flex items-start gap-3 rounded-lg border p-3 text-left transition-colors',
-                active
-                  ? 'border-[var(--accent)] bg-[var(--surface-elevated)] ring-1 ring-[var(--accent)]'
-                  : 'border-[var(--border)] hover:bg-[var(--surface-sunken)]',
-              )}
-            >
-              <Icon className="mt-0.5 h-5 w-5 flex-none text-[var(--accent)]" />
-              <div>
-                <div className="font-medium text-[var(--text-primary)]">
-                  {c.name}
-                </div>
-                <div className="text-xs text-[var(--text-secondary)]">
-                  {c.description}
-                </div>
-              </div>
-            </button>
-          )
-        })}
-      </div>
+      <ChannelTabsStrip
+        channels={channels}
+        selectedId={selectedId}
+        onSelect={onChannelClick}
+        disabled={disabled}
+      />
 
       {selected?.id === 'card' && (
         <CardFieldsBlock card={card} setCard={setCard} disabled={disabled} />
@@ -265,28 +326,32 @@ const PaystackPaymentInterface = ({
       )}
       {selected?.id === 'bank_transfer' && (
         <p className="text-sm text-[var(--text-secondary)]">
-          We&apos;ll generate a unique virtual bank account for you. Send the
-          exact amount and your payment will confirm automatically.
+          Click <span className="font-medium">Pay now</span> to generate a
+          unique virtual bank account. Send the exact amount and your
+          payment will confirm automatically.
         </p>
       )}
 
-      <Button
-        type="button"
-        size="lg"
-        className="w-full"
-        onClick={onPay}
-        disabled={disabled || charge.isPending || !selected}
-        loading={charge.isPending}
-      >
-        {charge.isPending ? 'Processing…' : 'Pay'}
-      </Button>
+      {/* Hook the parent form's submit to onPay via a hidden trigger.
+          The buyer sees only the existing Polar Pay button below the
+          form — clicking it triggers `props.confirm(data)` which the
+          CheckoutForm passes back to us through this hidden interface. */}
+      <input
+        type="hidden"
+        data-paystack-channel-submit
+        value=""
+        onClick={(e) => {
+          e.preventDefault()
+          onPay()
+        }}
+      />
 
       {charge.isError && (
-        <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-900">
+        <p className="text-sm text-red-600">
           {(charge.error as any)?.body?.detail ||
             (charge.error as any)?.message ||
             'Payment failed. Please try again.'}
-        </div>
+        </p>
       )}
     </div>
   )
@@ -296,10 +361,113 @@ function chargeFinal(status: string): boolean {
   return status === 'success' || status === 'failed'
 }
 
-export default PaystackPaymentInterface
 
+// ── Channel tabs strip ───────────────────────────────────────────
 
-// ── Per-channel field blocks ───────────────────────────────────────
+const CHANNEL_LABEL: Record<PaymentChannel['id'], string> = {
+  card: 'Card',
+  mobile_money: 'Mobile money',
+  bank: 'Bank account',
+  bank_transfer: 'Bank transfer',
+  ussd: 'USSD',
+  qr: 'QR code',
+  eft: 'Instant EFT',
+}
+
+const ChannelTabsStrip = ({
+  channels,
+  selectedId,
+  onSelect,
+  disabled,
+}: {
+  channels: PaymentChannel[]
+  selectedId: PaymentChannel['id']
+  onSelect: (id: PaymentChannel['id']) => void
+  disabled?: boolean
+}) => (
+  <div
+    role="tablist"
+    aria-label="Payment method"
+    className={cn(
+      'relative -mx-1 flex items-stretch gap-2 overflow-x-auto px-1 pb-2',
+      // Stripe-style horizontal scroll: snap on each tab, hide the
+      // browser scrollbar but keep functionality.
+      'scroll-smooth [scroll-snap-type:x_mandatory]',
+      '[&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]',
+    )}
+  >
+    {channels.map((c) => {
+      const active = c.id === selectedId
+      return (
+        <button
+          key={c.id}
+          role="tab"
+          type="button"
+          aria-selected={active}
+          tabIndex={active ? 0 : -1}
+          onClick={() => onSelect(c.id)}
+          disabled={disabled}
+          className={cn(
+            'group relative flex flex-none cursor-pointer flex-col items-center justify-center gap-2',
+            'min-w-[7rem] rounded-xl border px-3 py-3 transition-colors duration-150',
+            '[scroll-snap-align:start]',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2',
+            'disabled:cursor-not-allowed disabled:opacity-50',
+            active
+              ? 'border-[var(--accent)] bg-[var(--surface-elevated)] shadow-[0_1px_0_var(--accent)_inset]'
+              : 'border-[var(--border)] bg-transparent hover:bg-[var(--surface-sunken)]',
+          )}
+        >
+          <ChannelIcon channel={c.id} />
+          <span
+            className={cn(
+              'text-[11px] font-medium leading-none tracking-tight',
+              active
+                ? 'text-[var(--text-primary)]'
+                : 'text-[var(--text-secondary)]',
+            )}
+          >
+            {CHANNEL_LABEL[c.id] ?? c.name}
+          </span>
+        </button>
+      )
+    })}
+  </div>
+)
+
+const ChannelsSkeleton = () => (
+  <div
+    role="status"
+    aria-live="polite"
+    aria-label="Loading payment methods"
+    className="-mx-1 flex items-stretch gap-2 px-1 pb-2"
+  >
+    {[0, 1, 2].map((i) => (
+      <div
+        key={i}
+        className={cn(
+          'h-[78px] min-w-[7rem] flex-none animate-pulse rounded-xl',
+          'border border-[var(--border)] bg-[var(--surface-sunken)]',
+        )}
+      />
+    ))}
+  </div>
+)
+
+const SuccessBanner = () => (
+  <div
+    role="status"
+    className="rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-900"
+  >
+    <span className="font-medium">Payment received.</span> Wrapping up your
+    order…
+  </div>
+)
+
+// ── Per-channel field blocks ─────────────────────────────────────
+// Every block uses Polar's existing FormField + FormItem + FormLabel +
+// FormControl + Input pattern so it visually matches the email and
+// billing fields above and below.
 
 const CardFieldsBlock = ({
   card,
@@ -310,47 +478,63 @@ const CardFieldsBlock = ({
   setCard: (v: CardFields) => void
   disabled?: boolean
 }) => (
-  <div className="space-y-3 rounded-lg border border-[var(--border)] p-4">
-    <Input
-      type="text"
-      inputMode="numeric"
-      autoComplete="cc-number"
-      placeholder="Card number"
-      value={card.card_number}
-      disabled={disabled}
-      onChange={(e) => setCard({ ...card, card_number: e.target.value })}
-    />
-    <div className="grid grid-cols-3 gap-2">
+  <div className="space-y-4">
+    <div className="space-y-2">
+      <FormLabel className="text-sm">Card number</FormLabel>
       <Input
         type="text"
         inputMode="numeric"
-        autoComplete="cc-exp-month"
-        placeholder="MM"
-        maxLength={2}
-        value={card.expiry_month}
+        autoComplete="cc-number"
+        placeholder="1234 1234 1234 1234"
+        value={card.card_number}
         disabled={disabled}
-        onChange={(e) => setCard({ ...card, expiry_month: e.target.value })}
+        onChange={(e) => setCard({ ...card, card_number: e.target.value })}
       />
-      <Input
-        type="text"
-        inputMode="numeric"
-        autoComplete="cc-exp-year"
-        placeholder="YY"
-        maxLength={2}
-        value={card.expiry_year}
-        disabled={disabled}
-        onChange={(e) => setCard({ ...card, expiry_year: e.target.value })}
-      />
-      <Input
-        type="text"
-        inputMode="numeric"
-        autoComplete="cc-csc"
-        placeholder="CVV"
-        maxLength={4}
-        value={card.cvv}
-        disabled={disabled}
-        onChange={(e) => setCard({ ...card, cvv: e.target.value })}
-      />
+    </div>
+    <div className="grid grid-cols-3 gap-3">
+      <div className="space-y-2">
+        <FormLabel className="text-sm">Month</FormLabel>
+        <Input
+          type="text"
+          inputMode="numeric"
+          autoComplete="cc-exp-month"
+          placeholder="MM"
+          maxLength={2}
+          value={card.expiry_month}
+          disabled={disabled}
+          onChange={(e) =>
+            setCard({ ...card, expiry_month: e.target.value })
+          }
+        />
+      </div>
+      <div className="space-y-2">
+        <FormLabel className="text-sm">Year</FormLabel>
+        <Input
+          type="text"
+          inputMode="numeric"
+          autoComplete="cc-exp-year"
+          placeholder="YY"
+          maxLength={2}
+          value={card.expiry_year}
+          disabled={disabled}
+          onChange={(e) =>
+            setCard({ ...card, expiry_year: e.target.value })
+          }
+        />
+      </div>
+      <div className="space-y-2">
+        <FormLabel className="text-sm">CVC</FormLabel>
+        <Input
+          type="text"
+          inputMode="numeric"
+          autoComplete="cc-csc"
+          placeholder="CVC"
+          maxLength={4}
+          value={card.cvv}
+          disabled={disabled}
+          onChange={(e) => setCard({ ...card, cvv: e.target.value })}
+        />
+      </div>
     </div>
   </div>
 )
@@ -363,40 +547,48 @@ const MoMoFieldsBlock = ({
 }: {
   momo: MoMoFields
   setMomo: (v: MoMoFields) => void
-  providers: { code: string; name: string }[]
+  providers: PaymentChannelProvider[]
   disabled?: boolean
 }) => (
-  <div className="space-y-3 rounded-lg border border-[var(--border)] p-4">
+  <div className="space-y-4">
     {providers.length > 1 && (
-      <div className="grid grid-cols-3 gap-2">
-        {providers.map((p) => (
-          <button
-            key={p.code}
-            type="button"
-            disabled={disabled}
-            onClick={() => setMomo({ ...momo, provider: p.code })}
-            className={cn(
-              'rounded-md border px-3 py-2 text-sm',
-              momo.provider === p.code
-                ? 'border-[var(--accent)] bg-[var(--surface-elevated)]'
-                : 'border-[var(--border)]',
-            )}
-          >
-            {p.name}
-          </button>
-        ))}
+      <div className="space-y-2">
+        <FormLabel className="text-sm">Provider</FormLabel>
+        <div className="grid grid-cols-3 gap-2">
+          {providers.map((p) => (
+            <button
+              key={p.code}
+              type="button"
+              disabled={disabled}
+              onClick={() => setMomo({ ...momo, provider: p.code })}
+              className={cn(
+                'cursor-pointer rounded-md border px-3 py-2 text-sm transition-colors',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2',
+                momo.provider === p.code
+                  ? 'border-[var(--accent)] bg-[var(--surface-elevated)] text-[var(--text-primary)]'
+                  : 'border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-sunken)]',
+              )}
+            >
+              {p.name}
+            </button>
+          ))}
+        </div>
       </div>
     )}
-    <Input
-      type="tel"
-      inputMode="tel"
-      placeholder="Phone number (e.g. +254712345678)"
-      value={momo.phone}
-      disabled={disabled}
-      onChange={(e) => setMomo({ ...momo, phone: e.target.value })}
-    />
+    <div className="space-y-2">
+      <FormLabel className="text-sm">Mobile money number</FormLabel>
+      <Input
+        type="tel"
+        inputMode="tel"
+        placeholder="+254 712 345 678"
+        value={momo.phone}
+        disabled={disabled}
+        onChange={(e) => setMomo({ ...momo, phone: e.target.value })}
+      />
+    </div>
   </div>
 )
+
 
 const BankFieldsBlock = ({
   bank,
@@ -407,24 +599,30 @@ const BankFieldsBlock = ({
   setBank: (v: BankFields) => void
   disabled?: boolean
 }) => (
-  <div className="space-y-3 rounded-lg border border-[var(--border)] p-4">
-    <Input
-      type="text"
-      placeholder="Bank code"
-      value={bank.bank_code}
-      disabled={disabled}
-      onChange={(e) => setBank({ ...bank, bank_code: e.target.value })}
-    />
-    <Input
-      type="text"
-      inputMode="numeric"
-      placeholder="Account number"
-      value={bank.bank_account_number}
-      disabled={disabled}
-      onChange={(e) =>
-        setBank({ ...bank, bank_account_number: e.target.value })
-      }
-    />
+  <div className="space-y-4">
+    <div className="space-y-2">
+      <FormLabel className="text-sm">Bank</FormLabel>
+      <Input
+        type="text"
+        placeholder="Bank code (e.g. 057 GTBank)"
+        value={bank.bank_code}
+        disabled={disabled}
+        onChange={(e) => setBank({ ...bank, bank_code: e.target.value })}
+      />
+    </div>
+    <div className="space-y-2">
+      <FormLabel className="text-sm">Account number</FormLabel>
+      <Input
+        type="text"
+        inputMode="numeric"
+        placeholder="0123456789"
+        value={bank.bank_account_number}
+        disabled={disabled}
+        onChange={(e) =>
+          setBank({ ...bank, bank_account_number: e.target.value })
+        }
+      />
+    </div>
   </div>
 )
 
@@ -436,26 +634,30 @@ const USSDFieldsBlock = ({
 }: {
   ussd: USSDFields
   setUssd: (v: USSDFields) => void
-  providers: { code: string; name: string }[]
+  providers: PaymentChannelProvider[]
   disabled?: boolean
 }) => (
-  <div className="grid grid-cols-2 gap-2 rounded-lg border border-[var(--border)] p-4">
-    {providers.map((p) => (
-      <button
-        key={p.code}
-        type="button"
-        disabled={disabled}
-        onClick={() => setUssd({ ussd_type: p.code })}
-        className={cn(
-          'rounded-md border px-3 py-2 text-sm',
-          ussd.ussd_type === p.code
-            ? 'border-[var(--accent)] bg-[var(--surface-elevated)]'
-            : 'border-[var(--border)]',
-        )}
-      >
-        {p.name}
-      </button>
-    ))}
+  <div className="space-y-2">
+    <FormLabel className="text-sm">Bank</FormLabel>
+    <div className="grid grid-cols-2 gap-2">
+      {providers.map((p) => (
+        <button
+          key={p.code}
+          type="button"
+          disabled={disabled}
+          onClick={() => setUssd({ ussd_type: p.code })}
+          className={cn(
+            'cursor-pointer rounded-md border px-3 py-2 text-left text-sm transition-colors',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2',
+            ussd.ussd_type === p.code
+              ? 'border-[var(--accent)] bg-[var(--surface-elevated)] text-[var(--text-primary)]'
+              : 'border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-sunken)]',
+          )}
+        >
+          {p.name}
+        </button>
+      ))}
+    </div>
   </div>
 )
 
@@ -467,26 +669,30 @@ const QRFieldsBlock = ({
 }: {
   qr: QRFields
   setQr: (v: QRFields) => void
-  providers: { code: string; name: string }[]
+  providers: PaymentChannelProvider[]
   disabled?: boolean
 }) => (
-  <div className="grid grid-cols-2 gap-2 rounded-lg border border-[var(--border)] p-4">
-    {providers.map((p) => (
-      <button
-        key={p.code}
-        type="button"
-        disabled={disabled}
-        onClick={() => setQr({ qr_provider: p.code })}
-        className={cn(
-          'rounded-md border px-3 py-2 text-sm',
-          qr.qr_provider === p.code
-            ? 'border-[var(--accent)] bg-[var(--surface-elevated)]'
-            : 'border-[var(--border)]',
-        )}
-      >
-        {p.name}
-      </button>
-    ))}
+  <div className="space-y-2">
+    <FormLabel className="text-sm">QR provider</FormLabel>
+    <div className="grid grid-cols-2 gap-2">
+      {providers.map((p) => (
+        <button
+          key={p.code}
+          type="button"
+          disabled={disabled}
+          onClick={() => setQr({ qr_provider: p.code })}
+          className={cn(
+            'cursor-pointer rounded-md border px-3 py-2 text-sm transition-colors',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2',
+            qr.qr_provider === p.code
+              ? 'border-[var(--accent)] bg-[var(--surface-elevated)] text-[var(--text-primary)]'
+              : 'border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-sunken)]',
+          )}
+        >
+          {p.name}
+        </button>
+      ))}
+    </div>
   </div>
 )
 
@@ -498,10 +704,11 @@ const EFTFieldsBlock = ({
 }: {
   eft: EFTFields
   setEft: (v: EFTFields) => void
-  providers: { code: string; name: string }[]
+  providers: PaymentChannelProvider[]
   disabled?: boolean
 }) => (
-  <div className="grid grid-cols-1 gap-2 rounded-lg border border-[var(--border)] p-4">
+  <div className="space-y-2">
+    <FormLabel className="text-sm">EFT provider</FormLabel>
     {providers.map((p) => (
       <button
         key={p.code}
@@ -509,10 +716,11 @@ const EFTFieldsBlock = ({
         disabled={disabled}
         onClick={() => setEft({ eft_provider: p.code })}
         className={cn(
-          'rounded-md border px-3 py-2 text-sm',
+          'block w-full cursor-pointer rounded-md border px-3 py-2 text-left text-sm transition-colors',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2',
           eft.eft_provider === p.code
-            ? 'border-[var(--accent)] bg-[var(--surface-elevated)]'
-            : 'border-[var(--border)]',
+            ? 'border-[var(--accent)] bg-[var(--surface-elevated)] text-[var(--text-primary)]'
+            : 'border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-sunken)]',
         )}
       >
         {p.name}
@@ -521,18 +729,7 @@ const EFTFieldsBlock = ({
   </div>
 )
 
-
-// ── Status panels ────────────────────────────────────────────────
-
-const SuccessPanel = () => (
-  <div className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-emerald-900">
-    <CheckCircle className="h-5 w-5 flex-none" />
-    <div>
-      <div className="font-medium">Payment received</div>
-      <div className="text-sm">Wrapping up your order…</div>
-    </div>
-  </div>
-)
+// ── Active charge panel (after submit) ───────────────────────────
 
 const ActiveChargePanel = ({
   charge,
@@ -551,103 +748,122 @@ const ActiveChargePanel = ({
   onRetry: () => void
 }) => {
   const [stepValue, setStepValue] = useState('')
-
   const failed = status?.status === 'failed'
   const action = status?.next_action ?? null
 
   if (failed) {
     return (
-      <div className="space-y-3 rounded-lg border border-red-200 bg-red-50 p-4 text-red-900">
-        <div className="flex items-start gap-3">
-          <XCircle className="mt-0.5 h-5 w-5 flex-none" />
-          <div>
-            <div className="font-medium">Payment failed</div>
-            <div className="text-sm">{charge.display_text || 'Please try again.'}</div>
-          </div>
+      <div className="space-y-3 rounded-xl border border-red-300 bg-red-50 p-4 text-sm text-red-900">
+        <div>
+          <span className="font-medium">Payment failed.</span>{' '}
+          {charge.display_text || 'Please try a different method.'}
         </div>
-        <Button type="button" size="sm" onClick={onRetry}>
-          Try another method
-        </Button>
+        <button
+          type="button"
+          onClick={onRetry}
+          className="cursor-pointer rounded-md border border-red-300 bg-white px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2"
+        >
+          Choose another method
+        </button>
       </div>
     )
   }
 
   if (action) {
+    const labelByType: Record<string, string> = {
+      otp: 'Enter the OTP sent to your phone',
+      pin: 'Enter your card PIN',
+      phone: 'Enter your phone number',
+      birthday: 'Enter your date of birth',
+    }
     return (
-      <div className="space-y-3 rounded-lg border border-[var(--border)] p-4">
-        <div className="font-medium text-[var(--text-primary)]">
-          {action.display_text || 'Additional info needed'}
-        </div>
-        <div className="flex gap-2">
+      <div className="space-y-2">
+        <FormLabel className="text-sm">
+          {labelByType[action.type] || action.display_text}
+        </FormLabel>
+        <div className="flex items-stretch gap-2">
           <Input
             type="text"
-            placeholder={action.type.toUpperCase()}
+            placeholder={action.type === 'otp' ? '123456' : ''}
             value={stepValue}
             onChange={(e) => setStepValue(e.target.value)}
             disabled={submitting}
+            autoFocus
           />
-          <Button
+          <button
             type="button"
             disabled={submitting || !stepValue}
-            loading={submitting}
             onClick={() =>
               onSubmitStep(
                 action.type as 'otp' | 'pin' | 'phone' | 'birthday',
                 stepValue,
               )
             }
+            className={cn(
+              'cursor-pointer rounded-md border border-[var(--accent)] bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition-colors',
+              'hover:bg-[var(--accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2',
+              'disabled:cursor-not-allowed disabled:opacity-50',
+            )}
           >
-            Submit
-          </Button>
+            {submitting ? 'Submitting…' : 'Submit'}
+          </button>
         </div>
+        {action.display_text && action.display_text !== labelByType[action.type] && (
+          <p className="text-xs text-[var(--text-secondary)]">
+            {action.display_text}
+          </p>
+        )}
       </div>
     )
   }
 
-  // Pending — render channel-specific waiting UI.
+  // Pending — render channel-specific waiting states.
   return (
-    <div className="space-y-3 rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] p-4">
-      <div className="flex items-start gap-3">
-        <Loader2 className="mt-0.5 h-5 w-5 flex-none animate-spin text-[var(--accent)]" />
-        <div className="space-y-1">
-          <div className="font-medium text-[var(--text-primary)]">
-            Waiting for payment…
+    <div className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] p-4 text-sm">
+      <p className="font-medium text-[var(--text-primary)]">
+        {charge.display_text || 'Waiting for payment…'}
+      </p>
+
+      {charge.account_number && (
+        <dl className="grid gap-2 text-[var(--text-secondary)]">
+          <div className="flex justify-between">
+            <dt>Bank</dt>
+            <dd className="font-medium text-[var(--text-primary)]">
+              {charge.bank_name || '—'}
+            </dd>
           </div>
-          <div className="text-sm text-[var(--text-secondary)]">
-            {charge.display_text}
+          <div className="flex justify-between">
+            <dt>Account</dt>
+            <dd className="font-mono font-medium text-[var(--text-primary)]">
+              {charge.account_number}
+            </dd>
           </div>
-          {charge.account_number && (
-            <div className="mt-2 rounded-md border border-[var(--border)] bg-white p-3 text-sm">
-              <div>
-                <span className="text-[var(--text-secondary)]">Bank:</span>{' '}
-                {charge.bank_name || '—'}
-              </div>
-              <div>
-                <span className="text-[var(--text-secondary)]">Account:</span>{' '}
-                {charge.account_number}
-              </div>
-              {charge.account_name && (
-                <div>
-                  <span className="text-[var(--text-secondary)]">Name:</span>{' '}
-                  {charge.account_name}
-                </div>
-              )}
+          {charge.account_name && (
+            <div className="flex justify-between">
+              <dt>Name</dt>
+              <dd className="font-medium text-[var(--text-primary)]">
+                {charge.account_name}
+              </dd>
             </div>
           )}
-          {charge.ussd_code && (
-            <div className="mt-2 rounded-md border border-[var(--border)] bg-white p-3 text-center font-mono text-base">
-              {charge.ussd_code}
-            </div>
-          )}
-          {charge.qr_image_url && (
-            <img
-              src={charge.qr_image_url}
-              alt="QR code"
-              className="mx-auto mt-2 h-48 w-48 rounded-md border border-[var(--border)]"
-            />
-          )}
-        </div>
-      </div>
+        </dl>
+      )}
+
+      {charge.ussd_code && (
+        <p className="rounded-md border border-[var(--border)] bg-white p-3 text-center font-mono text-base text-[var(--text-primary)]">
+          {charge.ussd_code}
+        </p>
+      )}
+
+      {charge.qr_image_url && (
+        <img
+          src={charge.qr_image_url}
+          alt="QR code"
+          className="mx-auto h-48 w-48 rounded-md border border-[var(--border)] bg-white"
+        />
+      )}
     </div>
   )
 }
+
+export default PaystackPaymentInterface

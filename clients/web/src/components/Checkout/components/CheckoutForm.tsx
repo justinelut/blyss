@@ -904,16 +904,20 @@ const PaystackCheckoutForm = (props: CheckoutFormProps) => {
       {...props}
       checkout={checkout}
       confirm={confirmPaystack}
-      beforeSubmit={
-        <div className="mb-6">
-          <PaystackPaymentInterface
-            checkout={checkout}
-            disabled={props.disabled}
-            onPaymentMethodSelect={setSelectedChannel}
-          />
-        </div>
-      }
-    />
+    >
+      {/*
+        The channel selector + per-channel input fields live inside the
+        `children` slot — the same DOM position where Stripe's
+        <PaymentElement /> renders for the Stripe processor. This keeps
+        the buyer's reading order stable: Email → payment method →
+        Cardholder name → Billing address → Pay now button.
+      */}
+      <PaystackPaymentInterface
+        checkout={checkout}
+        disabled={props.disabled}
+        onPaymentMethodSelect={setSelectedChannel}
+      />
+    </BaseCheckoutForm>
   )
 }
 

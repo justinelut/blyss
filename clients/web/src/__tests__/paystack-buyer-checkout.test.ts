@@ -35,9 +35,13 @@ describe('Paystack-native buyer checkout', () => {
     expect(src).toContain('const PaystackCheckoutForm =')
   })
 
-  test('Paystack channel selector renders above billing fields', () => {
+  test('Paystack channel selector renders inside the children slot', () => {
     expect(src).toContain('<PaystackPaymentInterface')
-    expect(src).toContain('beforeSubmit=')
+    // Was previously mounted via beforeSubmit; that approach put the
+    // selector below the form fields and the existing Pay button. The
+    // children slot puts it where Stripe's <PaymentElement> lives —
+    // between email and the cardholder/billing fields.
+    expect(src).not.toMatch(/beforeSubmit=\{[\s\S]*?<PaystackPaymentInterface/)
   })
 
   test('Paystack confirm does NOT redirect to authorization_url', () => {
