@@ -7,23 +7,36 @@ webhook signature verification, donation initiation, and creator donation retrie
 import hashlib
 import hmac
 import json
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from httpx import AsyncClient
 
-from polar.config import settings
 from polar.models import Donation, Organization, User
+from tests.fixtures.auth import AuthSubjectFixture
 from tests.fixtures.database import SaveFixture
+
+# A non-empty secret used to sign test webhooks. The donation webhook endpoint
+# reads the secret via runtime_settings.get(); in tests we patch that lookup to
+# return this value so signatures validate without depending on env config.
+TEST_WEBHOOK_SECRET = "test_donation_webhook_secret"
 
 
 def create_paystack_signature(payload: bytes) -> str:
     """Create a valid Paystack webhook signature for testing."""
     return hmac.new(
-        settings.PAYSTACK_WEBHOOK_SECRET.encode("utf-8"),
+        TEST_WEBHOOK_SECRET.encode("utf-8"),
         payload,
         hashlib.sha512,
     ).hexdigest()
+
+
+def _patch_webhook_secret(secret: str | None = TEST_WEBHOOK_SECRET):
+    """Patch the donation endpoint's runtime_settings.get to return `secret`."""
+    return patch(
+        "polar.donation.endpoints.runtime_settings.get",
+        new=AsyncMock(return_value=secret),
+    )
 
 
 class TestInitiateDonation:
@@ -42,7 +55,7 @@ class TestInitiateDonation:
             customer_invoice_prefix="TEST",
             subaccount_code="ACCT_test123",
         )
-        organization = await save_fixture(organization)
+        await save_fixture(organization)
 
         with patch(
             "polar.donation.service.paystack_service.initialize_transaction"
@@ -85,7 +98,7 @@ class TestInitiateDonation:
             customer_invoice_prefix="TEST",
             subaccount_code="ACCT_test123",
         )
-        organization = await save_fixture(organization)
+        await save_fixture(organization)
 
         response = await client.post(
             "/v1/donation/initiate",
@@ -112,7 +125,7 @@ class TestInitiateDonation:
             customer_invoice_prefix="TEST",
             subaccount_code="ACCT_test123",
         )
-        organization = await save_fixture(organization)
+        await save_fixture(organization)
 
         response = await client.post(
             "/v1/donation/initiate",
@@ -139,7 +152,7 @@ class TestInitiateDonation:
             customer_invoice_prefix="TEST",
             subaccount_code="ACCT_test123",
         )
-        organization = await save_fixture(organization)
+        await save_fixture(organization)
 
         response = await client.post(
             "/v1/donation/initiate",
@@ -170,7 +183,7 @@ class TestPaystackWebhook:
             customer_invoice_prefix="TEST",
             subaccount_code="ACCT_test123",
         )
-        organization = await save_fixture(organization)
+        await save_fixture(organization)
 
         donation = Donation(
             amount=50000,
@@ -181,7 +194,7 @@ class TestPaystackWebhook:
             payment_reference="donation_test_ref_123",
             payment_status="pending",
         )
-        donation = await save_fixture(donation)
+        await save_fixture(donation)
 
         webhook_payload = {
             "event": "charge.success",
@@ -195,13 +208,14 @@ class TestPaystackWebhook:
         signature = create_paystack_signature(payload_bytes)
 
         with (
+            _patch_webhook_secret(),
             patch(
                 "polar.donation.service.paystack_service.verify_transaction"
             ) as mock_verify,
             patch(
-                "polar.donation.endpoints.send_donation_confirmation"
+                "polar.donation.tasks.send_donation_confirmation"
             ) as mock_confirm,
-            patch("polar.donation.endpoints.send_donation_receipt") as mock_receipt,
+            patch("polar.donation.tasks.send_donation_receipt") as mock_receipt,
         ):
             mock_verify.return_value = {
                 "status": "success",
@@ -235,11 +249,12 @@ class TestPaystackWebhook:
         payload_bytes = json.dumps(webhook_payload).encode("utf-8")
         invalid_signature = "invalid_signature_12345"
 
-        response = await client.post(
-            "/v1/donation/webhook/paystack",
-            content=payload_bytes,
-            headers={"x-paystack-signature": invalid_signature},
-        )
+        with _patch_webhook_secret():
+            response = await client.post(
+                "/v1/donation/webhook/paystack",
+                content=payload_bytes,
+                headers={"x-paystack-signature": invalid_signature},
+            )
 
         assert response.status_code == 401
         assert "Invalid signature" in response.json()["detail"]
@@ -276,35 +291,67 @@ class TestPaystackWebhook:
         payload_bytes = b"not valid json"
         signature = create_paystack_signature(payload_bytes)
 
-        response = await client.post(
-            "/v1/donation/webhook/paystack",
-            content=payload_bytes,
-            headers={"x-paystack-signature": signature},
-        )
+        with _patch_webhook_secret():
+            response = await client.post(
+                "/v1/donation/webhook/paystack",
+                content=payload_bytes,
+                headers={"x-paystack-signature": signature},
+            )
 
         assert response.status_code == 400
         assert "Invalid JSON payload" in response.json()["detail"]
 
     @pytest.mark.asyncio
     async def test_webhook_signature_verification_function(self) -> None:
-        """Test the verify_paystack_signature function directly."""
+        """Test the verify_paystack_signature function directly.
+
+        The function is async and reads the secret via runtime_settings.get,
+        so we patch that lookup to return our test secret.
+        """
+        from unittest.mock import MagicMock
+
         from polar.donation.endpoints import verify_paystack_signature
 
         payload = b'{"event": "charge.success"}'
         valid_signature = create_paystack_signature(payload)
+        session = MagicMock()
 
-        assert verify_paystack_signature(payload, valid_signature) is True
+        with _patch_webhook_secret():
+            assert (
+                await verify_paystack_signature(payload, valid_signature, session)
+                is True
+            )
 
-        invalid_signature = "wrong_signature"
-        assert verify_paystack_signature(payload, invalid_signature) is False
+            assert (
+                await verify_paystack_signature(payload, "wrong_signature", session)
+                is False
+            )
 
-        assert verify_paystack_signature(payload, "") is False
+            assert await verify_paystack_signature(payload, "", session) is False
+
+    @pytest.mark.asyncio
+    async def test_webhook_signature_verification_no_secret(self) -> None:
+        """When no webhook secret is configured, verification fails closed."""
+        from unittest.mock import MagicMock
+
+        from polar.donation.endpoints import verify_paystack_signature
+
+        payload = b'{"event": "charge.success"}'
+        valid_signature = create_paystack_signature(payload)
+        session = MagicMock()
+
+        with _patch_webhook_secret(None):
+            assert (
+                await verify_paystack_signature(payload, valid_signature, session)
+                is False
+            )
 
 
 class TestGetCreatorDonations:
     """Tests for GET /donation/creator/{organization_id} endpoint."""
 
     @pytest.mark.asyncio
+    @pytest.mark.auth(AuthSubjectFixture(subject="user"))
     async def test_get_creator_donations_authenticated(
         self,
         client: AsyncClient,
@@ -317,7 +364,7 @@ class TestGetCreatorDonations:
             slug="test-creator",
             customer_invoice_prefix="TEST",
         )
-        organization = await save_fixture(organization)
+        await save_fixture(organization)
 
         donation1 = Donation(
             amount=10000,
@@ -350,6 +397,7 @@ class TestGetCreatorDonations:
         assert data["pagination"]["total_count"] == 2
 
     @pytest.mark.asyncio
+    @pytest.mark.auth(AuthSubjectFixture(subject="user"))
     async def test_get_creator_donations_empty(
         self,
         client: AsyncClient,
@@ -362,7 +410,7 @@ class TestGetCreatorDonations:
             slug="test-creator",
             customer_invoice_prefix="TEST",
         )
-        organization = await save_fixture(organization)
+        await save_fixture(organization)
 
         response = await client.get(
             f"/v1/donation/creator/{organization.id}",

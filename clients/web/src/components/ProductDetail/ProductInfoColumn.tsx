@@ -21,6 +21,10 @@ export interface ProductInfoColumnProps {
   isInWishlist?: boolean
   /** Buy button loading state */
   isBuyLoading?: boolean
+  /** Opens the donation modal targeting this product's creator. Rendered only
+   *  when the product opts in via accepts_donations and the creator slug is
+   *  known. */
+  onTip?: () => void
 }
 
 const formatPrice = (product: Product): string => {
@@ -63,11 +67,16 @@ export const ProductInfoColumn = ({
   onShare,
   isInWishlist = false,
   isBuyLoading = false,
+  onTip,
 }: ProductInfoColumnProps) => {
   const org = (product as any).organization as
     | { name?: string; slug?: string; avatar_url?: string | null }
     | undefined
   const lede = product.description?.split('\n')[0]?.slice(0, 200) ?? null
+  // `accepts_donations` is newer than the generated SDK Product type — read it
+  // defensively until the client types are regenerated from the OpenAPI spec.
+  const acceptsDonations = (product as any).accepts_donations === true
+  const showTip = acceptsDonations && !!org?.slug && !!onTip
 
   return (
     <div className="flex flex-col gap-6">
@@ -169,6 +178,20 @@ export const ProductInfoColumn = ({
           <FiShare2 size={16} />
         </button>
       </div>
+
+      {/* Tip the creator — only when the product opts into donations. Opens
+          the same inline DonationModal used across the marketplace. */}
+      {showTip && (
+        <button
+          type="button"
+          onClick={onTip}
+          data-testid="product-tip-creator"
+          className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md border border-[var(--border-strong)] bg-transparent font-sans text-[14px] font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-sunken)]"
+        >
+          <FiHeart size={16} className="text-[var(--accent)]" />
+          Tip the creator
+        </button>
+      )}
     </div>
   )
 }

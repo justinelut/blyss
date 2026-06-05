@@ -28,7 +28,7 @@ class TestSendDonationConfirmation:
             slug="test-creator",
             customer_invoice_prefix="TEST",
         )
-        organization = await save_fixture(organization)
+        await save_fixture(organization)
 
         from polar.donation.tasks import send_donation_confirmation
 
@@ -85,7 +85,7 @@ class TestSendDonationReceipt:
             slug="test-creator",
             customer_invoice_prefix="TEST",
         )
-        organization = await save_fixture(organization)
+        await save_fixture(organization)
 
         from polar.donation.tasks import send_donation_receipt
 
@@ -125,7 +125,7 @@ class TestSendDonationReceipt:
             slug="test-creator",
             customer_invoice_prefix="TEST",
         )
-        organization = await save_fixture(organization)
+        await save_fixture(organization)
 
         from polar.donation.tasks import send_donation_receipt
 
@@ -185,7 +185,7 @@ class TestSendDonationReceipt:
             slug="test-creator",
             customer_invoice_prefix="TEST",
         )
-        organization = await save_fixture(organization)
+        await save_fixture(organization)
 
         from polar.donation.tasks import send_donation_receipt
 

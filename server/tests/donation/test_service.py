@@ -40,7 +40,7 @@ class TestInitiateDonation:
             customer_invoice_prefix="TEST",
             subaccount_code="ACCT_test123",
         )
-        organization = await save_fixture(organization)
+        await save_fixture(organization)
 
         with patch(
             "polar.donation.service.paystack_service.initialize_transaction"
@@ -92,7 +92,7 @@ class TestInitiateDonation:
             customer_invoice_prefix="TEST",
             subaccount_code="ACCT_test123",
         )
-        organization = await save_fixture(organization)
+        await save_fixture(organization)
 
         with patch(
             "polar.donation.service.paystack_service.initialize_transaction"
@@ -129,7 +129,7 @@ class TestInitiateDonation:
             customer_invoice_prefix="TEST",
             subaccount_code="ACCT_test123",
         )
-        organization = await save_fixture(organization)
+        await save_fixture(organization)
 
         with patch(
             "polar.donation.service.paystack_service.initialize_transaction"
@@ -165,7 +165,7 @@ class TestInitiateDonation:
             customer_invoice_prefix="TEST",
             subaccount_code="ACCT_test123",
         )
-        organization = await save_fixture(organization)
+        await save_fixture(organization)
 
         with patch(
             "polar.donation.service.paystack_service.initialize_transaction"
@@ -201,7 +201,7 @@ class TestInitiateDonation:
             customer_invoice_prefix="TEST",
             subaccount_code="ACCT_test123",
         )
-        organization = await save_fixture(organization)
+        await save_fixture(organization)
 
         with pytest.raises(InvalidDonationAmountError) as exc_info:
             await mock_donation_service.initiate_donation(
@@ -229,7 +229,7 @@ class TestInitiateDonation:
             customer_invoice_prefix="TEST",
             subaccount_code="ACCT_test123",
         )
-        organization = await save_fixture(organization)
+        await save_fixture(organization)
 
         with pytest.raises(InvalidDonationAmountError) as exc_info:
             await mock_donation_service.initiate_donation(
@@ -257,7 +257,7 @@ class TestInitiateDonation:
             customer_invoice_prefix="TEST",
             subaccount_code="ACCT_test123",
         )
-        organization = await save_fixture(organization)
+        await save_fixture(organization)
 
         with pytest.raises(InvalidDonationAmountError) as exc_info:
             await mock_donation_service.initiate_donation(
@@ -284,7 +284,7 @@ class TestInitiateDonation:
             customer_invoice_prefix="TEST",
             subaccount_code="ACCT_test123",
         )
-        organization = await save_fixture(organization)
+        await save_fixture(organization)
 
         with pytest.raises(InvalidDonationAmountError) as exc_info:
             await mock_donation_service.initiate_donation(
@@ -315,7 +315,7 @@ class TestConfirmDonation:
             customer_invoice_prefix="TEST",
             subaccount_code="ACCT_test123",
         )
-        organization = await save_fixture(organization)
+        await save_fixture(organization)
 
         donation = Donation(
             amount=50000,
@@ -327,7 +327,7 @@ class TestConfirmDonation:
             payment_reference="donation_test_ref_123",
             payment_status="pending",
         )
-        donation = await save_fixture(donation)
+        await save_fixture(donation)
 
         with patch(
             "polar.donation.service.paystack_service.verify_transaction"
@@ -360,7 +360,7 @@ class TestConfirmDonation:
             customer_invoice_prefix="TEST",
             subaccount_code="ACCT_test123",
         )
-        organization = await save_fixture(organization)
+        await save_fixture(organization)
 
         donation = Donation(
             amount=50000,
@@ -371,7 +371,7 @@ class TestConfirmDonation:
             payment_reference="donation_test_ref_456",
             payment_status="pending",
         )
-        donation = await save_fixture(donation)
+        await save_fixture(donation)
 
         with patch(
             "polar.donation.service.paystack_service.verify_transaction"
@@ -421,11 +421,11 @@ class TestGetCreatorDonations:
             slug="test-creator",
             customer_invoice_prefix="TEST",
         )
-        organization = await save_fixture(organization)
+        await save_fixture(organization)
 
         from polar.kit.pagination import PaginationParams
 
-        pagination = PaginationParams(limit=50, offset=0)
+        pagination = PaginationParams(page=1, limit=50)
         donations, total_count = await mock_donation_service.get_creator_donations(
             session, organization.id, pagination
         )
@@ -446,7 +446,7 @@ class TestGetCreatorDonations:
             slug="test-creator",
             customer_invoice_prefix="TEST",
         )
-        organization = await save_fixture(organization)
+        await save_fixture(organization)
 
         donation1 = Donation(
             amount=10000,
@@ -471,7 +471,7 @@ class TestGetCreatorDonations:
 
         from polar.kit.pagination import PaginationParams
 
-        pagination = PaginationParams(limit=50, offset=0)
+        pagination = PaginationParams(page=1, limit=50)
         donations, total_count = await mock_donation_service.get_creator_donations(
             session, organization.id, pagination
         )

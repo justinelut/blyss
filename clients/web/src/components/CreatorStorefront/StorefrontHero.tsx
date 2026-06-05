@@ -91,7 +91,7 @@ export const StorefrontHero = ({
       {bannerUrl ? (
         <motion.div
           {...(bgAnim ?? {})}
-          className="relative aspect-[16/9] w-full"
+          className="relative h-[280px] w-full sm:h-[340px] md:h-[400px] lg:h-[440px]"
         >
           <OptimizedImage
             src={bannerUrl}
@@ -99,16 +99,26 @@ export const StorefrontHero = ({
             fill
             sizes="100vw"
             priority
-            className="h-full w-full"
+            className="h-full w-full object-cover"
           />
-          {/* Single-tone scrim — only on bottom 55% so the photo's main
-              subject stays untouched. NOT a gradient (per §15.4). */}
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[55%] bg-[rgba(15,14,12,0.55)]" />
+          {/*
+            Scrim sizing notes:
+            - The banner is height-capped (not aspect-ratio driven) so the
+              identity overlay (avatar + name + handle + bio + CTAs) is always
+              visible above the fold on landing — previously a full-bleed
+              aspect-[16/9] banner rendered ~1080px tall on desktop and pushed
+              the name below the fold.
+            - Mobile: full-banner darken (h-full) so the overlay text reads.
+            - md+: bottom 60% darken so the photo's subject stays visible while
+              the overlay still has enough contrast.
+            Per §15.4, NOT a gradient — solid rgba block.
+          */}
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-full bg-[rgba(15,14,12,0.55)] md:h-[60%]" />
         </motion.div>
       ) : (
         // No banner: a tonal block sized to the overlay's natural height.
         // No scrim, no aspect ratio. Overlay below renders in dark text.
-        <div className="h-[200px] w-full bg-[var(--surface)] md:h-[240px]" />
+        <div className="h-[280px] w-full bg-[var(--surface)] md:h-[240px]" />
       )}
 
       {/* Overlay content — anchored bottom-left of the banner via absolute
@@ -118,11 +128,13 @@ export const StorefrontHero = ({
         {...(overlayAnim ?? {})}
         className="absolute inset-x-0 bottom-0"
       >
-        <div className="mx-auto max-w-[1280px] px-6 pb-10 md:px-16 md:pb-14">
-          <div className="flex flex-col items-start justify-between gap-8 md:flex-row md:items-end">
-            {/* Identity column */}
-            <div className="flex items-end gap-5">
-              {/* Avatar 88px */}
+        <div className="mx-auto max-w-[1280px] px-6 pb-6 md:px-16 md:pb-14">
+          <div className="flex flex-col items-stretch gap-5 md:flex-row md:items-end md:justify-between md:gap-8">
+            {/* Identity column. Mobile: stack vertical so the bio doesn't
+                squeeze against the avatar; desktop: side-by-side aligned to
+                the baseline. */}
+            <div className="flex flex-col items-start gap-4 md:flex-row md:items-end md:gap-5">
+              {/* Avatar 72px mobile / 88px desktop */}
               <div
                 className="relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-full bg-[var(--surface-sunken)] ring-2 ring-[var(--background)] md:h-[88px] md:w-[88px]"
               >
@@ -135,8 +147,8 @@ export const StorefrontHero = ({
                 />
               </div>
 
-              {/* Name + handle + bio + city. Text color depends on whether a
-                  banner image is present (white over scrim) or absent
+              {/* Name + handle + bio + city. Text color depends on whether
+                  a banner image is present (white over scrim) or absent
                   (dark over the tonal surface block). */}
               <div
                 className={cn(
@@ -148,7 +160,7 @@ export const StorefrontHero = ({
                   id="storefront-name"
                   className={cn(
                     'font-display font-semibold leading-[1.05] tracking-[-0.02em]',
-                    'text-[clamp(28px,4vw,48px)]',
+                    'text-[clamp(26px,4vw,48px)]',
                   )}
                 >
                   {name}
@@ -181,7 +193,7 @@ export const StorefrontHero = ({
                 {bio && (
                   <p
                     className={cn(
-                      'mt-3 max-w-[52ch] font-sans text-[15px] leading-[1.5] md:text-[16px]',
+                      'mt-3 max-w-[52ch] font-sans text-[14px] leading-[1.5] md:text-[16px]',
                       bannerUrl
                         ? 'text-white/85'
                         : 'text-[var(--text-secondary)]',
@@ -193,13 +205,14 @@ export const StorefrontHero = ({
               </div>
             </div>
 
-            {/* CTAs — Subscribe + Tip */}
-            <div className="flex items-center gap-3">
+            {/* CTAs — Subscribe + Tip. Full-width on mobile, inline on
+                desktop. */}
+            <div className="flex w-full items-center gap-3 md:w-auto">
               {hasSubscriptions && (
                 <button
                   type="button"
                   onClick={onSubscribeClick}
-                  className="inline-flex h-11 items-center justify-center rounded-md bg-[var(--accent)] px-5 font-sans text-[14px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)]"
+                  className="inline-flex h-11 flex-1 items-center justify-center rounded-md bg-[var(--accent)] px-5 font-sans text-[14px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)] md:flex-none"
                 >
                   Subscribe
                 </button>
@@ -209,7 +222,7 @@ export const StorefrontHero = ({
                   type="button"
                   onClick={onTipClick}
                   className={cn(
-                    'inline-flex h-11 items-center justify-center gap-2 rounded-md px-5 font-sans text-[14px] font-medium transition-colors',
+                    'inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-md px-5 font-sans text-[14px] font-medium transition-colors md:flex-none',
                     bannerUrl
                       ? 'bg-white/10 text-white backdrop-blur-md hover:bg-white/20'
                       : 'border border-[var(--border-strong)] text-[var(--text-primary)] hover:bg-[var(--surface-sunken)]',

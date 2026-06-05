@@ -235,6 +235,7 @@ async def get_creator(
         bio=organization.bio,
         email=organization.email,
         social_links=social_links_dict if social_links_dict else None,
+        tipping_enabled=organization.tipping_enabled,
         products=products,
     )
 

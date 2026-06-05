@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useRef } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { parseAsStringEnum, useQueryState } from 'nuqs'
 import { schemas } from '@/lib/api'
 import { StorefrontHero } from './StorefrontHero'
@@ -13,6 +13,7 @@ import { AllWorkTab } from './AllWorkTab'
 import { SubscriptionsTab } from './SubscriptionsTab'
 import { AboutTab, type AboutTabSocialLinks } from './AboutTab'
 import { ReviewsBlock, type ReviewSummary, type ReviewExcerpt } from './ReviewsBlock'
+import { DonationModal } from '@/components/Donation/DonationModal'
 
 export interface CreatorStorefrontPageProps {
   /** Creator core fields, sourced from the public CreatorStorefrontSchema. */
@@ -66,6 +67,7 @@ export function CreatorStorefrontPage({
   recentReviews = [],
 }: CreatorStorefrontPageProps) {
   const tabsAnchorRef = useRef<HTMLDivElement | null>(null)
+  const [tipModalOpen, setTipModalOpen] = useState(false)
 
   // Tab state — URL-driven via nuqs. Replace history (don't push) so the back
   // button takes users out of the storefront, not back through tab clicks.
@@ -128,10 +130,9 @@ export function CreatorStorefrontPage({
   }
 
   const handleTipClick = () => {
-    // Donation modal lives in phase 7 wiring (Polar's `donation/` module).
-    // For v1 we route to the bare donation page if present; otherwise fall
-    // back to the help page where buyers learn how to support a creator.
-    window.location.href = `/donation?creator=${encodeURIComponent(creator.slug)}`
+    // Open the inline donation modal — no navigation. The modal drives the
+    // Paystack-native charge against this creator's slug.
+    setTipModalOpen(true)
   }
 
   return (
@@ -196,6 +197,13 @@ export function CreatorStorefrontPage({
             ? `/creators/${creator.slug}/reviews`
             : undefined
         }
+      />
+
+      <DonationModal
+        isOpen={tipModalOpen}
+        onClose={() => setTipModalOpen(false)}
+        creatorSlug={creator.slug}
+        creatorName={creator.name}
       />
     </div>
   )

@@ -3,14 +3,27 @@
 import Link from 'next/link'
 import { Organization } from '@polar-sh/sdk'
 import { CheckCircle, Star } from 'lucide-react'
+import { FiHeart } from 'react-icons/fi'
 
 interface CreatorCardProps {
   creator: Organization
   offsetClass?: string
+  /** When true, shows a small "Tip" affordance that opens the donation modal
+   *  without navigating to the storefront. Sourced from the creator's
+   *  tipping_enabled flag. */
+  tipEnabled?: boolean
+  /** Called when the Tip affordance is clicked (opens the shared modal). */
+  onTip?: (creator: Organization) => void
 }
 
-export function CreatorCard({ creator, offsetClass = '' }: CreatorCardProps) {
+export function CreatorCard({
+  creator,
+  offsetClass = '',
+  tipEnabled = false,
+  onTip,
+}: CreatorCardProps) {
   const isVerified = creator.profile_settings?.is_featured || false
+  const showTip = tipEnabled && !!onTip
 
   return (
     <Link
@@ -32,6 +45,24 @@ export function CreatorCard({ creator, offsetClass = '' }: CreatorCardProps) {
                 {creator.name.charAt(0).toUpperCase()}
               </span>
             </div>
+          )}
+
+          {/* Tip affordance — icon button overlaid top-right of the avatar.
+              Stops navigation so it opens the modal instead of the store. */}
+          {showTip && (
+            <button
+              type="button"
+              aria-label={`Tip ${creator.name}`}
+              data-testid="creator-card-tip"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                onTip?.(creator)
+              }}
+              className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full bg-surface-container-lowest/90 text-primary backdrop-blur-sm transition-colors hover:bg-primary hover:text-surface-container-lowest"
+            >
+              <FiHeart size={16} />
+            </button>
           )}
         </div>
 

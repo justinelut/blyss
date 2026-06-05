@@ -153,50 +153,50 @@ export const useAccountRoutes = (): RouteWithActive[] => {
 
 // internals below
 
-const generalRoutesList = (org?: schemas['Organization']): Route[] => [
+export const generalRoutesList = (org?: schemas['Organization']): Route[] => [
   {
     id: 'home',
     title: 'Home',
     icon: <SpaceDashboardOutlined fontSize="inherit" />,
-    link: `/dashboard/${org?.slug}`,
+    link: `/dashboard/${org?.slug ?? '[organization]'}`,
     checkIsActive: (currentRoute: string) =>
-      currentRoute === `/dashboard/${org?.slug}`,
+      currentRoute === `/dashboard/${org?.slug ?? '[organization]'}`,
     if: true,
   },
   {
     id: 'new-products',
     title: 'Products',
     icon: <HiveOutlined fontSize="inherit" />,
-    link: `/dashboard/${org?.slug}/products`,
+    link: `/dashboard/${org?.slug ?? '[organization]'}/products`,
     checkIsActive: (currentRoute: string): boolean => {
-      return currentRoute.startsWith(`/dashboard/${org?.slug}/products`)
+      return currentRoute.startsWith(`/dashboard/${org?.slug ?? '[organization]'}/products`)
     },
     if: true,
     subs: [
       {
         title: 'Catalogue',
-        link: `/dashboard/${org?.slug}/products`,
+        link: `/dashboard/${org?.slug ?? '[organization]'}/products`,
         icon: <HiveOutlined fontSize="inherit" />,
       },
       {
         title: 'Checkout Links',
-        link: `/dashboard/${org?.slug}/products/checkout-links`,
+        link: `/dashboard/${org?.slug ?? '[organization]'}/products/checkout-links`,
         icon: <LinkOutlined fontSize="inherit" />,
       },
       {
         title: 'Discounts',
-        link: `/dashboard/${org?.slug}/products/discounts`,
+        link: `/dashboard/${org?.slug ?? '[organization]'}/products/discounts`,
         icon: <DiscountOutlined fontSize="inherit" />,
       },
       {
         title: 'Benefits',
-        link: `/dashboard/${org?.slug}/products/benefits`,
+        link: `/dashboard/${org?.slug ?? '[organization]'}/products/benefits`,
         icon: <DiamondOutlined fontSize="inherit" />,
       },
       // DISABLED — Meters (usage-based metering, plan §4.4 step 1)
       // {
       //   title: 'Meters',
-      //   link: `/dashboard/${org?.slug}/products/meters`,
+      //   link: `/dashboard/${org?.slug ?? '[organization]'}/products/meters`,
       //   icon: <DonutLargeOutlined fontSize="inherit" />,
       // },
     ],
@@ -205,9 +205,9 @@ const generalRoutesList = (org?: schemas['Organization']): Route[] => [
     id: 'customers',
     title: 'Customers',
     icon: <PeopleAltOutlined fontSize="inherit" />,
-    link: `/dashboard/${org?.slug}/customers`,
+    link: `/dashboard/${org?.slug ?? '[organization]'}/customers`,
     checkIsActive: (currentRoute: string): boolean => {
-      return currentRoute.startsWith(`/dashboard/${org?.slug}/customers`)
+      return currentRoute.startsWith(`/dashboard/${org?.slug ?? '[organization]'}/customers`)
     },
     if: true,
   },
@@ -215,12 +215,12 @@ const generalRoutesList = (org?: schemas['Organization']): Route[] => [
     id: 'analytics',
     title: 'Analytics',
     icon: <TrendingUp fontSize="inherit" />,
-    link: `/dashboard/${org?.slug}/analytics`,
+    link: `/dashboard/${org?.slug ?? '[organization]'}/analytics`,
     if: true,
     subs: [
       {
         title: 'Metrics',
-        link: `/dashboard/${org?.slug}/analytics/metrics`,
+        link: `/dashboard/${org?.slug ?? '[organization]'}/analytics/metrics`,
       },
       // Events + Costs hidden — SaaS-focused, not relevant (plan §7.1)
     ],
@@ -229,20 +229,20 @@ const generalRoutesList = (org?: schemas['Organization']): Route[] => [
     id: 'org-sales',
     title: 'Sales',
     icon: <ShoppingBagOutlined fontSize="inherit" />,
-    link: `/dashboard/${org?.slug}/sales`,
+    link: `/dashboard/${org?.slug ?? '[organization]'}/sales`,
     checkIsActive: (currentRoute: string): boolean => {
-      return currentRoute.startsWith(`/dashboard/${org?.slug}/sales`)
+      return currentRoute.startsWith(`/dashboard/${org?.slug ?? '[organization]'}/sales`)
     },
     if: true,
     subs: [
       {
         title: 'Orders',
-        link: `/dashboard/${org?.slug}/sales`,
+        link: `/dashboard/${org?.slug ?? '[organization]'}/sales`,
         icon: <ShoppingBagOutlined fontSize="inherit" />,
       },
       {
         title: 'Subscriptions',
-        link: `/dashboard/${org?.slug}/sales/subscriptions`,
+        link: `/dashboard/${org?.slug ?? '[organization]'}/sales/subscriptions`,
         icon: <AllInclusiveOutlined fontSize="inherit" />,
       },
     ],
@@ -255,7 +255,7 @@ const dashboardRoutesList = (org?: schemas['Organization']): Route[] => [
   ...organizationRoutesList(org),
 ]
 
-const accountRoutesList = (): Route[] => [
+export const accountRoutesList = (): Route[] => [
   {
     id: 'preferences',
     title: 'Preferences',
@@ -270,23 +270,23 @@ const accountRoutesList = (): Route[] => [
 const orgFinanceSubRoutesList = (org?: schemas['Organization']): SubRoute[] => [
   {
     title: 'Income',
-    link: `/dashboard/${org?.slug}/finance/income`,
+    link: `/dashboard/${org?.slug ?? '[organization]'}/finance/income`,
   },
   {
     title: 'Payouts',
-    link: `/dashboard/${org?.slug}/finance/payouts`,
+    link: `/dashboard/${org?.slug ?? '[organization]'}/finance/payouts`,
   },
   {
     title: 'Account',
-    link: `/dashboard/${org?.slug}/finance/account`,
+    link: `/dashboard/${org?.slug ?? '[organization]'}/finance/account`,
   },
 ]
 
-const organizationRoutesList = (org?: schemas['Organization']): Route[] => [
+export const organizationRoutesList = (org?: schemas['Organization']): Route[] => [
   {
     id: 'finance',
     title: 'Finance',
-    link: `/dashboard/${org?.slug}/finance`,
+    link: `/dashboard/${org?.slug ?? '[organization]'}/finance`,
     icon: <AttachMoneyOutlined fontSize="inherit" />,
     if: true,
     subs: orgFinanceSubRoutesList(org),
@@ -294,17 +294,17 @@ const organizationRoutesList = (org?: schemas['Organization']): Route[] => [
   {
     id: 'settings',
     title: 'Settings',
-    link: `/dashboard/${org?.slug}/settings`,
+    link: `/dashboard/${org?.slug ?? '[organization]'}/settings`,
     icon: <TuneOutlined fontSize="inherit" />,
     if: true,
     subs: [
       {
         title: 'General',
-        link: `/dashboard/${org?.slug}/settings`,
+        link: `/dashboard/${org?.slug ?? '[organization]'}/settings`,
       },
       {
         title: 'Members',
-        link: `/dashboard/${org?.slug}/settings/members`,
+        link: `/dashboard/${org?.slug ?? '[organization]'}/settings/members`,
       },
       // Webhooks, Billing, Custom Fields hidden — not relevant for creator marketplace (plan §7.1)
     ],

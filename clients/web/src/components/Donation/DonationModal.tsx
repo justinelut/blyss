@@ -1,8 +1,5 @@
 'use client'
 
-import { useInitiateDonation } from '@/hooks/queries/donations'
-import { setValidationErrors } from '@/utils/api/errors'
-import Button from '@/components/atoms/Button'
 import Input from '@/components/atoms/Input'
 import {
   Dialog,
@@ -20,14 +17,17 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Textarea } from '@/components/ui/textarea'
-import { useState } from 'react'
-import { SubmitHandler, useForm } from 'react-hook-form'
+import { useEffect, useRef, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { DonationPaymentInterface } from './DonationPaymentInterface'
 
 interface DonationModalProps {
   isOpen: boolean
   onClose: () => void
-  organizationId: string
-  organizationName: string
+  /** Creator slug — the inline charge targets POST /v1/donation/{slug}/. */
+  creatorSlug: string
+  /** Creator display name shown in the modal header. */
+  creatorName: string
 }
 
 interface DonationFormData {
@@ -37,231 +37,246 @@ interface DonationFormData {
   message?: string
 }
 
+// KES bounds — min 50, max 50,000 (whole KES in the form; converted to minor
+// units for the charge).
+const MIN_KES = 50
+const MAX_KES = 50_000
+
+/**
+ * DonationModal — inline Paystack-native tipping.
+ *
+ * Collects amount (KES) + optional message + optional name, then renders the
+ * DonationPaymentInterface channel selector inline. On success it flips to a
+ * thank-you state and auto-closes after 3s. The donor never leaves Blyss — no
+ * redirect to a Paystack hosted page.
+ */
 export const DonationModal = ({
   isOpen,
   onClose,
-  organizationId,
-  organizationName,
+  creatorSlug,
+  creatorName,
 }: DonationModalProps) => {
-  const form = useForm<DonationFormData>()
-  const { control, handleSubmit, setError, reset } = form
-  const [loading, setLoading] = useState(false)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const initiateDonation = useInitiateDonation()
+  const form = useForm<DonationFormData>({
+    mode: 'onChange',
+    defaultValues: { amount: '', donor_name: '', donor_email: '', message: '' },
+  })
+  const { control, watch, reset, formState } = form
+  const [succeeded, setSucceeded] = useState(false)
+  const autoCloseRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const onSubmit: SubmitHandler<DonationFormData> = async (data) => {
-    setErrorMessage(null)
-    setLoading(true)
+  const amountStr = watch('amount')
+  const donorEmail = watch('donor_email')
+  const donorName = watch('donor_name')
+  const message = watch('message')
 
-    const amountInCents = Math.round(parseFloat(data.amount) * 100)
+  const amountKes = parseFloat(amountStr || '')
+  const amountValid =
+    !Number.isNaN(amountKes) && amountKes >= MIN_KES && amountKes <= MAX_KES
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(donorEmail || '')
+  const canPay = amountValid && emailValid && !formState.errors.amount
 
-    if (amountInCents < 100 || amountInCents > 1000000) {
-      setError('amount', {
-        type: 'manual',
-        message: 'Amount must be between 1.00 and 10,000.00',
-      })
-      setLoading(false)
-      return
-    }
-
-    const { data: result, error } = await initiateDonation.mutateAsync({
-      organization_id: organizationId,
-      amount: amountInCents,
-      donor_name: data.donor_name,
-      donor_email: data.donor_email,
-      message: data.message || undefined,
-    })
-
-    setLoading(false)
-
-    if (error) {
-      if (error.detail && Array.isArray(error.detail)) {
-        setValidationErrors(error.detail, setError)
-        const generalError = error.detail.find(
-          (err) => !Array.isArray(err.loc) || err.loc.length === 0,
-        )
-        if (generalError?.msg) {
-          setErrorMessage(generalError.msg)
-        }
-      } else if (typeof error.detail === 'string') {
-        setErrorMessage(error.detail)
-      } else {
-        setErrorMessage(
-          'An error occurred while processing your donation. Please try again.',
-        )
-      }
-      return
-    }
-
-    if (result?.payment_url) {
-      window.location.href = result.payment_url
-    }
-  }
+  const amountMinorUnits = amountValid ? Math.round(amountKes * 100) : 0
 
   const handleClose = () => {
+    if (autoCloseRef.current) clearTimeout(autoCloseRef.current)
     reset()
-    setErrorMessage(null)
+    setSucceeded(false)
     onClose()
   }
 
+  // On success, auto-close after 3s.
+  useEffect(() => {
+    if (!succeeded) return
+    autoCloseRef.current = setTimeout(() => {
+      handleClose()
+    }, 3000)
+    return () => {
+      if (autoCloseRef.current) clearTimeout(autoCloseRef.current)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [succeeded])
+
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) handleClose()
+      }}
+    >
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle className="text-lg sm:text-xl">
-            Support {organizationName}
-          </DialogTitle>
-          <DialogDescription className="text-sm">
-            Make a one-time donation to support this creator
-          </DialogDescription>
-        </DialogHeader>
-
-        <Form {...form}>
-          <form
-            className="flex flex-col gap-3 sm:gap-4"
-            onSubmit={handleSubmit(onSubmit)}
+        {succeeded ? (
+          <div
+            className="flex flex-col items-center gap-3 py-8 text-center"
+            data-testid="donation-success"
           >
-            <FormField
-              control={control}
-              name="amount"
-              rules={{
-                required: 'Amount is required',
-                pattern: {
-                  value: /^\d+(\.\d{1,2})?$/,
-                  message: 'Please enter a valid amount',
-                },
-                validate: (value) => {
-                  const amount = parseFloat(value)
-                  if (amount < 1) {
-                    return 'Minimum donation is 1.00'
-                  }
-                  if (amount > 10000) {
-                    return 'Maximum donation is 10,000.00'
-                  }
-                  return true
-                },
-              }}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-sm">Amount</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <span className="absolute top-1/2 left-3 -translate-y-1/2 text-sm text-gray-500 sm:text-base">
-                        KES
-                      </span>
-                      <Input
-                        type="text"
-                        placeholder="100.00"
-                        className="pl-14 text-base sm:text-sm"
-                        {...field}
-                      />
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={control}
-              name="donor_name"
-              rules={{
-                required: 'Name is required',
-                minLength: {
-                  value: 2,
-                  message: 'Name must be at least 2 characters',
-                },
-              }}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-sm">Your Name</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="text"
-                      placeholder="John Doe"
-                      className="text-base sm:text-sm"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={control}
-              name="donor_email"
-              rules={{
-                required: 'Email is required',
-                pattern: {
-                  value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                  message: 'Invalid email address',
-                },
-              }}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-sm">Your Email</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="email"
-                      placeholder="john@example.com"
-                      autoComplete="email"
-                      className="text-base sm:text-sm"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={control}
-              name="message"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-sm">Message (Optional)</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Leave a message for the creator..."
-                      className="resize-none text-base sm:text-sm"
-                      rows={3}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {errorMessage && (
-              <div className="rounded-md bg-red-50 p-3 text-sm text-red-800 dark:bg-red-900/20 dark:text-red-400">
-                {errorMessage}
-              </div>
-            )}
-
-            <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={handleClose}
-                disabled={loading}
-                className="w-full sm:w-auto"
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+              <svg
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
               >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                variant="default"
-                loading={loading}
-                disabled={loading}
-                className="w-full sm:w-auto"
-              >
-                Continue to Payment
-              </Button>
+                <path d="M20 6 9 17l-5-5" />
+              </svg>
             </div>
-          </form>
-        </Form>
+            <DialogTitle className="text-lg sm:text-xl">
+              Thank you for supporting {creatorName}!
+            </DialogTitle>
+            <DialogDescription className="text-sm">
+              Your tip was received. A receipt is on its way to your email.
+            </DialogDescription>
+          </div>
+        ) : (
+          <>
+            <DialogHeader>
+              <DialogTitle className="text-lg sm:text-xl">
+                Support {creatorName}
+              </DialogTitle>
+              <DialogDescription className="text-sm">
+                Send a one-time tip to support this creator.
+              </DialogDescription>
+            </DialogHeader>
+
+            <Form {...form}>
+              <form
+                className="flex flex-col gap-3 sm:gap-4"
+                onSubmit={(e) => e.preventDefault()}
+              >
+                <FormField
+                  control={control}
+                  name="amount"
+                  rules={{
+                    required: 'Amount is required',
+                    pattern: {
+                      value: /^\d+(\.\d{1,2})?$/,
+                      message: 'Please enter a valid amount',
+                    },
+                    validate: (value) => {
+                      const amount = parseFloat(value)
+                      if (amount < MIN_KES) return `Minimum tip is KES ${MIN_KES}`
+                      if (amount > MAX_KES)
+                        return `Maximum tip is KES ${MAX_KES.toLocaleString()}`
+                      return true
+                    },
+                  }}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm">Amount</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <span className="absolute top-1/2 left-3 -translate-y-1/2 text-sm text-[var(--text-muted)]">
+                            KES
+                          </span>
+                          <Input
+                            type="text"
+                            inputMode="decimal"
+                            placeholder="500"
+                            className="pl-14 text-base sm:text-sm"
+                            {...field}
+                          />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={control}
+                  name="donor_name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm">
+                        Your name (optional)
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="text"
+                          placeholder="Jane"
+                          className="text-base sm:text-sm"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={control}
+                  name="donor_email"
+                  rules={{
+                    required: 'Email is required',
+                    pattern: {
+                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                      message: 'Invalid email address',
+                    },
+                  }}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm">Your email</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="email"
+                          placeholder="jane@example.com"
+                          autoComplete="email"
+                          className="text-base sm:text-sm"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={control}
+                  name="message"
+                  rules={{
+                    maxLength: {
+                      value: 200,
+                      message: 'Message must be 200 characters or fewer',
+                    },
+                  }}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm">
+                        Message (optional)
+                      </FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Leave a message for the creator…"
+                          className="resize-none text-base sm:text-sm"
+                          rows={3}
+                          maxLength={200}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Inline channel selector — reuses the buyer-checkout
+                    PaystackPaymentInterface shape. No redirect. */}
+                <DonationPaymentInterface
+                  slug={creatorSlug}
+                  amount={amountMinorUnits}
+                  donorEmail={donorEmail}
+                  donorName={donorName}
+                  message={message}
+                  canPay={canPay}
+                  onPaymentSuccess={() => setSucceeded(true)}
+                />
+              </form>
+            </Form>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   )

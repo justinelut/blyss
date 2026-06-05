@@ -2,7 +2,7 @@ from uuid import UUID
 
 import structlog
 
-from polar.config import settings
+from polar.email.sender import DEFAULT_FROM_EMAIL_ADDRESS
 from polar.email.tasks import email_send
 from polar.logging import Logger
 from polar.worker import AsyncSessionMaker, TaskPriority, actor
@@ -52,7 +52,7 @@ async def send_donation_confirmation(
             subject=subject,
             html_content=html_content,
             from_name=organization.name,
-            from_email_addr=settings.EMAIL_SENDER_FROM_EMAIL,
+            from_email_addr=DEFAULT_FROM_EMAIL_ADDRESS,
             email_headers=None,
             reply_to_name=None,
             reply_to_email_addr=None,
@@ -128,7 +128,7 @@ async def send_donation_receipt(
             subject=subject,
             html_content=html_content,
             from_name=organization.name,
-            from_email_addr=settings.EMAIL_SENDER_FROM_EMAIL,
+            from_email_addr=DEFAULT_FROM_EMAIL_ADDRESS,
             email_headers=None,
             reply_to_name=None,
             reply_to_email_addr=None,

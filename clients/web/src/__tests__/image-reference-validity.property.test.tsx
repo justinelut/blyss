@@ -30,6 +30,9 @@ function publicAssetExists(path: string): boolean {
 function isValidImagePath(path: string): boolean {
   if (!path || typeof path !== 'string') return false
 
+  // Malformed: contains whitespace (e.g. "/path/with spaces.png").
+  if (/\s/.test(path)) return false
+
   // Check for valid image extensions
   const validExtensions = [
     '.svg',

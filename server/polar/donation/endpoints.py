@@ -9,14 +9,28 @@ from fastapi import Depends, HTTPException, Path, Request
 from starlette.status import HTTP_202_ACCEPTED, HTTP_401_UNAUTHORIZED
 
 from polar.auth.dependencies import WebUserRead
+from polar.checkout.payment_channels import get_channels_for_currency
 from polar.config import settings
-from polar.kit.pagination import ListResource, PaginationParams
+from polar.exceptions import ResourceNotFound
+from polar.kit.pagination import ListResource, PaginationParamsQuery
 from polar.openapi import APITag
+from polar.organization.repository import OrganizationRepository
 from polar.postgres import AsyncSession, get_db_session
 from polar.routing import APIRouter
+from polar.runtime_settings import runtime_settings
 
-from .schemas import DonationCreate, DonationInitiateResponse, DonationPublic
+from .schemas import (
+    DonationChargeRequest,
+    DonationChargeResponse,
+    DonationChargeStepSubmitRequest,
+    DonationCreate,
+    DonationInitiateResponse,
+    DonationPaymentChannel,
+    DonationPaymentStatus,
+    DonationPublic,
+)
 from .service import (
+    DonationError,
     InvalidDonationAmountError,
     donation_service,
 )
@@ -60,13 +74,198 @@ async def initiate_donation(
         raise
 
 
-def verify_paystack_signature(payload: bytes, signature: str) -> bool:
+# ---------------------------------------------------------------------------
+# Inline Paystack-native tipping against a creator storefront.
+#
+# These mirror the buyer-checkout inline charge endpoints so the frontend can
+# reuse the same PaystackPaymentInterface channel selector + polling. The donor
+# never leaves Blyss (no hosted redirect).
+# ---------------------------------------------------------------------------
+
+
+def _charge_response_from_result(result: dict) -> DonationChargeResponse:
+    raw = result.get("raw", {}) or {}
+    return DonationChargeResponse(
+        reference=result["reference"],
+        status=result["status"],
+        display_text=result.get("display_text"),
+        ussd_code=raw.get("ussd_code"),
+        qr_code=raw.get("qr_code"),
+        qr_image_url=raw.get("qr_image_url"),
+        account_number=raw.get("account_number"),
+        account_name=raw.get("account_name"),
+        bank_name=raw.get("bank_name"),
+        account_expires_at=raw.get("account_expires_at"),
+        redirect_url=raw.get("redirect_url"),
+    )
+
+
+@router.get(
+    "/{slug}/payment-channels",
+    response_model=list[DonationPaymentChannel],
+    summary="Get Donation Payment Channels",
+    responses={200: {"description": "Available payment channels for tipping."}},
+)
+async def donation_payment_channels(
+    slug: Annotated[str, Path(description="The creator slug.")],
+    session: AsyncSession = Depends(get_db_session),
+) -> list[DonationPaymentChannel]:
+    """List Paystack payment channels available for tipping a creator.
+
+    Donations are always in KES, so this returns the KES channel set. The slug
+    is validated so the frontend gets a 404 for unknown creators rather than a
+    confusing empty channel list.
+    """
+    org_repository = OrganizationRepository.from_session(session)
+    organization = await org_repository.get_by_slug(slug)
+    if organization is None or organization.blocked_at is not None:
+        raise ResourceNotFound()
+
+    channels = get_channels_for_currency("KES")
+    return [
+        DonationPaymentChannel(
+            id=c.id,
+            name=c.name,
+            description=c.description,
+            fields=c.fields,
+            providers=c.providers,
+        )
+        for c in channels
+    ]
+
+
+@router.post(
+    "/{slug}/",
+    response_model=DonationChargeResponse,
+    status_code=201,
+    summary="Tip a Creator",
+    responses={
+        201: {"description": "Donation charge initiated."},
+        404: {"description": "Creator not found."},
+        422: {"description": "Invalid amount or channel fields."},
+    },
+)
+async def tip_creator(
+    slug: Annotated[str, Path(description="The creator slug.")],
+    charge: DonationChargeRequest,
+    session: AsyncSession = Depends(get_db_session),
+) -> DonationChargeResponse:
+    """Initiate an inline Paystack charge to tip a creator. No auth required.
+
+    Returns a reference + status the frontend polls via
+    GET /donation/payment-status/{reference}. The donor stays on Blyss's UI.
+    """
+    org_repository = OrganizationRepository.from_session(session)
+    organization = await org_repository.get_by_slug(slug)
+    if organization is None or organization.blocked_at is not None:
+        raise ResourceNotFound()
+
+    donation, result = await donation_service.initiate_donation_charge(
+        session,
+        organization=organization,
+        charge=charge,
+    )
+    await session.commit()
+
+    return _charge_response_from_result(result)
+
+
+@router.post(
+    "/charge/submit/{action}/{reference}",
+    response_model=DonationChargeResponse,
+    summary="Submit Donation Charge Step",
+    responses={
+        200: {"description": "Charge step submitted."},
+        404: {"description": "Donation not found."},
+    },
+)
+async def submit_donation_charge_step(
+    action: Annotated[str, Path(description="otp | pin | phone | birthday")],
+    reference: Annotated[str, Path(description="The donation payment reference.")],
+    body: DonationChargeStepSubmitRequest,
+    session: AsyncSession = Depends(get_db_session),
+) -> DonationChargeResponse:
+    """Submit an OTP/PIN/phone/birthday for a pending donation charge."""
+    if action not in ("otp", "pin", "phone", "birthday"):
+        raise ResourceNotFound()
+
+    result = await donation_service.submit_donation_charge_step(
+        session,
+        payment_reference=reference,
+        action=action,
+        value=body.value,
+    )
+    await session.commit()
+    return _charge_response_from_result(result)
+
+
+@router.get(
+    "/payment-status/{reference}",
+    response_model=DonationPaymentStatus,
+    summary="Get Donation Payment Status",
+    responses={
+        200: {"description": "Current donation payment status."},
+        404: {"description": "Donation not found."},
+    },
+)
+async def donation_payment_status(
+    reference: Annotated[str, Path(description="The donation payment reference.")],
+    session: AsyncSession = Depends(get_db_session),
+) -> DonationPaymentStatus:
+    """Poll the live status of a donation charge.
+
+    On a success transition, fires the confirmation + receipt emails to the
+    donor exactly once (idempotent: only the pending→success edge enqueues).
+    """
+    # Snapshot prior status so we only enqueue emails on the pending→success
+    # transition (the poller hits this endpoint repeatedly).
+    from .repository import DonationRepository
+
+    repository = DonationRepository.from_session(session)
+    before = await repository.get_by_payment_reference(reference)
+    if before is None:
+        raise ResourceNotFound()
+    was_pending = before.payment_status not in ("success", "failed")
+
+    status = await donation_service.get_donation_payment_status(
+        session, payment_reference=reference
+    )
+    await session.commit()
+
+    if was_pending and status["status"] == "success":
+        donation = await repository.get_by_payment_reference(reference)
+        if donation is not None:
+            from .tasks import send_donation_confirmation, send_donation_receipt
+
+            send_donation_confirmation.send(
+                donation.donor_email,
+                donation.donor_name,
+                donation.amount,
+                donation.organization_id,
+            )
+            send_donation_receipt.send(
+                donation.donor_email,
+                donation.donor_name,
+                donation.amount,
+                donation.payment_reference,
+                donation.organization_id,
+                donation.created_at.isoformat(),
+            )
+
+    return DonationPaymentStatus(**status)
+
+
+async def verify_paystack_signature(payload: bytes, signature: str, session: AsyncSession) -> bool:
     """Verify Paystack webhook signature using HMAC-SHA512."""
     if not signature:
         return False
 
+    secret = await runtime_settings.get(session, "PAYSTACK_WEBHOOK_SECRET")
+    if not secret:
+        return False
+
     expected_signature = hmac.new(
-        settings.PAYSTACK_WEBHOOK_SECRET.encode("utf-8"),
+        secret.encode("utf-8"),
         payload,
         hashlib.sha512,
     ).hexdigest()
@@ -91,7 +290,7 @@ async def paystack_donation_webhook(
     payload = await request.body()
     signature = request.headers.get("x-paystack-signature", "")
 
-    if not verify_paystack_signature(payload, signature):
+    if not await verify_paystack_signature(payload, signature, session):
         log.warning(
             "donation.webhook.signature_verification_failed",
             signature_provided=bool(signature),
@@ -162,7 +361,7 @@ async def paystack_donation_webhook(
 async def get_creator_donations(
     organization_id: Annotated[UUID, Path(description="The organization ID.")],
     auth_subject: WebUserRead,
-    pagination: PaginationParams = Depends(),
+    pagination: PaginationParamsQuery,
     session: AsyncSession = Depends(get_db_session),
 ) -> ListResource[DonationPublic]:
     """Get donations for creator. Requires authentication."""

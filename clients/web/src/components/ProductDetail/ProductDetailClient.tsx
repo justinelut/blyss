@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { schemas } from '@/lib/api'
 import { useAddToCart } from '@/hooks/queries/cart'
 import { useIsInWishlist, useAddToWishlist, useRemoveFromWishlist } from '@/hooks/queries/wishlist'
 import { useAuth } from '@/hooks'
+import { DonationModal } from '@/components/Donation/DonationModal'
 import {
   ProductImageGallery,
   ProductInfoColumn,
@@ -33,6 +34,7 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
   const { data: wishlistCheck } = useIsInWishlist(product.id)
   const { mutate: addWishlist } = useAddToWishlist()
   const { mutate: removeWishlist } = useRemoveFromWishlist()
+  const [tipModalOpen, setTipModalOpen] = useState(false)
 
   const isInWishlist = !!(wishlistCheck as any)?.is_in_wishlist
   const org = (product as any).organization as
@@ -98,6 +100,7 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
             onShare={handleShare}
             isInWishlist={isInWishlist}
             isBuyLoading={cartStatus === 'pending'}
+            onTip={org?.slug ? () => setTipModalOpen(true) : undefined}
           />
 
           {org && (
@@ -127,6 +130,15 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
         <RelatedProducts productId={product.id} />
         <RecentlyViewed currentId={product.id} />
       </div>
+
+      {org?.slug && (
+        <DonationModal
+          isOpen={tipModalOpen}
+          onClose={() => setTipModalOpen(false)}
+          creatorSlug={org.slug}
+          creatorName={org.name ?? 'this creator'}
+        />
+      )}
     </div>
   )
 }

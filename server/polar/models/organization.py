@@ -357,6 +357,16 @@ class Organization(RateLimitGroupMixin, RecordModel):
         JSONB, nullable=False, default=dict
     )
 
+    # When True, the creator has opted into accepting one-off tips / donations.
+    # Surfaces the "Tip" affordance on the storefront hero, creator cards, the
+    # directory, marketplace and search results. Default False — creators turn
+    # it on from their dashboard.
+    tipping_enabled: Mapped[bool] = mapped_column(
+        nullable=False,
+        default=False,
+        server_default="false",
+    )
+
     #
     # Currency settings
     #

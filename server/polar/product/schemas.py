@@ -820,6 +820,13 @@ class ProductBase(TrialConfigurationOutputMixin, TimestampedSchema, IDSchema):
     is_archived: bool = Field(
         description="Whether the product is archived and no longer available."
     )
+    accepts_donations: bool = Field(
+        default=False,
+        description=(
+            "Whether the creator accepts tips / donations on this product. "
+            "When true, the product detail page shows a 'Tip the creator' CTA."
+        ),
+    )
     organization_id: UUID4 = Field(
         description="The ID of the organization owning the product."
     )

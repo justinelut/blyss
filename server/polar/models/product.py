@@ -93,6 +93,13 @@ class Product(TrialConfigurationMixin, MetadataMixin, RecordModel):
         default=TaxCode.general_electronically_supplied_services,
     )
 
+    # When True, the product detail page surfaces a "Tip the creator" CTA
+    # alongside the normal purchase buttons, opening the donation modal
+    # pre-targeted at this product's organization.
+    accepts_donations: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+
     organization_id: Mapped[UUID] = mapped_column(
         Uuid,
         ForeignKey("organizations.id", ondelete="cascade"),

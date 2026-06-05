@@ -559,6 +559,7 @@ class CreatorStorefrontSchema(Schema):
     bio: str | None
     email: str | None
     social_links: SocialLinks | None
+    tipping_enabled: bool = False
     # Typed loosely as list[Any] because importing the public Product schema
     # would create a circular import (product.schemas imports from
     # organization.schemas). The endpoint converts SQLAlchemy products to

@@ -5,9 +5,16 @@ import { CreatorCard } from './CreatorCard'
 
 interface CreatorsGridProps {
   creators: Organization[]
+  /** Called when a creator card's Tip affordance is clicked. */
+  onTip?: (creator: Organization) => void
 }
 
-export function CreatorsGrid({ creators }: CreatorsGridProps) {
+/** Read tipping_enabled off the org (may be absent on the SDK type). */
+function isTipEnabled(creator: Organization): boolean {
+  return (creator as any).tipping_enabled === true
+}
+
+export function CreatorsGrid({ creators, onTip }: CreatorsGridProps) {
   if (creators.length === 0) {
     return (
       <div className="py-12 text-center">
@@ -23,6 +30,8 @@ export function CreatorsGrid({ creators }: CreatorsGridProps) {
           key={creator.id}
           creator={creator}
           offsetClass={index % 3 === 1 ? 'md:mt-12' : ''}
+          tipEnabled={isTipEnabled(creator)}
+          onTip={onTip}
         />
       ))}
     </div>
