@@ -300,10 +300,35 @@ jobs:
             }
 
             # 9. Run migrations
-            API_POD=$(sudo kubectl -n $NS get pods -l app=blyss-api --field-selector=status.phase=Running -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+            # Wait for a fully READY api pod (phase=Running is not enough — the
+            # container can still be starting, which yields
+            # "container not found (api)" on exec). Use the readiness condition,
+            # then retry the exec a few times to ride out the brief window
+            # between Ready and an exec-able container.
+            sudo kubectl -n $NS wait --for=condition=ready pod \
+              -l app=blyss-api --timeout=5m 2>/dev/null || \
+              echo "⚠️  No api pod reached Ready within timeout"
+
+            API_POD=$(sudo kubectl -n $NS get pods -l app=blyss-api \
+              --field-selector=status.phase=Running \
+              -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
             if [ -n "$API_POD" ]; then
               echo "==> Running alembic migrations"
-              sudo kubectl -n $NS exec "$API_POD" -- sh -c "cd /app/server && uv run alembic upgrade head" 2>&1 || \
+              MIGRATED=0
+              for attempt in 1 2 3 4 5; do
+                if sudo kubectl -n $NS exec "$API_POD" -- sh -c \
+                  "cd /app/server && uv run alembic upgrade head" 2>&1; then
+                  MIGRATED=1
+                  break
+                fi
+                echo "  migration attempt $attempt failed; retrying in 15s…"
+                sleep 15
+                # Re-resolve the pod in case it was rescheduled.
+                API_POD=$(sudo kubectl -n $NS get pods -l app=blyss-api \
+                  --field-selector=status.phase=Running \
+                  -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "$API_POD")
+              done
+              [ "$MIGRATED" = "1" ] || \
                 echo "⚠️  Migration command failed (use the Cluster reset workflow if schema is out of sync)"
               echo "==> Seeding admin"
               sudo kubectl -n $NS exec "$API_POD" -- sh -c "cd /app/server && uv run python -m scripts.seed_admin justinequartz@gmail.com" 2>&1 || \
