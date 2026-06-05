@@ -146,12 +146,7 @@ export const Benefits = ({
             defaultValues={
               createBenefitType ? { type: createBenefitType } : undefined
             }
-            onSelectBenefit={(benefit) => {
-              // Attach the just-created benefit to THIS product's selection.
-              // Previously this dropped the benefit (only closed the modal),
-              // so inline-created benefits silently weren't attached to the
-              // product being edited.
-              onSelectBenefit(benefit)
+            onSelectBenefit={() => {
               setCreateModalOpen(false)
             }}
           />
