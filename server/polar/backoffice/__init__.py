@@ -24,6 +24,7 @@ from .subscriptions.endpoints import router as subscriptions_router
 from .tasks.endpoints import router as tasks_router
 from .users.endpoints import router as users_router
 from .versioned_static import VersionedStaticFiles
+from .runtime_settings.endpoints import router as runtime_settings_router
 from .webhooks.endpoints import router as webhooks_router
 
 app = FastAPI(
@@ -60,6 +61,7 @@ app.include_router(orders_router, prefix="/orders")
 app.include_router(payouts_router, prefix="/payouts")
 app.include_router(impersonation_router, prefix="/impersonation")
 app.include_router(webhooks_router, prefix="/webhooks")
+app.include_router(runtime_settings_router, prefix="/runtime-settings")
 
 
 @app.get("/", name="index")

@@ -37,4 +37,9 @@ NAVIGATION = [
     navigation.NavigationItem(
         "Webhooks", "webhooks:list", active_route_name_prefix="webhooks:"
     ),
+    navigation.NavigationItem(
+        "Runtime settings",
+        "runtime_settings:list",
+        active_route_name_prefix="runtime_settings:",
+    ),
 ]
