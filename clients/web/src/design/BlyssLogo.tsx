@@ -17,15 +17,15 @@ interface BlyssLogoProps {
 const sizeClasses: Record<NonNullable<BlyssLogoProps['size']>, string> = {
   sm: 'text-base',         // 16px — footer, dashboard sidebar
   md: 'text-lg',           // 18px — default
-  lg: 'text-2xl',          // 24px — main nav
+  lg: 'text-[22px]',      // 22px — main nav (matches spec)
   xl: 'text-4xl md:text-5xl', // 36-48px — hero / 404 pages
 }
 
 const dotPosition: Record<NonNullable<BlyssLogoProps['size']>, string> = {
-  sm: 'h-[3px] w-[3px] -bottom-[2px] left-[55%]',
-  md: 'h-[3.5px] w-[3.5px] -bottom-[2px] left-[55%]',
-  lg: 'h-[4px] w-[4px] -bottom-[3px] left-[55%]',
-  xl: 'h-[6px] w-[6px] -bottom-[4px] left-[55%] md:h-[7px] md:w-[7px]',
+  sm: 'h-[3px] w-[3px] -bottom-[3px] left-[54%]',
+  md: 'h-[3.5px] w-[3.5px] -bottom-[3px] left-[54%]',
+  lg: 'h-[4px] w-[4px] -bottom-[4px] left-[54%]',
+  xl: 'h-[6px] w-[6px] -bottom-[5px] left-[54%] md:h-[7px] md:w-[7px]',
 }
 
 /**
@@ -53,7 +53,7 @@ export const BlyssLogo = ({
     <span className="relative inline-block">
       <span
         className={cn(
-          'font-display font-semibold tracking-[-0.025em] leading-none select-none',
+          'font-display font-bold tracking-[-0.03em] leading-none select-none',
           sizeClasses[size],
           className,
         )}

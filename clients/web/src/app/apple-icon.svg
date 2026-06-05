@@ -1,11 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" fill="none">
-  <!-- Same geometric B mark, scaled to 180x180 for the Apple touch icon.
-       Coordinates are 64-grid * (180/64) = 2.8125 with rounding. -->
+  <!-- Blyss monogram — Apple touch icon (180x180, same mark with safe-area padding) -->
   <rect width="180" height="180" rx="40" fill="#0F0E0C"/>
-  <g fill="#F5F0E8">
-    <rect x="40" y="28" width="25" height="124" rx="1.5"/>
-    <path d="M65 28 H104 A34 34 0 0 1 104 96 H65 Z"/>
-    <path d="M65 84 H110 A37 37 0 0 1 110 158 H65 Z"/>
-  </g>
-  <circle cx="143" cy="141" r="9" fill="#F97316"/>
+  <!--
+    Same refined B as icon.svg, scaled by 180/64 ≈ 2.8125.
+    Coordinates hand-tuned for whole/half-pixel crispness at this size.
+  -->
+  <path
+    d="M53 34 L53 146 L96 146 C120.5 146 135 129.6 135 112.5 C135 96.8 122.6 84.4 107 83.7 C119.3 79.3 126.5 68.6 126.5 57.6 C126.5 42.7 114.2 34 98.5 34 Z
+       M73 52 L96 52 C106 52 111 57.9 111 64.6 C111 71.4 106 77.4 96 77.4 L73 77.4 Z
+       M73 94 L99 94 C112.5 94 118 101.6 118 111 C118 120.4 112.5 128 99 128 L73 128 Z"
+    fill="#F5F0E8"
+    fill-rule="evenodd"
+  />
+  <circle cx="93" cy="64.5" r="7" fill="#F97316"/>
 </svg>

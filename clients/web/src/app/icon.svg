@@ -1,25 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
-  <!-- Charcoal tile with the same corner radius as the rest of the brand -->
-  <rect width="64" height="64" rx="14" fill="#0F0E0C"/>
+  <!-- Blyss monogram — refined geometric B on charcoal tile -->
+  <rect width="64" height="64" rx="16" fill="#0F0E0C"/>
   <!--
-    Geometric "B" monogram, drawn as filled paths so it renders crisp at
-    any resolution and doesn't depend on a system-font fallback (the old
-    mark used <text> with Inter Display which made the favicon look
-    slightly different in every browser tab).
-
-    Construction:
-      1. Vertical stem (the spine of the B)
-      2. Top lobe — semicircle bulging right of the spine
-      3. Bottom lobe — semicircle, marginally wider than the top so the
-         B sits properly on the optical baseline
-      4. A single orange brand dot to the right of the bottom lobe — the
-         "moment of bliss" signature that pairs with the dot under the
-         "y" in the wordmark.
+    Refined "B" monogram.
+    Construction: uniform 7px stroke weight throughout. The B is drawn as
+    a single compound path with two proper counters (negative-space bowls).
+    The bottom bowl is optically larger than the top for visual balance.
+    Terminals are softly rounded. The orange accent dot sits inside the
+    upper counter as an integrated brand signature — not a random afterthought.
   -->
-  <g fill="#F5F0E8">
-    <rect x="14" y="10" width="9" height="44" rx="0.5"/>
-    <path d="M23 10 H37 A12 12 0 0 1 37 34 H23 Z"/>
-    <path d="M23 30 H39 A13 13 0 0 1 39 56 H23 Z"/>
-  </g>
-  <circle cx="51" cy="50" r="3" fill="#F97316"/>
+  <path
+    d="M19 12 L19 52 L34 52 C42.8 52 48 46.2 48 40 C48 34.4 43.6 30 38 29.4 C42.4 28.2 45 24.4 45 20.5 C45 15.2 40.6 12 35 12 Z
+       M26 18.5 L34 18.5 C37.6 18.5 39.5 20.6 39.5 23 C39.5 25.4 37.6 27.5 34 27.5 L26 27.5 Z
+       M26 33.5 L35 33.5 C39.8 33.5 42 36.2 42 39.5 C42 42.8 39.8 45.5 35 45.5 L26 45.5 Z"
+    fill="#F5F0E8"
+    fill-rule="evenodd"
+  />
+  <circle cx="33" cy="23" r="2.5" fill="#F97316"/>
 </svg>

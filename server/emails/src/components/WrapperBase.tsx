@@ -7,7 +7,7 @@ const WrapperBase = ({ children }: { children: React.ReactNode }) => {
         theme: {
           extend: {
             colors: {
-              brand: '#0062FF',
+              brand: '#C2410C',
             },
           },
         },

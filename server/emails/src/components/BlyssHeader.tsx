@@ -6,9 +6,10 @@ const Header = () => (
   <Section>
     <div className="relative h-[48px]">
       <Img
-        alt="Blyss Logo"
+        alt="Blyss"
         height="48"
-        src="https://polar-public-assets.s3.us-east-2.amazonaws.com/emails/polar-logo-black-badge.png"
+        width="48"
+        src="https://raw.githubusercontent.com/justinelut/blyss/master/clients/web/public/blyss-email-logo.png"
       />
     </div>
   </Section>
