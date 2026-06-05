@@ -8,6 +8,8 @@ import { FiArrowRight, FiArrowUpRight } from 'react-icons/fi'
 import { schemas } from '@/lib/api'
 import { Eyebrow } from '@/design'
 import { cn } from '@/lib/utils'
+import { useDisplayCurrency } from './CurrencyProvider'
+import { findPriceForCurrency } from '@/lib/currency/marketplace'
 
 interface HeroProps {
   /** Real products from the backend. The mosaic adapts to whatever's
@@ -259,13 +261,28 @@ function ShowcaseMosaic({
   )
 }
 
+function formatTileCurrency(amount: number, currency?: string): string {
+  const cur = (currency ?? 'kes').toUpperCase()
+  const major = amount / 100
+  if (cur === 'KES') return `KSh ${major.toLocaleString('en-KE')}`
+  if (cur === 'USD') return `US$ ${major.toLocaleString('en-US')}`
+  return `${cur} ${major.toLocaleString()}`
+}
+
 function ProductTileBody({ product }: { product: schemas['Product'] }) {
   const img = product.medias?.[0]?.public_url
-  const price = product.prices?.[0] as
-    | { price_amount?: number; price_currency?: string }
-    | undefined
+  const displayCurrency = useDisplayCurrency()
+  // Prefer the price in the visitor's currency; the grid is already filtered
+  // to products priced in it, so fall back to the first price defensively.
+  const price =
+    (findPriceForCurrency(product, displayCurrency) as
+      | { price_amount?: number; price_currency?: string }
+      | null) ??
+    (product.prices?.[0] as
+      | { price_amount?: number; price_currency?: string }
+      | undefined)
   const priceLabel = price?.price_amount
-    ? `KSh ${(price.price_amount / 100).toLocaleString('en-KE')}`
+    ? formatTileCurrency(price.price_amount, price.price_currency)
     : ''
   const org = (product as unknown as { organization?: { name?: string } }).organization
 

@@ -1,6 +1,7 @@
 import { Metadata } from 'next'
 import { api } from '@/utils/client'
 import { unwrap } from '@/lib/api'
+import { getServerCurrency } from '@/lib/geo/server'
 import { JsonLd } from '@/design'
 import { BrowsePage } from '@/components/Marketplace/BrowsePage'
 import type { FilterCategory } from '@/components/Marketplace/BrowseFilterRail'
@@ -65,7 +66,10 @@ export default async function MarketplacePage({
     'newest'
   const type =
     (params.type as 'all' | 'one_time' | 'subscription') || 'all'
-  const currency = (params.currency as 'KES' | 'USD') || 'KES'
+  // Currency follows geo (US→USD default, KE→KES) unless the URL/switcher
+  // overrode it. We filter the grid to this currency (no FX conversion).
+  const geoCurrency = await getServerCurrency()
+  const currency = (params.currency as string) || geoCurrency.toUpperCase()
   const page = params.page ? parseInt(params.page, 10) : 1
 
   const [productsData, categoriesData] = await Promise.all([
@@ -86,6 +90,7 @@ export default async function MarketplacePage({
                   ? false
                   : undefined,
             sort: sort === 'trending' ? 'newest' : sort,
+            currency: currency.toLowerCase(),
             page,
             limit: 24,
           } as Record<string, unknown>,

@@ -2,6 +2,7 @@ import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { getServerSideAPI } from '@/utils/client/serverside'
 import { unwrap, schemas } from '@/lib/api'
+import { getServerCurrency } from '@/lib/geo/server'
 import { JsonLd } from '@/design'
 import {
   CreatorStorefrontPage,
@@ -35,11 +36,11 @@ interface CreatorPageProps {
  * state.
  */
 
-async function fetchCreator(slug: string) {
+async function fetchCreator(slug: string, currency?: string) {
   const api = await getServerSideAPI()
   return unwrap(
     api.GET('/v1/organizations/creators/{slug}', {
-      params: { path: { slug } },
+      params: { path: { slug }, query: currency ? { currency } : undefined },
     }),
   )
 }
@@ -173,7 +174,10 @@ export default async function Page({ params }: CreatorPageProps) {
 
   let creator: schemas['CreatorStorefrontSchema'] | null = null
   try {
-    creator = await fetchCreator(slug)
+    // Geo currency filter: the storefront lists only this creator's products
+    // priced in the visitor's currency (no conversion).
+    const currency = await getServerCurrency()
+    creator = await fetchCreator(slug, currency)
   } catch {
     notFound()
   }

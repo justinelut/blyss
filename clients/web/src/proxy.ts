@@ -4,6 +4,8 @@ import { RequestCookiesAdapter } from 'next/dist/server/web/spec-extension/adapt
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { COOKIE_MAX_AGE, DISTINCT_ID_COOKIE } from './experiments/constants'
+import { COUNTRY_COOKIE } from './lib/geo'
+import { resolveGeo } from './lib/geo/middleware'
 import { createServerSideAPI } from './utils/client'
 
 const POLAR_AUTH_COOKIE_KEY =
@@ -269,10 +271,32 @@ export async function proxy(request: NextRequest) {
   const requestHeaders = new Headers(request.headers)
   requestHeaders.set('x-blyss-pathname', request.nextUrl.pathname)
 
+  // --- Geo → currency resolution (plan: /ke /us etc; no FX conversion) ---
+  // Resolve the visitor's country once, here, and expose the country +
+  // currency to server components (via request headers) and the client (via a
+  // readable cookie). Order: explicit cookie override → Cloudflare
+  // cf-ipcountry → default US/USD. The marketplace then shows ONLY products
+  // the creator priced in this currency.
+  const geo = resolveGeo(request)
+  requestHeaders.set('x-blyss-country', geo.country)
+  requestHeaders.set('x-blyss-currency', geo.currency)
+
   const response = NextResponse.next({
     headers,
     request: { headers: requestHeaders },
   })
+
+  // Persist the resolved country so the choice is stable + the client store
+  // can hydrate from it without a flash. Non-httpOnly so client code reads it.
+  if (geo.shouldSetCookie) {
+    response.cookies.set(COUNTRY_COOKIE, geo.country, {
+      maxAge: COOKIE_MAX_AGE,
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+    })
+  }
 
   if (isNewDistinctId) {
     response.cookies.set(DISTINCT_ID_COOKIE, distinctId, {

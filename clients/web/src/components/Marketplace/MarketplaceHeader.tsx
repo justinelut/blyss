@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import { BlyssLogo } from '@/design'
 import { CartButton } from '@/components/Cart/CartButton'
+import { CountrySwitcher } from './CountrySwitcher'
 import { useAuth } from '@/hooks'
 import { cn } from '@/lib/utils'
 
@@ -95,6 +96,7 @@ export const MarketplaceHeader = ({ alwaysBlurred = false }: MarketplaceHeaderPr
             >
               <FiSearch size={20} />
             </Link>
+            <CountrySwitcher className="hidden sm:block" />
             <CartButton />
             {authenticated && currentUser ? (
               <Link

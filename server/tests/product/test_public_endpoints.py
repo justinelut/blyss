@@ -736,3 +736,114 @@ class TestListPublicProducts:
         ids = [item["id"] for item in response.json()["items"]]
         assert str(one_time.id) in ids
         assert str(sub.id) not in ids
+
+    async def test_filters_by_currency_returns_only_matching(
+        self,
+        client: AsyncClient,
+        save_fixture: SaveFixture,
+        organization: Organization,
+    ) -> None:
+        """currency=usd returns only products priced in USD (no conversion).
+
+        This is the core geo-display rule: a US visitor must NOT see a
+        KES-only product, because we never convert currencies — they could
+        not be charged in their currency.
+        """
+        usd_product = await create_product(
+            save_fixture,
+            organization=organization,
+            recurring_interval=None,
+            name="Global USD Product",
+            prices=[(1000, "usd")],
+        )
+        kes_only_product = await create_product(
+            save_fixture,
+            organization=organization,
+            recurring_interval=None,
+            name="Local KES Product",
+            prices=[(100000, "kes")],
+        )
+
+        response = await client.get(
+            "/v1/products/public", params={"currency": "usd"}
+        )
+        assert response.status_code == 200
+        ids = [item["id"] for item in response.json()["items"]]
+        assert str(usd_product.id) in ids
+        assert str(kes_only_product.id) not in ids
+
+    async def test_filters_by_currency_is_case_insensitive(
+        self,
+        client: AsyncClient,
+        save_fixture: SaveFixture,
+        organization: Organization,
+    ) -> None:
+        """currency filter compares case-insensitively (USD == usd)."""
+        usd_product = await create_product(
+            save_fixture,
+            organization=organization,
+            recurring_interval=None,
+            name="Case USD Product",
+            prices=[(1000, "usd")],
+        )
+
+        response = await client.get(
+            "/v1/products/public", params={"currency": "USD"}
+        )
+        assert response.status_code == 200
+        ids = [item["id"] for item in response.json()["items"]]
+        assert str(usd_product.id) in ids
+
+    async def test_currency_filter_includes_multicurrency_product(
+        self,
+        client: AsyncClient,
+        save_fixture: SaveFixture,
+        organization: Organization,
+    ) -> None:
+        """A product priced in BOTH usd and kes shows for either currency."""
+        multi = await create_product(
+            save_fixture,
+            organization=organization,
+            recurring_interval=None,
+            name="Dual Currency Product",
+            prices=[(1000, "usd"), (100000, "kes")],
+        )
+
+        usd_resp = await client.get(
+            "/v1/products/public", params={"currency": "usd"}
+        )
+        kes_resp = await client.get(
+            "/v1/products/public", params={"currency": "kes"}
+        )
+        assert usd_resp.status_code == 200
+        assert kes_resp.status_code == 200
+        assert str(multi.id) in [i["id"] for i in usd_resp.json()["items"]]
+        assert str(multi.id) in [i["id"] for i in kes_resp.json()["items"]]
+
+    async def test_no_currency_param_returns_all_currencies(
+        self,
+        client: AsyncClient,
+        save_fixture: SaveFixture,
+        organization: Organization,
+    ) -> None:
+        """Omitting currency returns products regardless of their currency."""
+        usd_product = await create_product(
+            save_fixture,
+            organization=organization,
+            recurring_interval=None,
+            name="Some USD Product",
+            prices=[(1000, "usd")],
+        )
+        kes_product = await create_product(
+            save_fixture,
+            organization=organization,
+            recurring_interval=None,
+            name="Some KES Product",
+            prices=[(100000, "kes")],
+        )
+
+        response = await client.get("/v1/products/public")
+        assert response.status_code == 200
+        ids = [item["id"] for item in response.json()["items"]]
+        assert str(usd_product.id) in ids
+        assert str(kes_product.id) in ids

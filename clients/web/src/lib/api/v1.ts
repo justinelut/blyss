@@ -30339,7 +30339,10 @@ export interface operations {
   }
   'organizations:get_creator': {
     parameters: {
-      query?: never
+      query?: {
+        /** @description Only include products priced in this currency (geo display, no conversion) */
+        currency?: string | null
+      }
       header?: never
       path: {
         slug: string
@@ -32264,6 +32267,12 @@ export interface operations {
         sort?: 'newest' | 'price_asc' | 'price_desc'
         /** @description Filter featured products */
         is_featured?: boolean | null
+        /** @description Filter recurring (subscription) vs one-time products */
+        is_recurring?: boolean | null
+        /** @description Filter products by creator/organization id. */
+        organization_id?: string | null
+        /** @description Filter to products with an active price in this currency (geo display, no conversion) */
+        currency?: string | null
         /** @description Page number */
         page?: number
         /** @description Items per page */
@@ -32529,8 +32538,10 @@ export interface operations {
   'products:get_product_by_slug': {
     parameters: {
       query: {
-        args: unknown
-        kwargs: unknown
+        args?: unknown
+        kwargs?: unknown
+        /** @description Require an active price in this currency, else 404 (region-unavailable). No conversion. */
+        currency?: string | null
       }
       header?: never
       path: {

@@ -185,6 +185,15 @@ async def list_creators(
 )
 async def get_creator(
     slug: str,
+    currency: str | None = Query(
+        None,
+        description=(
+            "Only include products the creator priced in this currency "
+            "(e.g. 'usd', 'kes'). Geo-based display: a visitor sees a "
+            "creator's products only in their own currency — no conversion. "
+            "Omit to include all products."
+        ),
+    ),
     session: AsyncReadSession = Depends(get_db_read_session),
 ) -> CreatorStorefrontSchema:
     """Get creator storefront data by slug.
@@ -203,7 +212,26 @@ async def get_creator(
     from polar.product.schemas import Product as ProductSchema
     from polar.review.repository import ReviewRepository
 
-    visible_products = [p for p in organization.products if not p.is_archived]
+    def _has_currency(product: object) -> bool:
+        """True if the product has an active price in the requested currency.
+        No conversion: a KES-only product is hidden from a USD visitor."""
+        if currency is None:
+            return True
+        currency_lc = currency.lower()
+        for price in getattr(product, "prices", None) or []:
+            if (
+                not getattr(price, "is_archived", False)
+                and (getattr(price, "price_currency", "") or "").lower()
+                == currency_lc
+            ):
+                return True
+        return False
+
+    visible_products = [
+        p
+        for p in organization.products
+        if not p.is_archived and _has_currency(p)
+    ]
 
     # Batch-fetch aggregate ratings for all visible products in ONE query so
     # the storefront cards can show "4.8 · 32 reviews" without an N+1.

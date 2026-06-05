@@ -52,10 +52,10 @@ const filterParsers = {
     'one_time',
     'subscription',
   ]).withDefault('all'),
-  currency: parseAsStringEnum<BrowseFilters['currency']>([
-    'KES',
-    'USD',
-  ]).withDefault('KES'),
+  // Currency is geo-resolved server-side and passed via initialFilters; the
+  // URL only carries it when the user explicitly switches. No hardcoded KES
+  // default here (that was the US-sees-KES bug).
+  currency: parseAsString,
   sort: parseAsStringEnum<BrowseFilters['sort']>([
     'newest',
     'trending',
@@ -129,7 +129,7 @@ export function BrowsePage({
       min_price: filters.min_price,
       max_price: filters.max_price,
       type: filters.type,
-      currency: filters.currency,
+      currency: filters.currency || initialFilters.currency,
       sort: filters.sort,
     }),
     [filters],
@@ -165,6 +165,11 @@ export function BrowsePage({
       filters.sort === 'trending'
         ? 'newest' // backend doesn't support 'trending' yet — alias to newest
         : filters.sort,
+    // Hard currency filter (geo): only products the creator priced in the
+    // visitor's currency. No conversion.
+    currency: (filters.currency || initialFilters.currency)
+      ? String(filters.currency || initialFilters.currency).toLowerCase()
+      : undefined,
     page: filters.page,
   })
 
@@ -182,7 +187,8 @@ export function BrowsePage({
       min_price: null,
       max_price: null,
       type: 'all',
-      currency: 'KES',
+      // Reset to the geo-resolved currency, not a hardcoded KES.
+      currency: initialFilters.currency,
       sort: 'newest',
       page: 1,
     })

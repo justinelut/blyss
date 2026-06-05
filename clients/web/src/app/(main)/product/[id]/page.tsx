@@ -2,6 +2,7 @@ import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { getServerSideAPI } from '@/utils/client/serverside'
 import { unwrap, schemas } from '@/lib/api'
+import { getServerCurrency } from '@/lib/geo/server'
 import { JsonLd } from '@/design'
 import { ProductBreadcrumb } from '@/components/ProductDetail'
 import { ProductDetailClient } from '@/components/ProductDetail/ProductDetailClient'
@@ -11,9 +12,16 @@ const SITE = 'https://blyss.co.ke'
 
 interface Props { params: Promise<{ id: string }> }
 
-async function fetchProduct(id: string) {
+async function fetchProduct(id: string, currency?: string) {
   const api = await getServerSideAPI()
-  return unwrap(api.GET('/v1/products/slug/{slug}', { params: { path: { slug: id } } }))
+  return unwrap(
+    api.GET('/v1/products/slug/{slug}', {
+      params: {
+        path: { slug: id },
+        query: currency ? { currency } : {},
+      },
+    }),
+  )
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -37,13 +45,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ProductPage({ params }: Props) {
   const { id } = await params
+  const visitorCurrency = await getServerCurrency()
   let product: schemas['Product']
-  try { product = await fetchProduct(id) } catch { notFound() }
+  // Region gate: if the creator didn't price this product in the visitor's
+  // currency, the backend 404s (we don't convert). Treat as not-found.
+  try { product = await fetchProduct(id, visitorCurrency) } catch { notFound() }
 
   const org = (product as any).organization as { name?: string; slug?: string } | undefined
-  const price = product.prices?.[0]
+  // Prefer the price in the visitor's currency for structured data.
+  const prices = (product.prices ?? []) as any[]
+  const price =
+    prices.find(
+      (p) => (p?.price_currency ?? '').toLowerCase() === visitorCurrency.toLowerCase(),
+    ) ?? prices[0]
   const amount = (price as any)?.price_amount ?? 0
-  const currency = ((price as any)?.price_currency ?? 'KES').toUpperCase()
+  const currency = ((price as any)?.price_currency ?? visitorCurrency).toUpperCase()
 
   const productLd: Record<string, unknown> = {
     '@context': 'https://schema.org',

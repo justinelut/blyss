@@ -161,6 +161,8 @@ export interface UsePublicProductsParams {
   isRecurring?: boolean
   /** Filter by creator/organization id */
   organizationId?: string
+  /** Geo currency filter — only products priced in this currency (no conversion) */
+  currency?: string
   page?: number
   limit?: number
 }
@@ -188,6 +190,7 @@ export const usePublicProducts = (
               is_featured: parameters?.isFeatured,
               is_recurring: parameters?.isRecurring,
               organization_id: parameters?.organizationId,
+              currency: parameters?.currency,
               page: parameters?.page || 1,
               limit: parameters?.limit || 24,
             } as Record<string, unknown>,

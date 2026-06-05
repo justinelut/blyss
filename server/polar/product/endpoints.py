@@ -78,6 +78,16 @@ async def list_public_products(
     organization_id: UUID4 | None = Query(
         None, description="Filter products by creator/organization id."
     ),
+    currency: str | None = Query(
+        None,
+        description=(
+            "Filter to products that have an active price in this currency "
+            "(e.g. 'usd', 'kes'). Used for geo-based marketplace display: a "
+            "visitor only sees products the creator priced in their currency "
+            "— no conversion is applied. Omit to return products in any "
+            "currency."
+        ),
+    ),
     page: int = Query(1, ge=1, description="Page number"),
     limit: int = Query(24, ge=1, le=100, description="Items per page"),
     session: AsyncReadSession = Depends(get_db_read_session),
@@ -88,7 +98,7 @@ async def list_public_products(
     This endpoint is used for the marketplace homepage and allows filtering,
     searching, and sorting products.
     """
-    from sqlalchemy import and_, case, or_, select
+    from sqlalchemy import and_, case, func, or_, select
     from sqlalchemy.orm import selectinload
 
     from polar.models import (
@@ -126,6 +136,24 @@ async def list_public_products(
 
     if organization_id is not None:
         statement = statement.where(Product.organization_id == organization_id)
+
+    if currency is not None:
+        # Hard currency filter (NO conversion): only surface products that
+        # the creator actually priced in the visitor's currency. A product
+        # priced only in KES is invisible to a USD visitor, because Paystack
+        # would charge in the product's own currency — showing it would be a
+        # price the buyer can't actually pay.
+        currency_lc = currency.lower()
+        statement = statement.where(
+            select(ProductPrice.id)
+            .where(
+                ProductPrice.product_id == Product.id,
+                ProductPrice.is_archived.is_(False),
+                ProductPrice.is_deleted.is_(False),
+                func.lower(ProductPrice.price_currency) == currency_lc,
+            )
+            .exists()
+        )
 
     price_join_added = False
     if min_price is not None or max_price is not None:
@@ -410,6 +438,13 @@ async def get_product_by_slug(
     slug: str,
     request: Request,
     auth_subject: WebUserOrAnonymous,
+    currency: str | None = Query(
+        None,
+        description=(
+            "If set, the product must have an active price in this currency, "
+            "otherwise it 404s (region-unavailable). No conversion is applied."
+        ),
+    ),
     session: AsyncSession = Depends(get_db_session),
 ) -> Product:
     """
@@ -430,6 +465,20 @@ async def get_product_by_slug(
 
     if product is None:
         raise ResourceNotFound()
+
+    # Hard currency gate (no conversion): if the visitor's currency was passed
+    # and the creator didn't price this product in it, treat it as
+    # region-unavailable (404) — the buyer couldn't be charged in their
+    # currency anyway.
+    if currency is not None:
+        currency_lc = currency.lower()
+        has_currency = any(
+            not getattr(price, "is_archived", False)
+            and (getattr(price, "price_currency", "") or "").lower() == currency_lc
+            for price in (product.prices or [])
+        )
+        if not has_currency:
+            raise ResourceNotFound()
 
     # Track product view for analytics
     session_id = request.cookies.get("session_id")

@@ -15,7 +15,8 @@ export interface BrowseFilters {
   min_price: number | null
   max_price: number | null
   type: 'all' | 'one_time' | 'subscription'
-  currency: 'KES' | 'USD'
+  /** Presentment currency (ISO, upper) — geo-resolved, e.g. 'KES' | 'USD'. */
+  currency: string
   sort: 'newest' | 'trending' | 'price_asc' | 'price_desc'
 }
 

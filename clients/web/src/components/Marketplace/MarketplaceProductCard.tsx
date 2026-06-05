@@ -7,6 +7,7 @@ import { schemas } from '@/lib/api'
 import { OptimizedImage } from '@/components/Image/OptimizedImage'
 import { typography } from '@/design'
 import { cn } from '@/lib/utils'
+import { useDisplayCurrency } from './CurrencyProvider'
 
 type Product = schemas['Product']
 
@@ -19,10 +20,19 @@ interface MarketplaceProductCardProps {
   className?: string
 }
 
-const formatPrice = (product: Product): string => {
-  // Polar's product has prices array. Take first one's amount + currency.
-  const price = product.prices?.[0]
-  if (!price) return ''
+const formatPrice = (product: Product, preferredCurrency?: string): string => {
+  // Pick the price in the visitor's currency when the creator set one;
+  // otherwise fall back to the first price. We never convert — the grid is
+  // already filtered to products priced in the visitor's currency.
+  const prices = (product.prices ?? []) as any[]
+  if (prices.length === 0) return ''
+  const preferred = preferredCurrency?.toLowerCase()
+  const price =
+    (preferred &&
+      prices.find(
+        (p) => (p?.price_currency ?? '').toLowerCase() === preferred,
+      )) ||
+    prices[0]
   // price.price_amount is in minor units (e.g. KES cents = 1/100 of KES)
   const amount = (price as any).price_amount ?? 0
   const currency = ((price as any).price_currency ?? 'KES').toUpperCase()
@@ -72,6 +82,7 @@ export const MarketplaceProductCard = ({
   className,
 }: MarketplaceProductCardProps) => {
   const reduce = useReducedMotion()
+  const displayCurrency = useDisplayCurrency()
   const productImage = product.medias?.[0]?.public_url
   // Seed-data placeholders use ids prefixed "seed_" — they have no PDP, so
   // route the click to the marketplace browse page instead of 404'ing.
@@ -186,7 +197,7 @@ export const MarketplaceProductCard = ({
             'mt-1 font-display text-[18px] font-semibold tabular-nums text-[var(--text-primary)]',
           )}
         >
-          {formatPrice(product)}
+          {formatPrice(product, displayCurrency)}
         </p>
       </div>
     </Link>

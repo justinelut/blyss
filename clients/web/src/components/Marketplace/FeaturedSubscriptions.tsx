@@ -1,8 +1,12 @@
+'use client'
+
 import Link from 'next/link'
 import { schemas } from '@/lib/api'
 import { Eyebrow, SectionDivider, typography } from '@/design'
 import { OptimizedImage } from '@/components/Image/OptimizedImage'
 import { cn } from '@/lib/utils'
+import { useDisplayCurrency } from './CurrencyProvider'
+import { findPriceForCurrency } from '@/lib/currency/marketplace'
 
 type Product = schemas['Product']
 
@@ -15,8 +19,11 @@ interface FeaturedSubscriptionsProps {
   subscriptions: Product[]
 }
 
-const formatMonthlyPrice = (product: Product): string => {
-  const price = (product as any).prices?.[0]
+const formatMonthlyPrice = (product: Product, preferredCurrency: string): string => {
+  // Prefer the visitor-currency price; the feed is already filtered to it.
+  const price =
+    (findPriceForCurrency(product, preferredCurrency) as any) ??
+    (product as any).prices?.[0]
   if (!price) return ''
   const amount = price.price_amount ?? 0
   const currency = (price.price_currency ?? 'KES').toUpperCase()
@@ -34,6 +41,7 @@ const formatMonthlyPrice = (product: Product): string => {
  * (tabular), and the first benefit description if present.
  */
 export const FeaturedSubscriptions = ({ subscriptions }: FeaturedSubscriptionsProps) => {
+  const displayCurrency = useDisplayCurrency()
   if (!subscriptions?.length) return null
 
   return (
@@ -97,7 +105,7 @@ export const FeaturedSubscriptions = ({ subscriptions }: FeaturedSubscriptionsPr
               </div>
 
               <p className="mt-5 font-display text-[24px] font-semibold tabular-nums text-[var(--text-primary)]">
-                {formatMonthlyPrice(product)}
+                {formatMonthlyPrice(product, displayCurrency)}
                 <span className="font-sans text-[14px] font-normal text-[var(--text-muted)]">
                   {' '}/ month
                 </span>

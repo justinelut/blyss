@@ -2,6 +2,8 @@ import { headers } from 'next/headers'
 import { PropsWithChildren } from 'react'
 import { MarketplaceHeader } from './MarketplaceHeader'
 import { MarketplaceFooter } from './MarketplaceFooter'
+import { CurrencyProvider } from './CurrencyProvider'
+import { getServerGeo } from '@/lib/geo/server'
 
 /**
  * Paths that DO NOT get the marketplace chrome — they have their own layout
@@ -28,11 +30,15 @@ export async function MarketplaceShell({ children }: PropsWithChildren) {
     return <>{children}</>
   }
 
+  const { country, currency } = await getServerGeo()
+
   return (
-    <div className="flex min-h-screen flex-col bg-[var(--background)] text-[var(--text-primary)]">
-      <MarketplaceHeader />
-      <main className="flex-1 pt-20">{children}</main>
-      <MarketplaceFooter />
-    </div>
+    <CurrencyProvider initialCountry={country} initialCurrency={currency}>
+      <div className="flex min-h-screen flex-col bg-[var(--background)] text-[var(--text-primary)]">
+        <MarketplaceHeader />
+        <main className="flex-1 pt-20">{children}</main>
+        <MarketplaceFooter />
+      </div>
+    </CurrencyProvider>
   )
 }

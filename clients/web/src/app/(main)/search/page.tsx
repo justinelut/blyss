@@ -1,6 +1,7 @@
 import { Metadata } from 'next'
 import { unwrap } from '@/lib/api'
 import { api } from '@/utils/client'
+import { getServerCurrency } from '@/lib/geo/server'
 import { SearchResults } from './SearchResults'
 
 export const metadata: Metadata = {
@@ -21,10 +22,11 @@ export default async function SearchPage({
 
   if (query) {
     try {
+      const currency = await getServerCurrency()
       const result = await unwrap(
         api.GET('/v1/products/public', {
           params: {
-            query: { search: query, category, limit: 24 },
+            query: { search: query, category, currency, limit: 24 },
           },
         }),
       )

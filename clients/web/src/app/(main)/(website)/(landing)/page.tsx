@@ -1,5 +1,6 @@
 import { unwrap, schemas } from '@/lib/api'
 import { createServerSideAPI } from '@/utils/client'
+import { getServerGeo } from '@/lib/geo/server'
 import { Metadata } from 'next'
 import { cookies, headers } from 'next/headers'
 import HomePage from './HomePage'
@@ -47,20 +48,22 @@ async function getFeaturedProducts() {
     const cookieStore = await cookies()
     const headersList = await headers()
     const serverApi = await createServerSideAPI(headersList, cookieStore)
+    const { currency } = await getServerGeo()
 
     // Prefer hand-curated featured products, but fall back to most-recent
     // public products so the home page never reads empty just because the
-    // operator hasn't flagged anything yet.
+    // operator hasn't flagged anything yet. Filter by the visitor's currency
+    // (geo) — products the creator didn't price in that currency are hidden.
     const featured = await unwrap(
       serverApi.GET('/v1/products/public', {
-        params: { query: { is_featured: true, limit: 8, page: 1 } },
+        params: { query: { is_featured: true, limit: 8, page: 1, currency } },
       }),
     )
     if (featured.items?.length) return featured.items
 
     const recent = await unwrap(
       serverApi.GET('/v1/products/public', {
-        params: { query: { limit: 8, page: 1 } },
+        params: { query: { limit: 8, page: 1, currency } },
       }),
     )
     return recent.items ?? []
@@ -86,9 +89,10 @@ async function getFeaturedSubscriptions() {
 
     // No /v1/subscriptions/public without is_featured? Use products with
     // is_recurring=true instead — same shape from the consumer's POV.
+    const { currency } = await getServerGeo()
     const recurring = await unwrap(
       serverApi.GET('/v1/products/public', {
-        params: { query: { is_recurring: true, limit: 6 } },
+        params: { query: { is_recurring: true, limit: 6, currency } },
       }),
     )
     // The home's FeaturedSubscriptions component accepts Subscription-shape

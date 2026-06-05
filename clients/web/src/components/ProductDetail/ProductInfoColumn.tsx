@@ -6,6 +6,8 @@ import { schemas } from '@/lib/api'
 import { OptimizedImage } from '@/components/Image/OptimizedImage'
 import { typography } from '@/design'
 import { cn } from '@/lib/utils'
+import { useDisplayCurrency } from '@/components/Marketplace/CurrencyProvider'
+import { findPriceForCurrency } from '@/lib/currency/marketplace'
 
 type Product = schemas['Product']
 
@@ -19,8 +21,13 @@ export interface ProductInfoColumnProps {
   onTip?: () => void
 }
 
-const formatPrice = (product: Product): string => {
-  const price = product.prices?.[0]
+const formatPrice = (product: Product, preferredCurrency?: string): string => {
+  // Prefer the visitor-currency price (the PDP 404s server-side if absent),
+  // falling back to the first price defensively. We never convert.
+  const price =
+    (preferredCurrency
+      ? (findPriceForCurrency(product, preferredCurrency) as any)
+      : null) ?? product.prices?.[0]
   if (!price) return 'Free'
   const amount = (price as any).price_amount ?? 0
   if (amount === 0) return 'Free'
@@ -31,15 +38,18 @@ const formatPrice = (product: Product): string => {
   return `${currency} ${major.toLocaleString()}`
 }
 
-const getBuyLabel = (product: Product): string => {
-  const price = product.prices?.[0]
+const getBuyLabel = (product: Product, preferredCurrency?: string): string => {
+  const price =
+    (preferredCurrency
+      ? (findPriceForCurrency(product, preferredCurrency) as any)
+      : null) ?? product.prices?.[0]
   const amount = (price as any)?.price_amount ?? 0
   if (amount === 0) return 'Get it free'
   if (product.is_recurring) {
     const interval = product.recurring_interval ?? 'month'
-    return `Subscribe · ${formatPrice(product)} / ${interval}`
+    return `Subscribe · ${formatPrice(product, preferredCurrency)} / ${interval}`
   }
-  return `Buy · ${formatPrice(product)}`
+  return `Buy · ${formatPrice(product, preferredCurrency)}`
 }
 
 /**
@@ -58,6 +68,7 @@ export const ProductInfoColumn = ({
   isBuyLoading = false,
   onTip,
 }: ProductInfoColumnProps) => {
+  const displayCurrency = useDisplayCurrency()
   const org = (product as any).organization as
     | { name?: string; slug?: string; avatar_url?: string | null }
     | undefined
@@ -102,7 +113,7 @@ export const ProductInfoColumn = ({
 
       {/* Price */}
       <p className="font-display text-[clamp(24px,3vw,32px)] font-semibold leading-none text-[var(--text-primary)] [font-variant-numeric:tabular-nums]">
-        {formatPrice(product)}
+        {formatPrice(product, displayCurrency)}
         {product.is_recurring && (
           <span className="ml-2 font-sans text-[14px] font-normal text-[var(--text-muted)]">
             / {product.recurring_interval ?? 'month'}
@@ -131,7 +142,7 @@ export const ProductInfoColumn = ({
             'disabled:cursor-not-allowed disabled:opacity-50',
           )}
         >
-          {isBuyLoading ? 'Adding…' : getBuyLabel(product)}
+          {isBuyLoading ? 'Adding…' : getBuyLabel(product, displayCurrency)}
         </button>
 
         {/* Payment note */}
