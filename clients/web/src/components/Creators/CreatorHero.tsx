@@ -1,6 +1,6 @@
 'use client'
 
-import { Search } from 'lucide-react'
+import { FiSearch } from 'react-icons/fi'
 import { useState } from 'react'
 
 interface CreatorHeroProps {
@@ -39,7 +39,7 @@ export function CreatorHero({ onSearch }: CreatorHeroProps) {
               className="w-full rounded-lg border-none bg-surface-container-high px-6 py-4 text-on-surface placeholder:text-outline transition-all focus:ring-2 focus:ring-secondary"
               placeholder="Search by name or skill..."
             />
-            <Search className="absolute bottom-4 right-4 text-on-surface-variant" size={20} />
+            <FiSearch className="absolute bottom-4 right-4 text-on-surface-variant" size={20} />
           </form>
         </div>
       </div>

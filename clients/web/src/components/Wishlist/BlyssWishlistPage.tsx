@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react'
-import { Heart, ArrowRight } from 'lucide-react'
+import { FiHeart, FiArrowRight } from 'react-icons/fi'
 import { useWishlist, useRemoveFromWishlist } from '@/hooks/queries/wishlist'
 import { MarketplaceProductCard } from '@/components/Marketplace/MarketplaceProductCard'
 import { Skeleton, Eyebrow, typography, StaggerList, StaggerItem } from '@/design'
@@ -65,7 +65,7 @@ export const BlyssWishlistPage = () => {
             className="group mt-8 inline-flex h-11 items-center gap-2 rounded-md bg-[var(--accent)] px-6 font-sans text-[14px] font-medium text-[var(--accent-foreground)] transition-all hover:bg-[var(--accent-hover)] hover:gap-3"
           >
             Browse the marketplace
-            <ArrowRight
+            <FiArrowRight
               size={15}
               className="transition-transform group-hover:translate-x-0.5"
             />
@@ -106,7 +106,7 @@ export const BlyssWishlistPage = () => {
                   aria-label="Remove from wishlist"
                   className="absolute top-3 right-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-[var(--surface-elevated)]/90 text-[var(--accent)] backdrop-blur-md transition-all hover:scale-105 hover:bg-[var(--surface-elevated)]"
                 >
-                  <Heart size={16} fill="currentColor" />
+                  <FiHeart size={16} fill="currentColor" />
                 </button>
               </div>
             </StaggerItem>

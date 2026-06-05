@@ -1,6 +1,6 @@
 'use client'
 
-import { Loader2, Search, X } from 'lucide-react'
+import { FiLoader, FiSearch, FiX } from 'react-icons/fi'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 interface SearchResult {
@@ -107,7 +107,7 @@ export const SearchBar = ({
     <div className={`relative ${className}`} role="search">
       <div className="relative">
         <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-          <Search className="h-5 w-5 text-[#594139] dark:text-gray-400" aria-hidden="true" />
+          <FiSearch className="h-5 w-5 text-[#594139] dark:text-gray-400" aria-hidden="true" />
         </div>
 
         <input
@@ -129,7 +129,7 @@ export const SearchBar = ({
 
         <div className="absolute inset-y-0 right-0 flex items-center pr-3">
           {loading ? (
-            <Loader2 className="h-5 w-5 animate-spin text-[#594139] dark:text-gray-400" aria-label="Searching" />
+            <FiLoader className="h-5 w-5 animate-spin text-[#594139] dark:text-gray-400" aria-label="Searching" />
           ) : query ? (
             <button
               type="button"
@@ -137,7 +137,7 @@ export const SearchBar = ({
               className="text-[#594139] hover:text-[#1b1c1b] dark:text-gray-400 dark:hover:text-white"
               aria-label="Clear search"
             >
-              <X className="h-5 w-5" aria-hidden="true" />
+              <FiX className="h-5 w-5" aria-hidden="true" />
             </button>
           ) : null}
         </div>
@@ -154,7 +154,7 @@ export const SearchBar = ({
         >
           {loading ? (
             <div className="flex items-center justify-center py-8" role="status">
-              <Loader2 className="h-6 w-6 animate-spin text-[#594139] dark:text-gray-400" aria-hidden="true" />
+              <FiLoader className="h-6 w-6 animate-spin text-[#594139] dark:text-gray-400" aria-hidden="true" />
               <span className="sr-only">Loading search results</span>
             </div>
           ) : results.length > 0 ? (

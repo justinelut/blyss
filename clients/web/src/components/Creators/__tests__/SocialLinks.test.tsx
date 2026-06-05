@@ -3,9 +3,9 @@ import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { SocialLinks } from '../SocialLinks'
 
-vi.mock('lucide-react', () => ({
-  Globe: ({ size }: any) => <div data-testid="globe-icon" data-size={size} />,
-  Instagram: ({ size }: any) => (
+vi.mock('react-icons/fi', () => ({
+  FiGlobe: ({ size }: any) => <div data-testid="globe-icon" data-size={size} />,
+  FiInstagram: ({ size }: any) => (
     <div data-testid="instagram-icon" data-size={size} />
   ),
 }))

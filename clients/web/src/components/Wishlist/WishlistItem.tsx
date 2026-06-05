@@ -6,7 +6,7 @@ import { useRemoveFromWishlist } from '@/hooks/queries/wishlist'
 import { useAddToCart } from '@/hooks/queries/cart'
 import { schemas } from '@/lib/api'
 import Button from '@/components/atoms/Button'
-import { ShoppingCart, Trash2 } from 'lucide-react'
+import { FiShoppingCart, FiTrash2 } from 'react-icons/fi'
 import Link from 'next/link'
 import { useState } from 'react'
 
@@ -107,7 +107,7 @@ export const WishlistItem = ({ item, currency }: WishlistItemProps) => {
             loading={isMovingToCart}
             className="w-full gap-2"
           >
-            <ShoppingCart className="h-4 w-4" />
+            <FiShoppingCart className="h-4 w-4" />
             Move to Cart
           </Button>
 
@@ -119,7 +119,7 @@ export const WishlistItem = ({ item, currency }: WishlistItemProps) => {
             loading={isRemoving}
             className="w-full gap-2 text-on-surface-variant hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400"
           >
-            <Trash2 className="h-4 w-4" />
+            <FiTrash2 className="h-4 w-4" />
             Remove
           </Button>
         </div>

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { Organization } from '@polar-sh/sdk'
-import { CheckCircle, Star } from 'lucide-react'
+import { FiCheckCircle, FiStar } from 'react-icons/fi'
 import { FiHeart } from 'react-icons/fi'
 
 interface CreatorCardProps {
@@ -73,9 +73,9 @@ export function CreatorCard({
               {creator.name}
             </h4>
             {isVerified ? (
-              <CheckCircle className="text-secondary" size={18} fill="currentColor" />
+              <FiCheckCircle className="text-secondary" size={18} fill="currentColor" />
             ) : (
-              <Star className="text-outline-variant" size={18} fill="currentColor" />
+              <FiStar className="text-outline-variant" size={18} fill="currentColor" />
             )}
           </div>
 

@@ -3,7 +3,7 @@ import { useRemoveFromCart } from '@/hooks/queries/cart'
 import { schemas } from '@/lib/api'
 import { formatCurrency } from '@/lib/currency'
 import { Button } from '@/components/ui/button'
-import { Trash2 } from 'lucide-react'
+import { FiTrash2 } from 'react-icons/fi'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useState } from 'react'
@@ -132,7 +132,7 @@ export const CartItem = ({ item, currency }: CartItemProps) => {
             className="font-inter text-[var(--color-destructive)] hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950 dark:hover:text-red-300"
             aria-label={`Remove ${item.product.name} from cart`}
           >
-            <Trash2 className="mr-1 h-4 w-4" aria-hidden="true" />
+            <FiTrash2 className="mr-1 h-4 w-4" aria-hidden="true" />
             Remove
           </Button>
         )}

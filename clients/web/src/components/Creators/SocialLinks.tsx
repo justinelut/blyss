@@ -1,7 +1,7 @@
 'use client'
 
 import { schemas } from '@/lib/api'
-import { Globe, Instagram } from 'lucide-react'
+import { FiGlobe, FiInstagram } from 'react-icons/fi'
 import { FaXTwitter } from 'react-icons/fa6'
 
 interface SocialLinksProps {
@@ -17,12 +17,12 @@ export const SocialLinks = ({ links }: SocialLinksProps) => {
     },
     {
       key: 'instagram' as const,
-      icon: Instagram,
-      label: 'Instagram',
+      icon: FiInstagram,
+      label: 'FiInstagram',
     },
     {
       key: 'website' as const,
-      icon: Globe,
+      icon: FiGlobe,
       label: 'Website',
     },
   ]

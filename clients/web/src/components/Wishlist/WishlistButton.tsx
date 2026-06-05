@@ -7,7 +7,7 @@ import {
   useRemoveFromWishlist,
 } from '@/hooks/queries/wishlist'
 import Button from '@/components/atoms/Button'
-import { Heart } from 'lucide-react'
+import { FiHeart } from 'react-icons/fi'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
@@ -71,7 +71,7 @@ export const WishlistButton = ({
       loading={isLoading}
       className="gap-2"
     >
-      <Heart
+      <FiHeart
         className={`h-4 w-4 ${isInWishlist ? 'fill-current' : ''}`}
         aria-hidden="true"
       />

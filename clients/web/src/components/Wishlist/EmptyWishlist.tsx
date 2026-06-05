@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button'
-import { Heart } from 'lucide-react'
+import { FiHeart } from 'react-icons/fi'
 import Link from 'next/link'
 
 export const EmptyWishlist = () => {
@@ -11,7 +11,7 @@ export const EmptyWishlist = () => {
 
       <div className="flex flex-col items-center justify-center rounded-lg bg-surface py-16 dark:bg-[#2a2b2a]">
         <div className="mb-6 rounded-full bg-surface-container-low p-6 dark:bg-on-surface">
-          <Heart className="h-16 w-16 text-on-surface-variant dark:text-gray-400" />
+          <FiHeart className="h-16 w-16 text-on-surface-variant dark:text-gray-400" />
         </div>
         <div className="mb-6 flex flex-col items-center gap-2 text-center">
           <h3 className="font-epilogue text-xl font-semibold tracking-tight text-on-surface dark:text-white">

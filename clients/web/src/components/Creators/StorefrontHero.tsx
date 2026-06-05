@@ -5,7 +5,7 @@ import { useFollowOrganization, useUnfollowOrganization } from '@/hooks/queries/
 import { schemas } from '@/lib/api'
 import Avatar from '@/components/atoms/Avatar'
 import Button from '@/components/atoms/Button'
-import { Calendar, Package, Users } from 'lucide-react'
+import { FiCalendar, FiPackage, FiUsers } from 'react-icons/fi'
 import { useRouter } from 'next/navigation'
 import { SocialLinks } from './SocialLinks'
 
@@ -85,7 +85,7 @@ export const StorefrontHero = ({ creator }: StorefrontHeroProps) => {
                 <div className="flex flex-wrap items-center gap-6 text-sm">
                   {creator.product_count !== undefined && (
                     <div className="text-on-surface-variant flex items-center gap-2">
-                      <Package className="h-4 w-4" />
+                      <FiPackage className="h-4 w-4" />
                       <span>
                         {creator.product_count}{' '}
                         {creator.product_count === 1 ? 'Product' : 'Products'}
@@ -94,7 +94,7 @@ export const StorefrontHero = ({ creator }: StorefrontHeroProps) => {
                   )}
                   {creator.follower_count !== undefined && (
                     <div className="text-on-surface-variant flex items-center gap-2">
-                      <Users className="h-4 w-4" />
+                      <FiUsers className="h-4 w-4" />
                       <span>
                         {creator.follower_count}{' '}
                         {creator.follower_count === 1 ? 'Follower' : 'Followers'}
@@ -102,7 +102,7 @@ export const StorefrontHero = ({ creator }: StorefrontHeroProps) => {
                     </div>
                   )}
                   <div className="text-on-surface-variant flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
+                    <FiCalendar className="h-4 w-4" />
                     <span>Joined {joinedDate}</span>
                   </div>
                 </div>

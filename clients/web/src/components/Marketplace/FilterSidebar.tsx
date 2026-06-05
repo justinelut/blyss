@@ -9,7 +9,7 @@ import {
   SheetContent,
   SheetTrigger,
 } from '@/components/ui/sheet'
-import { Filter } from 'lucide-react'
+import { FiFilter } from 'react-icons/fi'
 import { useState } from 'react'
 
 interface FilterSidebarProps {
@@ -149,7 +149,7 @@ export const FilterSidebar = ({
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
           <SheetTrigger asChild>
             <Button variant="outline" size="sm" className="gap-2" aria-label="Open filters">
-              <Filter className="h-4 w-4" aria-hidden="true" />
+              <FiFilter className="h-4 w-4" aria-hidden="true" />
               Filters
             </Button>
           </SheetTrigger>

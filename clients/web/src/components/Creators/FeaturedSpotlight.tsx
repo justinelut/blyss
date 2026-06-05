@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { Organization } from '@polar-sh/sdk'
-import { ArrowRight } from 'lucide-react'
+import { FiArrowRight } from 'react-icons/fi'
 
 interface FeaturedSpotlightProps {
   creator: Organization
@@ -58,7 +58,7 @@ export function FeaturedSpotlight({ creator }: FeaturedSpotlightProps) {
               className="group/btn flex items-center justify-center gap-2 rounded-full bg-primary px-8 py-4 text-sm font-bold uppercase tracking-widest text-on-primary transition-all duration-300 hover:bg-surface-container-lowest hover:text-primary"
             >
               Visit Gallery
-              <ArrowRight className="text-sm transition-transform group-hover/btn:translate-x-1" size={16} />
+              <FiArrowRight className="text-sm transition-transform group-hover/btn:translate-x-1" size={16} />
             </Link>
           </div>
         </div>

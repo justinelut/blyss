@@ -7,7 +7,7 @@ import {
   useCategoryProducts,
 } from '@/hooks/queries/categories'
 import { cn } from '@/lib/utils'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { FiChevronLeft, FiChevronRight } from 'react-icons/fi'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
@@ -169,7 +169,7 @@ export default function CategoryPage({ params }: CategoryPageProps) {
                     : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-gray-700 dark:hover:bg-gray-800',
                 )}
               >
-                <ChevronLeft className="h-4 w-4" />
+                <FiChevronLeft className="h-4 w-4" />
                 Previous
               </button>
 
@@ -216,7 +216,7 @@ export default function CategoryPage({ params }: CategoryPageProps) {
                 )}
               >
                 Next
-                <ChevronRight className="h-4 w-4" />
+                <FiChevronRight className="h-4 w-4" />
               </button>
             </div>
           )}

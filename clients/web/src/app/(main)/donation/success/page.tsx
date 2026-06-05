@@ -1,5 +1,5 @@
 import Button from '@/components/atoms/Button'
-import { CheckCircle2Icon } from 'lucide-react'
+import { FiCheckCircle } from 'react-icons/fi'
 import Link from 'next/link'
 
 export default function DonationSuccessPage({
@@ -15,7 +15,7 @@ export default function DonationSuccessPage({
     <div className="flex min-h-[60vh] items-center justify-center px-4 py-12">
       <div className="w-full max-w-md text-center">
         <div className="mb-6 flex justify-center">
-          <CheckCircle2Icon className="h-16 w-16 text-green-500" />
+          <FiCheckCircle className="h-16 w-16 text-green-500" />
         </div>
 
         <h1 className="mb-4 text-3xl font-bold text-gray-900 dark:text-white">

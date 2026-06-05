@@ -2,7 +2,7 @@
 
 import { motion, useReducedMotion } from 'motion/react'
 import Link from 'next/link'
-import { ArrowRight, Check } from 'lucide-react'
+import { FiArrowRight, FiCheck } from 'react-icons/fi'
 import { Eyebrow, typography } from '@/design'
 import { cn } from '@/lib/utils'
 
@@ -83,7 +83,7 @@ export const StartLanding = () => {
             className="group inline-flex h-13 items-center justify-center gap-2 rounded-md bg-[var(--accent)] px-7 py-4 font-sans text-[15px] font-medium text-[var(--accent-foreground)] transition-all hover:bg-[var(--accent-hover)] hover:gap-3"
           >
             Create your storefront
-            <ArrowRight
+            <FiArrowRight
               size={16}
               className="transition-transform duration-300 group-hover:translate-x-0.5"
             />
@@ -149,7 +149,7 @@ export const StartLanding = () => {
               transition={{ duration: 0.6, ease, delay: i * 0.1 }}
             >
               <div className="flex h-10 w-10 items-center justify-center rounded-md bg-[var(--accent)]/10">
-                <Check size={20} className="text-[var(--accent)]" strokeWidth={2} />
+                <FiCheck size={20} className="text-[var(--accent)]" strokeWidth={2} />
               </div>
               <h3 className="mt-5 font-display text-[22px] font-semibold leading-[1.2] text-[var(--text-primary)]">
                 {w.title}
@@ -186,7 +186,7 @@ export const StartLanding = () => {
               className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-[#F97316] px-7 font-sans text-[15px] font-medium text-[#0F0E0C] transition-colors hover:bg-[#FFA052]"
             >
               Start selling
-              <ArrowRight size={16} />
+              <FiArrowRight size={16} />
             </Link>
             <Link
               href="/login"
