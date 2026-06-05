@@ -1,3 +1,16 @@
+/* Hallmark · macrostructure: Marquee Hero + Long Document · genre: editorial
+ * theme: blyss-design (light cream + burnt orange #C2410C accent)
+ * sections: Marquee · Editorial letter · Trending · Categories · Creators
+ *           · Subscriptions · Process · Closing dark band
+ * nav: N5 floating-pill (inherited from MarketplaceShell)
+ * footer: Ft5 statement (inherited)
+ * contrast: pass · slop: pass (gates 1, 2, 7, 8, 51–55, 66, 67)
+ *
+ * Reference DNA: Aimé Leon Dore (marquee + editorial cadence) + SSENSE
+ * (editorial-first home, photography carries color). The editorial letter
+ * (NoteFromMakers) sits between hero and product grid — the voice sets the
+ * cadence before the catalog speaks.
+ */
 import { schemas } from '@/lib/api'
 import { JsonLd } from '@/design'
 import { Hero } from '@/components/Marketplace/Hero'
@@ -91,11 +104,14 @@ export default function HomePage({
         showcaseProducts={products.slice(0, 4)}
         showcaseCreators={creators.slice(0, 4)}
       />
+      {/* Long Document cadence (Hallmark macrostructure):
+          editorial letter → product band → category band → creator band →
+          recurring band → process steps → closing dark band. */}
+      <NoteFromMakers />
       {products.length > 0 && <TrendingProducts products={products} />}
       {cats.length > 0 && <BrowseByCraft categories={cats} />}
       {creators.length > 0 && <FeaturedCreators creators={creators} />}
       {subs.length > 0 && <FeaturedSubscriptions subscriptions={subs} />}
-      <NoteFromMakers />
       <HowItWorks />
       <ClosingCtaBand />
     </>
