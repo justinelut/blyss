@@ -60,6 +60,10 @@ class Settings(BaseSettings):
     WORKER_MIN_BACKOFF_MILLISECONDS: int = 2_000
     WORKER_PROMETHEUS_DIR: Path = Path(tempfile.gettempdir()) / "prometheus_multiproc"
 
+    # Runtime settings overlay — Fernet base64-encoded 32-byte key.
+    # Generate: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    RUNTIME_SETTINGS_KEY: str | None = None
+
     # Grafana Cloud Prometheus
     GRAFANA_CLOUD_PROMETHEUS_WRITE_URL: str | None = None
     GRAFANA_CLOUD_PROMETHEUS_WRITE_USERNAME: str | None = None
