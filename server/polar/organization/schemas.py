@@ -327,6 +327,15 @@ class Organization(OrganizationBase):
         )
     )
 
+    tipping_enabled: bool = Field(
+        default=False,
+        description=(
+            "Whether the creator accepts one-off tips / donations. Gates the "
+            "Tip affordance on creator cards, the directory, marketplace and "
+            "search."
+        ),
+    )
+
     feature_settings: OrganizationFeatureSettings | None = Field(
         description="Organization feature settings",
     )

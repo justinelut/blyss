@@ -7,6 +7,8 @@ import { useAddToCart } from '@/hooks/queries/cart'
 import { useIsInWishlist, useAddToWishlist, useRemoveFromWishlist } from '@/hooks/queries/wishlist'
 import { useAuth } from '@/hooks'
 import { DonationModal } from '@/components/Donation/DonationModal'
+import { Modal } from '@/components/Modal'
+import { AuthModal } from '@/components/Auth/AuthModal'
 import {
   ProductImageGallery,
   ProductInfoColumn,
@@ -31,10 +33,11 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
   const router = useRouter()
   const { authenticated } = useAuth()
   const { mutate: addToCart, status: cartStatus } = useAddToCart()
-  const { data: wishlistCheck } = useIsInWishlist(product.id)
+  const { data: wishlistCheck } = useIsInWishlist(product.id, authenticated)
   const { mutate: addWishlist } = useAddToWishlist()
   const { mutate: removeWishlist } = useRemoveFromWishlist()
   const [tipModalOpen, setTipModalOpen] = useState(false)
+  const [authModalOpen, setAuthModalOpen] = useState(false)
 
   const isInWishlist = !!(wishlistCheck as any)?.is_in_wishlist
   const org = (product as any).organization as
@@ -49,6 +52,12 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
   useEffect(() => { recordProductView(product) }, [product])
 
   const handleBuy = () => {
+    // Guests can't have a server-side cart/checkout — show the sign-in modal
+    // instead of firing a request that 401s silently.
+    if (!authenticated) {
+      setAuthModalOpen(true)
+      return
+    }
     if (product.is_recurring) {
       // Subscriptions skip cart, go direct to checkout per §6.5
       router.push(`/checkout?product_id=${product.id}`)
@@ -66,7 +75,7 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
 
   const handleWishlist = () => {
     if (!authenticated) {
-      router.push(`/login?return_to=${encodeURIComponent(`/product/${product.id}`)}`)
+      setAuthModalOpen(true)
       return
     }
     if (isInWishlist) removeWishlist(product.id)
@@ -139,6 +148,20 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
           creatorName={org.name ?? 'this creator'}
         />
       )}
+
+      {/* Sign-in modal — shown when a guest tries to buy or wishlist. After
+          auth they return to this product to complete the action. */}
+      <Modal
+        title="Log In"
+        isShown={authModalOpen}
+        hide={() => setAuthModalOpen(false)}
+        modalContent={
+          <AuthModal
+            returnTo={`/product/${product.id}`}
+            returnParams={{}}
+          />
+        }
+      />
     </div>
   )
 }

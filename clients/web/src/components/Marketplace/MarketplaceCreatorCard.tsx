@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useReducedMotion, motion } from 'motion/react'
+import { FiHeart } from 'react-icons/fi'
 import { schemas } from '@/lib/api'
 import { OptimizedImage } from '@/components/Image/OptimizedImage'
 import { typography } from '@/design'
@@ -14,6 +15,9 @@ interface MarketplaceCreatorCardProps {
   /** Tall card (4:5 aspect) for featured creators on home; compact for grids */
   variant?: 'tall' | 'compact'
   className?: string
+  /** Called when the Tip affordance is clicked. Only rendered when the
+   *  creator has tipping_enabled. Opens the shared DonationModal. */
+  onTip?: (creator: Organization) => void
 }
 
 /** Same tonal placeholder system as MarketplaceProductCard — keeps cards
@@ -51,6 +55,7 @@ export const MarketplaceCreatorCard = ({
   creator,
   variant = 'tall',
   className,
+  onTip,
 }: MarketplaceCreatorCardProps) => {
   const reduce = useReducedMotion()
   const avatar = (creator as any).avatar_url ?? undefined
@@ -61,6 +66,23 @@ export const MarketplaceCreatorCard = ({
   const isSeed = typeof creator.id === 'string' && creator.id.startsWith('seed_')
   const profileHref = isSeed ? '/creators' : `/creators/${slug}`
   const bio = ((creator as any).bio ?? '').slice(0, 80)
+  const showTip = !!onTip && (creator as any).tipping_enabled === true && !isSeed
+
+  const TipButton = showTip ? (
+    <button
+      type="button"
+      aria-label={`Tip ${creator.name}`}
+      data-testid="marketplace-creator-tip"
+      onClick={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        onTip?.(creator)
+      }}
+      className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[var(--surface-elevated)]/90 text-[var(--accent)] shadow-sm backdrop-blur-sm transition-colors hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]"
+    >
+      <FiHeart size={16} />
+    </button>
+  ) : null
 
   if (variant === 'compact') {
     return (
@@ -73,8 +95,9 @@ export const MarketplaceCreatorCard = ({
           initial={false}
           whileHover={reduce ? undefined : { y: -2 }}
           transition={{ duration: reduce ? 0 : 0.2, ease: [0.32, 0.72, 0, 1] }}
-          className="flex flex-col items-start gap-3 rounded-lg p-4 transition-colors hover:bg-[var(--surface-sunken)]"
+          className="relative flex flex-col items-start gap-3 rounded-lg p-4 transition-colors hover:bg-[var(--surface-sunken)]"
         >
+          {showTip && <div className="absolute right-3 top-3 z-10">{TipButton}</div>}
           <div className="relative h-24 w-24 overflow-hidden rounded-full bg-[var(--surface-sunken)]">
             {avatar ? (
               <OptimizedImage
@@ -145,6 +168,7 @@ export const MarketplaceCreatorCard = ({
       >
         {/* Banner image (4:5 aspect) — typographic placeholder when no media */}
         <div className="relative w-full overflow-hidden rounded-md bg-[var(--surface-sunken)]">
+          {showTip && <div className="absolute right-4 top-4 z-10">{TipButton}</div>}
           {bannerSrc ? (
             <>
               <OptimizedImage

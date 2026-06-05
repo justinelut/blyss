@@ -1,9 +1,13 @@
+'use client'
+
 import { useCart } from '@/hooks/queries/cart'
+import { useAuth } from '@/hooks/auth'
 import { ShoppingCart } from 'lucide-react'
 import Link from 'next/link'
 
 export const CartIcon = () => {
-  const { data: cart } = useCart()
+  const { authenticated } = useAuth()
+  const { data: cart } = useCart(authenticated)
   const itemCount = cart?.item_count ?? 0
 
   return (

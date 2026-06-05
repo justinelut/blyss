@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { FiShoppingBag } from 'react-icons/fi'
 import { motion, useReducedMotion, AnimatePresence } from 'motion/react'
 import { useCart } from '@/hooks/queries/cart'
+import { useAuth } from '@/hooks/auth'
 import { CartDrawer } from './CartDrawer'
 import { cn } from '@/lib/utils'
 
@@ -18,7 +19,8 @@ interface CartButtonProps {
 export const CartButton = ({ className }: CartButtonProps) => {
   const [open, setOpen] = useState(false)
   const reduce = useReducedMotion()
-  const { data: cart } = useCart()
+  const { authenticated } = useAuth()
+  const { data: cart } = useCart(authenticated)
 
   const count = (cart as any)?.item_count ?? (cart as any)?.items?.length ?? 0
 

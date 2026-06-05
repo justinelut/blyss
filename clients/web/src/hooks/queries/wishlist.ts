@@ -20,7 +20,7 @@ export const useWishlist = () => {
   })
 }
 
-export const useIsInWishlist = (productId: string) => {
+export const useIsInWishlist = (productId: string, enabled = true) => {
   return useQuery({
     queryKey: ['wishlist', 'check', productId],
     queryFn: async () => {
@@ -35,7 +35,10 @@ export const useIsInWishlist = (productId: string) => {
       return result.data
     },
     retry: defaultRetry,
-    enabled: !!productId,
+    // Only query when we have a product AND the caller says it's allowed
+    // (i.e. the visitor is authenticated). Guests would otherwise get a 401
+    // on every product view, spamming the console + Sentry.
+    enabled: !!productId && enabled,
   })
 }
 

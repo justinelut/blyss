@@ -10,6 +10,7 @@ import {
   SheetClose,
 } from '@/components/ui/sheet'
 import { useCart, useCheckoutCart, useRemoveFromCart } from '@/hooks/queries/cart'
+import { useAuth } from '@/hooks/auth'
 import { CartItemRow } from './CartItemRow'
 import { typography } from '@/design'
 import { cn } from '@/lib/utils'
@@ -32,7 +33,8 @@ const fmtPrice = (cents: number, currency = 'KES') => {
  */
 export const CartDrawer = ({ open, onOpenChange }: CartDrawerProps) => {
   const router = useRouter()
-  const { data: cart } = useCart()
+  const { authenticated } = useAuth()
+  const { data: cart } = useCart(authenticated)
   const { mutate: removeItem, variables: removingId } = useRemoveFromCart()
 
   const items = (cart as any)?.items ?? []

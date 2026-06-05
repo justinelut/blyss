@@ -78,6 +78,18 @@ describe('Donations — inline Paystack-native tipping', () => {
     expect(dir).toMatch(/setTipTarget/)
   })
 
+  test('Marketplace featured creators surface the tip affordance', () => {
+    const card = read('src/components/Marketplace/MarketplaceCreatorCard.tsx')
+    expect(card).toContain('data-testid="marketplace-creator-tip"')
+    expect(card).toMatch(/tipping_enabled/)
+    // Clicking must not navigate the wrapping <Link>.
+    expect(card).toMatch(/e\.preventDefault\(\)/)
+    expect(card).toMatch(/e\.stopPropagation\(\)/)
+
+    const featured = read('src/components/Marketplace/FeaturedCreators.tsx')
+    expect(featured).toContain('<DonationModal')
+  })
+
   test('Product detail exposes "Tip the creator" when accepts_donations', () => {
     const col = read('src/components/ProductDetail/ProductInfoColumn.tsx')
     expect(col).toMatch(/accepts_donations/)

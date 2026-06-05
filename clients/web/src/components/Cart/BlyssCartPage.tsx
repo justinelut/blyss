@@ -8,6 +8,7 @@ import {
   useCheckoutCart,
   useRemoveFromCart,
 } from '@/hooks/queries/cart'
+import { useAuth } from '@/hooks/auth'
 import { CartItemRow } from './CartItemRow'
 import { Skeleton, Eyebrow, typography } from '@/design'
 import { cn } from '@/lib/utils'
@@ -25,7 +26,8 @@ const fmtPrice = (cents: number, currency = 'KES') => {
  */
 export const BlyssCartPage = () => {
   const router = useRouter()
-  const { data: cart, isLoading } = useCart()
+  const { authenticated } = useAuth()
+  const { data: cart, isLoading } = useCart(authenticated)
   const { mutate: removeItem, variables: removingId } = useRemoveFromCart()
   const { mutate: checkoutCart, isPending: isCheckingOut } = useCheckoutCart()
 
@@ -33,6 +35,33 @@ export const BlyssCartPage = () => {
   const subtotal = (cart as any)?.subtotal ?? 0
   const tax = (cart as any)?.tax ?? 0
   const total = (cart as any)?.total ?? 0
+
+  if (!authenticated) {
+    return (
+      <div className="mx-auto max-w-[1280px] px-6 py-16 md:px-16 md:py-24">
+        <h1 className={cn(typography.h2, 'text-[var(--text-primary)]')}>
+          Your cart
+        </h1>
+        <div className="mt-12 max-w-[44ch]">
+          <h2 className={cn(typography.h3, 'text-[var(--text-primary)]')}>
+            Sign in to view your cart.
+          </h2>
+          <p
+            className={cn(typography.body, 'mt-4 text-[var(--text-secondary)]')}
+          >
+            Your cart is tied to your Blyss account. Sign in to add items and
+            check out with M-Pesa or card.
+          </p>
+          <Link
+            href={`/login?return_to=${encodeURIComponent('/cart')}`}
+            className="mt-8 inline-flex h-11 items-center justify-center rounded-md bg-[var(--accent)] px-6 font-sans text-[14px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)]"
+          >
+            Sign in
+          </Link>
+        </div>
+      </div>
+    )
+  }
 
   if (isLoading) {
     return (

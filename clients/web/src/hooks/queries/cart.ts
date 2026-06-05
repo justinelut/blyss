@@ -5,11 +5,14 @@ import { unwrap } from '@/lib/api'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { defaultRetry } from './retry'
 
-export const useCart = () => {
+export const useCart = (enabled = true) => {
   return useQuery({
     queryKey: ['cart'],
     queryFn: () => unwrap(api.GET('/v1/cart')),
     retry: defaultRetry,
+    // Guests have no cart server-side — querying would 401 on every page
+    // (the cart icon is in the global header). Callers pass `authenticated`.
+    enabled,
   })
 }
 
