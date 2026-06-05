@@ -9,7 +9,7 @@ const Header = () => (
         alt="Blyss"
         height="48"
         width="48"
-        src="https://raw.githubusercontent.com/justinelut/blyss/master/clients/web/public/blyss-email-logo.png"
+        src="https://blyss.co.ke/blyss-email-logo.png"
       />
     </div>
   </Section>
