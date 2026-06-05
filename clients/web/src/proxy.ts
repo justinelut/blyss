@@ -4,7 +4,7 @@ import { RequestCookiesAdapter } from 'next/dist/server/web/spec-extension/adapt
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { COOKIE_MAX_AGE, DISTINCT_ID_COOKIE } from './experiments/constants'
-import { COUNTRY_COOKIE } from './lib/geo'
+import { COUNTRY_COOKIE, SUPPORTED_COUNTRIES, isSupportedCountry } from './lib/geo'
 import { resolveGeo } from './lib/geo/middleware'
 import { createServerSideAPI } from './utils/client'
 
@@ -79,6 +79,65 @@ const requiresAuthentication = (request: NextRequest): boolean => {
   )
 }
 
+/**
+ * Internal paths that bypass locale prefixing — dashboard, auth, host-app
+ * rewrites, API, Next.js internals, well-known files. Public paths (every-
+ * thing else) get the /{country}/ prefix.
+ *
+ * Examples:
+ *   /dashboard/...        → internal (creator dashboard)
+ *   /finance, /settings   → internal
+ *   /onboarding           → internal
+ *   /oauth2/...           → internal (auth flow)
+ *   /api/..., /_next/...  → internal
+ *   /_buy/..., /_my/...   → host rewrite targets (buy./my.)
+ *   /checkout/...         → host rewrite target (buy.)
+ *   /portal/...           → host rewrite target inside /_my
+ *   /favicon.ico, /robots.txt, /sitemap.xml → static
+ *
+ * Anything else is "public" and lives under /{country}/.
+ */
+const INTERNAL_PATH_PATTERNS: RegExp[] = [
+  /^\/dashboard(\/|$)/,
+  /^\/finance(\/|$)/,
+  /^\/settings(\/|$)/,
+  /^\/onboarding(\/|$)/,
+  /^\/oauth2(\/|$)/,
+  /^\/api(\/|$)/,
+  /^\/_next(\/|$)/,
+  /^\/_buy(\/|$)/,
+  /^\/_my(\/|$)/,
+  /^\/checkout(\/|$)/,
+  /^\/ingest(\/|$)/,
+  /^\/monitoring(\/|$)/,
+  /^\/docs(\/|$)/,
+  /^\/_mintlify(\/|$)/,
+  /^\/mintlify-assets(\/|$)/,
+  /^\/[^/]+\/portal(\/|$)/, // /:org/portal
+  /^\/favicon\./,
+  /^\/robots\.txt$/,
+  /^\/sitemap\.xml$/,
+  /^\/manifest\.webmanifest$/,
+  /\.[a-z0-9]{2,5}$/i, // any file with extension (og-image.png, etc.)
+]
+
+const isInternalPath = (pathname: string): boolean =>
+  INTERNAL_PATH_PATTERNS.some((re) => re.test(pathname))
+
+/**
+ * Strip a leading /{country}/ segment if it's a supported country, otherwise
+ * return null. Returns the country (lowercased) and the rest of the path.
+ */
+const extractLocaleSegment = (
+  pathname: string,
+): { country: string; rest: string } | null => {
+  const match = pathname.match(/^\/([a-z]{2})(\/.*)?$/i)
+  if (!match) return null
+  const country = match[1].toLowerCase()
+  if (!isSupportedCountry(country)) return null
+  return { country, rest: match[2] || '/' }
+}
+
 const getLoginResponse = (request: NextRequest): NextResponse => {
   const redirectURL = request.nextUrl.clone()
   redirectURL.pathname = '/login'
@@ -112,6 +171,58 @@ export async function proxy(request: NextRequest) {
   // cdn.blyss.co.ke should never hit Next.js
   if (host.startsWith('cdn.') || /^cdn\.blyss\./i.test(host)) {
     return new NextResponse('Not Found', { status: 404 })
+  }
+
+  // --- Locale URL handling ---
+  // Public marketplace routes are addressed as /{country}/<path> so the URL
+  // reflects the visitor's region (us, ke, gb, ng, ...). Internal paths
+  // (dashboard, auth, host-rewrite targets, API) bypass this entirely.
+  //
+  // Two cases:
+  //  a) Pathname has a supported country prefix → REWRITE internally to the
+  //     un-prefixed path so the existing route tree still matches; record the
+  //     country/currency in headers.
+  //  b) Pathname is a public path with NO country prefix → 308-REDIRECT to
+  //     /{detected-country}/<path> so the URL bar reflects the region.
+  //
+  // The country segment is the URL's source of truth for currency; cookie
+  // remains the manual-override fallback.
+  if (!isInternalPath(pathname) && !isForwardedRoute(request)) {
+    const segment = extractLocaleSegment(pathname)
+    if (segment) {
+      // (a) Locale-prefixed: rewrite to un-prefixed for Next.js routing.
+      const url = request.nextUrl.clone()
+      url.pathname = segment.rest
+      const requestHeaders = new Headers(request.headers)
+      // The URL takes priority over cookie + cf-ipcountry for currency.
+      requestHeaders.set('x-blyss-country', segment.country)
+      const countryToCurrency: Record<string, string> = {
+        ke: 'kes', us: 'usd', gb: 'gbp', ng: 'ngn', gh: 'ghs', za: 'zar',
+        de: 'eur', fr: 'eur', es: 'eur', it: 'eur', nl: 'eur', ie: 'eur',
+        pt: 'eur',
+      }
+      requestHeaders.set('x-blyss-currency', countryToCurrency[segment.country] ?? 'usd')
+      requestHeaders.set('x-blyss-pathname', segment.rest)
+      const response = NextResponse.rewrite(url, {
+        request: { headers: requestHeaders },
+      })
+      // Keep the cookie aligned with the URL choice so server-component
+      // fetches off the request path (e.g. RSC) see the right country.
+      response.cookies.set(COUNTRY_COOKIE, segment.country, {
+        maxAge: COOKIE_MAX_AGE,
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+      })
+      return response
+    } else {
+      // (b) Un-prefixed public path → redirect to /{detected-country}/<path>.
+      const geo = resolveGeo(request)
+      const url = request.nextUrl.clone()
+      url.pathname = `/${geo.country}${pathname === '/' ? '' : pathname}`
+      return NextResponse.redirect(url, { status: 308 })
+    }
   }
 
   // --- Original Polar proxy logic below ---
