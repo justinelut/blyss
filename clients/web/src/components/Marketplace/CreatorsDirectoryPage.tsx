@@ -1,14 +1,12 @@
 'use client'
 
 import { useMemo } from 'react'
-import { parseAsStringEnum, useQueryState } from 'nuqs'
+import { useQueryState } from 'nuqs'
 import { schemas } from '@/lib/api'
-import {
-  CreatorsHero,
-  type CreatorCategory,
-} from '@/components/Marketplace/CreatorsHero'
+import { CreatorsHero } from '@/components/Marketplace/CreatorsHero'
 import { FeaturedCreatorSpotlight } from '@/components/Marketplace/FeaturedCreatorSpotlight'
 import { CreatorsGrid } from '@/components/Marketplace/CreatorsGrid'
+import { useCreatorCategories } from '@/hooks/queries/creators'
 import { Eyebrow, typography } from '@/design'
 import { cn } from '@/lib/utils'
 
@@ -29,40 +27,36 @@ interface CreatorsDirectoryPageProps {
  * - Featured spotlight (1 large editorial card) — full bleed below hero
  * - Creator grid (12 cards 3×4)
  *
- * Filter is client-side only for v1 — backend doesn't yet expose creator
- * category filtering. We narrow the rendered list based on a heuristic:
- * a creator's category match comes from their primary product category.
- * If the data doesn't expose this, the filter is a no-op (but the strip
- * still renders for the UX).
+ * Categories are backoffice-managed and fetched from /v1/creator-categories.
+ * Filtering matches a creator's real `creator_category` slug. The "All" tab is
+ * a UI-only value handled here.
  */
 export function CreatorsDirectoryPage({
   initialCreators,
   featuredSpotlight,
   spotlightTopProduct,
 }: CreatorsDirectoryPageProps) {
-  const [active, setActive] = useQueryState<CreatorCategory>(
-    'craft',
-    parseAsStringEnum<CreatorCategory>([
-      'all',
-      'designers',
-      'writers',
-      'musicians',
-      'educators',
-      'photographers',
-      'developers',
-    ]).withDefault('all'),
-  )
+  const { data: categories = [] } = useCreatorCategories()
 
-  // Filter creators by category heuristic — match against creator's primary
-  // category if exposed in data. Falls back to "all" results when data is
-  // missing the field.
+  // URL state — a free-form category slug or "all". Validated against the
+  // fetched category list (falls back to "all" for unknown values).
+  const [activeRaw, setActive] = useQueryState('craft', {
+    defaultValue: 'all',
+  })
+  const active =
+    activeRaw === 'all' || categories.some((c) => c.slug === activeRaw)
+      ? activeRaw
+      : 'all'
+
   const filtered = useMemo(() => {
     if (active === 'all') return initialCreators
-    return initialCreators.filter((c: any) => {
-      const primary = (c.primary_category ?? c.bio ?? '').toLowerCase()
-      return primary.includes(active.replace(/s$/, ''))
-    })
+    return initialCreators.filter(
+      (c: any) => (c.creator_category ?? null) === active,
+    )
   }, [initialCreators, active])
+
+  const activeLabel =
+    categories.find((c) => c.slug === active)?.name ?? active
 
   return (
     <div className="bg-[var(--background)] text-[var(--text-primary)]">
@@ -70,6 +64,7 @@ export function CreatorsDirectoryPage({
         active={active}
         onChange={(next) => setActive(next)}
         total={filtered.length}
+        categories={categories}
       />
 
       {/* Featured spotlight — only when one is provided + we're on All */}
@@ -87,7 +82,7 @@ export function CreatorsDirectoryPage({
             <>
               {active !== 'all' && (
                 <div className="mb-8">
-                  <Eyebrow>{active}</Eyebrow>
+                  <Eyebrow>{activeLabel}</Eyebrow>
                   <h2
                     className={cn(
                       typography.h2,

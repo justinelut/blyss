@@ -34,6 +34,7 @@ if TYPE_CHECKING:
     from .organization_agent_review import OrganizationAgentReview
     from .organization_review import OrganizationReview
     from .organization_review_feedback import OrganizationReviewFeedback
+    from .creator_category import CreatorCategory
     from .product import Product
 
 
@@ -366,6 +367,28 @@ class Organization(RateLimitGroupMixin, RecordModel):
         default=False,
         server_default="false",
     )
+
+    # Optional creator category (FK to the backoffice-managed
+    # creator_categories table). Selected in onboarding / settings and used as
+    # the filter facet on the /creators directory. Null until the creator
+    # picks one.
+    creator_category_id: Mapped[UUID | None] = mapped_column(
+        Uuid,
+        ForeignKey("creator_categories.id", ondelete="SET NULL"),
+        nullable=True,
+        default=None,
+    )
+
+    @declared_attr
+    def creator_category(cls) -> Mapped["CreatorCategory | None"]:
+        return relationship("CreatorCategory", lazy="joined")
+
+    @property
+    def creator_category_slug(self) -> str | None:
+        """The category slug, or None — convenient for serialization without
+        loading the full related object in API consumers."""
+        cat = self.creator_category
+        return cat.slug if cat is not None else None
 
     #
     # Currency settings

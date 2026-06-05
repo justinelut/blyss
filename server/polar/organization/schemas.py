@@ -6,6 +6,7 @@ from urllib.parse import urlparse
 from pydantic import (
     UUID4,
     AfterValidator,
+    AliasChoices,
     BeforeValidator,
     Field,
     StringConstraints,
@@ -336,6 +337,17 @@ class Organization(OrganizationBase):
         ),
     )
 
+    creator_category: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "creator_category_slug", "creator_category"
+        ),
+        description=(
+            "The creator's category slug (e.g. 'designers'), or null if unset. "
+            "Used as the filter facet on the /creators directory."
+        ),
+    )
+
     feature_settings: OrganizationFeatureSettings | None = Field(
         description="Organization feature settings",
     )
@@ -581,3 +593,6 @@ class ProfileUpdateSchema(Schema):
 
     bio: Annotated[str | None, StringConstraints(max_length=500)] = None
     social_links: SocialLinks | None = None
+    # Category slug (e.g. "designers"). Pass "" or null to leave unchanged;
+    # the service resolves the slug to a CreatorCategory row.
+    creator_category: Annotated[str | None, StringConstraints(max_length=100)] = None

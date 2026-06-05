@@ -845,6 +845,7 @@ async def update_organization_profile(
         social_links=profile.social_links.model_dump(exclude_none=True)
         if profile.social_links
         else None,
+        creator_category=profile.creator_category,
     )
 
     return organization

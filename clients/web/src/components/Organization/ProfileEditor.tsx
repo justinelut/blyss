@@ -1,6 +1,6 @@
 'use client'
 
-import { useUpdateProfile } from '@/hooks/queries/creators'
+import { useCreatorCategories, useUpdateProfile } from '@/hooks/queries/creators'
 import { setValidationErrors } from '@/utils/api/errors'
 import { isValidationError, schemas } from '@/lib/api'
 import Button from '@/components/atoms/Button'
@@ -24,6 +24,7 @@ interface ProfileFormData {
   twitter: string
   instagram: string
   website: string
+  creator_category: string
 }
 
 const URL_PATTERNS = {
@@ -34,6 +35,7 @@ const URL_PATTERNS = {
 
 export const ProfileEditor = ({ organization }: ProfileEditorProps) => {
   const updateProfile = useUpdateProfile(organization.id)
+  const { data: categories = [] } = useCreatorCategories()
 
   const form = useForm<ProfileFormData>({
     defaultValues: {
@@ -41,6 +43,8 @@ export const ProfileEditor = ({ organization }: ProfileEditorProps) => {
       twitter: organization.social_links?.twitter || '',
       instagram: organization.social_links?.instagram || '',
       website: organization.social_links?.website || '',
+      creator_category:
+        (organization as any).creator_category || '',
     },
   })
 
@@ -82,7 +86,9 @@ export const ProfileEditor = ({ organization }: ProfileEditorProps) => {
     const { data: result, error } = await updateProfile.mutateAsync({
       bio: data.bio || undefined,
       social_links: Object.keys(socialLinks).length > 0 ? socialLinks : undefined,
-    })
+      // Always send the category (empty string clears it server-side).
+      creator_category: data.creator_category ?? '',
+    } as schemas['ProfileUpdateSchema'])
 
     if (error) {
       const errorMessage = Array.isArray(error.detail)
@@ -141,6 +147,33 @@ export const ProfileEditor = ({ organization }: ProfileEditorProps) => {
                   {field.value?.length || 0}/500 characters
                 </span>
               </div>
+            </div>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="creator_category"
+          render={({ field }) => (
+            <div>
+              <label className="mb-2 block text-sm font-medium">Category</label>
+              <FormControl>
+                <select
+                  {...field}
+                  className="w-full rounded-md bg-[var(--surface-sunken)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:ring-1 focus:ring-[var(--border-strong)]"
+                >
+                  <option value="">No category</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.slug}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </FormControl>
+              <p className="mt-1 text-xs text-gray-500">
+                Shown as a filter on the public creators directory.
+              </p>
+              <FormMessage />
             </div>
           )}
         />

@@ -14,14 +14,16 @@ export type CreatorCategory =
   | 'developers'
 
 interface CreatorsHeroProps {
-  /** Currently selected creator-category filter */
-  active: CreatorCategory
-  onChange: (next: CreatorCategory) => void
+  /** Currently selected creator-category filter (slug or "all") */
+  active: string
+  onChange: (next: string) => void
   /** Optional total creator count for the metadata line */
   total?: number
+  /** Backoffice-managed categories; "All" is prepended automatically. */
+  categories?: { slug: string; name: string }[]
 }
 
-const filters: { id: CreatorCategory; label: string }[] = [
+const FALLBACK_FILTERS: { id: string; label: string }[] = [
   { id: 'all', label: 'All' },
   { id: 'designers', label: 'Designers' },
   { id: 'writers', label: 'Writers' },
@@ -36,9 +38,25 @@ const filters: { id: CreatorCategory; label: string }[] = [
  *
  * Per plan §6.3: eyebrow "MEET THE MAKERS", headline "Kenya's creative class,
  * online.", filter strip below. The strip is horizontally scrollable on
- * mobile with the active pill in --accent fill.
+ * mobile with the active pill in --accent fill. Categories come from the
+ * backoffice-managed list; falls back to the built-in set while loading.
  */
-export const CreatorsHero = ({ active, onChange, total }: CreatorsHeroProps) => {
+export const CreatorsHero = ({
+  active,
+  onChange,
+  total,
+  categories,
+}: CreatorsHeroProps) => {
+  const filters = useMemo(() => {
+    if (categories && categories.length > 0) {
+      return [
+        { id: 'all', label: 'All' },
+        ...categories.map((c) => ({ id: c.slug, label: c.name })),
+      ]
+    }
+    return FALLBACK_FILTERS
+  }, [categories])
+
   const totalLabel = useMemo(() => {
     if (total == null) return null
     return `${total.toLocaleString()} ${total === 1 ? 'creator' : 'creators'}`

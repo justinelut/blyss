@@ -5,6 +5,8 @@ import { useAuth, useOAuthAccounts, useOnboardingTracking } from '@/hooks'
 import { inferSignupMethod } from '@/hooks/onboarding'
 import { usePostHog } from '@/hooks/posthog'
 import { useCreateOrganization } from '@/hooks/queries'
+import { useCreatorCategories } from '@/hooks/queries/creators'
+import { api } from '@/utils/client'
 import { setValidationErrors } from '@/utils/api/errors'
 import { CONFIG } from '@/utils/config'
 import { schemas } from '@/lib/api'
@@ -81,6 +83,8 @@ export const OrganizationStep = ({
     formState: { errors },
   } = form
   const createOrganization = useCreateOrganization()
+  const { data: creatorCategories = [] } = useCreatorCategories()
+  const [selectedCategory, setSelectedCategory] = useState('')
   const [editedSlug, setEditedSlug] = useState(false)
 
   const router = useRouter()
@@ -150,6 +154,18 @@ export const OrganizationStep = ({
       expire: 0,
     })
     setUserOrganizations((orgs) => [...orgs, organization])
+
+    // Persist the chosen creator category (best-effort; non-blocking).
+    if (selectedCategory) {
+      try {
+        await (api as any).PATCH('/v1/organizations/{id}/profile', {
+          params: { path: { id: organization.id } },
+          body: { creator_category: selectedCategory },
+        })
+      } catch {
+        /* category can also be set later in settings */
+      }
+    }
 
     if (!hasExistingOrg) {
       trackStepCompleted('org', organization.id)
@@ -272,6 +288,36 @@ export const OrganizationStep = ({
                     )}
                   />
                 </FadeUp>
+
+                {creatorCategories.length > 0 && (
+                  <FadeUp className="dark:bg-polar-900 flex flex-col gap-y-4 rounded-3xl border-gray-200 bg-white p-6 md:border dark:border-none">
+                    <div className="flex flex-col gap-y-2">
+                      <label
+                        htmlFor="creator_category"
+                        className="text-sm font-medium"
+                      >
+                        Category
+                      </label>
+                      <select
+                        id="creator_category"
+                        value={selectedCategory}
+                        onChange={(e) => setSelectedCategory(e.target.value)}
+                        className="w-full rounded-md bg-[var(--surface-sunken)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:ring-1 focus:ring-[var(--border-strong)]"
+                      >
+                        <option value="">Choose a category (optional)</option>
+                        {creatorCategories.map((c) => (
+                          <option key={c.id} value={c.slug}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-sm text-[var(--text-muted)]">
+                        Helps buyers discover you on the creators directory. You
+                        can change this later in settings.
+                      </p>
+                    </div>
+                  </FadeUp>
+                )}
 
                 <FadeUp className="dark:bg-polar-900 flex flex-col gap-y-4 rounded-3xl border-gray-200 bg-white p-6 md:border dark:border-none">
                   <SupportedUseCases />

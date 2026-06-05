@@ -1349,6 +1349,7 @@ class OrganizationService:
         organization_id: UUID,
         bio: str | None,
         social_links: dict | None,
+        creator_category: str | None = None,
     ) -> Organization:
         """Update creator profile information.
 
@@ -1358,6 +1359,9 @@ class OrganizationService:
             organization_id: ID of organization to update
             bio: Optional bio text
             social_links: Optional social links dictionary
+            creator_category: Optional category slug. Resolved to a
+                CreatorCategory row; an empty string clears the category;
+                None leaves it unchanged.
 
         Returns:
             Updated organization
@@ -1377,6 +1381,22 @@ class OrganizationService:
 
         if not readable_org:
             raise NotPermitted()
+
+        # Resolve the category slug to a row id (if provided).
+        if creator_category is not None:
+            from polar.creator_category.repository import (
+                CreatorCategoryRepository,
+            )
+
+            slug = creator_category.strip().lower()
+            if slug == "":
+                organization.creator_category_id = None
+            else:
+                cc_repo = CreatorCategoryRepository.from_session(session)
+                category = await cc_repo.get_by_slug(slug)
+                if category is not None:
+                    organization.creator_category_id = category.id
+            session.add(organization)
 
         updated_org = await repository.update_profile(
             organization, bio=bio, social_links=social_links, flush=True

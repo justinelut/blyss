@@ -8,6 +8,7 @@ from polar.observability.http_metrics import exclude_app_from_metrics
 from .accounts.endpoints import router as accounts_router
 from .benefits.endpoints import router as benefits_router
 from .customers.endpoints import router as customers_router
+from .creator_categories.endpoints import router as creator_categories_router
 from .dependencies import get_admin
 from .exception_handlers import add_backoffice_exception_handlers
 from .external_events.endpoints import router as external_events_router
@@ -68,7 +69,9 @@ app.include_router(payouts_router, prefix="/payouts")
 app.include_router(impersonation_router, prefix="/impersonation")
 app.include_router(webhooks_router, prefix="/webhooks")
 app.include_router(runtime_settings_router, prefix="/runtime-settings")
-
+app.include_router(
+    creator_categories_router, prefix="/creator-categories"
+)
 
 @app.get("/", name="index")
 async def index(request: Request) -> None:

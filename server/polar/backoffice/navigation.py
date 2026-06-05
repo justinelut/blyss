@@ -42,4 +42,9 @@ NAVIGATION = [
         "runtime_settings:list",
         active_route_name_prefix="runtime_settings:",
     ),
+    navigation.NavigationItem(
+        "Creator categories",
+        "creator_categories:list",
+        active_route_name_prefix="creator_categories:",
+    ),
 ]

@@ -23,6 +23,7 @@ from polar.customer_session.endpoints import router as customer_session_router
 from polar.discount.endpoints import router as discount_router
 from polar.dispute.endpoints import router as dispute_router
 from polar.donation.endpoints import router as donation_router
+from polar.creator_category.endpoints import router as creator_category_router
 from polar.email_update.endpoints import router as email_update_router
 
 # from polar.event.endpoints import router as event_router
@@ -165,6 +166,8 @@ router.include_router(custom_field_router)
 router.include_router(discount_router)
 # /donation
 router.include_router(donation_router)
+# /creator-categories
+router.include_router(creator_category_router)
 # /customers
 router.include_router(customer_router)
 # /members

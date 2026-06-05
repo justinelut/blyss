@@ -61,6 +61,33 @@ export const useCreator = (
     initialData: options?.initialData,
   })
 
+export interface CreatorCategoryOption {
+  id: string
+  slug: string
+  name: string
+  display_order: number
+}
+
+/**
+ * Backoffice-managed creator categories, surfaced as the /creators directory
+ * filter and the onboarding / settings picker. Callers prepend the UI-only
+ * "All" tab.
+ */
+export const useCreatorCategories = (options?: {
+  initialData?: CreatorCategoryOption[]
+}) =>
+  useQuery({
+    queryKey: ['creator-categories'],
+    queryFn: () =>
+      unwrap((api as any).GET('/v1/creator-categories/')) as Promise<
+        CreatorCategoryOption[]
+      >,
+    retry: defaultRetry,
+    staleTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    initialData: options?.initialData,
+  })
+
 export const useUpdateProfile = (organizationId: string) =>
   useMutation({
     mutationFn: (body: schemas['ProfileUpdateSchema']) => {
