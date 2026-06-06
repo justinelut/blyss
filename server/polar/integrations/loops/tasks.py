@@ -49,13 +49,45 @@ async def loops_sync_all_contacts() -> None:
     Paginates all non-deleted users and enqueues one `loops.update_contact`
     job per user, so each contact upsert is independent + retryable and this
     coordinator task stays fast. Triggered from the backoffice
-    (/backoffice/loops "Sync all users to Loops") so the operator can send
+    (/backoffice/loops "Enqueue full sync") so the operator can send
     marketing emails to the existing base.
+
+    Writes progress to Redis key `loops:last_sync` at start + end so the
+    backoffice page can show 'Last sync: queued, N users enqueued, Xs'.
     """
+    import json
+    import time
+
     from sqlalchemy import select
 
     from polar.models import User
+    from polar.redis import create_redis
     from polar.worker import enqueue_job
+
+    redis = create_redis("worker")
+    started = time.time()
+    started_ts = time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())
+
+    # Mark queue-mode start so the backoffice page reflects 'enqueueing now'.
+    try:
+        await redis.set(
+            "loops:last_sync",
+            json.dumps(
+                {
+                    "mode": "queued (enqueueing)",
+                    "at": started_ts,
+                    "ok": 0,
+                    "failed": 0,
+                    "total": 0,
+                    "duration_s": 0,
+                    "first_error": "",
+                }
+            ),
+            ex=7 * 24 * 3600,
+        )
+    except Exception:
+        # Don't fail the task on Redis hiccup — just log + continue.
+        log.warning("loops.sync_all.redis_status_write_failed")
 
     batch_size = 500
     offset = 0
@@ -89,6 +121,36 @@ async def loops_sync_all_contacts() -> None:
                 )
                 total += 1
 
+            log.info(
+                "loops.sync_all.batch",
+                batch=offset // batch_size,
+                batch_size=len(users),
+                total_so_far=total,
+            )
+
             offset += batch_size
 
-    log.info("loops.sync_all_contacts.enqueued", total=total)
+    duration = time.time() - started
+    log.info("loops.sync_all_contacts.enqueued", total=total, duration_s=duration)
+
+    # Mark coordinator-finished so the backoffice page shows 'enqueued N
+    # in Xs — workers are draining'. Per-user job results are independent
+    # and tracked via dramatiq's normal retry/error path.
+    try:
+        await redis.set(
+            "loops:last_sync",
+            json.dumps(
+                {
+                    "mode": "queued (enqueued)",
+                    "at": time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime()),
+                    "ok": 0,
+                    "failed": 0,
+                    "total": total,
+                    "duration_s": duration,
+                    "first_error": "",
+                }
+            ),
+            ex=7 * 24 * 3600,
+        )
+    except Exception:
+        log.warning("loops.sync_all.redis_status_finish_failed")
