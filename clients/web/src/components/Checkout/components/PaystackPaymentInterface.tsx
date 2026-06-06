@@ -26,8 +26,9 @@ import {
   type PaymentChannelProvider,
 } from '@/hooks/queries/checkoutPaystack'
 import { cn } from '@/lib/utils'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useFormContext } from 'react-hook-form'
+import { FiPhone, FiRefreshCw, FiX } from 'react-icons/fi'
 import {
   AirtelMoneyLogo,
   AirteltigoLogo,
@@ -311,6 +312,7 @@ const PaystackPaymentInterface = ({
       <ActiveChargePanel
         charge={chargeResponse}
         status={statusQ.data ?? null}
+        channel={selected?.id ?? 'mobile_money'}
         submitting={submitStep.isPending}
         onSubmitStep={async (action, value) => {
           const resp = await submitStep.mutateAsync({ action, value })
@@ -757,12 +759,14 @@ const EFTFieldsBlock = ({
 const ActiveChargePanel = ({
   charge,
   status,
+  channel,
   submitting,
   onSubmitStep,
   onRetry,
 }: {
   charge: ChargeResponse
   status: { status: string; next_action?: { type: string; display_text: string } | null } | null
+  channel: PaymentChannel['id']
   submitting: boolean
   onSubmitStep: (
     action: 'otp' | 'pin' | 'phone' | 'birthday',
@@ -771,21 +775,46 @@ const ActiveChargePanel = ({
   onRetry: () => void
 }) => {
   const [stepValue, setStepValue] = useState('')
+  const [elapsedMs, setElapsedMs] = useState(0)
+  const startedAtRef = useRef<number>(Date.now())
   const failed = status?.status === 'failed'
   const action = status?.next_action ?? null
 
+  // Tick the progress bar every second so the buyer sees forward motion
+  // while the polling effect (in the parent) hits /payment-status. Stops
+  // when the charge moves to a final state.
+  useEffect(() => {
+    if (failed || action || status?.status === 'success') return
+    const id = setInterval(() => {
+      setElapsedMs(Date.now() - startedAtRef.current)
+    }, 1000)
+    return () => clearInterval(id)
+  }, [failed, action, status?.status])
+
   if (failed) {
     return (
-      <div className="space-y-3 rounded-xl border border-red-300 bg-red-50 p-4 text-sm text-red-900">
-        <div>
-          <span className="font-medium">Payment failed.</span>{' '}
-          {charge.display_text || 'Please try a different method.'}
+      <div className="flex flex-col items-center gap-5 rounded-md border border-[var(--border)] bg-[var(--surface)] px-6 py-10 text-center">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--background)]">
+          <FiX
+            size={24}
+            className="text-[var(--text-secondary)]"
+            aria-hidden="true"
+          />
+        </div>
+        <div className="space-y-2">
+          <h3 className="font-display text-[20px] font-semibold leading-[1.15] tracking-[-0.02em] text-[var(--text-primary)]">
+            That didn&rsquo;t go through.
+          </h3>
+          <p className="mx-auto max-w-[44ch] font-sans text-[14px] leading-[1.55] text-[var(--text-secondary)]">
+            {charge.display_text || 'The prompt was declined or cancelled.'}
+          </p>
         </div>
         <button
           type="button"
           onClick={onRetry}
-          className="cursor-pointer rounded-md border border-red-300 bg-white px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2"
+          className="inline-flex h-10 items-center gap-2 rounded-md bg-[var(--accent)] px-5 font-sans text-[14px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)]"
         >
+          <FiRefreshCw size={14} aria-hidden="true" />
           Choose another method
         </button>
       </div>
@@ -841,10 +870,66 @@ const ActiveChargePanel = ({
   }
 
   // Pending — render channel-specific waiting states.
+  // Mobile money + the success state get the Trimly-style centered
+  // waiting panel (phone-frame icon, burnt-orange progress bar, reference
+  // metadata, "We'll auto-confirm once you approve" copy). Other channels
+  // (bank_transfer / ussd / qr) keep their data-driven panels because the
+  // buyer needs to read the account number / USSD string / QR image to
+  // act on the payment.
+  const isMobileMoney = channel === 'mobile_money'
+  // Safaricom's STK push window is ~180 s. We progress to 95 % over that
+  // window so the bar never reads 100 % while the user is still acting,
+  // which would feel like a stalled UI.
+  const STK_WINDOW_MS = 180_000
+  const progressPct = Math.min(
+    95,
+    Math.round((elapsedMs / STK_WINDOW_MS) * 100),
+  )
+
+  if (isMobileMoney) {
+    return (
+      <div
+        role="status"
+        className="flex flex-col items-center gap-6 rounded-md border border-[var(--border)] bg-[var(--surface)] px-6 py-12 text-center"
+      >
+        <div className="relative flex h-16 w-16 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--background)]">
+          <FiPhone
+            size={26}
+            className="text-[var(--accent)]"
+            aria-hidden="true"
+          />
+        </div>
+        <div className="space-y-2">
+          <h3 className="font-display text-[22px] font-semibold leading-[1.15] tracking-[-0.02em] text-[var(--text-primary)]">
+            Check your phone for the M-Pesa prompt.
+          </h3>
+          <p className="mx-auto max-w-[44ch] font-sans text-[14px] leading-[1.55] text-[var(--text-secondary)]">
+            {charge.display_text ||
+              'Approve the STK push to complete payment.'}
+          </p>
+        </div>
+        <div
+          className="h-1.5 w-full max-w-[360px] overflow-hidden rounded-full bg-[var(--surface-sunken)]"
+          aria-hidden="true"
+        >
+          <div
+            className="h-full rounded-full bg-[var(--accent)] transition-[width] duration-300 ease-linear"
+            style={{ width: `${progressPct}%` }}
+          />
+        </div>
+        <p className="font-sans text-[12px] text-[var(--text-muted)]">
+          {charge.reference ? <>Reference {charge.reference} &middot; </> : null}
+          We&rsquo;ll auto-confirm once you approve
+        </p>
+      </div>
+    )
+  }
+
+  // Other channels — bank transfer details, USSD code, QR image.
   return (
-    <div className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] p-4 text-sm">
+    <div className="space-y-3 rounded-md border border-[var(--border)] bg-[var(--surface-elevated)] p-4 text-sm">
       <p className="font-medium text-[var(--text-primary)]">
-        {charge.display_text || 'Waiting for payment…'}
+        {charge.display_text || 'Waiting for payment\u2026'}
       </p>
 
       {charge.account_number && (
@@ -852,7 +937,7 @@ const ActiveChargePanel = ({
           <div className="flex justify-between">
             <dt>Bank</dt>
             <dd className="font-medium text-[var(--text-primary)]">
-              {charge.bank_name || '—'}
+              {charge.bank_name || '\u2014'}
             </dd>
           </div>
           <div className="flex justify-between">
@@ -873,7 +958,7 @@ const ActiveChargePanel = ({
       )}
 
       {charge.ussd_code && (
-        <p className="rounded-md border border-[var(--border)] bg-white p-3 text-center font-mono text-base text-[var(--text-primary)]">
+        <p className="rounded-md border border-[var(--border)] bg-[var(--background)] p-3 text-center font-mono text-base text-[var(--text-primary)]">
           {charge.ussd_code}
         </p>
       )}
@@ -882,7 +967,7 @@ const ActiveChargePanel = ({
         <img
           src={charge.qr_image_url}
           alt="QR code"
-          className="mx-auto h-48 w-48 rounded-md border border-[var(--border)] bg-white"
+          className="mx-auto h-48 w-48 rounded-md border border-[var(--border)] bg-[var(--background)]"
         />
       )}
     </div>
