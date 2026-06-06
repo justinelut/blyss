@@ -14,7 +14,7 @@
  * the hero so the marquee imagery breathes.
  */
 
-import { FiSearch, FiUser, FiMenu, FiX } from 'react-icons/fi'
+import { FiSearch, FiUser, FiMenu, FiX, FiHeart } from 'react-icons/fi'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
@@ -111,6 +111,19 @@ export const MarketplaceHeader = ({ alwaysBlurred = false }: MarketplaceHeaderPr
               <FiSearch size={20} />
             </Link>
             <CountrySwitcher className="hidden sm:block" />
+            {/* Wishlist quick-link — Etsy pattern. Shown only when signed
+                in (the wishlist is per-user; clicking when anonymous would
+                bounce to /login anyway). Hidden on phones to keep the
+                header compact alongside cart + country switcher. */}
+            {authenticated && (
+              <Link
+                href="/wishlist"
+                aria-label="Wishlist"
+                className="hidden h-10 w-10 items-center justify-center rounded-md text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-sunken)] hover:text-[var(--text-primary)] md:flex"
+              >
+                <FiHeart size={18} aria-hidden="true" />
+              </Link>
+            )}
             <CartButton />
             {authenticated && currentUser ? (
               <Link

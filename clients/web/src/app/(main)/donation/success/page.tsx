@@ -1,6 +1,17 @@
-import Button from '@/components/atoms/Button'
-import { FiCheckCircle } from 'react-icons/fi'
+/* Hallmark · component: donation/success · genre: editorial
+ * theme: blyss-design (light cream + burnt orange #C2410C accent)
+ * sections: Eyebrow · Headline · Tipping summary · Reference · Actions
+ * contrast: pass · slop: pass (gates 1, 2, 7, 8)
+ *
+ * Lands here from Paystack post-charge redirect carrying ?reference=...&
+ * amount=...&organization=.... Same palette + voice as the rest of the
+ * marketplace; replaces the Polar-era gray-on-gray page.
+ */
+
 import Link from 'next/link'
+import { FiCheckCircle, FiArrowRight } from 'react-icons/fi'
+import { Eyebrow, typography } from '@/design'
+import { cn } from '@/lib/utils'
 
 export default function DonationSuccessPage({
   searchParams,
@@ -9,68 +20,84 @@ export default function DonationSuccessPage({
 }) {
   const reference = searchParams.reference as string | undefined
   const amount = searchParams.amount as string | undefined
-  const organizationName = searchParams.organization as string | undefined
+  const organizationSlug = searchParams.organization as string | undefined
+
+  // amount is sent as minor units (cents). Format as KSh major units.
+  const amountKes = amount ? (parseInt(amount, 10) || 0) / 100 : null
+  const amountLabel =
+    amountKes !== null && amountKes > 0
+      ? `KSh ${amountKes.toLocaleString('en-KE')}`
+      : null
 
   return (
-    <div className="flex min-h-[60vh] items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md text-center">
-        <div className="mb-6 flex justify-center">
-          <FiCheckCircle className="h-16 w-16 text-green-500" />
-        </div>
+    <main className="mx-auto flex min-h-[60vh] max-w-[720px] flex-col items-start gap-8 px-6 py-20 md:px-16 md:py-32">
+      <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-foreground)]">
+        <FiCheckCircle size={24} aria-hidden="true" />
+      </span>
 
-        <h1 className="mb-4 text-3xl font-bold text-gray-900 dark:text-white">
-          Thank You for Your Donation!
+      <div>
+        <Eyebrow accent>Thank you</Eyebrow>
+        <h1
+          className={cn(
+            'mt-4 max-w-[24ch] font-display text-[clamp(32px,4.5vw,56px)] font-semibold tracking-[-0.02em] leading-[1.04] text-[var(--text-primary)]',
+          )}
+          style={{ overflowWrap: 'anywhere', minWidth: 0 }}
+        >
+          Your tip is on its way
+          {organizationSlug ? ' to the creator.' : '.'}
         </h1>
-
-        <p className="mb-6 text-gray-600 dark:text-gray-400">
-          Your generous support means a lot
-          {organizationName && ` to ${organizationName}`}.
+        <p
+          className={cn(
+            typography.body,
+            'mt-5 max-w-[56ch] text-[var(--text-secondary)]',
+          )}
+        >
+          A receipt is on its way to your email. The creator receives the full
+          amount minus payment processor fees on the next payout cycle.
         </p>
-
-        {amount && (
-          <div className="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-900">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Donation Amount
-            </p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">
-              KES {(parseInt(amount) / 100).toFixed(2)}
-            </p>
-          </div>
-        )}
-
-        {reference && (
-          <div className="mb-6">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Transaction Reference
-            </p>
-            <p className="font-mono text-sm text-gray-900 dark:text-white">
-              {reference}
-            </p>
-          </div>
-        )}
-
-        <div className="space-y-3">
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            A confirmation email with your donation receipt has been sent to
-            your email address.
-          </p>
-
-          <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
-            <Link href="/">
-              <Button variant="default" className="w-full sm:w-auto">
-                Return to Homepage
-              </Button>
-            </Link>
-            {organizationName && (
-              <Link href={`/${organizationName}`}>
-                <Button variant="outline" className="w-full sm:w-auto">
-                  Visit Creator Storefront
-                </Button>
-              </Link>
-            )}
-          </div>
-        </div>
       </div>
-    </div>
+
+      {/* Tabular receipt summary */}
+      {(amountLabel || reference) && (
+        <dl className="flex w-full max-w-[480px] flex-col gap-3 border-y border-[var(--border)] py-6">
+          {amountLabel && (
+            <div className="flex items-baseline justify-between gap-4">
+              <dt className="font-sans text-[11px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
+                Amount
+              </dt>
+              <dd className="font-display text-[24px] font-semibold tabular-nums text-[var(--text-primary)]">
+                {amountLabel}
+              </dd>
+            </div>
+          )}
+          {reference && (
+            <div className="flex items-baseline justify-between gap-4">
+              <dt className="font-sans text-[11px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
+                Reference
+              </dt>
+              <dd className="break-all font-mono text-[12px] text-[var(--text-secondary)]">
+                {reference}
+              </dd>
+            </div>
+          )}
+        </dl>
+      )}
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5">
+        <Link
+          href={organizationSlug ? `/creators/${organizationSlug}` : '/'}
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-[var(--accent)] px-6 font-sans text-[14px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)]"
+        >
+          {organizationSlug ? 'Back to the creator' : 'Back to the marketplace'}
+          <FiArrowRight size={14} aria-hidden="true" />
+        </Link>
+        <Link
+          href="/marketplace"
+          className="font-sans text-[14px] text-[var(--text-secondary)] underline-offset-4 transition-colors hover:text-[var(--accent)] hover:underline"
+        >
+          Or, browse the marketplace
+        </Link>
+      </div>
+    </main>
   )
 }
