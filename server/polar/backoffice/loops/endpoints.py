@@ -69,7 +69,7 @@ async def index(
                 ):
                     text("Sync all users to Loops")
                 with button(
-                    variant="ghost",
+                    ghost=True,
                     hx_post=str(request.url_for("loops:test")),
                     disabled=not has_key,
                 ):
