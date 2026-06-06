@@ -249,20 +249,26 @@ export function BrowsePage({
 
           {/* Right column */}
           <div className="flex min-w-0 flex-col gap-6">
-            {/* Search row */}
-            <div className="flex items-center gap-3">
-              <BrowseSearchBar
-                value={filters.search ?? ''}
-                onChange={(v) =>
-                  setFilters({ search: v || null, page: 1 })
-                }
-              />
-              {/* Mobile filters trigger */}
-              <BrowseMobileFiltersTrigger
-                onClick={() => setMobileOpen(true)}
-                activeCount={activeCount}
-                className="lg:hidden"
-              />
+            {/* Search row — sticky on the right column, blurred backdrop, so
+                the search + mobile-filters trigger are always one tap away as
+                buyers scroll the grid (Etsy-style behaviour). Sits below the
+                marketplace header (h-20 = 80px) + the hero band; we keep a
+                small offset so the sticky band doesn't overlap on mobile. */}
+            <div className="sticky top-20 z-20 -mx-6 bg-[var(--background)]/90 px-6 py-3 backdrop-blur-xl md:-mx-16 md:px-16 lg:-mx-0 lg:px-0 lg:bg-transparent lg:py-0 lg:backdrop-blur-0">
+              <div className="flex items-center gap-3">
+                <BrowseSearchBar
+                  value={filters.search ?? ''}
+                  onChange={(v) =>
+                    setFilters({ search: v || null, page: 1 })
+                  }
+                />
+                {/* Mobile filters trigger */}
+                <BrowseMobileFiltersTrigger
+                  onClick={() => setMobileOpen(true)}
+                  activeCount={activeCount}
+                  className="lg:hidden"
+                />
+              </div>
             </div>
 
             {/* Active filter chips */}

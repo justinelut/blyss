@@ -22,6 +22,7 @@ import {
 } from '@/hooks/queries/cart'
 import { useAuth } from '@/hooks/auth'
 import { CartItemRow } from './CartItemRow'
+import { CategoryNavigation } from '@/components/Category/CategoryNavigation'
 import { Skeleton, Eyebrow, typography } from '@/design'
 import { cn } from '@/lib/utils'
 
@@ -103,21 +104,35 @@ export const BlyssCartPage = () => {
         <h1 className={cn(typography.h2, 'text-[var(--text-primary)]')}>
           Your cart
         </h1>
-        <div className="mt-12 max-w-[44ch]">
-          <h2 className={cn(typography.h3, 'text-[var(--text-primary)]')}>
-            Nothing here yet.
-          </h2>
-          <p
-            className={cn(typography.body, 'mt-4 text-[var(--text-secondary)]')}
-          >
-            Browse the marketplace and find something worth your while.
-          </p>
-          <Link
-            href="/marketplace"
-            className="mt-8 inline-flex h-11 items-center justify-center rounded-md bg-[var(--accent)] px-6 font-sans text-[14px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)]"
-          >
-            Browse
-          </Link>
+        <div className="mt-12 grid grid-cols-1 gap-12 lg:grid-cols-[1.2fr_1fr] lg:gap-20">
+          <div className="max-w-[52ch]">
+            <h2 className={cn(typography.h3, 'text-[var(--text-primary)]')}>
+              Nothing in your cart yet.
+            </h2>
+            <p
+              className={cn(typography.body, 'mt-4 text-[var(--text-secondary)]')}
+            >
+              Save the things you love. We'll keep them here so you can come
+              back when you're ready to check out.
+            </p>
+            <Link
+              href="/marketplace"
+              className="mt-8 inline-flex h-11 items-center justify-center rounded-md bg-[var(--accent)] px-6 font-sans text-[14px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)]"
+            >
+              Browse the marketplace
+            </Link>
+          </div>
+          {/* Etsy-style continue-exploring panel — typographic category list,
+              hairline rules between rows. Uses CategoryNavigation under the
+              hood (already palette-clean, locale-aware). */}
+          <aside className="border-t border-[var(--border)] pt-8 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
+            <p className="font-sans text-[11px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
+              Continue exploring
+            </p>
+            <div className="mt-5">
+              <CategoryNavigation variant="vertical" />
+            </div>
+          </aside>
         </div>
       </div>
     )
