@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { FiHeart, FiShare2 } from 'react-icons/fi'
+import { FiHeart, FiShare2, FiStar } from 'react-icons/fi'
 import { schemas } from '@/lib/api'
 import { OptimizedImage } from '@/components/Image/OptimizedImage'
 import { typography } from '@/design'
@@ -110,6 +110,39 @@ export const ProductInfoColumn = ({
       >
         {product.name}
       </h1>
+
+      {/* Compact review summary — buyer-conversion signal in the buy box.
+          Only rendered when the product has at least one review. Per
+          blyss-design: numerals + single accent star, never a 5-star row. */}
+      {(() => {
+        const summary = (product as any).review_summary as
+          | { average_rating: number; total_reviews: number }
+          | null
+          | undefined
+        if (!summary || summary.total_reviews <= 0) return null
+        return (
+          <p className="flex items-center gap-1.5 font-sans text-[14px] text-[var(--text-secondary)]">
+            <FiStar
+              size={14}
+              className="fill-[var(--accent)] text-[var(--accent)]"
+              aria-hidden="true"
+            />
+            <span className="font-medium tabular-nums text-[var(--text-primary)]">
+              {summary.average_rating.toFixed(1)}
+            </span>
+            <span className="text-[var(--text-muted)]">
+              ·{' '}
+              <a
+                href="#reviews"
+                className="underline-offset-4 transition-colors hover:text-[var(--accent)] hover:underline"
+              >
+                {summary.total_reviews}{' '}
+                {summary.total_reviews === 1 ? 'review' : 'reviews'}
+              </a>
+            </span>
+          </p>
+        )
+      })()}
 
       {/* Price */}
       <p className="font-display text-[clamp(24px,3vw,32px)] font-semibold leading-none text-[var(--text-primary)] [font-variant-numeric:tabular-nums]">
