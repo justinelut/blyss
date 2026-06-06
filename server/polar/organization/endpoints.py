@@ -8,6 +8,7 @@ from sqlalchemy.orm import joinedload
 
 from polar.account.schemas import Account as AccountSchema
 from polar.account.service import account as account_service
+from polar.auth.dependencies import WebUserOrAnonymous
 from polar.auth.models import is_anonymous, is_user
 from polar.auth.scope import Scope
 from polar.config import settings
@@ -185,6 +186,7 @@ async def list_creators(
 )
 async def get_creator(
     slug: str,
+    auth_subject: WebUserOrAnonymous,
     currency: str | None = Query(
         None,
         description=(
@@ -237,10 +239,31 @@ async def get_creator(
     # (suspended / pending / closed at Paystack) buyers can't be charged,
     # so we hide their products from the public storefront until payouts
     # are reactivated. The creator profile stays visible — just no
-    # purchasable products. The creator's own dashboard still shows the
-    # full catalogue with an activation banner.
+    # purchasable products.
+    #
+    # EXCEPTION: the owning creator (or any user in the org) sees their
+    # own products even when subaccount is inactive — they need to be
+    # able to test/preview their own work. Storefront 'public' view is
+    # what buyers see; the creator's dashboard product list shows the
+    # full catalogue with an activation banner regardless.
     if getattr(organization, "subaccount_status", None) != "active":
-        visible_products = []
+        viewer_owns_org = False
+        if auth_subject and is_user(auth_subject):
+            from sqlalchemy import select
+            from polar.models.user_organization import UserOrganization
+
+            user_id = auth_subject.subject.id
+            owner_check = await session.execute(
+                select(UserOrganization.user_id).where(
+                    UserOrganization.user_id == user_id,
+                    UserOrganization.organization_id == organization.id,
+                    UserOrganization.is_deleted.is_(False),
+                )
+            )
+            viewer_owns_org = owner_check.first() is not None
+
+        if not viewer_owns_org:
+            visible_products = []
 
     # Batch-fetch aggregate ratings for all visible products in ONE query so
     # the storefront cards can show "4.8 · 32 reviews" without an N+1.

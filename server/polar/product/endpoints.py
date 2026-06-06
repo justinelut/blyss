@@ -478,13 +478,34 @@ async def get_product_by_slug(
     # Active-subaccount gate. A buyer landing on a product whose creator's
     # subaccount is not 'active' would hit an 'inactive_subaccount' error
     # at checkout — terrible UX. 404 hides the product from public surfaces
-    # until the creator reactivates payouts. The creator still sees the
-    # product in their dashboard with an explanatory banner.
+    # until the creator reactivates payouts.
+    #
+    # EXCEPTION: the owning creator can always preview their own product,
+    # even when their subaccount is inactive. Otherwise they'd publish a
+    # product, hit 404 on their own PDP, and think the platform is
+    # broken. Same goes for any user who's a member of the owning org.
     if (
         product.organization is not None
         and getattr(product.organization, "subaccount_status", None) != "active"
     ):
-        raise ResourceNotFound()
+        from polar.auth.models import is_user
+        from polar.models.user_organization import UserOrganization
+        from sqlalchemy import select
+
+        viewer_owns_org = False
+        if auth_subject and is_user(auth_subject):
+            user_id = auth_subject.subject.id
+            owner_check = await session.execute(
+                select(UserOrganization.user_id).where(
+                    UserOrganization.user_id == user_id,
+                    UserOrganization.organization_id == product.organization_id,
+                    UserOrganization.is_deleted.is_(False),
+                )
+            )
+            viewer_owns_org = owner_check.first() is not None
+
+        if not viewer_owns_org:
+            raise ResourceNotFound()
 
     # Hard currency gate (no conversion): if the visitor's currency was passed
     # and the creator didn't price this product in it, treat it as
