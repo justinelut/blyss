@@ -1,5 +1,16 @@
 'use client'
 
+/* Hallmark · macrostructure: Manifesto · genre: editorial
+ * theme: blyss-design (light cream + burnt orange #C2410C accent)
+ * sections: Position statement · Three editorial points · Single CTA
+ * nav: N9 (inherited) · footer: Ft1 (inherited)
+ * contrast: pass · slop: pass (gates 1, 2, 7, 8, 36, 56, 67)
+ *
+ * Reference DNA: brand-voice page — Aimé Leon Dore "About" + manifesto
+ * patterns. NOT a feature grid, NOT a stat-led page. The brief positions
+ * Blyss to the Kenyan creator considering selling.
+ */
+
 import { motion, useReducedMotion } from 'motion/react'
 import Link from 'next/link'
 import { FiArrowRight, FiCheck } from 'react-icons/fi'

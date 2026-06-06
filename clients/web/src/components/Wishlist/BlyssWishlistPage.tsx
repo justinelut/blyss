@@ -1,5 +1,17 @@
 'use client'
 
+/* Hallmark · macrostructure: Portfolio Grid · genre: editorial
+ * theme: blyss-design (light cream + burnt orange #C2410C accent)
+ * sections: Page head · 4:5 product card grid · Empty state ·
+ *           Move-to-cart inline action
+ * nav: N9 (inherited) · footer: Ft1 (inherited)
+ * contrast: pass · slop: pass (gates 1, 2, 7, 8, 36, 51–55, 67)
+ *
+ * Wishlist is a personal portfolio of saved work — Bandcamp's "follow + save
+ * for later" cadence. Cards are the same MarketplaceProductCard the rest of
+ * the marketplace uses.
+ */
+
 import Link from 'next/link'
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react'
 import { FiHeart, FiArrowRight } from 'react-icons/fi'

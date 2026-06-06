@@ -1,5 +1,17 @@
 'use client'
 
+/* Hallmark · macrostructure: Tabular Spec Sheet · genre: editorial
+ * theme: blyss-design (light cream + burnt orange #C2410C accent)
+ * sections: Cart head · Item rows (line items) · Sticky summary panel ·
+ *           Checkout CTA · Auth-gate empty state
+ * nav: N9 (inherited) · footer: Ft1 (inherited)
+ * contrast: pass · slop: pass (gates 1, 2, 7, 8, 36, 51–55, 67)
+ *
+ * Reference DNA: ALD product page line items + SSENSE bag — tabular numerals,
+ * hairline rules between rows, sticky right-column summary, full-width
+ * checkout CTA.
+ */
+
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react'
@@ -15,9 +27,12 @@ import { cn } from '@/lib/utils'
 
 const fmtPrice = (cents: number, currency = 'KES') => {
   const major = cents / 100
+  // Unambiguous currency labels: KES → "KSh", USD → "US$" (not bare "$"),
+  // others ISO-prefixed. Keeps parity with MarketplaceProductCard +
+  // ProductInfoColumn so the label discipline is consistent.
   if (currency === 'KES') return `KSh ${major.toLocaleString('en-KE')}`
-  if (currency === 'USD') return `$${major.toLocaleString('en-US')}`
-  return `${major.toLocaleString()} ${currency}`
+  if (currency === 'USD') return `US$ ${major.toLocaleString('en-US')}`
+  return `${currency} ${major.toLocaleString()}`
 }
 
 /**
