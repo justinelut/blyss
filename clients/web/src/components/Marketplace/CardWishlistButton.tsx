@@ -18,6 +18,7 @@ import { FiHeart } from 'react-icons/fi'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/auth'
 import { useAddToWishlist } from '@/hooks/queries/wishlist'
+import { useToast } from '@/components/Toast/use-toast'
 import { cn } from '@/lib/utils'
 
 interface CardWishlistButtonProps {
@@ -32,6 +33,7 @@ export function CardWishlistButton({
   const router = useRouter()
   const { authenticated } = useAuth()
   const { mutate: addToWishlist, isPending } = useAddToWishlist()
+  const { toast } = useToast()
   const [savedLocal, setSavedLocal] = useState(false)
 
   const handleClick = (e: React.MouseEvent) => {
@@ -46,7 +48,22 @@ export function CardWishlistButton({
       return
     }
     addToWishlist(productId, {
-      onSuccess: () => setSavedLocal(true),
+      onSuccess: () => {
+        setSavedLocal(true)
+        toast({
+          title: 'Saved to wishlist',
+          description: 'Tap the heart in the header to view your saved items.',
+          duration: 2500,
+        })
+      },
+      onError: () => {
+        toast({
+          title: 'Could not save right now',
+          description: 'Try again in a moment, or open the product to retry.',
+          variant: 'error',
+          duration: 3500,
+        })
+      },
     })
   }
 
