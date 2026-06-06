@@ -18,6 +18,9 @@ interface MarketplaceProductCardProps {
   href?: string
   /** Hide the creator line (used on creator storefront pages) */
   hideCreator?: boolean
+  /** Hide the hover-to-save heart pill (e.g. on the wishlist page where
+   *  the parent already renders its own remove-from-wishlist control). */
+  hideWishlistButton?: boolean
   className?: string
 }
 
@@ -80,6 +83,7 @@ export const MarketplaceProductCard = ({
   product,
   href,
   hideCreator,
+  hideWishlistButton,
   className,
 }: MarketplaceProductCardProps) => {
   const reduce = useReducedMotion()
@@ -105,8 +109,9 @@ export const MarketplaceProductCard = ({
       <div className="relative w-full overflow-hidden rounded-md bg-[var(--surface-sunken)]">
         {/* Etsy-style quick-save: small heart at top-right, hover-revealed on
             desktop, always visible on mobile. Skipped on seed products
-            (id starts with "seed_") which have no real PDP. */}
-        {!isSeed && (
+            (id starts with "seed_") which have no real PDP, and when the
+            parent owns its own wishlist control (e.g. the wishlist page). */}
+        {!isSeed && !hideWishlistButton && (
           <CardWishlistButton productId={product.id} />
         )}
         <motion.div

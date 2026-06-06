@@ -66,6 +66,14 @@ export const MarketplaceCreatorCard = ({
   const isSeed = typeof creator.id === 'string' && creator.id.startsWith('seed_')
   const profileHref = isSeed ? '/creators' : `/creators/${slug}`
   const bio = ((creator as any).bio ?? '').slice(0, 80)
+  // Etsy-style 'shop since YYYY' stamp. Created_at is ISO; pull the year.
+  // Skipped for seed data and when the field is missing.
+  const createdAt = (creator as any).created_at as string | undefined
+  const joinYear = (() => {
+    if (!createdAt || isSeed) return null
+    const y = new Date(createdAt).getUTCFullYear()
+    return Number.isFinite(y) && y > 1970 ? String(y) : null
+  })()
   const showTip = !!onTip && (creator as any).tipping_enabled === true && !isSeed
 
   const TipButton = showTip ? (
@@ -142,6 +150,11 @@ export const MarketplaceCreatorCard = ({
                 )}
               >
                 {bio}
+              </p>
+            )}
+            {joinYear && (
+              <p className="mt-2 font-sans text-[11px] uppercase tracking-[0.14em] tabular-nums text-[var(--text-muted)]">
+                On Blyss since {joinYear}
               </p>
             )}
           </div>
@@ -243,6 +256,11 @@ export const MarketplaceCreatorCard = ({
           {bio && (
             <p className={cn(typography.small, 'line-clamp-2 text-[var(--text-muted)]')}>
               {bio}
+            </p>
+          )}
+          {joinYear && (
+            <p className="mt-1 font-sans text-[11px] uppercase tracking-[0.14em] tabular-nums text-[var(--text-muted)]">
+              On Blyss since {joinYear}
             </p>
           )}
         </div>

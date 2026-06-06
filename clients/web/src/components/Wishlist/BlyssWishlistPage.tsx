@@ -14,8 +14,10 @@
 
 import Link from 'next/link'
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react'
-import { FiHeart, FiArrowRight } from 'react-icons/fi'
+import { FiHeart, FiArrowRight, FiShoppingCart } from 'react-icons/fi'
 import { useWishlist, useRemoveFromWishlist } from '@/hooks/queries/wishlist'
+import { useAddToCart } from '@/hooks/queries/cart'
+import { useToast } from '@/components/Toast/use-toast'
 import { MarketplaceProductCard } from '@/components/Marketplace/MarketplaceProductCard'
 import { Skeleton, Eyebrow, typography, StaggerList, StaggerItem } from '@/design'
 import { cn } from '@/lib/utils'
@@ -26,6 +28,9 @@ import { cn } from '@/lib/utils'
 export const BlyssWishlistPage = () => {
   const { data: wishlist, isLoading } = useWishlist()
   const { mutate: removeItem } = useRemoveFromWishlist()
+  const { mutate: addToCart, variables: addingProductId, isPending: isAdding } =
+    useAddToCart()
+  const { toast } = useToast()
   const reduce = useReducedMotion()
   const ease = [0.32, 0.72, 0, 1] as const
 
@@ -111,15 +116,65 @@ export const BlyssWishlistPage = () => {
           {items.map((item: any) => (
             <StaggerItem key={item.id}>
               <div className="group relative">
-                <MarketplaceProductCard product={item.product} />
-                <button
-                  type="button"
-                  onClick={() => removeItem(item.product.id)}
-                  aria-label="Remove from wishlist"
-                  className="absolute top-3 right-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-[var(--surface-elevated)]/90 text-[var(--accent)] backdrop-blur-md transition-all hover:scale-105 hover:bg-[var(--surface-elevated)]"
-                >
-                  <FiHeart size={16} fill="currentColor" />
-                </button>
+                <MarketplaceProductCard
+                  product={item.product}
+                  hideWishlistButton
+                />
+                {/* Quick actions overlay — Etsy 'move to cart' / 'remove'.
+                    Each button stops propagation so the wrapping <Link>
+                    doesn't navigate away when buyers tap them. */}
+                <div className="absolute top-3 right-3 z-10 flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      addToCart(
+                        { productId: item.product.id, quantity: 1 },
+                        {
+                          onSuccess: () => {
+                            toast({
+                              title: 'Added to cart',
+                              description:
+                                'Tap the cart in the header to check out.',
+                              duration: 2500,
+                            })
+                          },
+                          onError: () => {
+                            toast({
+                              title: 'Could not add to cart',
+                              description:
+                                'Try again in a moment, or open the product to retry.',
+                              variant: 'error',
+                              duration: 3500,
+                            })
+                          },
+                        },
+                      )
+                    }}
+                    disabled={
+                      addingProductId &&
+                      (addingProductId as any).productId === item.product.id &&
+                      isAdding
+                    }
+                    aria-label="Add to cart"
+                    className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-foreground)] backdrop-blur-md transition-all hover:scale-105 hover:bg-[var(--accent-hover)] disabled:opacity-60"
+                  >
+                    <FiShoppingCart size={15} aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      removeItem(item.product.id)
+                    }}
+                    aria-label="Remove from wishlist"
+                    className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--surface-elevated)]/90 text-[var(--accent)] backdrop-blur-md transition-all hover:scale-105 hover:bg-[var(--surface-elevated)]"
+                  >
+                    <FiHeart size={16} fill="currentColor" aria-hidden="true" />
+                  </button>
+                </div>
               </div>
             </StaggerItem>
           ))}
