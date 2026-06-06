@@ -18,9 +18,9 @@ import { schemas } from '@/lib/api'
 import { useAddToCart } from '@/hooks/queries/cart'
 import { useIsInWishlist, useAddToWishlist, useRemoveFromWishlist } from '@/hooks/queries/wishlist'
 import { useAuth } from '@/hooks'
-import { DonationModal } from '@/components/Donation/DonationModal'
 import { Modal } from '@/components/Modal'
 import { AuthModal } from '@/components/Auth/AuthModal'
+import { useCurrencyControls } from '@/components/Marketplace/CurrencyProvider'
 import {
   ProductImageGallery,
   ProductInfoColumn,
@@ -50,13 +50,12 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
   const { data: wishlistCheck } = useIsInWishlist(product.id, authenticated)
   const { mutate: addWishlist } = useAddToWishlist()
   const { mutate: removeWishlist } = useRemoveFromWishlist()
-  const [tipModalOpen, setTipModalOpen] = useState(false)
-  const [authModalOpen, setAuthModalOpen] = useState(false)
-
   const isInWishlist = !!(wishlistCheck as any)?.is_in_wishlist
   const org = (product as any).organization as
     | { name?: string; slug?: string; avatar_url?: string | null; bio?: string | null }
     | undefined
+  const { country } = useCurrencyControls()
+  const [authModalOpen, setAuthModalOpen] = useState(false)
 
   const images = (product.medias ?? [])
     .filter((m) => m.public_url)
@@ -118,7 +117,7 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
             onShare={handleShare}
             isInWishlist={isInWishlist}
             isBuyLoading={cartStatus === 'pending'}
-            onTip={org?.slug ? () => setTipModalOpen(true) : undefined}
+            onTip={org?.slug ? () => router.push(`/${country}/donation/${org.slug}`) : undefined}
           />
 
           {org && (
@@ -145,15 +144,6 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
         <RelatedProducts productId={product.id} />
         <RecentlyViewed currentId={product.id} />
       </div>
-
-      {org?.slug && (
-        <DonationModal
-          isOpen={tipModalOpen}
-          onClose={() => setTipModalOpen(false)}
-          creatorSlug={org.slug}
-          creatorName={org.name ?? 'this creator'}
-        />
-      )}
 
       <Modal
         title="Log In"

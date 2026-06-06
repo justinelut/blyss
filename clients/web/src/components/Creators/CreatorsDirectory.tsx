@@ -7,7 +7,8 @@ import { FeaturedSpotlight } from './FeaturedSpotlight'
 import { FilterTabs } from './FilterTabs'
 import { CreatorsGrid } from './CreatorsGrid'
 import { LoadMoreButton } from './LoadMoreButton'
-import { DonationModal } from '@/components/Donation/DonationModal'
+import { useRouter } from 'next/navigation'
+import { useCurrencyControls } from '@/components/Marketplace/CurrencyProvider'
 
 interface CreatorsDirectoryProps {
   initialCreators: Organization[]
@@ -24,7 +25,8 @@ export function CreatorsDirectory({ initialCreators }: CreatorsDirectoryProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [activeFilter, setActiveFilter] = useState('all')
   const [displayCount, setDisplayCount] = useState(6)
-  const [tipTarget, setTipTarget] = useState<Organization | null>(null)
+  const router = useRouter()
+  const { country } = useCurrencyControls()
 
   // Get featured creator (first one with is_featured flag or just the first one)
   const featuredCreator = useMemo(() => {
@@ -88,21 +90,15 @@ export function CreatorsDirectory({ initialCreators }: CreatorsDirectoryProps) {
 
           <CreatorsGrid
             creators={displayedCreators}
-            onTip={(creator) => setTipTarget(creator)}
+            onTip={(creator) => {
+              if (creator?.slug) router.push(`/${country}/donation/${creator.slug}`)
+            }}
           />
 
           {/* Load More Button */}
           {hasMore && <LoadMoreButton onClick={handleLoadMore} />}
         </section>
       </main>
-
-      {/* Shared donation modal — a single instance reused by every card. */}
-      <DonationModal
-        isOpen={!!tipTarget}
-        onClose={() => setTipTarget(null)}
-        creatorSlug={tipTarget?.slug ?? ''}
-        creatorName={tipTarget?.name ?? 'this creator'}
-      />
     </div>
   )
 }

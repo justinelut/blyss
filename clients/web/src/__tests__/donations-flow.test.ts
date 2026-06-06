@@ -3,56 +3,83 @@ import { readFileSync } from 'fs'
 import { join } from 'path'
 
 /**
- * Inline Paystack-native tipping gate.
+ * Donations as a dedicated page — Paystack-native inline charge.
  *
- * Locks the donation surface behaviours so they can't silently regress to the
- * old hosted-redirect flow:
+ * The previous flow opened an inline DonationModal everywhere a tip CTA
+ * existed. Per user feedback, donations are now a full surface
+ * (`/donation/[slug]`) so they're shareable, locale-aware, and not stuck
+ * inside an overlay. This gate locks the new behaviour:
  *
- *   1. The creator storefront's Tip CTA opens the inline DonationModal — it
- *      does NOT navigate away to a /donation route (which 404'd).
- *   2. The DonationModal renders the inline channel selector
+ *   1. Tip CTAs navigate to /donation/[slug] (locale-prefixed) — they do NOT
+ *      open a modal.
+ *   2. The donation page reuses the inline channel selector
  *      (DonationPaymentInterface) and never redirects to a Paystack
  *      authorization_url.
- *   3. The CreatorCard surfaces a Tip affordance when tipEnabled is true.
- *   4. The donation success state lives INSIDE the modal (auto-close), not on
- *      a separate hosted page.
+ *   3. The CreatorCard / MarketplaceCreatorCard tip affordances still surface
+ *      when tipping_enabled is true; clicking them invokes the page nav
+ *      handler from the parent (no inline navigation; no modal).
+ *   4. The donation success state lives on the page itself (auto-redirect to
+ *      the creator), not on a separate hosted Paystack page.
  */
 
 const read = (rel: string) => readFileSync(join(process.cwd(), rel), 'utf8')
 
-describe('Donations — inline Paystack-native tipping', () => {
-  test('StorefrontHero Tip CTA opens the modal (no /donation navigation)', () => {
+describe('Donations — dedicated /donation/[slug] page', () => {
+  test('Donation page exists and renders DonationPageClient', () => {
+    const page = read('src/app/(main)/donation/[slug]/page.tsx')
+    expect(page).toContain("DonationPageClient")
+    expect(page).toContain("'/v1/organizations/creators/{slug}'")
+  })
+
+  test('DonationPageClient drives the inline channel selector, not a redirect', () => {
+    const client = read(
+      'src/app/(main)/donation/[slug]/DonationPageClient.tsx',
+    )
+    expect(client).toContain('<DonationPaymentInterface')
+    expect(client).not.toMatch(/window\.location\.href\s*=\s*`?https?:/)
+    expect(client).not.toMatch(/authorization_url/)
+    expect(client).not.toMatch(/payment_url/)
+  })
+
+  test('CreatorStorefront Tip CTA navigates to /donation/[slug]', () => {
     const page = read(
       'src/components/CreatorStorefront/CreatorStorefrontPage.tsx',
     )
-    // handleTipClick opens the modal via state…
-    expect(page).toMatch(/setTipModalOpen\(true\)/)
-    // …and does NOT navigate to the old 404'ing /donation route.
-    expect(page).not.toMatch(/window\.location\.href\s*=\s*`?\/donation/)
-    // The shared DonationModal is mounted on the page.
-    expect(page).toContain('<DonationModal')
-    expect(page).toContain('creatorSlug={creator.slug}')
+    expect(page).toMatch(/router\.push\([^)]*donation\/\$\{creator\.slug\}/)
+    // Old modal pattern is gone.
+    expect(page).not.toMatch(/setTipModalOpen/)
+    expect(page).not.toContain('<DonationModal')
   })
 
-  test('DonationModal reuses the inline channel selector, not a redirect', () => {
-    const modal = read('src/components/Donation/DonationModal.tsx')
-    // Inline channel selector is mounted…
-    expect(modal).toContain('<DonationPaymentInterface')
-    // …and the modal never redirects to a Paystack hosted page.
-    expect(modal).not.toMatch(/window\.location\.href/)
-    expect(modal).not.toMatch(/authorization_url/)
-    expect(modal).not.toMatch(/payment_url/)
+  test('Product detail Tip CTA navigates to /donation/[slug]', () => {
+    const col = read('src/components/ProductDetail/ProductInfoColumn.tsx')
+    expect(col).toMatch(/accepts_donations/)
+    expect(col).toContain('Tip the creator')
+
+    const client = read('src/components/ProductDetail/ProductDetailClient.tsx')
+    expect(client).toMatch(/router\.push\([^)]*donation\/\$\{org\.slug\}/)
+    expect(client).not.toContain('<DonationModal')
+  })
+
+  test('Featured creators tip nav uses the donation page', () => {
+    const featured = read('src/components/Marketplace/FeaturedCreators.tsx')
+    expect(featured).toMatch(/router\.push\(/)
+    expect(featured).toContain('/donation/')
+    expect(featured).not.toContain('<DonationModal')
+  })
+
+  test('CreatorsDirectory tip handler navigates to the donation page', () => {
+    const dir = read('src/components/Creators/CreatorsDirectory.tsx')
+    expect(dir).toMatch(/router\.push\([^)]*donation\//)
+    expect(dir).not.toContain('<DonationModal')
   })
 
   test('DonationPaymentInterface drives the inline /charge + poll flow', () => {
     const iface = read('src/components/Donation/DonationPaymentInterface.tsx')
-    // Uses the donation charge + status-poll hooks (inline, no redirect).
     expect(iface).toContain('useDonationCharge')
     expect(iface).toContain('useDonationPaymentStatus')
-    // Reuses the brand payment-icons set, not Lucide.
     expect(iface).toMatch(/from '@\/components\/Brand\/payment-icons'/)
     expect(iface).not.toMatch(/from 'lucide-react'/)
-    // No hosted-page redirect.
     expect(iface).not.toMatch(/authorization_url/)
   })
 
@@ -67,46 +94,17 @@ describe('Donations — inline Paystack-native tipping', () => {
     const card = read('src/components/Creators/CreatorCard.tsx')
     expect(card).toMatch(/tipEnabled/)
     expect(card).toContain('data-testid="creator-card-tip"')
-    // Clicking it must not navigate the wrapping <Link> — it opens the modal.
     expect(card).toMatch(/e\.preventDefault\(\)/)
     expect(card).toMatch(/e\.stopPropagation\(\)/)
   })
 
-  test('CreatorsDirectory mounts a single shared DonationModal', () => {
-    const dir = read('src/components/Creators/CreatorsDirectory.tsx')
-    expect(dir).toContain('<DonationModal')
-    expect(dir).toMatch(/setTipTarget/)
-  })
-
-  test('Marketplace featured creators surface the tip affordance', () => {
-    const card = read('src/components/Marketplace/MarketplaceCreatorCard.tsx')
-    expect(card).toContain('data-testid="marketplace-creator-tip"')
-    expect(card).toMatch(/tipping_enabled/)
-    // Clicking must not navigate the wrapping <Link>.
-    expect(card).toMatch(/e\.preventDefault\(\)/)
-    expect(card).toMatch(/e\.stopPropagation\(\)/)
-
-    const featured = read('src/components/Marketplace/FeaturedCreators.tsx')
-    expect(featured).toContain('<DonationModal')
-  })
-
-  test('Product detail exposes "Tip the creator" when accepts_donations', () => {
-    const col = read('src/components/ProductDetail/ProductInfoColumn.tsx')
-    expect(col).toMatch(/accepts_donations/)
-    expect(col).toContain('Tip the creator')
-    expect(col).toContain('data-testid="product-tip-creator"')
-
-    const client = read('src/components/ProductDetail/ProductDetailClient.tsx')
-    expect(client).toContain('<DonationModal')
-  })
-
-  test('Donation success state stays inside the modal (auto-close)', () => {
-    const modal = read('src/components/Donation/DonationModal.tsx')
-    // Success flips an in-modal state and auto-closes after 3s.
-    expect(modal).toContain('data-testid="donation-success"')
-    expect(modal).toMatch(/setSucceeded\(true\)/)
-    expect(modal).toMatch(/setTimeout\([\s\S]*?3000\)/)
-    // Thank-you copy renders inside the dialog.
-    expect(modal).toMatch(/Thank you for supporting/)
+  test('Donation success state lives on the page (auto-redirect)', () => {
+    const client = read(
+      'src/app/(main)/donation/[slug]/DonationPageClient.tsx',
+    )
+    expect(client).toContain('data-testid="donation-success"')
+    expect(client).toMatch(/setSucceeded\(true\)/)
+    expect(client).toMatch(/router\.push\(`\/creators\//)
+    expect(client).toMatch(/Thank you for supporting/)
   })
 })

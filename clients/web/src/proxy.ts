@@ -125,6 +125,39 @@ const isInternalPath = (pathname: string): boolean =>
   INTERNAL_PATH_PATTERNS.some((re) => re.test(pathname))
 
 /**
+ * Look up the authenticated user from the polar_session cookie. Returns
+ * undefined when the cookie is missing or the API returns 401. Used by both
+ * the locale-rewrite branch and the standard auth flow so authenticated
+ * visitors on /us/marketplace etc. don't render as logged-out (the layout's
+ * `getAuthenticatedUser()` reads the `x-polar-user` request header that this
+ * function feeds — without it, the header reads the user as anonymous).
+ */
+const fetchUserFromCookie = async (
+  request: NextRequest,
+): Promise<schemas['UserRead'] | undefined> => {
+  if (!request.cookies.has(POLAR_AUTH_COOKIE_KEY)) return undefined
+  try {
+    const api = await createServerSideAPI(
+      request.headers,
+      RequestCookiesAdapter.seal(request.cookies),
+    )
+    const { data, response } = await api.GET('/v1/users/me', {
+      cache: 'no-cache',
+    })
+    if (!response.ok && response.status !== 401) {
+      console.error(
+        `[proxy] /v1/users/me unexpected status=${response.status}`,
+      )
+      return undefined
+    }
+    return data
+  } catch (e) {
+    console.error('[proxy] fetchUserFromCookie failed:', e)
+    return undefined
+  }
+}
+
+/**
  * Strip a leading /{country}/ segment if it's a supported country, otherwise
  * return null. Returns the country (lowercased) and the rest of the path.
  */
@@ -203,6 +236,14 @@ export async function proxy(request: NextRequest) {
       }
       requestHeaders.set('x-blyss-currency', countryToCurrency[segment.country] ?? 'usd')
       requestHeaders.set('x-blyss-pathname', segment.rest)
+      // Auth lookup — if the visitor has a polar_session cookie, surface
+      // them via x-polar-user so the layout's getAuthenticatedUser() picks
+      // them up. Without this, /us/marketplace etc. always render as
+      // logged-out (the bug surfaced after introducing locale rewrites).
+      const user = await fetchUserFromCookie(request)
+      if (user) {
+        requestHeaders.set('x-polar-user', JSON.stringify(user))
+      }
       const response = NextResponse.rewrite(url, {
         request: { headers: requestHeaders },
       })

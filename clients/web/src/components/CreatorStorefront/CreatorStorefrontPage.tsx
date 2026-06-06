@@ -14,6 +14,7 @@
  */
 
 import { useMemo, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { parseAsStringEnum, useQueryState } from 'nuqs'
 import { schemas } from '@/lib/api'
 import { StorefrontHero } from './StorefrontHero'
@@ -26,7 +27,7 @@ import { AllWorkTab } from './AllWorkTab'
 import { SubscriptionsTab } from './SubscriptionsTab'
 import { AboutTab, type AboutTabSocialLinks } from './AboutTab'
 import { ReviewsBlock, type ReviewSummary, type ReviewExcerpt } from './ReviewsBlock'
-import { DonationModal } from '@/components/Donation/DonationModal'
+import { useCurrencyControls } from '@/components/Marketplace/CurrencyProvider'
 
 export interface CreatorStorefrontPageProps {
   /** Creator core fields, sourced from the public CreatorStorefrontSchema. */
@@ -80,7 +81,8 @@ export function CreatorStorefrontPage({
   recentReviews = [],
 }: CreatorStorefrontPageProps) {
   const tabsAnchorRef = useRef<HTMLDivElement | null>(null)
-  const [tipModalOpen, setTipModalOpen] = useState(false)
+  const router = useRouter()
+  const { country } = useCurrencyControls()
 
   // Tab state — URL-driven via nuqs. Replace history (don't push) so the back
   // button takes users out of the storefront, not back through tab clicks.
@@ -143,9 +145,10 @@ export function CreatorStorefrontPage({
   }
 
   const handleTipClick = () => {
-    // Open the inline donation modal — no navigation. The modal drives the
-    // Paystack-native charge against this creator's slug.
-    setTipModalOpen(true)
+    // Navigate to the dedicated donation page. URL is locale-prefixed so the
+    // page renders inside the right region's chrome and Paystack picks the
+    // right channel.
+    router.push(`/${country}/donation/${creator.slug}`)
   }
 
   return (
@@ -212,12 +215,6 @@ export function CreatorStorefrontPage({
         }
       />
 
-      <DonationModal
-        isOpen={tipModalOpen}
-        onClose={() => setTipModalOpen(false)}
-        creatorSlug={creator.slug}
-        creatorName={creator.name}
-      />
     </div>
   )
 }
