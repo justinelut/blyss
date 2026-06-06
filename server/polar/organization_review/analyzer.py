@@ -626,12 +626,40 @@ class ReviewAnalyzer:
             )
             return _timeout_report(), UsageInfo()
         except Exception as e:
+            # FallbackModel raises a BaseExceptionGroup ('FallbackExceptionGroup')
+            # wrapping each provider's underlying error. Surface them all so
+            # the operator can see whether it's egress (network), 401 (bad
+            # key), 429 (quota), 503 (provider down), etc. — instead of the
+            # opaque "All models from FallbackModel failed (2 sub-exceptions)"
+            # the analysis report otherwise stamps.
+            sub_messages: list[str] = []
+            sub_excs = getattr(e, "exceptions", None)
+            if sub_excs is not None:
+                for i, sub in enumerate(sub_excs):
+                    sub_messages.append(f"[{i}] {type(sub).__name__}: {sub}")
+                    log.error(
+                        "review_analyzer.error.sub",
+                        organization=snapshot.organization.slug,
+                        provider_index=i,
+                        provider=chain_names[i] if i < len(chain_names) else "?",
+                        sub_type=type(sub).__name__,
+                        sub_error=str(sub)[:500],
+                    )
             log.error(
                 "review_analyzer.error",
                 organization=snapshot.organization.slug,
+                providers=chain_names,
+                error_type=type(e).__name__,
                 error=str(e),
+                sub_count=len(sub_messages),
             )
-            return _error_report(str(e)), UsageInfo()
+            detail = (
+                f"{type(e).__name__}: {e} | "
+                + " | ".join(sub_messages)
+                if sub_messages
+                else f"{type(e).__name__}: {e}"
+            )
+            return _error_report(detail), UsageInfo()
 
     def _build_prompt(self, snapshot: DataSnapshot, policy_content: str) -> str:
         org = snapshot.organization

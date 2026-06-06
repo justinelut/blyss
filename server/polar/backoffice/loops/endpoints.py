@@ -44,31 +44,42 @@ async def _write_last_sync(redis: Redis, data: dict) -> None:
 
 
 async def _queue_depth(redis: Redis) -> int:
-    """Best-effort dramatiq Redis queue depth for the default queue.
+    """Best-effort dramatiq Redis queue depth for the Loops queues.
+
+    Loops actors are decorated with priority=TaskPriority.LOW, so they land
+    on the `low_priority` queue (not `default`). We sum across the priority
+    queues that Loops + adjacent background jobs use, plus the dead/delayed
+    streams, so the operator sees real outstanding work.
 
     Dramatiq's RedisBroker stores pending messages on a stream
-    `dramatiq:default.msgs`; older versions used a list `dramatiq:default`.
-    Try both and return whichever is larger so we surface real depth.
+    `dramatiq:{queue}.msgs`; older versions used a list `dramatiq:{queue}`.
+    Try both per queue and sum.
     """
-    candidates = ["dramatiq:default.msgs", "dramatiq:default", "dramatiq:default.DQ.msgs"]
-    best = 0
-    for key in candidates:
-        try:
-            t = await redis.type(key)
-        except Exception:
-            t = "none"
-        try:
-            if t == "stream":
-                n = await redis.xlen(key)
-            elif t == "list":
-                n = await redis.llen(key)
-            else:
+    queues = [
+        "default",
+        "low_priority",
+        "medium_priority",
+        "high_priority",
+    ]
+    total = 0
+    for queue in queues:
+        for suffix in (".msgs", "", ".DQ.msgs"):
+            key = f"dramatiq:{queue}{suffix}"
+            try:
+                t = await redis.type(key)
+            except Exception:
+                t = "none"
+            try:
+                if t == "stream":
+                    n = await redis.xlen(key)
+                elif t == "list":
+                    n = await redis.llen(key)
+                else:
+                    n = 0
+            except Exception:
                 n = 0
-        except Exception:
-            n = 0
-        if n > best:
-            best = n
-    return best
+            total += n
+    return total
 
 
 @router.get("/", name="loops:index")
@@ -116,7 +127,7 @@ async def index(
                         text(str(user_count))
                 with tag.div(classes="stat"):
                     with tag.div(classes="stat-title"):
-                        text("Queue depth (default)")
+                        text("Queue depth (all priorities)")
                     with tag.div(classes="stat-value"):
                         text(str(depth))
                 if last:

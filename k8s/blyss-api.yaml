@@ -80,7 +80,26 @@ spec:
         - name: worker
           image: ghcr.io/justinelut/blyss-api:latest
           imagePullPolicy: IfNotPresent
-          command: ["uv", "run", "dramatiq", "-p", "1", "-t", "1", "polar.worker.run"]
+          # `--queues` MUST list every queue the worker should consume.
+          # Without it, dramatiq only listens to `default`, which means any
+          # @actor with priority=TaskPriority.LOW (Loops backfills,
+          # marketing emails, slow background work) sits in `low_priority`
+          # forever. Match dev/docker/scripts/startup.sh + dev/cli/worker.py.
+          command:
+            - "uv"
+            - "run"
+            - "dramatiq"
+            - "-p"
+            - "1"
+            - "-t"
+            - "1"
+            - "--queues"
+            - "default"
+            - "high_priority"
+            - "medium_priority"
+            - "low_priority"
+            - "webhooks"
+            - "polar.worker.run"
           envFrom:
             - secretRef:
                 name: blyss-secrets
