@@ -8,17 +8,18 @@ import { join } from 'path'
  *
  * The DB column `subaccount_status` defaults to "pending" so a fresh org
  * with no subaccount_code set looked indistinguishable from one whose
- * subaccount creation was actually in flight. The Settings page rendered
- * a spinning "Pending" pill on every fresh org — misleading the creator
- * into thinking the system was working on something when it hadn't even
- * started.
+ * subaccount creation was actually in flight. The Settings page used to
+ * render a spinning "Pending" pill on every fresh org — misleading the
+ * creator into thinking the system was working on something when it
+ * hadn't even started.
  *
- * Both `OrganizationMPesaSettings` (Settings surface) and `AccountPage`
- * (Finance surface) now read `subaccount_code` and derive
+ * The redesigned `OrganizationMPesaSettings` (Trimly-style waiting
+ * pattern) reads `subaccount_code` and derives
  * `isNotConfigured = !subaccountCode && subaccountStatus !== "active"`,
- * which the Settings badge fn short-circuits on to render a plain
- * "Not configured" pill (no spinner). This test stops a future refactor
- * from quietly going back to the misleading default.
+ * then uses that flag to render "Not configured yet" status copy
+ * directly — no spinner, no misleading "in flight" signal. This test
+ * stops a future refactor from quietly going back to the misleading
+ * default.
  */
 
 const SETTINGS_FILE = join(
@@ -42,43 +43,20 @@ describe('Payouts surface: differentiate Not Configured from Pending', () => {
       expect(src).toMatch(/isNotConfigured\s*=\s*!subaccountCode/)
     })
 
-    test('badge renders "Not configured" pill when isNotConfigured', () => {
-      // The pill text must be the literal "Not configured" — anything else
-      // (including "Pending", a spinner, or "Unknown") would re-introduce
-      // the original UX bug.
-      expect(src).toMatch(
-        /if\s*\(\s*isNotConfigured\s*\)[^}]*Not configured/s,
-      )
+    test('renders "Not configured" copy when isNotConfigured is true', () => {
+      // The status row reads from isNotConfigured. The copy must clearly
+      // say the creator hasn't started yet (anything else — "Pending",
+      // a spinner, "Unknown" — would re-introduce the original UX bug).
+      expect(src).toMatch(/isNotConfigured[^]*?Not configured/i)
     })
 
-    test('Loader2 spinner is NOT inside the isNotConfigured branch', () => {
-      // Slice out the badge fn body so the assertion is local. We expect
-      // Loader2 to still exist in the file (it's used elsewhere — Retry
-      // button, Verifying state) but NOT inside the early-return branch
-      // for isNotConfigured.
-      const fnStart = src.indexOf('const getSubaccountStatusBadge')
-      expect(fnStart).toBeGreaterThan(0)
-      const fnEnd = src.indexOf(
-        '}\n  }',
-        fnStart,
-      )
-      expect(fnEnd).toBeGreaterThan(fnStart)
-      const fnBody = src.slice(fnStart, fnEnd + 5)
-
-      // Inside the badge fn, the isNotConfigured branch must come BEFORE
-      // the switch. We assert the order: 'isNotConfigured' precedes
-      // 'switch (subaccountStatus)'.
-      const guardIdx = fnBody.indexOf('isNotConfigured')
-      const switchIdx = fnBody.indexOf('switch (subaccountStatus)')
-      expect(guardIdx).toBeGreaterThan(0)
-      expect(switchIdx).toBeGreaterThan(guardIdx)
-
-      // And the early-return up to the switch contains "Not configured"
-      // and does NOT contain Loader2 (no spinner on the not-configured
-      // pill).
-      const guardSlice = fnBody.slice(guardIdx, switchIdx)
-      expect(guardSlice).toMatch(/Not configured/)
-      expect(guardSlice).not.toMatch(/Loader2/)
+    test('does not render a Loader2 spinner alongside Not configured', () => {
+      // The Trimly-pattern redesign uses react-icons (FiRefreshCw with
+      // animate-spin in the Retry button only). lucide's Loader2 must
+      // not return — a spinner next to "Not configured" is the exact
+      // bug this regression test exists to prevent.
+      expect(src).not.toMatch(/from ['"]lucide-react['"]/)
+      expect(src).not.toMatch(/<Loader2/)
     })
   })
 

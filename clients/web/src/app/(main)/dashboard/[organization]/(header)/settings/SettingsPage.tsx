@@ -45,7 +45,7 @@ export default function ClientPage({
             title="Payouts & M-Pesa"
             description="Configure your payout method and M-Pesa settings for receiving payments"
           />
-          <OrganizationMPesaSettings organization={org} />
+          <OrganizationMPesaSettings organization={org} showFinanceDeepLink />
         </Section>
 
         <Section id="features">

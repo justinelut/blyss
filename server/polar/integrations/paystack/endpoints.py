@@ -196,6 +196,28 @@ class MPesaInitiateVerificationResponse(BaseModel):
     display_text: str
 
 
+class MPesaChargeStatusResponse(BaseModel):
+    """Lightweight Paystack /transaction/verify status check.
+
+    Used by the dashboard's payouts setup form to poll for STK push
+    completion every 3 seconds without provisioning anything. Once
+    `status='success'`, the frontend calls finalize-verification ONCE
+    to provision the subaccount (idempotent on the server).
+    """
+
+    status: str = Field(
+        ...,
+        description=(
+            "One of 'success', 'failed', 'abandoned', or 'pending' "
+            "(any other status is treated as still in-flight)."
+        ),
+    )
+    gateway_response: str | None = Field(
+        None,
+        description="Paystack's human-readable status message, when present.",
+    )
+
+
 # Anti-fraud verification charge amount in kobo (KES cents).
 # 100 KES = 10000 kobo. Non-refundable, kept by Blyss.
 MPESA_VERIFICATION_AMOUNT_KOBO = 10000
@@ -269,6 +291,58 @@ async def initiate_mpesa_verification(
         reference=charge["reference"],
         status=charge["status"] or "pending",
         display_text=charge["display_text"],
+    )
+
+
+@router.get(
+    "/organizations/{id}/mpesa/charge-status",
+    response_model=MPesaChargeStatusResponse,
+)
+async def mpesa_charge_status(
+    id: UUID,
+    reference: str,
+    auth_subject: WebUserWrite,
+    session: AsyncSession = Depends(get_db_session),
+) -> MPesaChargeStatusResponse:
+    """Polling-friendly status check for an in-flight M-Pesa STK charge.
+
+    The dashboard polls this every ~3 seconds while the creator approves
+    the KSh 100 verification charge on their phone. The response is
+    intentionally minimal — no DB writes, no subaccount provisioning —
+    so it's safe to call repeatedly. Once status='success' the frontend
+    calls finalize-verification once to mark the org verified and
+    create the Paystack subaccount.
+
+    Status values returned:
+      - 'success'  : charge confirmed by Paystack
+      - 'failed'   : declined / cancelled / network error
+      - 'abandoned': customer dismissed the STK prompt
+      - 'pending'  : still waiting on the customer's phone
+    """
+    repository = OrganizationRepository.from_session(session)
+    organization = await repository.get_by_id(id)
+    if not organization:
+        raise ResourceNotFound("Organization not found")
+
+    try:
+        verification = await paystack.verify_transaction(reference)
+    except Exception as e:
+        # Network / upstream errors are transient — return pending so
+        # the client keeps polling. Logging at warn so ops can see if
+        # this is a sustained outage.
+        log.warning(
+            "paystack.mpesa.charge_status.verify_error",
+            organization_id=organization.id,
+            reference=reference,
+            error=str(e),
+        )
+        return MPesaChargeStatusResponse(
+            status="pending", gateway_response=None
+        )
+
+    return MPesaChargeStatusResponse(
+        status=verification.get("status") or "pending",
+        gateway_response=verification.get("gateway_response"),
     )
 
 

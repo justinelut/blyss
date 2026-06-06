@@ -1,42 +1,39 @@
 'use client'
 
+/* Hallmark · component: settings/payouts · genre: editorial-utility
+ * theme: blyss-design (light cream + burnt orange #C2410C accent)
+ * states: idle · sending · waiting (poll) · succeeded · failed
+ * contrast: pass · slop: pass (no shadow-cards, react-icons only)
+ *
+ * Reference DNA: Trimly (Kenya bookings) — single-column form that flows
+ * through Initiate STK → Waiting screen with phone-frame icon and progress
+ * bar → auto-confirm via 3-second polling. Buyer never has to click
+ * "I've approved" — the page detects success and moves on.
+ *
+ * Backend pair:
+ *   POST /v1/integrations/paystack/organizations/{id}/mpesa/initiate-verification
+ *     → returns { reference, status, display_text }
+ *   GET  /v1/integrations/paystack/organizations/{id}/mpesa/charge-status?reference=
+ *     → returns { status, gateway_response }
+ *   POST /v1/integrations/paystack/organizations/{id}/mpesa/finalize-verification
+ *     → returns Organization (with subaccount_code, subaccount_status='active')
+ */
+
 import { useAuth } from '@/hooks'
 import { api } from '@/utils/client'
 import { schemas, unwrap } from '@/lib/api'
-import Button from '@/components/atoms/Button'
-import Input from '@/components/atoms/Input'
-import Pill from '@/components/atoms/Pill'
 import Link from 'next/link'
+import { useEffect, useRef, useState } from 'react'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/atoms/Select'
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormMessage,
-} from '@/components/ui/form'
-import {
-  ArrowUpRight,
-  CheckCircle,
-  Loader2,
-  Phone,
-  RefreshCw,
-  XCircle,
-} from 'lucide-react'
-import React, { useCallback, useState } from 'react'
+  FiArrowRight,
+  FiArrowUpRight,
+  FiCheck,
+  FiPhone,
+  FiRefreshCw,
+  FiX,
+} from 'react-icons/fi'
 import { useForm } from 'react-hook-form'
 import { toast } from '../Toast/use-toast'
-import {
-  SettingsGroup,
-  SettingsGroupActions,
-  SettingsGroupItem,
-} from './SettingsGroup'
 import OrganizationBankSettings from './OrganizationBankSettings'
 
 interface MPesaConfigurationForm {
@@ -46,235 +43,279 @@ interface MPesaConfigurationForm {
 
 interface OrganizationMPesaSettingsProps {
   organization: schemas['Organization']
+  /**
+   * When true, render an editorial banner at the top of the form linking
+   * to /dashboard/{slug}/finance/account. Used from the Settings tab so
+   * creators can jump to the full Finance setup wizard. Always false (the
+   * default) when this component is itself rendered inside the Finance
+   * wizard, where the link would be recursive.
+   */
+  showFinanceDeepLink?: boolean
+}
+
+type WaitingStage = 'idle' | 'sending' | 'waiting' | 'succeeded' | 'failed'
+
+const POLL_INTERVAL_MS = 3000
+// Safaricom STK push expires at ~180s; we poll for 200s so we catch the
+// last confirmation before the prompt vanishes.
+const POLL_TIMEOUT_MS = 200_000
+
+/**
+ * normalisePhone — coerce the creator's input into Paystack's expected
+ * E.164 form. We accept '0712 345 678', '0712345678', '+254 712 345 678'
+ * and produce '+254712345678'.
+ */
+function normalisePhone(raw: string): string {
+  let v = raw.replace(/[\s-]/g, '')
+  if (v.startsWith('0') && v.length === 10) {
+    v = '+254' + v.slice(1)
+  } else if (v.startsWith('254') && !v.startsWith('+254')) {
+    v = '+' + v
+  } else if ((v.startsWith('7') || v.startsWith('1')) && v.length === 9) {
+    v = '+254' + v
+  }
+  return v
 }
 
 const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
   organization,
+  showFinanceDeepLink = false,
 }) => {
   const { currentUser } = useAuth()
-  const [isConfiguring, setIsConfiguring] = useState(false)
-  const [isVerifying, setIsVerifying] = useState(false)
+  const [stage, setStage] = useState<WaitingStage>('idle')
+  const [reference, setReference] = useState<string | null>(null)
+  const [displayText, setDisplayText] = useState<string>('')
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [elapsedMs, setElapsedMs] = useState(0)
+  const [isFinalizing, setIsFinalizing] = useState(false)
   const [isRetrying, setIsRetrying] = useState(false)
-  const [verifyReference, setVerifyReference] = useState<string | null>(null)
-  const [verifyDisplayText, setVerifyDisplayText] = useState<string | null>(null)
+
+  const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const startedAtRef = useRef<number>(0)
 
   const form = useForm<MPesaConfigurationForm>({
     mode: 'onChange',
     defaultValues: {
       mpesa_number: organization.mpesa_number || '',
-      payout_method: organization.payout_method || 'bank',
+      payout_method: organization.payout_method || 'mpesa',
     },
   })
-
-  const { handleSubmit, formState, watch } = form
+  const { watch, register, handleSubmit, formState } = form
   const mpesaNumber = watch('mpesa_number')
   const payoutMethod = watch('payout_method')
 
-  // Get M-Pesa related fields from organization
-  const currentMPesaNumber = organization.mpesa_number
-  const mpesaVerified = organization.mpesa_verified || false
   const subaccountCode = organization.subaccount_code
   const subaccountStatus = organization.subaccount_status || 'pending'
-  // The DB column defaults to "pending" so a fresh org with no subaccount
-  // looks indistinguishable from one whose subaccount is in-flight. We use
-  // the presence of subaccount_code as the actual signal — if there's no
-  // code yet, the creator hasn't started payout setup, so we render
-  // "Not configured" (gray, no spinner) instead of a misleading spinning
-  // "Pending" pill.
+  const isPayoutsActive = subaccountStatus === 'active' && !!subaccountCode
+  // 'pending' on a fresh org with no subaccount_code means "you haven't
+  // started yet", not "we're processing". Show 'Not configured' instead
+  // of a misleading spinner so the creator knows they're the next mover.
   const isNotConfigured = !subaccountCode && subaccountStatus !== 'active'
 
-  const validateMPesaNumber = (value: string): string | true => {
-    if (!value) return 'M-Pesa number is required'
-
-    // Remove any spaces or dashes
-    const cleaned = value.replace(/[\s\-]/g, '')
-
-    // Check if it matches Kenyan M-Pesa format
-    if (!/^\+254[17]\d{8}$/.test(cleaned)) {
-      return 'M-Pesa number must be in Kenyan format (+254XXXXXXXXX) where X is a digit and the number starts with 7 or 1 after country code'
+  // Cleanup poller on unmount.
+  useEffect(() => {
+    return () => {
+      if (pollTimerRef.current) clearInterval(pollTimerRef.current)
     }
+  }, [])
 
-    return true
+  function stopPolling() {
+    if (pollTimerRef.current) {
+      clearInterval(pollTimerRef.current)
+      pollTimerRef.current = null
+    }
   }
 
-  const onConfigureMPesa = useCallback(
-    async (data: MPesaConfigurationForm) => {
-      if (!currentUser) return
-
-      setIsConfiguring(true)
+  /** Poll the lightweight charge-status endpoint every 3s. On success
+   *  fire finalize-verification once; on failure surface an inline retry. */
+  function beginPolling(ref: string) {
+    stopPolling()
+    pollTimerRef.current = setInterval(async () => {
+      const elapsed = Date.now() - startedAtRef.current
+      setElapsedMs(elapsed)
+      if (elapsed > POLL_TIMEOUT_MS) {
+        stopPolling()
+        setStage('failed')
+        setErrorMsg(
+          'STK prompt expired. Safaricom\u2019s window is about three minutes — try again.',
+        )
+        return
+      }
       try {
-        const response = await unwrap(
-          (api as any).POST(
-            '/v1/integrations/paystack/organizations/{id}/mpesa/initiate-verification',
+        const status = await unwrap(
+          (api as any).GET(
+            '/v1/integrations/paystack/organizations/{id}/mpesa/charge-status',
             {
-              params: { path: { id: organization.id } },
-              body: { mpesa_number: data.mpesa_number },
+              params: { path: { id: organization.id }, query: { reference: ref } },
             },
           ),
-        )
-
-        const ref = (response as any).reference as string
-        const displayText =
-          (response as any).display_text ||
-          'Check your phone for the M-Pesa STK push prompt.'
-
-        setVerifyReference(ref)
-        setVerifyDisplayText(displayText)
-
-        toast({
-          title: 'STK push sent',
-          description:
-            'A KSh 100 verification charge was sent to your M-Pesa. Approve it on your phone to activate payouts.',
-        })
-      } catch (error: any) {
-        toast({
-          title: 'Could not start verification',
-          description:
-            error?.body?.detail ||
-            error?.message ||
-            'Failed to send the M-Pesa verification charge.',
-          variant: 'error',
-        })
-      } finally {
-        setIsConfiguring(false)
+        ) as { status: string; gateway_response: string | null }
+        if (status.status === 'success') {
+          stopPolling()
+          await finalize(ref)
+        } else if (
+          status.status === 'failed' ||
+          status.status === 'abandoned'
+        ) {
+          stopPolling()
+          setStage('failed')
+          setErrorMsg(
+            status.gateway_response ||
+              'The prompt was declined or cancelled.',
+          )
+        }
+        // 'pending' or anything else: keep polling.
+      } catch {
+        // Transient error — keep polling.
       }
-    },
-    [currentUser, organization.id],
-  )
+    }, POLL_INTERVAL_MS)
+  }
 
-  const onFinalizeMPesa = useCallback(async () => {
-    if (!currentUser || !verifyReference) return
-
-    setIsVerifying(true)
+  async function finalize(ref: string) {
+    if (!currentUser) return
+    setIsFinalizing(true)
     try {
       await unwrap(
         (api as any).POST(
           '/v1/integrations/paystack/organizations/{id}/mpesa/finalize-verification',
           {
             params: { path: { id: organization.id } },
-            body: { reference: verifyReference },
+            body: { reference: ref },
           },
         ),
       )
-
+      setStage('succeeded')
       toast({
         title: 'M-Pesa active',
         description:
-          'Your M-Pesa number is verified and your payout subaccount is set up.',
+          'Your number is verified and your payout subaccount is set up.',
       })
-
-      // Refresh to pick up subaccount_status from the server.
-      window.location.reload()
+      // Reload after a brief pause so the creator sees the success state
+      // before the page rerenders with the activated banner.
+      setTimeout(() => window.location.reload(), 1500)
     } catch (error: any) {
-      toast({
-        title: 'Verification failed',
-        description:
-          error?.body?.detail ||
+      setStage('failed')
+      setErrorMsg(
+        error?.body?.detail ||
           error?.message ||
-          "We couldn't confirm the KSh 100 charge. Please retry.",
-        variant: 'error',
-      })
+          'M-Pesa charge succeeded but Paystack rejected the subaccount.',
+      )
     } finally {
-      setIsVerifying(false)
+      setIsFinalizing(false)
     }
-  }, [currentUser, organization.id, verifyReference])
+  }
 
-  const onRetrySubaccount = useCallback(async () => {
+  async function onSendStk(data: MPesaConfigurationForm) {
     if (!currentUser) return
+    setErrorMsg(null)
+    setStage('sending')
+    try {
+      const cleaned = normalisePhone(data.mpesa_number)
+      const response = await unwrap(
+        (api as any).POST(
+          '/v1/integrations/paystack/organizations/{id}/mpesa/initiate-verification',
+          {
+            params: { path: { id: organization.id } },
+            body: { mpesa_number: cleaned },
+          },
+        ),
+      )
+      const ref = (response as any).reference as string
+      const txt =
+        (response as any).display_text ||
+        'Approve the M-Pesa STK push on your phone.'
+      setReference(ref)
+      setDisplayText(txt)
+      setStage('waiting')
+      startedAtRef.current = Date.now()
+      beginPolling(ref)
+    } catch (error: any) {
+      setStage('failed')
+      setErrorMsg(
+        error?.body?.detail ||
+          error?.message ||
+          'Could not start the M-Pesa verification.',
+      )
+    }
+  }
 
+  async function onRetrySubaccount() {
+    if (!currentUser) return
     setIsRetrying(true)
     try {
       await unwrap(
         (api as any).POST(
           '/v1/integrations/paystack/organizations/{id}/subaccount/retry',
-          {
-            params: {
-              path: { id: organization.id },
-            },
-          },
+          { params: { path: { id: organization.id } } },
         ),
       )
-
       toast({
         title: 'Retrying payout setup',
         description: 'Setting up your payout account again.',
       })
-
-      // Refresh the page to show updated status
       window.location.reload()
     } catch (error: any) {
       toast({
-        title: 'Retry Failed',
-        description: error.message || 'Failed to set up your payout account',
+        title: 'Retry failed',
+        description:
+          error?.body?.detail ||
+          error?.message ||
+          'Could not retry the subaccount.',
         variant: 'error',
       })
     } finally {
       setIsRetrying(false)
     }
-  }, [currentUser, organization.id])
-
-  const getSubaccountStatusBadge = () => {
-    // Short-circuit: a creator who hasn't reached payout setup yet must NOT
-    // see a spinning "Pending" pill — that signals "we're working on it"
-    // when the truth is "you haven't started yet".
-    if (isNotConfigured) {
-      return <Pill color="gray">Not configured</Pill>
-    }
-    switch (subaccountStatus) {
-      case 'active':
-        return (
-          <Pill color="green" className="inline-flex items-center">
-            <CheckCircle className="mr-1 h-3 w-3" />
-            Active
-          </Pill>
-        )
-      case 'pending':
-        return (
-          <Pill color="gray" className="inline-flex items-center">
-            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-            Pending
-          </Pill>
-        )
-      case 'failed':
-        return (
-          <Pill color="red" className="inline-flex items-center">
-            <XCircle className="mr-1 h-3 w-3" />
-            Failed
-          </Pill>
-        )
-      default:
-        return <Pill color="gray">Unknown</Pill>
-    }
   }
 
-  const getMPesaStatusBadge = () => {
-    if (!currentMPesaNumber) {
-      return <Pill color="gray">Not Configured</Pill>
-    }
+  function resetIdle() {
+    stopPolling()
+    setStage('idle')
+    setReference(null)
+    setDisplayText('')
+    setErrorMsg(null)
+    setElapsedMs(0)
+  }
 
-    if (mpesaVerified) {
-      return (
-        <Pill color="green" className="inline-flex items-center">
-          <CheckCircle className="mr-1 h-3 w-3" />
-          Verified
-        </Pill>
-      )
-    }
-
+  // ── Already active ────────────────────────────────────────────
+  if (isPayoutsActive && payoutMethod === 'mpesa' && organization.mpesa_verified) {
     return (
-      <Pill color="yellow" className="inline-flex items-center">
-        <Phone className="mr-1 h-3 w-3" />
-        Pending Verification
-      </Pill>
+      <div className="space-y-6">
+        <PayoutsActiveBlock
+          number={organization.mpesa_number || ''}
+          onChangeMethod={() => form.setValue('payout_method', 'bank')}
+        />
+      </div>
     )
   }
 
+  // ── Waiting / succeeded / failed ─────────────────────────────
+  if (stage === 'waiting' || stage === 'succeeded' || stage === 'failed') {
+    return (
+      <WaitingPanel
+        stage={stage}
+        reference={reference}
+        displayText={displayText}
+        errorMsg={errorMsg}
+        elapsedMs={elapsedMs}
+        timeoutMs={POLL_TIMEOUT_MS}
+        isFinalizing={isFinalizing}
+        onTryAgain={resetIdle}
+      />
+    )
+  }
+
+  // ── Idle / sending — the actual form ──────────────────────────
   return (
-    <Form {...form}>
-      <form onSubmit={handleSubmit(onConfigureMPesa)}>
+    <form onSubmit={handleSubmit(onSendStk)} className="space-y-8">
+      {/* Optional deep-link banner — used by Settings tab to point creators
+          to the full Finance setup wizard. The banner is omitted when the
+          component is itself rendered inside Finance to avoid a recursive
+          self-link. */}
+      {showFinanceDeepLink && (
         <Link
           href={`/dashboard/${organization.slug}/finance/account`}
-          className="group mb-4 flex items-start justify-between gap-4 rounded-md border border-[var(--border)] bg-[var(--surface-elevated)] px-5 py-4 transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface)]"
+          className="group flex items-start justify-between gap-4 rounded-md border border-[var(--border)] bg-[var(--surface-elevated)] px-5 py-4 transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface)]"
         >
           <div className="space-y-1">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
@@ -290,274 +331,378 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
             </p>
           </div>
           <span className="mt-1 inline-flex h-9 w-9 flex-none items-center justify-center rounded-md border border-[var(--border)] text-[var(--text-secondary)] transition-colors group-hover:border-[var(--accent)] group-hover:text-[var(--accent)]">
-            <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+            <FiArrowUpRight className="h-4 w-4" aria-hidden="true" />
           </span>
         </Link>
+      )}
 
-        <SettingsGroup>
-          <SettingsGroupItem
-            title="Payout account"
-            description="Status of your payout account. Activates automatically once your details are verified."
+      {/* Header */}
+      <div>
+        <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
+          Payouts
+        </p>
+        <h2 className="mt-2 font-display text-[28px] font-semibold leading-[1.1] tracking-[-0.02em] text-[var(--text-primary)]">
+          Get paid for your work.
+        </h2>
+        <p className="mt-3 max-w-[60ch] font-sans text-[15px] leading-[1.55] text-[var(--text-secondary)]">
+          Pick where Blyss should send your earnings. We charge a one-time
+          KSh&nbsp;100 from your M-Pesa to confirm the number is yours and
+          protect against fraud — non-refundable.
+        </p>
+      </div>
+
+      {/* Status row */}
+      <div className="flex items-center justify-between gap-4 border-y border-[var(--border)] py-4">
+        <div>
+          <p className="font-sans text-[12px] font-medium uppercase tracking-[0.12em] text-[var(--text-muted)]">
+            Status
+          </p>
+          <p className="mt-1 font-sans text-[14px] text-[var(--text-primary)]">
+            {isNotConfigured
+              ? 'Not configured yet'
+              : subaccountStatus === 'active'
+                ? 'Active'
+                : subaccountStatus === 'failed'
+                  ? 'Setup failed — retry below'
+                  : 'In progress'}
+          </p>
+        </div>
+        {subaccountStatus === 'failed' && (
+          <button
+            type="button"
+            onClick={onRetrySubaccount}
+            disabled={isRetrying}
+            className="inline-flex h-9 items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 font-sans text-[13px] font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-sunken)] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <div className="flex items-center gap-2">
-              {getSubaccountStatusBadge()}
-              {subaccountStatus === 'failed' && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={onRetrySubaccount}
-                  disabled={isRetrying}
-                >
-                  {isRetrying ? (
-                    <>
-                      <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                      Retrying...
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCw className="mr-1 h-3 w-3" />
-                      Retry
-                    </>
-                  )}
-                </Button>
-              )}
-            </div>
-          </SettingsGroupItem>
-
-          <SettingsGroupItem
-            title="How do you want to get paid?"
-            description="Pick where Blyss should send your earnings. You can change this later."
-          >
-            <FormField
-              control={form.control}
-              name="payout_method"
-              render={({ field }) => (
-                <FormItem className="w-full">
-                  <FormControl>
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      {/* M-Pesa card */}
-                      <button
-                        type="button"
-                        onClick={() => field.onChange('mpesa')}
-                        aria-pressed={field.value === 'mpesa'}
-                        className={
-                          'group flex flex-col items-start gap-3 rounded-lg border p-4 text-left transition-colors ' +
-                          (field.value === 'mpesa'
-                            ? 'border-[var(--accent)] bg-[var(--surface-elevated)] ring-1 ring-[var(--accent)]'
-                            : 'border-[var(--border)] bg-[var(--surface-elevated)] hover:bg-[var(--surface-sunken)]')
-                        }
-                      >
-                        <div className="flex w-full items-center justify-between">
-                          <span className="font-display text-[15px] font-semibold text-[var(--text-primary)]">
-                            M-Pesa
-                          </span>
-                          <span
-                            className={
-                              'h-3 w-3 rounded-full ' +
-                              (field.value === 'mpesa'
-                                ? 'bg-[var(--accent)]'
-                                : 'border border-[var(--border-strong)]')
-                            }
-                            aria-hidden="true"
-                          />
-                        </div>
-                        <p className="font-sans text-[13px] leading-[1.5] text-[var(--text-secondary)]">
-                          Get paid straight to your phone. We charge a
-                          one-time KSh 100 from your M-Pesa to confirm the
-                          number is yours and protect against fraud.
-                        </p>
-                      </button>
-
-                      {/* Bank card */}
-                      <button
-                        type="button"
-                        onClick={() => field.onChange('bank')}
-                        aria-pressed={field.value === 'bank'}
-                        className={
-                          'group flex flex-col items-start gap-3 rounded-lg border p-4 text-left transition-colors ' +
-                          (field.value === 'bank'
-                            ? 'border-[var(--accent)] bg-[var(--surface-elevated)] ring-1 ring-[var(--accent)]'
-                            : 'border-[var(--border)] bg-[var(--surface-elevated)] hover:bg-[var(--surface-sunken)]')
-                        }
-                      >
-                        <div className="flex w-full items-center justify-between">
-                          <span className="font-display text-[15px] font-semibold text-[var(--text-primary)]">
-                            Bank account
-                          </span>
-                          <span
-                            className={
-                              'h-3 w-3 rounded-full ' +
-                              (field.value === 'bank'
-                                ? 'bg-[var(--accent)]'
-                                : 'border border-[var(--border-strong)]')
-                            }
-                            aria-hidden="true"
-                          />
-                        </div>
-                        <p className="font-sans text-[13px] leading-[1.5] text-[var(--text-secondary)]">
-                          Direct deposit to your KES bank account. Standard
-                          payout schedule, no extra steps after setup.
-                        </p>
-                      </button>
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+            <FiRefreshCw
+              size={14}
+              className={isRetrying ? 'animate-spin' : ''}
+              aria-hidden="true"
             />
-          </SettingsGroupItem>
+            {isRetrying ? 'Retrying\u2026' : 'Retry'}
+          </button>
+        )}
+      </div>
 
-          {payoutMethod === 'mpesa' && (
-            <>
-              <SettingsGroupItem
-                title="M-Pesa Configuration"
-                description="Configure your M-Pesa number for receiving payouts"
-              >
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">Status:</span>
-                    {getMPesaStatusBadge()}
-                  </div>
+      {/* Method picker */}
+      <div>
+        <p className="mb-3 font-sans text-[12px] font-medium uppercase tracking-[0.12em] text-[var(--text-muted)]">
+          How do you want to be paid?
+        </p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <MethodCard
+            active={payoutMethod === 'mpesa'}
+            title="M-Pesa"
+            description="Direct to your phone. KSh 100 verification charge."
+            onSelect={() => form.setValue('payout_method', 'mpesa')}
+          />
+          <MethodCard
+            active={payoutMethod === 'bank'}
+            title="Bank account"
+            description="KES bank deposit. No verification charge."
+            onSelect={() => form.setValue('payout_method', 'bank')}
+          />
+        </div>
+      </div>
 
-                  {currentMPesaNumber && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">Number:</span>
-                      <span className="text-sm text-[var(--text-secondary)]">
-                        {currentMPesaNumber}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </SettingsGroupItem>
+      {/* M-Pesa input + send STK */}
+      {payoutMethod === 'mpesa' && (
+        <div className="space-y-4">
+          <div>
+            <label
+              htmlFor="mpesa-number"
+              className="block font-sans text-[12px] font-medium uppercase tracking-[0.12em] text-[var(--text-muted)]"
+            >
+              M-Pesa number
+            </label>
+            <input
+              id="mpesa-number"
+              type="tel"
+              inputMode="tel"
+              placeholder="0712 345 678"
+              autoComplete="tel"
+              {...register('mpesa_number', {
+                required: 'M-Pesa number is required',
+                validate: (v) => {
+                  const cleaned = normalisePhone(v)
+                  return /^\+254[17]\d{8}$/.test(cleaned)
+                    ? true
+                    : 'Use a Kenyan M-Pesa number (starts with 07 or 01).'
+                },
+              })}
+              className="mt-2 h-12 w-full rounded-md border border-[var(--border)] bg-[var(--surface-elevated)] px-4 font-sans text-[15px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
+            />
+            {formState.errors.mpesa_number && (
+              <p className="mt-2 font-sans text-[13px] text-[var(--error,#dc2626)]">
+                {formState.errors.mpesa_number.message as string}
+              </p>
+            )}
+            <p className="mt-2 font-sans text-[13px] text-[var(--text-secondary)]">
+              We&rsquo;ll push an STK prompt — approve it with your M-Pesa
+              PIN. Window is about three minutes.
+            </p>
+          </div>
 
-              <SettingsGroupItem
-                title="M-Pesa Number"
-                description="Enter your M-Pesa phone number in Kenyan format (+254XXXXXXXXX)"
-              >
-                <FormField
-                  control={form.control}
-                  name="mpesa_number"
-                  rules={{
-                    required:
-                      payoutMethod === 'mpesa'
-                        ? 'M-Pesa number is required'
-                        : false,
-                    validate:
-                      payoutMethod === 'mpesa'
-                        ? validateMPesaNumber
-                        : undefined,
-                  }}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          type="tel"
-                          placeholder="+254712345678"
-                          className="w-64"
-                          onChange={(e) => {
-                            let value = e.target.value
-                            // Auto-format: add +254 if user starts typing without it
-                            if (
-                              value &&
-                              !value.startsWith('+') &&
-                              !value.startsWith('254')
-                            ) {
-                              if (value.startsWith('0')) {
-                                value = '+254' + value.slice(1)
-                              } else if (
-                                value.startsWith('7') ||
-                                value.startsWith('1')
-                              ) {
-                                value = '+254' + value
-                              }
-                            } else if (
-                              value.startsWith('254') &&
-                              !value.startsWith('+254')
-                            ) {
-                              value = '+' + value
-                            }
-                            field.onChange(value)
-                          }}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </SettingsGroupItem>
-
-              {verifyReference && !mpesaVerified && (
-                <SettingsGroupItem
-                  title="Approve KSh 100 charge"
-                  description="Open M-Pesa and confirm the verification charge."
-                >
-                  <div className="space-y-3 rounded-md border border-[var(--border)] bg-[var(--surface-elevated)] p-4">
-                    <div className="flex items-start gap-3">
-                      <Phone
-                        aria-hidden="true"
-                        className="mt-0.5 h-4 w-4 flex-none text-[var(--accent)]"
-                      />
-                      <p className="text-sm text-[var(--text-primary)]">
-                        {verifyDisplayText ||
-                          'Check your phone for the M-Pesa STK push prompt.'}
-                      </p>
-                    </div>
-                    <p className="text-xs text-[var(--text-secondary)]">
-                      The KSh 100 charge is non-refundable and one-time. It
-                      proves the number is yours and protects the marketplace
-                      from fraud.
-                    </p>
-                    <Button
-                      type="button"
-                      onClick={onFinalizeMPesa}
-                      disabled={isVerifying}
-                      size="sm"
-                    >
-                      {isVerifying ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Confirming…
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle className="mr-2 h-4 w-4" />
-                          I&apos;ve approved on M-Pesa
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </SettingsGroupItem>
-              )}
-            </>
+          {errorMsg && (
+            <p
+              role="alert"
+              className="font-sans text-[14px] text-[var(--error,#dc2626)]"
+            >
+              {errorMsg}
+            </p>
           )}
 
-          {payoutMethod === 'bank' && (
-            <OrganizationBankSettings organization={organization} />
-          )}
-
-          <SettingsGroupActions>
-            {payoutMethod === 'mpesa' &&
-              (!currentMPesaNumber ||
-                !mpesaVerified ||
-                mpesaNumber !== currentMPesaNumber) && (
-                <Button
-                  type="submit"
-                  disabled={!formState.isValid || isConfiguring}
-                  loading={isConfiguring}
-                >
-                  {isConfiguring
-                    ? 'Sending STK push…'
-                    : currentMPesaNumber && !mpesaVerified
-                      ? 'Retry STK push'
-                      : 'Send STK push & verify'}
-                </Button>
+          <div>
+            <button
+              type="submit"
+              disabled={
+                stage === 'sending' ||
+                !mpesaNumber ||
+                !formState.isValid
+              }
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-[var(--accent)] px-6 font-sans text-[15px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {stage === 'sending' ? (
+                <>Sending prompt\u2026</>
+              ) : (
+                <>
+                  Send STK push & verify
+                  <FiArrowRight size={16} aria-hidden="true" />
+                </>
               )}
-          </SettingsGroupActions>
-        </SettingsGroup>
-      </form>
-    </Form>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Bank flow */}
+      {payoutMethod === 'bank' && (
+        <div className="border-t border-[var(--border)] pt-6">
+          <OrganizationBankSettings organization={organization} />
+        </div>
+      )}
+    </form>
+  )
+}
+
+// ── Sub-components ───────────────────────────────────────────────
+
+function MethodCard({
+  active,
+  title,
+  description,
+  onSelect,
+}: {
+  active: boolean
+  title: string
+  description: string
+  onSelect: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={active}
+      className={
+        'flex flex-col items-start gap-2 rounded-md border p-4 text-left transition-colors ' +
+        (active
+          ? 'border-[var(--accent)] bg-[var(--surface-elevated)] ring-1 ring-[var(--accent)]'
+          : 'border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-sunken)]')
+      }
+    >
+      <div className="flex w-full items-center justify-between">
+        <span className="font-display text-[16px] font-semibold text-[var(--text-primary)]">
+          {title}
+        </span>
+        <span
+          aria-hidden="true"
+          className={
+            'h-3 w-3 rounded-full ' +
+            (active
+              ? 'bg-[var(--accent)]'
+              : 'border border-[var(--border-strong)]')
+          }
+        />
+      </div>
+      <p className="font-sans text-[13px] leading-[1.5] text-[var(--text-secondary)]">
+        {description}
+      </p>
+    </button>
+  )
+}
+
+function WaitingPanel({
+  stage,
+  reference,
+  displayText,
+  errorMsg,
+  elapsedMs,
+  timeoutMs,
+  isFinalizing,
+  onTryAgain,
+}: {
+  stage: 'waiting' | 'succeeded' | 'failed'
+  reference: string | null
+  displayText: string
+  errorMsg: string | null
+  elapsedMs: number
+  timeoutMs: number
+  isFinalizing: boolean
+  onTryAgain: () => void
+}) {
+  const progressPct =
+    stage === 'succeeded'
+      ? 100
+      : stage === 'failed'
+        ? 100
+        : Math.min(95, Math.round((elapsedMs / timeoutMs) * 100))
+
+  const tone =
+    stage === 'succeeded'
+      ? 'border-[var(--accent)] bg-[var(--surface-elevated)]'
+      : stage === 'failed'
+        ? 'border-[var(--border)] bg-[var(--surface)]'
+        : 'border-[var(--border)] bg-[var(--surface)]'
+
+  const Icon =
+    stage === 'succeeded' ? FiCheck : stage === 'failed' ? FiX : FiPhone
+  const iconColor =
+    stage === 'succeeded'
+      ? 'text-[var(--accent)]'
+      : stage === 'failed'
+        ? 'text-[var(--text-secondary)]'
+        : 'text-[var(--accent)]'
+
+  return (
+    <div
+      className={
+        'flex flex-col items-center gap-6 rounded-md border px-6 py-12 text-center ' +
+        tone
+      }
+    >
+      {/* Phone-frame icon */}
+      <div className="relative flex h-16 w-16 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--background)]">
+        <Icon size={28} className={iconColor} aria-hidden="true" />
+      </div>
+
+      {stage === 'waiting' && (
+        <>
+          <div className="space-y-2">
+            <h3 className="font-display text-[24px] font-semibold leading-[1.15] tracking-[-0.02em] text-[var(--text-primary)]">
+              Check your phone for the M-Pesa prompt.
+            </h3>
+            <p className="mx-auto max-w-[44ch] font-sans text-[15px] leading-[1.55] text-[var(--text-secondary)]">
+              {displayText} Amount:{' '}
+              <strong className="text-[var(--text-primary)]">KSh 100</strong>.
+            </p>
+          </div>
+          {/* Progress bar */}
+          <div
+            className="mt-2 h-1.5 w-full max-w-[360px] overflow-hidden rounded-full bg-[var(--surface-sunken)]"
+            aria-hidden="true"
+          >
+            <div
+              className="h-full rounded-full bg-[var(--accent)] transition-[width] duration-300 ease-linear"
+              style={{ width: `${progressPct}%` }}
+            />
+          </div>
+          <p className="font-sans text-[12px] text-[var(--text-muted)]">
+            {reference ? <>Reference {reference} \u00b7 </> : null}
+            {isFinalizing
+              ? 'Confirming\u2026'
+              : 'We\u2019ll auto-confirm once you approve'}
+          </p>
+        </>
+      )}
+
+      {stage === 'succeeded' && (
+        <div className="space-y-2">
+          <h3 className="font-display text-[24px] font-semibold leading-[1.15] tracking-[-0.02em] text-[var(--text-primary)]">
+            Payouts active.
+          </h3>
+          <p className="mx-auto max-w-[44ch] font-sans text-[15px] leading-[1.55] text-[var(--text-secondary)]">
+            Your M-Pesa is verified and your payout account is set up.
+            We\u2019re refreshing the page now.
+          </p>
+        </div>
+      )}
+
+      {stage === 'failed' && (
+        <>
+          <div className="space-y-2">
+            <h3 className="font-display text-[24px] font-semibold leading-[1.15] tracking-[-0.02em] text-[var(--text-primary)]">
+              That didn\u2019t go through.
+            </h3>
+            <p className="mx-auto max-w-[44ch] font-sans text-[15px] leading-[1.55] text-[var(--text-secondary)]">
+              {errorMsg || 'The prompt timed out or was declined.'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onTryAgain}
+            className="inline-flex h-11 items-center gap-2 rounded-md bg-[var(--accent)] px-5 font-sans text-[14px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)]"
+          >
+            <FiRefreshCw size={14} aria-hidden="true" />
+            Try again
+          </button>
+        </>
+      )}
+    </div>
+  )
+}
+
+function PayoutsActiveBlock({
+  number,
+  onChangeMethod,
+}: {
+  number: string
+  onChangeMethod: () => void
+}) {
+  return (
+    <div className="space-y-6">
+      <div>
+        <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
+          Payouts
+        </p>
+        <h2 className="mt-2 font-display text-[28px] font-semibold leading-[1.1] tracking-[-0.02em] text-[var(--text-primary)]">
+          You\u2019re set up to be paid.
+        </h2>
+        <p className="mt-3 max-w-[60ch] font-sans text-[15px] leading-[1.55] text-[var(--text-secondary)]">
+          Sales settle into your M-Pesa automatically after each
+          successful order, minus the marketplace fee.
+        </p>
+      </div>
+      <dl className="grid grid-cols-1 gap-4 border-y border-[var(--border)] py-5 sm:grid-cols-2">
+        <div>
+          <dt className="font-sans text-[12px] font-medium uppercase tracking-[0.12em] text-[var(--text-muted)]">
+            Method
+          </dt>
+          <dd className="mt-1 inline-flex items-center gap-2 font-sans text-[15px] text-[var(--text-primary)]">
+            <FiCheck
+              size={14}
+              className="text-[var(--accent)]"
+              aria-hidden="true"
+            />
+            M-Pesa verified
+          </dd>
+        </div>
+        <div>
+          <dt className="font-sans text-[12px] font-medium uppercase tracking-[0.12em] text-[var(--text-muted)]">
+            Number
+          </dt>
+          <dd className="mt-1 font-sans text-[15px] tabular-nums text-[var(--text-primary)]">
+            {number}
+          </dd>
+        </div>
+      </dl>
+      <button
+        type="button"
+        onClick={onChangeMethod}
+        className="font-sans text-[14px] underline-offset-4 hover:underline text-[var(--text-secondary)]"
+      >
+        Switch to a bank account instead
+      </button>
+    </div>
   )
 }
 
