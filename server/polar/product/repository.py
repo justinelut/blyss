@@ -211,6 +211,7 @@ class ProductRepository(
             statement = base.where(
                 Product.id == product_id,
                 Product.is_deleted.is_(False),
+                Product.is_archived.is_(False),
                 Product.visibility == ProductVisibility.public,
             )
             product = await self.get_one_or_none(statement)
@@ -220,6 +221,7 @@ class ProductRepository(
         statement = base.where(
             Product.name == slug,
             Product.is_deleted.is_(False),
+            Product.is_archived.is_(False),
             Product.visibility == ProductVisibility.public,
         )
         return await self.get_one_or_none(statement)

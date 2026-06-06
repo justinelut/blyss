@@ -60,7 +60,9 @@ class TestGetProductBySlug:
         product: Product,
     ) -> None:
         """Test that deleted products are not accessible by slug"""
-        product.is_deleted = True
+        from polar.kit.utils import utc_now
+
+        product.deleted_at = utc_now()
         await save_fixture(product)
 
         response = await client.get(f"/v1/products/slug/{product.name}")
@@ -73,13 +75,18 @@ class TestGetProductBySlug:
         product: Product,
         organization: Organization,
     ) -> None:
-        """Test that product detail includes organization information"""
+        """Test that product detail includes organization information.
+
+        The Product schema exposes organization_id (UUID) — not a nested
+        organization object — on the public slug endpoint. The frontend
+        derives the creator name from the storefront response or from
+        a separate creator fetch when it needs the full org details.
+        """
         response = await client.get(f"/v1/products/slug/{product.name}")
 
         assert response.status_code == 200
         json = response.json()
-        assert json["organization"]["id"] == str(organization.id)
-        assert json["organization"]["name"] == organization.name
+        assert json["organization_id"] == str(organization.id)
 
     async def test_returns_product_with_prices(
         self,
