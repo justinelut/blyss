@@ -161,6 +161,24 @@ class ProductService:
             session, auth_subject, create_schema
         )
 
+        # Publishability gate — Blyss only allows public products from
+        # creators who have an active payout route. Buyers paying for a
+        # product whose creator has no Paystack subaccount means 100% of
+        # the funds land in Blyss's main account and we'd have to manually
+        # pay them out later. To prevent that and force creators to finish
+        # M-Pesa / bank verification before going live, we silently
+        # downgrade visibility=public to private on create when the
+        # organization's subaccount is not active. The creator can still
+        # save drafts, edit, attach benefits, etc. Once they verify
+        # payouts, they can flip visibility back to public.
+        if (
+            create_schema.visibility == ProductVisibility.public
+            and getattr(organization, "subaccount_status", None) != "active"
+        ):
+            create_schema = create_schema.model_copy(
+                update={"visibility": ProductVisibility.private}
+            )
+
         errors: list[ValidationError] = []
         prices, _, _, prices_errors = await self.get_validated_prices(
             session,
@@ -252,6 +270,22 @@ class ProductService:
         auth_subject: AuthSubject[User | Organization],
     ) -> Product:
         errors: list[ValidationError] = []
+
+        # Publishability gate (mirrors create()): a creator cannot flip a
+        # product to public without an active payout subaccount, otherwise
+        # buyer funds for that product would skip the auto-split and
+        # require a manual reconciliation. If the update tries to make the
+        # product public but the org has no active subaccount, downgrade
+        # to private — UI can read this back and show a 'Activate payouts
+        # to publish' nudge.
+        if (
+            update_schema.visibility == ProductVisibility.public
+            and getattr(product.organization, "subaccount_status", None)
+            != "active"
+        ):
+            update_schema = update_schema.model_copy(
+                update={"visibility": ProductVisibility.private}
+            )
 
         # Validate prices
         existing_prices = set(product.prices)

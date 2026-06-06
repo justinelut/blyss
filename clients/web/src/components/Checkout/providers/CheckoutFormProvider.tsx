@@ -15,6 +15,7 @@ import type {
 } from '@stripe/stripe-js'
 import { createContext, useCallback, useContext, useState } from 'react'
 import type { UseFormReturn } from 'react-hook-form'
+import { useAuth } from '@/hooks/auth'
 import { useForm } from 'react-hook-form'
 import { setValidationErrors } from '../utils/form'
 import { useCheckout } from './CheckoutProvider'
@@ -53,10 +54,25 @@ export const CheckoutFormProvider = ({
   const [loading, setLoading] = useState(false)
   const [loadingLabel, setLoadingLabel] = useState<string | undefined>()
   const [isUpdatePending, setIsUpdatePending] = useState(false)
+  // Pre-populate the checkout form from the signed-in user when the checkout
+  // doesn't already carry their email/name. Saves the buyer from re-typing
+  // identity data Blyss already has. Anonymous checkouts fall through to
+  // empty defaults as before.
+  const { currentUser } = useAuth()
+  const prefilledEmail =
+    (checkout.customer_email as string | null | undefined) ||
+    currentUser?.email ||
+    null
+  const prefilledName =
+    (checkout.customer_name as string | null | undefined) ||
+    (currentUser as { name?: string | null } | undefined)?.name ||
+    null
 
   const form = useForm<schemas['CheckoutUpdatePublic']>({
     defaultValues: {
       ...checkout,
+      customer_email: prefilledEmail,
+      customer_name: prefilledName,
       customer_billing_address: checkout.customer_billing_address as
         | schemas['AddressInput'] // We need to typecast here for some reason (it tries to match all_countries to supported_countries)
         | null,
@@ -159,8 +175,44 @@ export const CheckoutFormProvider = ({
         }
       }
 
+      // Handle Paystack payments — Blyss's only processor in production.
+      // The actual charge is fired by PaystackPaymentInterface via its
+      // /charge/{channel} endpoint and polled for status. The form's
+      // visible 'Pay now' button just dispatches a click on the hidden
+      // <input data-paystack-channel-submit /> trigger inside the
+      // PaystackPaymentInterface tree, which calls onPay(). After that,
+      // the polling effect inside the interface handles success/failure
+      // — there's no Stripe ConfirmationToken to mint here.
+      if (checkout.payment_processor === 'paystack') {
+        setLoadingLabel(t('checkout.loading.processingPayment'))
+        try {
+          const trigger = document.querySelector<HTMLInputElement>(
+            '[data-paystack-channel-submit]',
+          )
+          if (!trigger) {
+            throw new Error(
+              'Paystack channel form not ready — pick a payment method and try again.',
+            )
+          }
+          // The hidden input has onClick -> onPay; firing a click event
+          // routes through React's synthetic event system.
+          trigger.click()
+          // Charge is async + polled inside the interface. Return the
+          // current checkout so the form's loading state clears; the
+          // interface's success banner / error toast is the buyer's
+          // canonical signal.
+          return checkout as schemas['CheckoutPublicConfirmed']
+        } catch (e) {
+          setError('root', {
+            message: e instanceof Error ? e.message : 'Payment failed.',
+          })
+          throw e
+        } finally {
+          setLoading(false)
+        }
+      }
+
       // Handle Stripe payments
-      // TODO: Add payment_processor field to backend checkout schema to support multiple processors
       if (!stripe || !elements) {
         setLoading(false)
         throw new Error('Stripe elements not provided')

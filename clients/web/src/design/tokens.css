@@ -14,9 +14,9 @@
 
 :root {
   --background:        #FAFAF7;   /* warm off-white, paper not snow */
-  --surface:           #F1EFE9;   /* aged paper, section breaks */
+  --surface:           #EFEDE7;   /* refined cream, slight warm-neutral cast */
   --surface-elevated:  #FFFFFF;   /* product cards, modals, dropdowns */
-  --surface-sunken:    #E8E5DD;   /* input bg, code blocks, hover */
+  --surface-sunken:    #E5E3DD;   /* input bg, code blocks, hover */
   --border:            #D9D5CB;   /* hairline, used sparingly */
   --border-strong:     #BBB5A8;   /* focused inputs, active filter chips */
   --text-primary:      #1A1A17;   /* warm near-black; never #000000 */
