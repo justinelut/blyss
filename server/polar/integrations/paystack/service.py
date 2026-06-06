@@ -743,6 +743,7 @@ class PaystackService:
         settlement_bank: str | None = None,
         account_number: str | None = None,
         percentage_charge: float,
+        session: object | None = None,
     ) -> dict[str, Any]:
         """
         Create a subaccount for automatic payment splits.
@@ -752,6 +753,8 @@ class PaystackService:
             settlement_bank: Bank code for settlement (optional)
             account_number: Account number for settlement (optional)
             percentage_charge: Percentage of transaction to charge (e.g., 20.0 for 20%)
+            session: Optional DB session to read the runtime-overlaid
+                Paystack secret key from. Without it the env var is used.
 
         Returns:
             dict containing subaccount_code and status
@@ -783,10 +786,12 @@ class PaystackService:
         )
 
         try:
+            secret_key = await self._resolve_secret_key(session)
             # Make POST request to Paystack API
             response = await self._client.post(
                 "/subaccount",
                 json=payload,
+                headers=self._auth_headers(secret_key),
             )
 
             # Handle different response status codes
@@ -802,10 +807,21 @@ class PaystackService:
             if response.status_code == 422:
                 response_data = response.json()
                 error_message = response_data.get("message", "Validation error")
+                # Surface the full upstream body to logs so ops can see
+                # exactly which field paystack rejected (settlement_bank
+                # code, account_number format, etc.). Without this the
+                # 'M-Pesa charge succeeded but Paystack rejected the
+                # subaccount' user-facing copy is the only signal.
                 log.error(
-                    "paystack.api.error",
-                    error_type="validation",
+                    "paystack.subaccount.create.validation_error",
                     error_message=error_message,
+                    paystack_body=str(response_data)[:500],
+                    payload_preview={
+                        "settlement_bank": payload.get("settlement_bank"),
+                        "has_account_number": bool(
+                            payload.get("account_number")
+                        ),
+                    },
                     status_code=response.status_code,
                 )
                 raise PaystackValidationError(error_message)
@@ -869,6 +885,7 @@ class PaystackService:
         *,
         settlement_bank: str | None = None,
         account_number: str | None = None,
+        session: object | None = None,
     ) -> dict[str, Any]:
         """
         Update subaccount settlement details.
@@ -877,6 +894,8 @@ class PaystackService:
             subaccount_code: The subaccount code to update
             settlement_bank: Bank code for settlement (optional)
             account_number: Account number for settlement (optional)
+            session: Optional DB session to read the runtime-overlaid
+                Paystack secret key from. Without it the env var is used.
 
         Returns:
             dict containing updated subaccount details
@@ -905,10 +924,12 @@ class PaystackService:
         )
 
         try:
+            secret_key = await self._resolve_secret_key(session)
             # Make PUT request to Paystack API
             response = await self._client.put(
                 f"/subaccount/{subaccount_code}",
                 json=payload,
+                headers=self._auth_headers(secret_key),
             )
 
             # Handle different response status codes

@@ -426,11 +426,16 @@ async def finalize_mpesa_verification(
     )
 
     try:
+        # Paystack's subaccount API expects M-Pesa MSISDN without the '+'
+        # (i.e. '254712345678', not '+254712345678'). Strip it on the way
+        # in. Storage stays in E.164 form for our own UI / display.
+        mpesa_account_number = (organization.mpesa_number or "").lstrip("+")
         if organization.subaccount_code:
             await paystack.update_subaccount(
                 subaccount_code=organization.subaccount_code,
                 settlement_bank="MPESA",
-                account_number=organization.mpesa_number,
+                account_number=mpesa_account_number,
+                session=session,
             )
             organization = await repository.update(
                 organization,
@@ -441,8 +446,9 @@ async def finalize_mpesa_verification(
             sub = await paystack.create_subaccount(
                 business_name=organization.name,
                 settlement_bank="MPESA",
-                account_number=organization.mpesa_number,
+                account_number=mpesa_account_number,
                 percentage_charge=20.0,
+                session=session,
             )
             organization = await repository.update(
                 organization,
@@ -468,14 +474,23 @@ async def finalize_mpesa_verification(
             update_dict={"subaccount_status": "failed"},
             flush=True,
         )
-        raise HTTPException(
-            status_code=422,
-            detail=(
-                "M-Pesa charge succeeded but Paystack rejected the subaccount "
-                "creation. Your M-Pesa number is saved — please retry from "
-                "Settings."
-            ),
-        ) from e
+        # Surface the actual Paystack error message so the creator can
+        # act on it (e.g. 'Account number is invalid' vs a vague generic
+        # rejection). The fallback is a polite generic when paystack
+        # returns nothing useful.
+        upstream_msg = str(e).strip()
+        detail = (
+            f"M-Pesa charge succeeded but Paystack rejected the payout "
+            f"subaccount: {upstream_msg}. Your M-Pesa number is saved — "
+            f"please retry from Settings, or check the number format."
+            if upstream_msg
+            else (
+                "M-Pesa charge succeeded but Paystack rejected the payout "
+                "subaccount. Your M-Pesa number is saved — please retry "
+                "from Settings."
+            )
+        )
+        raise HTTPException(status_code=422, detail=detail) from e
 
     return OrganizationSchema.model_validate(organization)
 
@@ -567,6 +582,7 @@ async def configure_bank(
                 subaccount_code=organization.subaccount_code,
                 settlement_bank=request.bank_code,
                 account_number=request.account_number,
+                session=session,
             )
             update_dict = {
                 "bank_code": request.bank_code,
@@ -581,6 +597,7 @@ async def configure_bank(
                 settlement_bank=request.bank_code,
                 account_number=request.account_number,
                 percentage_charge=20.0,
+                session=session,
             )
             update_dict = {
                 "bank_code": request.bank_code,

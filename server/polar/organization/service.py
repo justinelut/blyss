@@ -1281,6 +1281,7 @@ class OrganizationService:
             subaccount_data = await paystack.create_subaccount(
                 business_name=organization.name,
                 percentage_charge=20.0,  # 20% platform fee
+                session=session,
             )
 
             # Update organization with subaccount details
