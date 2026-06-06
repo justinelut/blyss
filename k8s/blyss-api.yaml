@@ -85,6 +85,11 @@ spec:
           # @actor with priority=TaskPriority.LOW (Loops backfills,
           # marketing emails, slow background work) sits in `low_priority`
           # forever. Match dev/docker/scripts/startup.sh + dev/cli/worker.py.
+          #
+          # The `--` terminates argparse's option scanning so `--queues`'s
+          # nargs='*' stops swallowing words; without it `polar.worker.run`
+          # is parsed as a queue name and the worker fails to start with
+          # 'the following arguments are required: broker'.
           command:
             - "uv"
             - "run"
@@ -99,6 +104,7 @@ spec:
             - "medium_priority"
             - "low_priority"
             - "webhooks"
+            - "--"
             - "polar.worker.run"
           envFrom:
             - secretRef:

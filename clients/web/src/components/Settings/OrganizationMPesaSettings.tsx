@@ -539,13 +539,19 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
 
           <SettingsGroupActions>
             {payoutMethod === 'mpesa' &&
-              (!currentMPesaNumber || mpesaNumber !== currentMPesaNumber) && (
+              (!currentMPesaNumber ||
+                !mpesaVerified ||
+                mpesaNumber !== currentMPesaNumber) && (
                 <Button
                   type="submit"
                   disabled={!formState.isValid || isConfiguring}
                   loading={isConfiguring}
                 >
-                  {isConfiguring ? 'Sending STK push…' : 'Send STK push & verify'}
+                  {isConfiguring
+                    ? 'Sending STK push…'
+                    : currentMPesaNumber && !mpesaVerified
+                      ? 'Retry STK push'
+                      : 'Send STK push & verify'}
                 </Button>
               )}
           </SettingsGroupActions>

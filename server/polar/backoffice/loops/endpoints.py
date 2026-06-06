@@ -24,8 +24,9 @@ router = APIRouter()
 # Redis key holding the last-sync summary so the operator sees what happened.
 LAST_SYNC_KEY = "loops:last_sync"
 # Synchronous-mode cap. Higher than this and we recommend the queued backfill
-# (the request would otherwise block while we hit Loops once per user).
-SYNC_NOW_MAX = 500
+# (the request would otherwise block while we hit Loops once per user, and
+# Cloudflare/ingress will time out around ~60-100s).
+SYNC_NOW_MAX = 100
 
 
 async def _read_last_sync(redis: Redis) -> dict | None:
@@ -262,36 +263,51 @@ async def sync_now(
     first_error = ""
 
     # Sequential to avoid blasting Loops with N concurrent calls; Loops's
-    # /contacts/update is fast (~120ms typical), so 200 users ≈ 25s. Front
+    # /contacts/update is fast (~120ms typical), so 100 users ≈ 17s. Front
     # the request with hx-trigger so the toast lands as soon as we redirect.
-    for user in users:
-        signup_intent = (user.signup_attribution or {}).get("intent") or ""
-        try:
-            await loops_client.update_contact(
-                user.email,
-                str(user.id),
-                session=session,
-                userId=str(user.id),
-                userGroup="creator",
-                signupIntent=signup_intent,
-                subscribed=True,
-                createdAt=user.created_at.isoformat(),
-            )
-            ok += 1
-        except LoopsClientLogicalError as e:
-            failed += 1
-            if not first_error:
-                first_error = f"HTTP {e.status_code}: {e.body[:120]}"
-        except LoopsClientOperationalError as e:
-            failed += 1
-            if not first_error:
-                first_error = f"network/5xx: {str(e)[:120]}"
-        except Exception as e:
-            failed += 1
-            if not first_error:
-                first_error = f"{type(e).__name__}: {str(e)[:120]}"
-        # Tiny pause so we don't hammer Loops; cooperative-yield the loop too.
-        await asyncio.sleep(0.05)
+    try:
+        for user in users:
+            signup_intent = (user.signup_attribution or {}).get("intent") or ""
+            try:
+                await loops_client.update_contact(
+                    user.email,
+                    str(user.id),
+                    session=session,
+                    userId=str(user.id),
+                    userGroup="creator",
+                    signupIntent=signup_intent,
+                    subscribed=True,
+                    createdAt=user.created_at.isoformat(),
+                )
+                ok += 1
+            except LoopsClientLogicalError as e:
+                failed += 1
+                if not first_error:
+                    first_error = f"HTTP {e.status_code}: {e.body[:120]}"
+            except LoopsClientOperationalError as e:
+                failed += 1
+                if not first_error:
+                    first_error = f"network/5xx: {str(e)[:120]}"
+            except Exception as e:
+                failed += 1
+                if not first_error:
+                    first_error = f"{type(e).__name__}: {str(e)[:120]}"
+            # Tiny pause so we don't hammer Loops; cooperative-yield the loop too.
+            await asyncio.sleep(0.05)
+    except Exception as outer:
+        # Outer-scope failure (DB, session, asyncio cancel, etc). Surface as
+        # a toast instead of a bare 500 so the operator sees what happened.
+        import structlog
+        log = structlog.get_logger()
+        log.error(
+            "loops.sync_now.outer_error",
+            error_type=type(outer).__name__,
+            error=str(outer)[:500],
+            ok=ok,
+            failed=failed,
+        )
+        first_error = f"{type(outer).__name__}: {str(outer)[:200]}"
+        failed += 1
 
     duration = time.time() - started
     await _write_last_sync(
