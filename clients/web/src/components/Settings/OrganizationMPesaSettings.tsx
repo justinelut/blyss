@@ -22,6 +22,7 @@
 import { useAuth } from '@/hooks'
 import { api } from '@/utils/client'
 import { schemas, unwrap } from '@/lib/api'
+import { translatePaystackError } from '@/lib/paystack/translate-error'
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import {
@@ -159,10 +160,7 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
         ) {
           stopPolling()
           setStage('failed')
-          setErrorMsg(
-            status.gateway_response ||
-              'The prompt was declined or cancelled.',
-          )
+          setErrorMsg(translatePaystackError(status.gateway_response))
         }
         // 'pending' or anything else: keep polling.
       } catch {

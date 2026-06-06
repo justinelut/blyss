@@ -26,6 +26,7 @@ import {
   type PaymentChannelProvider,
 } from '@/hooks/queries/checkoutPaystack'
 import { cn } from '@/lib/utils'
+import { translatePaystackError } from '@/lib/paystack/translate-error'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useFormContext } from 'react-hook-form'
 import { FiPhone, FiRefreshCw, FiX } from 'react-icons/fi'
@@ -806,7 +807,7 @@ const ActiveChargePanel = ({
             That didn&rsquo;t go through.
           </h3>
           <p className="mx-auto max-w-[44ch] font-sans text-[14px] leading-[1.55] text-[var(--text-secondary)]">
-            {charge.display_text || 'The prompt was declined or cancelled.'}
+            {translatePaystackError(charge.display_text)}
           </p>
         </div>
         <button
