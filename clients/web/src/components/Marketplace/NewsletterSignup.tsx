@@ -26,28 +26,48 @@ export function NewsletterSignup({ className }: { className?: string }) {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email.trim()) return
+    e.stopPropagation()
+    const trimmed = email.trim()
+    if (!trimmed) return
     setSubmitting(true)
+
+    // useToast can throw when Toaster isn't mounted yet (e.g. fast-render
+    // route changes); the user shouldn't lose feedback because the
+    // toast viewport hiccupped. Fallback to setDone() + inline status
+    // copy is the canonical signal.
+    const safeToast = (args: Parameters<typeof toast>[0]) => {
+      try {
+        toast(args)
+      } catch {
+        // ignored — `done` state below is the user-visible signal
+      }
+    }
+
     try {
       const r = await fetch(
         `${CONFIG.BASE_URL}/v1/integrations/loops/newsletter`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: email.trim() }),
+          body: JSON.stringify({ email: trimmed }),
         },
       )
       if (!r.ok) throw new Error(`HTTP ${r.status}`)
       setDone(true)
       setEmail('')
-      toast({
-        title: 'You’re on the list',
+      safeToast({
+        title: 'You\u2019re on the list',
         description:
-          'We’ll send the occasional editorial update — never spam, easy to unsubscribe.',
+          'We\u2019ll send the occasional editorial update — never spam, easy to unsubscribe.',
         duration: 3500,
       })
-    } catch {
-      toast({
+    } catch (err) {
+      // Surface the failure inline AND in console so users + ops have
+      // visibility. Common causes: API down, CORS misconfig, Loops
+      // upstream 4xx. The form doesn't lock — user can retry.
+      // eslint-disable-next-line no-console
+      console.error('[newsletter] submit failed', err)
+      safeToast({
         title: 'Could not subscribe',
         description: 'Try again in a moment, or reach out at hello@blyss.co.ke.',
         variant: 'error',
@@ -73,36 +93,47 @@ export function NewsletterSignup({ className }: { className?: string }) {
       <p className="font-sans text-[13px] text-[var(--text-secondary)]">
         Editorial drops + new creator features. Once a fortnight, max.
       </p>
-      <div className="mt-2 flex items-center gap-2">
-        <input
-          id="newsletter-email"
-          type="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@example.com"
-          autoComplete="email"
-          disabled={submitting || done}
-          className="h-10 flex-1 rounded-md border border-[var(--border)] bg-[var(--surface-elevated)] px-3 font-sans text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--text-primary)] focus:outline-none"
-        />
-        <button
-          type="submit"
-          disabled={submitting || done || !email.trim()}
-          aria-label={done ? 'Subscribed' : 'Subscribe'}
-          className="inline-flex h-10 items-center justify-center gap-1.5 rounded-md bg-[var(--accent)] px-4 font-sans text-[13px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+      {done ? (
+        // Inline success — Toast may not show if the viewport is offscreen
+        // on mobile or hasn't mounted yet, so we render the canonical
+        // confirmation directly inside the form.
+        <p
+          role="status"
+          className="mt-2 inline-flex items-center gap-2 font-sans text-[13px] text-[var(--text-primary)]"
         >
-          {done ? (
-            <FiCheck size={16} aria-hidden="true" />
-          ) : submitting ? (
-            <span aria-hidden="true">...</span>
-          ) : (
-            <>
-              Subscribe
-              <FiArrowRight size={14} aria-hidden="true" />
-            </>
-          )}
-        </button>
-      </div>
+          <FiCheck size={16} className="text-[var(--accent)]" aria-hidden="true" />
+          You\u2019re on the list. Check your inbox for the welcome note.
+        </p>
+      ) : (
+        <div className="mt-2 flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
+          <input
+            id="newsletter-email"
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
+            autoComplete="email"
+            disabled={submitting}
+            className="h-10 flex-1 rounded-md border border-[var(--border)] bg-[var(--surface-elevated)] px-3 font-sans text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none disabled:opacity-60"
+          />
+          <button
+            type="submit"
+            disabled={submitting || !email.trim()}
+            aria-label="Subscribe"
+            className="inline-flex h-10 items-center justify-center gap-1.5 rounded-md bg-[var(--accent)] px-4 font-sans text-[13px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {submitting ? (
+              <span aria-hidden="true">Subscribing\u2026</span>
+            ) : (
+              <>
+                Subscribe
+                <FiArrowRight size={14} aria-hidden="true" />
+              </>
+            )}
+          </button>
+        </div>
+      )}
     </form>
   )
 }

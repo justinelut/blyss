@@ -189,8 +189,14 @@ export function BrowsePage({
     page: filters.page,
   })
 
-  const products = data?.items ?? initialProducts
-  const totalCount = data?.pagination?.total_count ?? initialTotalCount
+  // Always coerce to an array — the SSR fallback can pass `undefined`
+  // when the API call .catch'd, and TanStack Query's `data` may be
+  // undefined on first render. Guarantees `.length` / `.map` calls
+  // below don't blow up on an empty marketplace (e.g. when no creator
+  // has activated payouts yet — a real user-facing case after the
+  // active-subaccount filter shipped).
+  const products = (data?.items ?? initialProducts ?? []) as schemas['Product'][]
+  const totalCount = data?.pagination?.total_count ?? initialTotalCount ?? 0
 
   const updateFilters = (next: Partial<BrowseFilters & { search: string | null; page: number }>) => {
     setFilters({ ...next, page: 1 } as any)

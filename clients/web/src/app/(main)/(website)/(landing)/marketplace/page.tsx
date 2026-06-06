@@ -137,7 +137,7 @@ export default async function MarketplacePage({
         }}
       />
       <BrowsePage
-        initialProducts={productsData.items}
+        initialProducts={productsData.items ?? []}
         initialTotalCount={productsData.pagination?.total_count ?? 0}
         categories={categories}
         initialFilters={{
