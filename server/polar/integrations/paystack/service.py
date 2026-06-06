@@ -80,6 +80,40 @@ class PaystackService:
         # Instrument the HTTP client for observability
         instrument_httpx(self._client)
 
+    async def _resolve_secret_key(self, session: object | None) -> str:
+        """Resolve the Paystack secret key with runtime_settings overlay.
+
+        Order of precedence:
+          1. runtime_settings overlay (set via /backoffice/runtime-settings)
+             — lets ops swap test <-> live keys without redeploying.
+          2. settings.PAYSTACK_SECRET_KEY (env var) — fallback.
+
+        The overlay path requires a DB session. Callers that don't have one
+        (background tasks, module-init paths) pass session=None and get the
+        env var.
+        """
+        if session is None:
+            return self.secret_key
+        try:
+            from polar.runtime_settings import runtime_settings  # lazy
+
+            override = await runtime_settings.get(session, "PAYSTACK_SECRET_KEY")  # type: ignore[arg-type]
+            if override:
+                return override
+        except Exception:
+            # Runtime overlay table may be unavailable in some test
+            # contexts. Fall back to env var quietly.
+            pass
+        return self.secret_key
+
+    def _auth_headers(self, secret_key: str | None = None) -> dict[str, str]:
+        """Build per-request auth headers, allowing override of the bearer
+        token. Used to inject the runtime-overlaid secret key without
+        rebuilding the long-lived httpx client."""
+        return {
+            "Authorization": f"Bearer {secret_key or self.secret_key}",
+        }
+
     async def initialize_transaction(
         self,
         *,
@@ -221,12 +255,16 @@ class PaystackService:
                 f"Network error communicating with Paystack: {e}"
             )
 
-    async def verify_transaction(self, reference: str) -> dict[str, Any]:
+    async def verify_transaction(
+        self, reference: str, *, session: object | None = None
+    ) -> dict[str, Any]:
         """
         Verify a transaction status.
 
         Args:
             reference: Transaction reference to verify
+            session: Optional DB session to read the runtime-overlaid
+                Paystack secret key from. Without it the env var is used.
 
         Returns:
             dict containing transaction status and details
@@ -243,10 +281,13 @@ class PaystackService:
             reference=reference,
         )
 
+        secret_key = await self._resolve_secret_key(session)
+
         try:
             # Make GET request to Paystack API
             response = await self._client.get(
                 f"/transaction/verify/{reference}",
+                headers=self._auth_headers(secret_key),
             )
 
             # Handle different response status codes
@@ -333,19 +374,26 @@ class PaystackService:
         safe.pop("pin", None)
         return safe
 
-    async def charge(self, payload: dict[str, Any]) -> dict[str, Any]:
+    async def charge(
+        self, payload: dict[str, Any], *, session: object | None = None
+    ) -> dict[str, Any]:
         """Generic wrapper around Paystack POST /charge.
 
         Accepts the full payload dict and returns
-        {reference, status, display_text, raw}.
+        {reference, status, display_text, raw}. Pass `session` to honor any
+        runtime_settings overlay on the Paystack secret key.
         """
         log.info(
             "paystack.charge",
             payload=self._mask_payload_for_logging(payload),
         )
 
+        secret_key = await self._resolve_secret_key(session)
+
         try:
-            response = await self._client.post("/charge", json=payload)
+            response = await self._client.post(
+                "/charge", json=payload, headers=self._auth_headers(secret_key)
+            )
 
             if response.status_code == 401:
                 raise PaystackAuthenticationError(
@@ -536,10 +584,12 @@ class PaystackService:
         currency: str = "KES",
         reference: str | None = None,
         metadata: dict[str, Any] | None = None,
+        session: object | None = None,
     ) -> dict[str, Any]:
         """Initiate an inbound mobile-money charge (M-Pesa STK push).
 
-        Delegates to the generic charge() helper.
+        Delegates to the generic charge() helper. Pass `session` so the
+        runtime-overlaid Paystack secret key (test vs live) is honored.
         """
         import uuid
 
@@ -556,7 +606,7 @@ class PaystackService:
         if metadata:
             payload["metadata"] = metadata
 
-        result = await self.charge(payload)
+        result = await self.charge(payload, session=session)
         # Provide M-Pesa-specific default display_text
         if not result.get("display_text"):
             result["display_text"] = (

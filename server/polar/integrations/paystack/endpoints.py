@@ -255,6 +255,7 @@ async def initiate_mpesa_verification(
                 "purpose": "blyss.payout_method.mpesa.verification",
                 "organization_id": str(organization.id),
             },
+            session=session,
         )
     except Exception as e:
         log.error(
@@ -325,7 +326,9 @@ async def mpesa_charge_status(
         raise ResourceNotFound("Organization not found")
 
     try:
-        verification = await paystack.verify_transaction(reference)
+        verification = await paystack.verify_transaction(
+            reference, session=session
+        )
     except Exception as e:
         # Network / upstream errors are transient — return pending so
         # the client keeps polling. Logging at warn so ops can see if
@@ -379,7 +382,9 @@ async def finalize_mpesa_verification(
 
     # 1. Verify the charge with Paystack.
     try:
-        verification = await paystack.verify_transaction(request.reference)
+        verification = await paystack.verify_transaction(
+            request.reference, session=session
+        )
     except Exception as e:
         log.error(
             "paystack.mpesa.finalize_verification.verify_failed",
