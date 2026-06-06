@@ -1,5 +1,19 @@
 'use client'
 
+/* Hallmark · component: nav · archetype: N9 edge-aligned minimal
+ * theme: blyss-design (light cream + burnt orange #C2410C accent)
+ * states: default (transparent) · scrolled (backdrop-blur) · hover · focus-
+ *         visible · mobile-drawer
+ * contrast: pass · slop: pass (gates 51, 60)
+ *
+ * Reference DNA: Aimé Leon Dore + SSENSE — wordmark left, links flush
+ * underneath, right cluster carries actions. NOT N1 (which is the AI default
+ * 4–5 inline links centered with right-button at full viewport width); the
+ * Blyss header keeps the wordmark + 4 destinations, but uses underline-on-
+ * hover (editorial) rather than color-only, and goes fully transparent at
+ * the hero so the marquee imagery breathes.
+ */
+
 import { FiSearch, FiUser, FiMenu, FiX } from 'react-icons/fi'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
@@ -80,7 +94,7 @@ export const MarketplaceHeader = ({ alwaysBlurred = false }: MarketplaceHeaderPr
               <Link
                 key={link.href}
                 href={link.href}
-                className="font-sans text-sm font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--accent)]"
+                className="font-sans text-sm font-medium text-[var(--text-secondary)] underline-offset-[6px] decoration-[1px] transition-colors hover:text-[var(--text-primary)] hover:underline"
               >
                 {link.label}
               </Link>

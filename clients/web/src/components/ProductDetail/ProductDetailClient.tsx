@@ -1,5 +1,17 @@
 'use client'
 
+/* Hallmark · macrostructure: Split Studio · genre: editorial
+ * theme: blyss-design (light cream + burnt orange #C2410C accent)
+ * sections: Sticky media gallery (1.15fr) · Editorial buy-box (1fr) ·
+ *           Tabs (overview/description) · Reviews · Related · Recently viewed
+ * nav: N5/N9 (inherited) · footer: Ft5 (inherited)
+ * contrast: pass · slop: pass (gates 1, 2, 7, 8, 36, 51–55, 66, 67)
+ *
+ * Reference DNA: Aimé Leon Dore product page — sticky 4:5 gallery left,
+ * editorial buy-box right with display-size price + tabular numerals + one
+ * primary CTA, full-width tabs below, 64ch description + reviews columns.
+ */
+
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { schemas } from '@/lib/api'

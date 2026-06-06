@@ -1,12 +1,26 @@
 'use client'
 
+/* Hallmark · macrostructure: Index First · genre: editorial
+ * theme: blyss-design (light cream + burnt orange #C2410C accent)
+ * sections: Search header · Search bar · Result count · Vertical typographic
+ *           index (hairline rules between rows) · Editorial empty state
+ * nav: N9 (inherited) · footer: Ft1 (inherited)
+ * contrast: pass · slop: pass (gates 1, 2, 7, 8, 36, 51–55, 66, 67)
+ *
+ * Reference DNA: Are.na channel page — vertical list of titles, hairline
+ * rules between rows, meta right-flushed. Search results are NOT a grid:
+ * a search query implies the user is hunting for a specific thing, not
+ * browsing — index format gets them to the answer faster.
+ */
+
 import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, useReducedMotion } from 'motion/react'
 import Link from 'next/link'
 import { FiSearch, FiX, FiArrowRight } from 'react-icons/fi'
 import { schemas } from '@/lib/api'
-import { MarketplaceProductCard } from '@/components/Marketplace/MarketplaceProductCard'
+import { useDisplayCurrency } from '@/components/Marketplace/CurrencyProvider'
+import { findPriceForCurrency } from '@/lib/currency/marketplace'
 import { Eyebrow, typography, StaggerList, StaggerItem } from '@/design'
 import { cn } from '@/lib/utils'
 
@@ -89,10 +103,10 @@ export const SearchResults = ({ query, products, totalCount }: SearchResultsProp
           </p>
 
           {products.length > 0 ? (
-            <StaggerList className="mt-12 grid grid-cols-2 gap-x-4 gap-y-10 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 lg:gap-x-6 lg:gap-y-12">
+            <StaggerList className="mt-12 -mx-2 flex flex-col">
               {products.map((p) => (
                 <StaggerItem key={p.id}>
-                  <MarketplaceProductCard product={p} />
+                  <SearchResultRow product={p} />
                 </StaggerItem>
               ))}
             </StaggerList>
@@ -137,5 +151,57 @@ export const SearchResults = ({ query, products, totalCount }: SearchResultsProp
         </motion.div>
       )}
     </div>
+  )
+}
+
+/**
+ * SearchResultRow — a single product as a typographic row in the index.
+ * Hairline rule below each row; the parent ul has no gap between rows.
+ */
+function SearchResultRow({ product }: { product: schemas['Product'] }) {
+  const displayCurrency = useDisplayCurrency()
+  const prices = (product.prices ?? []) as Array<{
+    price_amount?: number
+    price_currency?: string
+  }>
+  const price =
+    (findPriceForCurrency(product, displayCurrency) as
+      | { price_amount?: number; price_currency?: string }
+      | null) ?? prices[0]
+  const amount = price?.price_amount ?? 0
+  const currency = (price?.price_currency ?? 'usd').toUpperCase()
+  const major = amount / 100
+  const priceLabel =
+    amount === 0
+      ? 'Free'
+      : currency === 'KES'
+        ? `KSh ${major.toLocaleString('en-KE')}`
+        : currency === 'USD'
+          ? `US$ ${major.toLocaleString('en-US')}`
+          : `${currency} ${major.toLocaleString()}`
+
+  const org = (product as unknown as { organization?: { name?: string } })
+    .organization
+
+  return (
+    <Link
+      href={`/product/${product.id}`}
+      prefetch
+      className="group flex items-baseline justify-between gap-6 border-b border-[var(--border)] py-5 transition-colors hover:bg-[var(--surface-sunken)]"
+    >
+      <div className="min-w-0 flex-1">
+        <h3 className="truncate font-display text-[18px] font-medium leading-[1.3] text-[var(--text-primary)] transition-colors group-hover:text-[var(--accent)] md:text-[20px]">
+          {product.name}
+        </h3>
+        {org?.name && (
+          <p className="mt-1 truncate font-sans text-[13px] text-[var(--text-muted)]">
+            {org.name}
+          </p>
+        )}
+      </div>
+      <p className="shrink-0 font-sans text-[15px] font-medium tabular-nums text-[var(--text-primary)] md:text-[16px]">
+        {priceLabel}
+      </p>
+    </Link>
   )
 }

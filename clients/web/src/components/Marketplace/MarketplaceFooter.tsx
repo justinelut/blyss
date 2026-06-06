@@ -1,3 +1,13 @@
+/* Hallmark · component: footer · archetype: Ft1 mast-headed
+ * theme: blyss-design (warm aged-paper --surface tone)
+ * sections: Brand mast (wordmark + tagline + social) · 3 link columns
+ *           (Browse · Sell · Blyss) · copyright row
+ * contrast: pass · slop: pass (gates 52, 60)
+ *
+ * Reference DNA: Aimé Leon Dore + Adele Dejak — brand-led footer, NOT the
+ * AI-default Ft3 (4-col link grid + tiny copyright). The brand mast carries
+ * weight; link columns are minor citations underneath.
+ */
 import Link from 'next/link'
 import { FiInstagram, FiTwitter } from 'react-icons/fi'
 import { BlyssLogo } from '@/design'

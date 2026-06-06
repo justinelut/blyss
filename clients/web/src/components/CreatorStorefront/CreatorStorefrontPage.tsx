@@ -1,5 +1,18 @@
 'use client'
 
+/* Hallmark · macrostructure: Letter + Portfolio Grid · genre: editorial
+ * theme: blyss-design (light cream + burnt orange #C2410C accent)
+ * sections: Storefront hero (banner + identity + Subscribe/Tip CTAs) ·
+ *           Sticky tabs (hairline underline, accent-rule on active) ·
+ *           Active panel (work / subscriptions / about) · Reviews
+ * nav: N5/N9 (inherited) · footer: Ft5 (inherited)
+ * contrast: pass · slop: pass (gates 1, 2, 7, 8, 36, 51–55, 66, 67)
+ *
+ * Reference DNA: Bandcamp artist + Substack writer profiles — banner +
+ * one-line bio + clear primary CTA, then a portfolio grid below. No drop-
+ * shadow cards, no pill tabs, no star-rating runs.
+ */
+
 import { useMemo, useRef, useState } from 'react'
 import { parseAsStringEnum, useQueryState } from 'nuqs'
 import { schemas } from '@/lib/api'
