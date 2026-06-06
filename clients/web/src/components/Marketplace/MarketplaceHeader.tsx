@@ -188,13 +188,29 @@ export const MarketplaceHeader = ({ alwaysBlurred = false }: MarketplaceHeaderPr
             ))}
             <div className="my-4 h-px bg-[var(--border)]" />
             {authenticated && currentUser ? (
-              <Link
-                href="/dashboard"
-                onClick={() => setMobileOpen(false)}
-                className="font-display text-3xl font-medium text-[var(--text-primary)]"
-              >
-                Dashboard
-              </Link>
+              <>
+                <Link
+                  href="/wishlist"
+                  onClick={() => setMobileOpen(false)}
+                  className="font-display text-3xl font-medium text-[var(--text-primary)]"
+                >
+                  Wishlist
+                </Link>
+                <Link
+                  href="/cart"
+                  onClick={() => setMobileOpen(false)}
+                  className="font-display text-3xl font-medium text-[var(--text-primary)]"
+                >
+                  Cart
+                </Link>
+                <Link
+                  href="/dashboard"
+                  onClick={() => setMobileOpen(false)}
+                  className="font-display text-3xl font-medium text-[var(--text-primary)]"
+                >
+                  Dashboard
+                </Link>
+              </>
             ) : (
               <>
                 <Link
