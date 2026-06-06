@@ -1,15 +1,18 @@
 /* Hallmark · component: footer · archetype: Ft1 mast-headed
  * theme: blyss-design (warm aged-paper --surface tone)
  * sections: Brand mast (wordmark + tagline + social) · 3 link columns
- *           (Browse · Sell · Blyss) · copyright row
+ *           (Browse · Sell · Blyss) · Reach · Region switcher · copyright
  * contrast: pass · slop: pass (gates 52, 60)
  *
  * Reference DNA: Aimé Leon Dore + Adele Dejak — brand-led footer, NOT the
  * AI-default Ft3 (4-col link grid + tiny copyright). The brand mast carries
- * weight; link columns are minor citations underneath.
+ * weight; link columns are minor citations underneath. Region/currency
+ * switcher in the bottom row mirrors Adele Dejak's pattern (header has the
+ * primary control; footer surfaces it for SEO + secondary discoverability).
  */
 import Link from 'next/link'
 import { FiInstagram, FiTwitter } from 'react-icons/fi'
+import { CountrySwitcher } from './CountrySwitcher'
 import { BlyssLogo } from '@/design'
 
 const footerColumns = [
@@ -127,11 +130,17 @@ export const MarketplaceFooter = () => {
           </div>
         </div>
 
-        {/* Bottom row: copyright */}
-        <div className="mt-20 flex flex-col items-start justify-between gap-3 border-t border-[var(--border)] pt-8 md:flex-row md:items-center">
+        {/* Bottom row: copyright + region switcher */}
+        <div className="mt-20 flex flex-col items-start justify-between gap-4 border-t border-[var(--border)] pt-8 md:flex-row md:items-center">
           <span className="font-sans text-[11px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
             © {new Date().getFullYear()} Blyss · Nairobi · Made in Kenya
           </span>
+          <div className="flex items-center gap-3">
+            <span className="font-sans text-[11px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
+              Region
+            </span>
+            <CountrySwitcher />
+          </div>
         </div>
       </div>
     </footer>
