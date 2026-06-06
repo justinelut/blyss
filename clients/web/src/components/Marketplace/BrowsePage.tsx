@@ -34,6 +34,7 @@ import { BrowseGrid } from '@/components/Marketplace/BrowseGrid'
 import { BrowseSearchBar } from '@/components/Marketplace/BrowseSearchBar'
 import { BrowseEmptyState } from '@/components/Marketplace/BrowseEmptyState'
 import { BrowseActiveChips } from '@/components/Marketplace/BrowseActiveChips'
+import { CategoryNavigation } from '@/components/Category/CategoryNavigation'
 import {
   BrowseMobileFilters,
   BrowseMobileFiltersTrigger,
@@ -222,6 +223,12 @@ export function BrowsePage({
               Find your next thing.
             </h1>
           </PageEnter>
+        </div>
+        {/* Category quick-strip — Etsy-style horizontal categories above the
+            grid. Backed by /v1/categories. The rail filter still owns the
+            authoritative state; this is a fast-switch shortcut. */}
+        <div className="mx-auto max-w-[1280px] px-6 pb-6 md:px-16">
+          <CategoryNavigation />
         </div>
       </header>
 
