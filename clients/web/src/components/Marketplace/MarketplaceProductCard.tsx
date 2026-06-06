@@ -8,6 +8,7 @@ import { OptimizedImage } from '@/components/Image/OptimizedImage'
 import { typography } from '@/design'
 import { cn } from '@/lib/utils'
 import { useDisplayCurrency } from './CurrencyProvider'
+import { CardWishlistButton } from './CardWishlistButton'
 
 type Product = schemas['Product']
 
@@ -102,6 +103,12 @@ export const MarketplaceProductCard = ({
     >
       {/* Image — 4:5 aspect, hover scale; typographic placeholder when no media */}
       <div className="relative w-full overflow-hidden rounded-md bg-[var(--surface-sunken)]">
+        {/* Etsy-style quick-save: small heart at top-right, hover-revealed on
+            desktop, always visible on mobile. Skipped on seed products
+            (id starts with "seed_") which have no real PDP. */}
+        {!isSeed && (
+          <CardWishlistButton productId={product.id} />
+        )}
         <motion.div
           initial={false}
           whileHover={reduce ? undefined : { scale: 1.04 }}
