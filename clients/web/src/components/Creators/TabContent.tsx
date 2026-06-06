@@ -19,7 +19,7 @@ export const TabContent = ({ creator, activeTab }: TabContentProps) => {
           Products
         </h2>
         {creator.products && creator.products.length > 0 ? (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {creator.products.map((product) => (
               <ProductCard
                 key={product.id}
@@ -52,7 +52,7 @@ export const TabContent = ({ creator, activeTab }: TabContentProps) => {
           Subscription Tiers
         </h2>
         {creator.subscriptions && creator.subscriptions.length > 0 ? (
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
             {creator.subscriptions.map((subscription) => (
               <div
                 key={subscription.id}

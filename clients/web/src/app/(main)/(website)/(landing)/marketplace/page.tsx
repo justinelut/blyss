@@ -15,12 +15,12 @@ export const revalidate = 60
 export const metadata: Metadata = {
   title: 'The Marketplace · Blyss',
   description:
-    'Browse digital products from Kenyan creators. Filter by category, price, and type. Pay with M-Pesa or card.',
+    'Browse digital products from independent creators. Filter by category, price, and type. Pay with M-Pesa or card.',
   alternates: { canonical: 'https://blyss.co.ke/marketplace' },
   openGraph: {
     title: 'The Marketplace · Blyss',
     description:
-      'Browse digital products from Kenyan creators. Filter by category, price, and type.',
+      'Browse digital products from independent creators. Filter by category, price, and type.',
     type: 'website',
     locale: 'en_KE',
     images: [
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'The Marketplace · Blyss',
-    description: 'Browse digital products from Kenyan creators.',
+    description: 'Browse digital products from independent creators.',
     images: ['https://cdn.blyss.co.ke/brand/og-default.png'],
   },
 }

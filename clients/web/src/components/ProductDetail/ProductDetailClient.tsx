@@ -101,7 +101,7 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
   }
 
   return (
-    <article className="mx-auto max-w-[1280px] px-5 sm:px-8 md:px-16">
+    <article className="mx-auto max-w-[1280px] px-5 pb-24 sm:px-8 md:px-16 lg:pb-0">
       {/* Two-column: gallery sticky left, buy-box right */}
       <div className="grid grid-cols-1 gap-10 pt-8 pb-16 md:pt-12 md:pb-24 lg:grid-cols-[1.15fr_1fr] lg:gap-20 xl:gap-24">
         {/* Gallery — sticky on desktop so buy-box scrolls independently */}
@@ -166,6 +166,81 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
           />
         }
       />
+
+      {/* Sticky mobile buy bar — fixed at the bottom on phones so the buy CTA
+          is always one tap away while the buyer scrolls description / reviews.
+          Hidden on lg+ where the buy-box itself is visible alongside the
+          sticky gallery. */}
+      <MobileBuyBar
+        product={product}
+        onBuy={handleBuy}
+        isBuyLoading={cartStatus === 'pending'}
+      />
     </article>
+  )
+}
+
+/** Sticky bottom CTA bar shown on mobile only. Mirrors the buy-box's primary
+ *  action so the buyer never has to scroll back up. Respects safe-area inset
+ *  on iOS via env(safe-area-inset-bottom). */
+function MobileBuyBar({
+  product,
+  onBuy,
+  isBuyLoading,
+}: {
+  product: schemas['Product']
+  onBuy: () => void
+  isBuyLoading: boolean
+}) {
+  const prices = (product.prices ?? []) as Array<{
+    price_amount?: number
+    price_currency?: string
+  }>
+  const price = prices[0]
+  const amount = price?.price_amount ?? 0
+  const currency = (price?.price_currency ?? 'usd').toUpperCase()
+  const major = amount / 100
+  const priceLabel =
+    amount === 0
+      ? 'Free'
+      : currency === 'KES'
+        ? `KSh ${major.toLocaleString('en-KE')}`
+        : currency === 'USD'
+          ? `US$ ${major.toLocaleString('en-US')}`
+          : `${currency} ${major.toLocaleString()}`
+  const ctaLabel = product.is_recurring
+    ? `Subscribe · ${priceLabel} / ${product.recurring_interval ?? 'month'}`
+    : amount === 0
+      ? 'Get it free'
+      : `Buy · ${priceLabel}`
+
+  return (
+    <div
+      role="region"
+      aria-label="Buy product"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--border)] bg-[var(--background)]/95 backdrop-blur-xl lg:hidden"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+    >
+      <div className="mx-auto flex max-w-[1280px] items-center gap-3 px-4 py-3 sm:px-6">
+        <div className="min-w-0 flex-1">
+          <p className="font-sans text-[11px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
+            Price
+          </p>
+          <p className="truncate font-display text-[18px] font-semibold leading-none tabular-nums text-[var(--text-primary)]">
+            {priceLabel}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onBuy}
+          disabled={isBuyLoading || product.is_archived}
+          aria-busy={isBuyLoading}
+          className="inline-flex h-12 shrink-0 items-center justify-center rounded-md bg-[var(--accent)] px-5 font-sans text-[14px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+          style={{ whiteSpace: 'nowrap' }}
+        >
+          {isBuyLoading ? 'Adding…' : ctaLabel}
+        </button>
+      </div>
+    </div>
   )
 }

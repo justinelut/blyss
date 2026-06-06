@@ -25,25 +25,25 @@ export async function generateMetadata(): Promise<Metadata> {
   const baseMetadata: Metadata = {
     title: {
       template: '%s | Blyss',
-      default: 'Blyss - Digital Marketplace for Kenyan Creators',
+      default: 'Blyss - Digital Marketplace for Independent Creators',
     },
     description:
-      'Discover and sell digital products on Blyss, the marketplace for Kenyan creators. Flexible pricing, seamless payments, and powerful tools for digital commerce.',
+      'Discover and sell digital products on Blyss, the modern marketplace for digital products. Flexible pricing, seamless payments, and powerful tools for digital commerce.',
     openGraph: {
       images: 'https://blyss.co.ke/og-image.png',
       type: 'website',
       siteName: 'Blyss',
-      title: 'Blyss - Digital Marketplace for Kenyan Creators',
+      title: 'Blyss - Digital Marketplace for Independent Creators',
       description:
-        'Discover and sell digital products on Blyss, the marketplace for Kenyan creators. Flexible pricing, seamless payments, and powerful tools for digital commerce.',
+        'Discover and sell digital products on Blyss, the modern marketplace for digital products. Flexible pricing, seamless payments, and powerful tools for digital commerce.',
       locale: 'en_US',
     },
     twitter: {
       images: 'https://blyss.co.ke/og-image.png',
       card: 'summary_large_image',
-      title: 'Blyss - Digital Marketplace for Kenyan Creators',
+      title: 'Blyss - Digital Marketplace for Independent Creators',
       description:
-        'Discover and sell digital products on Blyss, the marketplace for Kenyan creators. Flexible pricing, seamless payments, and powerful tools for digital commerce.',
+        'Discover and sell digital products on Blyss, the modern marketplace for digital products. Flexible pricing, seamless payments, and powerful tools for digital commerce.',
     },
     metadataBase: new URL('https://blyss.co.ke/'),
     alternates: {

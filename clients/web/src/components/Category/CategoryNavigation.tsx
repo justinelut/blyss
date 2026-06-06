@@ -31,7 +31,7 @@ export function CategoryNavigation({
         {Array.from({ length: 5 }).map((_, i) => (
           <div
             key={i}
-            className="h-10 w-32 shrink-0 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-800"
+            className="h-10 w-32 shrink-0 animate-pulse rounded-md bg-[var(--surface-sunken)]"
           />
         ))}
       </nav>
@@ -60,15 +60,15 @@ export function CategoryNavigation({
       <Link
         href="/marketplace"
         className={cn(
-          'flex shrink-0 items-center justify-between rounded-lg border px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors sm:px-4',
+          'flex shrink-0 items-center justify-between rounded-md border px-3 py-2 font-sans text-sm font-medium whitespace-nowrap transition-colors sm:px-4',
           pathname === '/marketplace'
-            ? 'border-blue-600 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-950 dark:text-blue-300'
-            : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-gray-700 dark:hover:bg-gray-800',
+            ? 'border-[var(--text-primary)] bg-[var(--surface-elevated)] text-[var(--text-primary)]'
+            : 'border-[var(--border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:bg-[var(--surface-sunken)] hover:text-[var(--text-primary)]',
         )}
       >
         <span>All Products</span>
         {categories && (
-          <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+          <span className="ml-2 font-sans text-xs tabular-nums text-[var(--text-muted)]">
             {categories.reduce((sum, cat) => sum + cat.product_count, 0)}
           </span>
         )}
@@ -82,14 +82,14 @@ export function CategoryNavigation({
             key={category.id}
             href={`/category/${category.slug}`}
             className={cn(
-              'flex shrink-0 items-center justify-between rounded-lg border px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors sm:px-4',
+              'flex shrink-0 items-center justify-between rounded-md border px-3 py-2 font-sans text-sm font-medium whitespace-nowrap transition-colors sm:px-4',
               isActive
-                ? 'border-blue-600 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-950 dark:text-blue-300'
-                : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-gray-700 dark:hover:bg-gray-800',
+                ? 'border-[var(--text-primary)] bg-[var(--surface-elevated)] text-[var(--text-primary)]'
+                : 'border-[var(--border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:bg-[var(--surface-sunken)] hover:text-[var(--text-primary)]',
             )}
           >
             <span>{category.name}</span>
-            <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+            <span className="ml-2 font-sans text-xs tabular-nums text-[var(--text-muted)]">
               {category.product_count}
             </span>
           </Link>

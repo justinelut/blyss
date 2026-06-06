@@ -129,7 +129,7 @@ export async function generateMetadata({
     const title = `${creator.name} — Digital products on Blyss`
     const description =
       creator.bio?.trim() ||
-      `Digital products and subscriptions from ${creator.name}, on Blyss — Kenya's modern creator marketplace.`
+      `Digital products and subscriptions from ${creator.name}, on Blyss — the modern creator marketplace.`
     const canonical = `${SITE_BASE}/creators/${creator.slug}`
     const ogImage = creator.avatar_url || `${SITE_BASE}/api/og?title=${encodeURIComponent(creator.name)}`
 

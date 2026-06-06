@@ -24,7 +24,7 @@ export function CreatorsGrid({ creators, onTip }: CreatorsGridProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cols-2 gap-x-3 gap-y-10 md:gap-12 md:grid-cols-2 lg:grid-cols-3">
       {creators.map((creator, index) => (
         <CreatorCard
           key={creator.id}

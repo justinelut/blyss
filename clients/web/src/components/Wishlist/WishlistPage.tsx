@@ -31,7 +31,7 @@ export const WishlistPage = () => {
         <h1 className="font-epilogue mb-8 text-3xl font-semibold tracking-tight text-on-surface dark:text-white sm:text-4xl">
           My Wishlist
         </h1>
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" role="status" aria-live="polite" aria-label="Loading wishlist">
+        <div className="grid grid-cols-2 gap-3 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" role="status" aria-live="polite" aria-label="Loading wishlist">
           {Array.from({ length: 8 }).map((_, i) => (
             <WishlistSkeleton key={i} />
           ))}
@@ -76,7 +76,7 @@ export const WishlistPage = () => {
       </header>
 
       <section aria-label="Wishlist items">
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" role="list">
+        <div className="grid grid-cols-2 gap-3 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" role="list">
           {wishlist.items.map((item: any) => (
             <div key={item.id} role="listitem">
               <WishlistItem item={item} currency={currency} />

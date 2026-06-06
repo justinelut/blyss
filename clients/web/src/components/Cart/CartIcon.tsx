@@ -18,7 +18,7 @@ export const CartIcon = () => {
     >
       <FiShoppingCart className="h-5 w-5" />
       {itemCount > 0 && (
-        <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-xs font-medium text-white">
+        <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--accent)] text-xs font-medium text-[var(--accent-foreground)]">
           {itemCount > 99 ? '99+' : itemCount}
         </span>
       )}

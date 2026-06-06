@@ -1,7 +1,7 @@
 export async function GET() {
   return new Response(
     `
-              Blyss — the modern marketplace for Kenyan creators.
+              Blyss — the modern modern marketplace for digital products.
 
                             https://blyss.co.ke
 

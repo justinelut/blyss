@@ -9,9 +9,9 @@ interface NoteFromMakersProps {
 }
 
 const DEFAULT_BODY =
-  "Blyss is built for Kenyan creators tired of foreign platforms taking 10% and refusing M-Pesa. We charge 20%, pay out in 24 hours, and don't pretend you're not here."
+  "A modern marketplace for independent creators selling digital work to a global audience. Card or mobile money. Paid out within 24 hours."
 
-const DEFAULT_SIGNATURE = '— Blyss · Nairobi'
+const DEFAULT_SIGNATURE = '— Blyss'
 
 /**
  * NoteFromMakers — full-bleed editorial paragraph in Inter italic.

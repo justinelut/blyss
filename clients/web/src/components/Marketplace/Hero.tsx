@@ -79,7 +79,7 @@ export const Hero = ({
   const heroImageAlt =
     heroProduct?.name ??
     heroCreator?.name ??
-    'Blyss — the marketplace for Kenyan creators'
+    'Blyss — the marketplace for independent creators'
   const heroLink = heroProduct
     ? `/product/${heroProduct.id}`
     : heroCreator
@@ -99,7 +99,7 @@ export const Hero = ({
           className="flex flex-col lg:col-span-7"
         >
           <motion.div {...fadeUp(0.05)}>
-            <Eyebrow accent>Digital products · Nairobi</Eyebrow>
+            <Eyebrow accent>Digital products · Independent creators</Eyebrow>
           </motion.div>
 
           <h1

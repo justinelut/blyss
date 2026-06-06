@@ -43,7 +43,7 @@ export const FeaturedCreators = ({ creators }: FeaturedCreatorsProps) => {
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-x-3 gap-y-10 sm:gap-x-6 sm:gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
         {creators.slice(0, 4).map((creator) => (
           <MarketplaceCreatorCard
             key={creator.id}

@@ -69,7 +69,7 @@ export const MarketplaceFooter = () => {
           <div className="md:col-span-5">
             <BlyssLogo size="xl" />
             <p className="mt-4 max-w-[28ch] text-[15px] leading-[1.5] text-[var(--text-secondary)]">
-              The modern marketplace for Kenyan creators. Templates, ebooks,
+              The modern modern marketplace for digital products. Templates, ebooks,
               beats, courses, subscription tiers. Card or mobile money.
             </p>
             <div className="mt-8 flex items-center gap-4">

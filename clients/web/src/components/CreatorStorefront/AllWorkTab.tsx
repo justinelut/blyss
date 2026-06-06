@@ -39,7 +39,7 @@ export const AllWorkTab = ({ products, creatorName }: AllWorkTabProps) => {
             )}
           >
             New work lands here as soon as it&rsquo;s ready. Check back soon, or
-            browse other Kenyan creators while you wait.
+            browse other independent creators while you wait.
           </p>
         </div>
       </section>
@@ -48,7 +48,7 @@ export const AllWorkTab = ({ products, creatorName }: AllWorkTabProps) => {
 
   return (
     <section className="mx-auto max-w-[1280px] px-6 py-12 md:px-16 md:py-16">
-      <div className="grid grid-cols-1 gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-x-3 gap-y-10 sm:gap-x-6 sm:gap-y-12 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {products.map((product) => (
           <MarketplaceProductCard
             key={product.id}

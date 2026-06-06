@@ -87,7 +87,7 @@ export default function HomePage({
           url: 'https://blyss.co.ke',
           logo: 'https://cdn.blyss.co.ke/brand/og-default.png',
           description:
-            'The modern marketplace for Kenyan creators. Sell digital products and subscriptions, paid via M-Pesa or card.',
+            'The modern modern marketplace for digital products. Sell digital products and subscriptions, paid via M-Pesa or card.',
           address: {
             '@type': 'PostalAddress',
             addressLocality: 'Nairobi',

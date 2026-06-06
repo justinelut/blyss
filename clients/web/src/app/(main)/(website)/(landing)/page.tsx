@@ -12,9 +12,9 @@ export const dynamic = "force-dynamic"
 export const revalidate = 60
 
 export const metadata: Metadata = {
-  title: "Blyss — Kenya's Modern Creator Marketplace",
+  title: "Blyss — The Modern Creator Marketplace",
   description:
-    'The modern marketplace for Kenyan creators. Templates, ebooks, beats, courses, subscription tiers. M-Pesa or card. Paid out within 24 hours.',
+    'The modern modern marketplace for digital products. Templates, ebooks, beats, courses, subscription tiers. M-Pesa or card. Paid out within 24 hours.',
   keywords:
     'kenya creator marketplace, sell digital products kenya, m-pesa payments, online marketplace kenya, sell ebooks kenya, kenyan creators',
   alternates: { canonical: 'https://blyss.co.ke' },
@@ -22,9 +22,9 @@ export const metadata: Metadata = {
     siteName: 'Blyss',
     type: 'website',
     locale: 'en_KE',
-    title: "Blyss — Kenya's Modern Creator Marketplace",
+    title: "Blyss — The Modern Creator Marketplace",
     description:
-      'The modern marketplace for Kenyan creators. M-Pesa or card. Paid out within 24 hours.',
+      'The modern modern marketplace for digital products. M-Pesa or card. Paid out within 24 hours.',
     images: [
       {
         url: 'https://cdn.blyss.co.ke/brand/og-default.png',
@@ -36,9 +36,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: "Blyss — Kenya's Modern Creator Marketplace",
+    title: "Blyss — The Modern Creator Marketplace",
     description:
-      'The modern marketplace for Kenyan creators. M-Pesa or card. Paid out within 24 hours.',
+      'The modern modern marketplace for digital products. M-Pesa or card. Paid out within 24 hours.',
     images: ['https://cdn.blyss.co.ke/brand/og-default.png'],
   },
 }

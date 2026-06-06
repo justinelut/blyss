@@ -6,7 +6,7 @@ import { SearchResults } from './SearchResults'
 
 export const metadata: Metadata = {
   title: 'Search · Blyss',
-  description: 'Find digital products from Kenyan creators on Blyss.',
+  description: 'Find digital products from independent creators on Blyss.',
 }
 
 export default async function SearchPage({

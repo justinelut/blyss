@@ -46,7 +46,7 @@ export const BrowseEmptyState = ({ hasFilters, onClear }: BrowseEmptyStateProps)
         The marketplace is just getting started.
       </h2>
       <p className={cn(typography.body, 'mt-4 text-[var(--text-secondary)]')}>
-        We&rsquo;re onboarding the first wave of Kenyan creators now. Check back tomorrow — or jump in and become one yourself.
+        We&rsquo;re onboarding the first wave of independent creators now. Check back tomorrow — or jump in and become one yourself.
       </p>
       <Link
         href="/start"

@@ -23,7 +23,7 @@ export function CreatorHero({ onSearch }: CreatorHeroProps) {
             Meet the <span className="text-primary">Makers.</span>
           </h1>
           <p className="font-body text-xl leading-relaxed text-on-surface-variant">
-            Discover Kenya's most visionary digital artisans. From Nairobi's
+            Discover the most visionary digital artisans. From Nairobi's
             pixel-perfect illustrators to coastal code-crafters.
           </p>
         </div>

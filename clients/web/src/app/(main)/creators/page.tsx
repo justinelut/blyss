@@ -9,14 +9,14 @@ export const dynamic = "force-dynamic"
 export const revalidate = 60
 
 export const metadata: Metadata = {
-  title: 'Kenyan Creators · Blyss',
+  title: 'Independent Creators · Blyss',
   description:
-    "Meet Kenya's creative class online. Designers, writers, musicians, educators, photographers — discover digital products and subscriptions from independent creators across the country.",
+    "Meet creators making things worth supporting. Designers, writers, musicians, educators, photographers — discover digital products and subscriptions from independent creators around the world.",
   alternates: { canonical: 'https://blyss.co.ke/creators' },
   openGraph: {
-    title: 'Kenyan Creators · Blyss',
+    title: 'Independent Creators · Blyss',
     description:
-      "Meet Kenya's creative class online. Discover digital products from independent creators.",
+      "Meet creators making things worth supporting. Discover digital products from independent creators.",
     siteName: 'Blyss',
     type: 'website',
     locale: 'en_KE',
@@ -31,9 +31,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Kenyan Creators · Blyss',
+    title: 'Independent Creators · Blyss',
     description:
-      "Meet Kenya's creative class online. Discover digital products from independent creators.",
+      "Meet creators making things worth supporting. Discover digital products from independent creators.",
     images: ['https://cdn.blyss.co.ke/brand/og-default.png'],
   },
   robots: { index: true, follow: true },
@@ -85,10 +85,10 @@ export default async function CreatorsPage() {
         data={{
           '@context': 'https://schema.org',
           '@type': 'CollectionPage',
-          name: 'Kenyan Creators · Blyss',
+          name: 'Independent Creators · Blyss',
           url: 'https://blyss.co.ke/creators',
           description:
-            "Meet Kenya's creative class online. Designers, writers, musicians, educators, photographers.",
+            "Meet creators making things worth supporting. Designers, writers, musicians, educators, photographers.",
           mainEntity: {
             '@type': 'ItemList',
             numberOfItems: creators.length,
