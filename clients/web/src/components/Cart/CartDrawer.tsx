@@ -10,6 +10,7 @@ import {
   SheetClose,
 } from '@/components/ui/sheet'
 import { useCart, useCheckoutCart, useRemoveFromCart } from '@/hooks/queries/cart'
+import { useAddToWishlist } from '@/hooks/queries/wishlist'
 import { useAuth } from '@/hooks/auth'
 import { CartItemRow } from './CartItemRow'
 import { typography } from '@/design'
@@ -22,9 +23,10 @@ interface CartDrawerProps {
 
 const fmtPrice = (cents: number, currency = 'KES') => {
   const major = cents / 100
+  // Unambiguous currency labels — matches the rest of the marketplace polish.
   if (currency === 'KES') return `KSh ${major.toLocaleString('en-KE')}`
-  if (currency === 'USD') return `$${major.toLocaleString('en-US')}`
-  return `${major.toLocaleString()} ${currency}`
+  if (currency === 'USD') return `US$ ${major.toLocaleString('en-US')}`
+  return `${currency} ${major.toLocaleString()}`
 }
 
 /**
@@ -42,6 +44,10 @@ export const CartDrawer = ({ open, onOpenChange }: CartDrawerProps) => {
   const itemCount = (cart as any)?.item_count ?? items.length
 
   const { mutate: checkoutCart, isPending: isCheckingOut } = useCheckoutCart()
+  // Etsy-style 'Save for later' flow inside the drawer: push to wishlist
+  // then remove from cart on success. Same pattern as the full cart page.
+  const { mutate: addToWishlist, variables: savingProductId, isPending: isSaving } =
+    useAddToWishlist()
 
   const handleCheckout = () => {
     checkoutCart(undefined, {
@@ -94,6 +100,12 @@ export const CartDrawer = ({ open, onOpenChange }: CartDrawerProps) => {
                   item={item}
                   onRemove={(id) => removeItem({ itemId: id })}
                   isRemoving={(removingId as any)?.itemId === item.id}
+                  onSaveForLater={(it) => {
+                    addToWishlist(it.product.id, {
+                      onSuccess: () => removeItem({ itemId: it.id }),
+                    })
+                  }}
+                  isSaving={savingProductId === item.product.id && isSaving}
                 />
               ))}
             </div>
