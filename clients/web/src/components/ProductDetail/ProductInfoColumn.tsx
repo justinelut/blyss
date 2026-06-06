@@ -78,7 +78,8 @@ export const ProductInfoColumn = ({
 
   return (
     <div className="flex flex-col gap-8">
-      {/* Creator eyebrow */}
+      {/* Sold-by block — Etsy-style 'From shop {creator}' so the buyer
+          knows up-front who they're paying. Click → creator storefront. */}
       {org?.name && (
         <Link
           href={`/creators/${org.slug ?? ''}`}
@@ -86,18 +87,23 @@ export const ProductInfoColumn = ({
           className="group inline-flex w-fit items-center gap-3"
         >
           {org.avatar_url && (
-            <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-[var(--surface-sunken)] ring-1 ring-[var(--border)]">
+            <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-[var(--surface-sunken)] ring-1 ring-[var(--border)]">
               <OptimizedImage
                 src={org.avatar_url}
                 alt={`${org.name} avatar`}
                 fill
-                sizes="32px"
+                sizes="40px"
               />
             </div>
           )}
-          <span className={cn(typography.eyebrow, 'transition-colors group-hover:text-[var(--accent)]')}>
-            {org.name}
-          </span>
+          <div className="min-w-0 flex flex-col">
+            <span className="font-sans text-[11px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
+              Sold by
+            </span>
+            <span className="truncate font-display text-[15px] font-medium text-[var(--text-primary)] transition-colors group-hover:text-[var(--accent)]">
+              {org.name}
+            </span>
+          </div>
         </Link>
       )}
 

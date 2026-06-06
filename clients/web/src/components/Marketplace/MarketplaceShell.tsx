@@ -3,6 +3,7 @@ import { PropsWithChildren } from 'react'
 import { MarketplaceHeader } from './MarketplaceHeader'
 import { MarketplaceFooter } from './MarketplaceFooter'
 import { CurrencyProvider } from './CurrencyProvider'
+import { MarketplaceMobileNav } from './MarketplaceMobileNav'
 import { Toaster } from '@/components/Toast/Toaster'
 import { getServerGeo } from '@/lib/geo/server'
 
@@ -37,9 +38,12 @@ export async function MarketplaceShell({ children }: PropsWithChildren) {
     <CurrencyProvider initialCountry={country} initialCurrency={currency}>
       <div className="flex min-h-screen flex-col bg-[var(--background)] text-[var(--text-primary)]">
         <MarketplaceHeader />
-        <main className="flex-1 pt-20">{children}</main>
+        {/* pb-20 lg:pb-0 reserves space on mobile so the fixed
+            MarketplaceMobileNav doesn't cover scrollable content. */}
+        <main className="flex-1 pt-20 pb-20 lg:pb-0">{children}</main>
         <MarketplaceFooter />
       </div>
+      <MarketplaceMobileNav />
       {/* Marketplace-surface toast viewport. Singleton store under the hood
           (use-toast.ts) so any client component can call toast() and have
           it render here — wishlist-save confirmations, error toasts, etc. */}
