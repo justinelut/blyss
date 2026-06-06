@@ -117,6 +117,15 @@ async def list_public_products(
             Product.is_archived.is_(False),
             Product.is_deleted.is_(False),
             Product.visibility == ProductVisibility.public,
+            # Active-subaccount gate. A creator whose Paystack subaccount is
+            # not 'active' (suspended / pending verification / closed) cannot
+            # legally receive a payout for a sale. Surfacing their products
+            # to buyers leads to the dreaded 'inactive_subaccount' error at
+            # checkout — a great way to lose a sale forever. Hide their
+            # products from public lists until the subaccount is reactivated.
+            # Creators still see their full catalogue in their dashboard
+            # with a banner explaining why public visibility is paused.
+            Organization.subaccount_status == "active",
         )
     )
 
@@ -464,6 +473,17 @@ async def get_product_by_slug(
     )
 
     if product is None:
+        raise ResourceNotFound()
+
+    # Active-subaccount gate. A buyer landing on a product whose creator's
+    # subaccount is not 'active' would hit an 'inactive_subaccount' error
+    # at checkout — terrible UX. 404 hides the product from public surfaces
+    # until the creator reactivates payouts. The creator still sees the
+    # product in their dashboard with an explanatory banner.
+    if (
+        product.organization is not None
+        and getattr(product.organization, "subaccount_status", None) != "active"
+    ):
         raise ResourceNotFound()
 
     # Hard currency gate (no conversion): if the visitor's currency was passed

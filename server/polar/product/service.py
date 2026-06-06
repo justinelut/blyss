@@ -161,22 +161,34 @@ class ProductService:
             session, auth_subject, create_schema
         )
 
-        # Publishability gate — Blyss only allows public products from
-        # creators who have an active payout route. Buyers paying for a
-        # product whose creator has no Paystack subaccount means 100% of
+        # Publishability gate — Blyss only allows products from creators
+        # who have an active payout route. Buyers paying for a product
+        # whose creator has no active Paystack subaccount means 100% of
         # the funds land in Blyss's main account and we'd have to manually
-        # pay them out later. To prevent that and force creators to finish
-        # M-Pesa / bank verification before going live, we silently
-        # downgrade visibility=public to private on create when the
-        # organization's subaccount is not active. The creator can still
-        # save drafts, edit, attach benefits, etc. Once they verify
-        # payouts, they can flip visibility back to public.
-        if (
-            create_schema.visibility == ProductVisibility.public
-            and getattr(organization, "subaccount_status", None) != "active"
-        ):
-            create_schema = create_schema.model_copy(
-                update={"visibility": ProductVisibility.private}
+        # pay them out later. We REQUIRE the creator to finish payout
+        # activation BEFORE creating their first product.
+        #
+        # Hard 422 (not silent visibility downgrade): the dashboard's
+        # New-product flow catches this and redirects the creator to
+        # /finance/account with a clear "activate payouts first" banner.
+        # The dashboard's products list also disables the New-product
+        # CTA when subaccount_status != 'active' so this error is mostly
+        # a safety net for direct API access.
+        if getattr(organization, "subaccount_status", None) != "active":
+            raise PolarRequestValidationError(
+                [
+                    {
+                        "type": "value_error",
+                        "loc": ("body", "organization_id"),
+                        "msg": (
+                            "Activate payouts (M-Pesa or bank) before "
+                            "creating products. Open Finance \u2192 Account "
+                            "in your dashboard to finish setup."
+                        ),
+                        "input": str(organization.id),
+                        "ctx": {"reason": "needs_payouts_active"},
+                    }
+                ]
             )
 
         errors: list[ValidationError] = []

@@ -142,6 +142,14 @@ async def create_organization(
     if "created_at" not in kwargs:
         kwargs["created_at"] = datetime(2025, 7, 1, tzinfo=UTC)
 
+    # Default test orgs to subaccount_status='active' so the
+    # publishability + storefront listing gates don't 404 every product
+    # in tests. Tests that exercise the inactive-subaccount path can
+    # override by passing subaccount_status='pending' explicitly.
+    if "subaccount_status" not in kwargs:
+        from polar.models.organization import SubaccountStatus
+        kwargs["subaccount_status"] = SubaccountStatus.ACTIVE
+
     organization = Organization(
         name=name,
         slug=name,

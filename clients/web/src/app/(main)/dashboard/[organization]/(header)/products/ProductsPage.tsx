@@ -138,6 +138,8 @@ export default function ClientPage({
   return (
     <DashboardBody>
       <div className="flex flex-col gap-y-8">
+        {(org as { subaccount_status?: string }).subaccount_status !==
+          'active' && <PayoutsRequiredBanner orgSlug={org.slug} />}
         <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-col gap-4 md:flex-row md:items-center">
             <Input
@@ -188,19 +190,40 @@ export default function ClientPage({
               </Select>
             )}
           </div>
-          <Link
-            href={`/dashboard/${org.slug}/products/new`}
-            className="w-full md:w-fit"
-          >
+          {(org as { subaccount_status?: string }).subaccount_status ===
+          'active' ? (
+            <Link
+              href={`/dashboard/${org.slug}/products/new`}
+              className="w-full md:w-fit"
+            >
+              <Button
+                role="link"
+                wrapperClassNames="gap-x-2 md:w-fit"
+                className="w-full"
+              >
+                <AddOutlined className="h-4 w-4" />
+                <span>New Product</span>
+              </Button>
+            </Link>
+          ) : (
+            // Payouts not active yet — disable the CTA so creators can't
+            // start the new-product flow before completing M-Pesa / bank
+            // setup. Backend ProductService.create also raises a hard 422
+            // (`needs_payouts_active`) for direct API calls, but the UI
+            // gate is the friendlier path. The banner above the products
+            // list links to the activation page.
             <Button
-              role="link"
+              role="button"
+              disabled
               wrapperClassNames="gap-x-2 md:w-fit"
-              className="w-full"
+              className="w-full md:w-fit"
+              aria-disabled="true"
+              aria-label="Activate payouts before creating products"
             >
               <AddOutlined className="h-4 w-4" />
               <span>New Product</span>
             </Button>
-          </Link>
+          )}
         </div>
         {products.data && products.data.items.length > 0 ? (
           <Pagination
@@ -249,5 +272,46 @@ export default function ClientPage({
         )}
       </div>
     </DashboardBody>
+  )
+}
+
+/**
+ * PayoutsRequiredBanner — visible above the products catalogue when the
+ * creator's Paystack subaccount is not in the 'active' state. Blocks the
+ * "New Product" CTA above and tells the creator exactly where to finish
+ * setup.
+ *
+ * Backend pairs with ProductService.create which raises a hard 422 with
+ * `needs_payouts_active` for direct API calls; this banner is the
+ * friendlier UI version of the same gate.
+ */
+function PayoutsRequiredBanner({ orgSlug }: { orgSlug: string }) {
+  return (
+    <div
+      role="alert"
+      className="flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 sm:flex-row sm:items-center sm:justify-between"
+    >
+      <div className="flex flex-col gap-1">
+        <p className="font-sans text-[15px] font-semibold text-[var(--text-primary)]">
+          Activate payouts before listing your first product
+        </p>
+        <p className="font-sans text-[14px] leading-[1.5] text-[var(--text-secondary)]">
+          Buyers can&apos;t pay you until you connect M-Pesa or a bank
+          account. Set this up in <strong>Finance &rarr; Account</strong>.
+        </p>
+      </div>
+      <Link
+        href={`/dashboard/${orgSlug}/finance/account`}
+        className="w-full sm:w-fit"
+      >
+        <Button
+          role="link"
+          wrapperClassNames="gap-x-2 sm:w-fit"
+          className="w-full"
+        >
+          <span>Activate payouts</span>
+        </Button>
+      </Link>
+    </div>
   )
 }

@@ -233,6 +233,15 @@ async def get_creator(
         if not p.is_archived and _has_currency(p)
     ]
 
+    # Active-subaccount gate. If the creator's subaccount isn't 'active'
+    # (suspended / pending / closed at Paystack) buyers can't be charged,
+    # so we hide their products from the public storefront until payouts
+    # are reactivated. The creator profile stays visible — just no
+    # purchasable products. The creator's own dashboard still shows the
+    # full catalogue with an activation banner.
+    if getattr(organization, "subaccount_status", None) != "active":
+        visible_products = []
+
     # Batch-fetch aggregate ratings for all visible products in ONE query so
     # the storefront cards can show "4.8 · 32 reviews" without an N+1.
     review_repo = ReviewRepository.from_session(session)

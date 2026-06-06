@@ -94,6 +94,45 @@ class TestGetProductBySlug:
         assert "prices" in json
         assert len(json["prices"]) > 0
 
+    async def test_anonymous_sees_product_benefits(
+        self,
+        save_fixture: SaveFixture,
+        client: AsyncClient,
+        product: Product,
+        organization: Organization,
+    ) -> None:
+        """Anonymous visitors must see product benefits — the Benefits / What's
+        included tabs are key conversion content. If this regresses, buyers
+        on PDP won't see what they're actually getting until after they sign
+        in, which is a real conversion blocker.
+        """
+        from polar.models.benefit import BenefitType
+        from tests.fixtures.random_objects import (
+            create_benefit,
+            set_product_benefits,
+        )
+
+        benefit = await create_benefit(
+            save_fixture,
+            organization=organization,
+            type=BenefitType.custom,
+            description="Patron-only Discord access",
+        )
+        await set_product_benefits(
+            save_fixture, product=product, benefits=[benefit]
+        )
+
+        response = await client.get(f"/v1/products/slug/{product.name}")
+
+        assert response.status_code == 200
+        json = response.json()
+        assert "benefits" in json, "benefits field missing from public product"
+        assert len(json["benefits"]) == 1, (
+            f"expected 1 benefit, got {len(json['benefits'])}"
+        )
+        assert json["benefits"][0]["description"] == "Patron-only Discord access"
+        assert json["benefits"][0]["type"] == "custom"
+
 
 @pytest.mark.asyncio
 class TestGetRelatedProducts:

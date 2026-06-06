@@ -1225,12 +1225,19 @@ class CheckoutService:
                                 )
                         raise TrialAlreadyRedeemed(checkout)
         elif checkout.payment_processor == PaymentProcessor.paystack:
-            # Check if organization has active subaccount
+            # Defense in depth: the marketplace listings + storefront +
+            # /v1/products/slug now hide products from inactive-subaccount
+            # creators, so a buyer should never reach this branch in the
+            # normal flow. If they do (e.g. they cached a checkout link or
+            # we ship a regression in the listing filter), show a generic
+            # 'unavailable' message instead of the technical 'subaccount
+            # status' string. The creator-side dashboard banner is the
+            # canonical place to explain why payouts aren't active.
             if checkout.organization.subaccount_status != "active":
                 raise PaymentError(
                     checkout,
                     "inactive_subaccount",
-                    f"Organization subaccount is not active: {checkout.organization.subaccount_status}",
+                    "This item is currently unavailable. Please try again later.",
                 )
 
             # Create or update customer for Paystack
