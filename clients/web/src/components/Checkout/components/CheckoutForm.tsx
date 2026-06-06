@@ -931,6 +931,18 @@ const PaystackCheckoutForm = (props: CheckoutFormProps) => {
         checkout={checkout}
         disabled={props.disabled}
         onPaymentMethodSelect={setSelectedChannel}
+        onPaymentSuccess={() => {
+          // Polling inside PaystackPaymentInterface saw status='success'
+          // — backend has marked the checkout confirmed by now. Push the
+          // buyer to the hosted confirmation page (which routes to the
+          // creator's success_url or a default thank-you screen).
+          // Without this redirect, paystack test-mode payments
+          // (+254 710 000 000 auto-confirms instantly) would just sit on
+          // the success banner forever.
+          if (typeof window !== 'undefined') {
+            window.location.href = `/checkout/${checkout.client_secret}/confirmation`
+          }
+        }}
       />
     </BaseCheckoutForm>
   )

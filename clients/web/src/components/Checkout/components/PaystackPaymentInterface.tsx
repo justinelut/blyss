@@ -242,7 +242,12 @@ const PaystackPaymentInterface = ({
       case 'mobile_money':
         return {
           channel: 'mobile_money',
-          phone: momo.phone,
+          // Strip whitespace so '+254 710 000 000' becomes
+          // '+254710000000' — Paystack's mobile-money charge expects an
+          // E.164 phone with no separators. Without this, valid Kenyan
+          // numbers (and the +254 710 000 000 test number) get rejected
+          // upstream.
+          phone: momo.phone.replace(/\s+/g, ''),
           provider: momo.provider || selected.providers?.[0]?.code,
         }
       case 'bank':
