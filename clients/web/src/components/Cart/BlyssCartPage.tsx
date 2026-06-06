@@ -20,6 +20,7 @@ import {
   useCheckoutCart,
   useRemoveFromCart,
 } from '@/hooks/queries/cart'
+import { useAddToWishlist } from '@/hooks/queries/wishlist'
 import { useAuth } from '@/hooks/auth'
 import { CartItemRow } from './CartItemRow'
 import { CategoryNavigation } from '@/components/Category/CategoryNavigation'
@@ -45,6 +46,8 @@ export const BlyssCartPage = () => {
   const { authenticated } = useAuth()
   const { data: cart, isLoading } = useCart(authenticated)
   const { mutate: removeItem, variables: removingId } = useRemoveFromCart()
+  const { mutate: addToWishlist, variables: savingProductId, isPending: isSaving } =
+    useAddToWishlist()
   const { mutate: checkoutCart, isPending: isCheckingOut } = useCheckoutCart()
 
   const items = (cart as any)?.items ?? []
@@ -165,6 +168,15 @@ export const BlyssCartPage = () => {
                   item={item}
                   onRemove={(id) => removeItem({ itemId: id })}
                   isRemoving={(removingId as any)?.itemId === item.id}
+                  onSaveForLater={(it) => {
+                    // Optimistic Etsy-style 'Save for later':
+                    // 1) push the product to the wishlist
+                    // 2) on success, drop the item from the cart
+                    addToWishlist(it.product.id, {
+                      onSuccess: () => removeItem({ itemId: it.id }),
+                    })
+                  }}
+                  isSaving={savingProductId === item.product.id && isSaving}
                 />
               </motion.div>
             ))}
