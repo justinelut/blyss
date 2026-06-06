@@ -9,7 +9,7 @@ interface NoteFromMakersProps {
 }
 
 const DEFAULT_BODY =
-  "A modern marketplace for independent creators selling digital work to a global audience. Card or mobile money. Paid out within 24 hours."
+  "A modern marketplace for independent creators. Discover digital products from creators around the world — templates, ebooks, beats, courses, subscription tiers — and pay with card or mobile money."
 
 const DEFAULT_SIGNATURE = '— Blyss'
 
