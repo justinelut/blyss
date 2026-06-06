@@ -80,16 +80,24 @@ spec:
         - name: worker
           image: ghcr.io/justinelut/blyss-api:latest
           imagePullPolicy: IfNotPresent
-          # `--queues` MUST list every queue the worker should consume.
-          # Without it, dramatiq only listens to `default`, which means any
-          # @actor with priority=TaskPriority.LOW (Loops backfills,
-          # marketing emails, slow background work) sits in `low_priority`
-          # forever. Match dev/docker/scripts/startup.sh + dev/cli/worker.py.
-          #
-          # The `--` terminates argparse's option scanning so `--queues`'s
-          # nargs='*' stops swallowing words; without it `polar.worker.run`
-          # is parsed as a queue name and the worker fails to start with
-          # 'the following arguments are required: broker'.
+          # The worker pod runs TWO processes inside one container:
+          #   1. dramatiq worker  — drains the message queues
+          #   2. APScheduler fork — fires periodic / cron jobs
+          #      (subscription renewals, scheduled cleanups, anything
+          #      registered via @cron in scheduler_middleware)
+          # Match dev/docker/scripts/startup.sh + dev/cli/commands/worker.py
+          # exactly. Three things MUST be present here or scheduled work
+          # silently stops:
+          #   --queues default high_priority medium_priority low_priority
+          #            webhooks  → without this dramatiq listens to
+          #            'default' only and every TaskPriority.LOW actor
+          #            (Loops backfill, marketing emails) sits forever.
+          #   -f polar.worker.scheduler:start  → spawns the APScheduler
+          #            fork process; without this NO cron job runs
+          #            (subscription billing, periodic cleanups, etc.).
+          #   --  →  argparse option terminator so --queues' nargs='*'
+          #            stops swallowing words and the broker positional
+          #            ('polar.worker.run') is parsed as the broker.
           command:
             - "uv"
             - "run"
@@ -104,6 +112,8 @@ spec:
             - "medium_priority"
             - "low_priority"
             - "webhooks"
+            - "-f"
+            - "polar.worker.scheduler:start"
             - "--"
             - "polar.worker.run"
           envFrom:
@@ -115,10 +125,15 @@ spec:
               readOnly: true
           resources:
             requests:
-              memory: 384Mi
+              # Bumped 384Mi → 512Mi to account for the APScheduler fork
+              # process running alongside the dramatiq worker (-f
+              # polar.worker.scheduler:start above). One pod, two Python
+              # processes — the original 384Mi was tight even for the
+              # worker alone.
+              memory: 512Mi
               cpu: 100m
             limits:
-              memory: 768Mi
+              memory: 1Gi
       volumes:
         - name: jwks
           secret:

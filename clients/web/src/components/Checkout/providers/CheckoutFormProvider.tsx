@@ -183,33 +183,49 @@ export const CheckoutFormProvider = ({
       // PaystackPaymentInterface tree, which calls onPay(). After that,
       // the polling effect inside the interface handles success/failure
       // — there's no Stripe ConfirmationToken to mint here.
+      //
+      // CRITICAL: we MUST NOT return a CheckoutPublicConfirmed-shaped
+      // object here. The outer @polar-sh/checkout-frontend SDK watches
+      // for confirmed status on the resolved value of confirm() and
+      // redirects to the success URL when it sees one. Our charge is
+      // not actually confirmed at click-time — only the STK push has
+      // been initiated. Returning a confirmed object made the page
+      // 'redirect instantly' before the buyer ever saw the M-Pesa
+      // PIN-prompt UI.
+      //
+      // Instead we throw a tagged 'PaystackHandoff' marker. The outer
+      // SDK's catch path treats this as 'still pending'; it does NOT
+      // redirect, does NOT clear the page, and PaystackPaymentInterface
+      // keeps rendering its ActiveChargePanel until the poll resolves.
       if (checkout.payment_processor === 'paystack') {
         setLoadingLabel(t('checkout.loading.processingPayment'))
-        try {
-          const trigger = document.querySelector<HTMLInputElement>(
-            '[data-paystack-channel-submit]',
-          )
-          if (!trigger) {
-            throw new Error(
-              'Paystack channel form not ready — pick a payment method and try again.',
-            )
-          }
-          // The hidden input has onClick -> onPay; firing a click event
-          // routes through React's synthetic event system.
-          trigger.click()
-          // Charge is async + polled inside the interface. Return the
-          // current checkout so the form's loading state clears; the
-          // interface's success banner / error toast is the buyer's
-          // canonical signal.
-          return checkout as schemas['CheckoutPublicConfirmed']
-        } catch (e) {
-          setError('root', {
-            message: e instanceof Error ? e.message : 'Payment failed.',
-          })
-          throw e
-        } finally {
+        const trigger = document.querySelector<HTMLInputElement>(
+          '[data-paystack-channel-submit]',
+        )
+        if (!trigger) {
           setLoading(false)
+          setError('root', {
+            message:
+              'Paystack channel form not ready — pick a payment method and try again.',
+          })
+          throw new Error('paystack-channel-not-ready')
         }
+        // Fire the inline charge. PaystackPaymentInterface's onPay
+        // handles the /v1/checkouts/{secret}/charge/{channel} call and
+        // its useEffect polls /payment-status until it resolves to
+        // success or failed, swapping in ActiveChargePanel for the
+        // STK / next-action UI.
+        trigger.click()
+        // Hand-off marker — handled by the form's catch path, NOT by
+        // the polar-sdk's redirect-on-confirmed logic. We stop the
+        // form's loading state here so the buyer can read the
+        // ActiveChargePanel; the polling effect drives the rest.
+        setLoading(false)
+        const handoff = new Error('paystack-handoff') as Error & {
+          paystackHandoff?: true
+        }
+        handoff.paystackHandoff = true
+        throw handoff
       }
 
       // Handle Stripe payments

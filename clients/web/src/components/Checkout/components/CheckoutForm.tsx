@@ -226,6 +226,21 @@ const BaseCheckoutForm = ({
       ...data,
       locale: localeProp,
       customFieldData: cleanedFieldData,
+    }).catch((err: unknown) => {
+      // Paystack handoff: confirm() intentionally throws this marker so
+      // the polar-sdk's redirect-on-confirmed logic doesn't fire before
+      // the inline charge has actually been confirmed by polling. Eat
+      // the error here so react-hook-form doesn't surface it as a form
+      // root error — the ActiveChargePanel inside PaystackPaymentInterface
+      // owns the buyer's canonical signal from this point.
+      if (
+        err &&
+        typeof err === 'object' &&
+        (err as { paystackHandoff?: true }).paystackHandoff === true
+      ) {
+        return
+      }
+      throw err
     })
   }
 

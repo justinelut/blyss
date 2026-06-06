@@ -4,7 +4,7 @@ import { api } from '@/utils/client'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { defaultRetry } from './retry'
 
-export const useWishlist = () => {
+export const useWishlist = (enabled = true) => {
   return useQuery({
     queryKey: ['wishlist'],
     queryFn: async () => {
@@ -17,6 +17,10 @@ export const useWishlist = () => {
       return result.data
     },
     retry: defaultRetry,
+    // Guests get a 401 on /v1/wishlist; callers pass `authenticated` so
+    // the global header / mobile nav don't fire this for anonymous
+    // visitors and spam the console. Same pattern as useCart.
+    enabled,
   })
 }
 
