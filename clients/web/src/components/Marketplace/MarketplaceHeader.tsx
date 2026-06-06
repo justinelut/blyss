@@ -103,12 +103,24 @@ export const MarketplaceHeader = ({ alwaysBlurred = false }: MarketplaceHeaderPr
 
           {/* Right cluster */}
           <div className="flex items-center gap-2 md:gap-3">
+            {/* Search affordance — small icon button on phones, a longer
+                search-bar-styled link on desktop. Both navigate to /search.
+                Real search lives on the marketplace browse page (sticky
+                input with debounce); this just gets buyers there fast. */}
             <Link
-              href="/marketplace"
+              href="/search"
               aria-label="Search the marketplace"
-              className="flex h-10 w-10 items-center justify-center rounded-md text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-sunken)] hover:text-[var(--text-primary)]"
+              className="flex h-10 w-10 items-center justify-center rounded-md text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-sunken)] hover:text-[var(--text-primary)] lg:hidden"
             >
               <FiSearch size={20} />
+            </Link>
+            <Link
+              href="/search"
+              aria-label="Search the marketplace"
+              className="hidden h-10 items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--surface-sunken)] px-3 font-sans text-[13px] text-[var(--text-muted)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface)] hover:text-[var(--text-primary)] lg:inline-flex lg:w-[180px] xl:w-[220px]"
+            >
+              <FiSearch size={16} aria-hidden="true" />
+              <span>Search products…</span>
             </Link>
             <CountrySwitcher className="hidden sm:block" />
             {/* Wishlist quick-link — Etsy pattern. Shown only when signed

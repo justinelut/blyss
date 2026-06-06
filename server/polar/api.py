@@ -42,6 +42,7 @@ from polar.integrations.discord.endpoints import router as discord_router
 # )
 from polar.integrations.google.endpoints import router as google_router
 from polar.integrations.paystack.endpoints import router as paystack_router
+from polar.integrations.loops.endpoints import router as loops_endpoints_router
 from polar.integrations.plain.endpoints import router as plain_router
 
 # Stripe routes stay unmounted on the marketplace surface; module imports stay for
@@ -154,6 +155,7 @@ router.include_router(metrics_router)
 router.include_router(google_router)
 # /integrations/paystack
 router.include_router(paystack_router)
+router.include_router(loops_endpoints_router)
 
 # DISABLED — software license keys (developer benefit)
 # router.include_router(license_key_router)

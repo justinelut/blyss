@@ -13,6 +13,7 @@
 import Link from 'next/link'
 import { FiInstagram, FiTwitter } from 'react-icons/fi'
 import { CountrySwitcher } from './CountrySwitcher'
+import { NewsletterSignup } from './NewsletterSignup'
 import { BlyssLogo } from '@/design'
 
 const footerColumns = [
@@ -72,7 +73,7 @@ export const MarketplaceFooter = () => {
           <div className="md:col-span-5">
             <BlyssLogo size="xl" />
             <p className="mt-4 max-w-[28ch] text-[15px] leading-[1.5] text-[var(--text-secondary)]">
-              The modern modern marketplace for digital products. Templates, ebooks,
+              The modern marketplace for digital products. Templates, ebooks,
               beats, courses, subscription tiers. Card or mobile money.
             </p>
             <div className="mt-8 flex items-center gap-4">
@@ -89,6 +90,9 @@ export const MarketplaceFooter = () => {
                 </a>
               ))}
             </div>
+            {/* Newsletter — Etsy classic. Posts to the public Loops
+                newsletter endpoint; idempotent upsert. */}
+            <NewsletterSignup className="mt-10" />
           </div>
 
           {/* Three nav columns */}
