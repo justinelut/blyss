@@ -15,14 +15,16 @@
  */
 
 import { FiSearch, FiUser, FiMenu, FiX, FiHeart } from 'react-icons/fi'
+import { FiGrid, FiLogOut } from 'react-icons/fi'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import { BlyssLogo } from '@/design'
 import { CartButton } from '@/components/Cart/CartButton'
 import { CountrySwitcher } from './CountrySwitcher'
 import { useAuth } from '@/hooks'
 import { cn } from '@/lib/utils'
+import { CONFIG } from '@/utils/config'
 
 const navLinks = [
   { href: '/marketplace', label: 'Browse' },
@@ -138,13 +140,7 @@ export const MarketplaceHeader = ({ alwaysBlurred = false }: MarketplaceHeaderPr
             )}
             <CartButton />
             {authenticated && currentUser ? (
-              <Link
-                href="/dashboard"
-                aria-label="Account"
-                className="hidden h-10 w-10 items-center justify-center rounded-md text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-sunken)] hover:text-[var(--text-primary)] md:flex"
-              >
-                <FiUser size={20} />
-              </Link>
+              <AccountMenu />
             ) : (
               <>
                 <Link
@@ -245,5 +241,123 @@ export const MarketplaceHeader = ({ alwaysBlurred = false }: MarketplaceHeaderPr
         </motion.div>
       )}
     </>
+  )
+}
+
+/**
+ * AccountMenu — click-to-open dropdown on the header's account icon.
+ *
+ * Shows: Dashboard (only for users with at least one creator org),
+ * Wishlist, Orders, Sign out. Replaces the previous hardcoded
+ * `<Link href="/dashboard">` which sent every signed-in user (including
+ * customers who never sold anything) to the dashboard with no obvious way
+ * back. Buyers now see a buyer-oriented set of links; creators still get
+ * the dashboard option deep-linked to their primary org slug.
+ *
+ * Implementation: vanilla useState + outside-click handler. Avoids a
+ * radix dependency for this small surface — the dropdown is purely
+ * presentational and the keyboard handling (Escape, Tab) is delegated
+ * to native focus order on the inline links.
+ */
+function AccountMenu() {
+  const { currentUser, userOrganizations } = useAuth()
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement | null>(null)
+
+  // Close on outside click and on route change. setOpen(false) on
+  // currentUser change is defensive: if the user signs out elsewhere
+  // (e.g. a customer-portal magic link expires), the dropdown closes.
+  useEffect(() => {
+    if (!open) return
+    const onClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('mousedown', onClick)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onClick)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
+  // Pick the creator's primary org for the Dashboard link. If the user
+  // has no creator orgs (pure customer), Dashboard hides entirely.
+  const primaryOrg = userOrganizations[0]
+  const dashboardHref = primaryOrg
+    ? `/dashboard/${primaryOrg.slug}`
+    : null
+
+  return (
+    <div ref={ref} className="relative hidden md:block">
+      <button
+        type="button"
+        aria-label="Account menu"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        className="flex h-10 w-10 items-center justify-center rounded-md text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-sunken)] hover:text-[var(--text-primary)]"
+      >
+        <FiUser size={20} />
+      </button>
+      {open && (
+        <div
+          role="menu"
+          className="absolute right-0 z-50 mt-2 w-60 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]"
+        >
+          <div className="border-b border-[var(--border)] px-4 py-3">
+            <p className="font-sans text-[13px] text-[var(--text-muted)]">
+              Signed in as
+            </p>
+            <p className="truncate font-sans text-[14px] font-medium text-[var(--text-primary)]">
+              {currentUser?.email}
+            </p>
+          </div>
+          <ul className="flex flex-col py-2">
+            {dashboardHref && (
+              <li>
+                <Link
+                  href={dashboardHref}
+                  role="menuitem"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-3 px-4 py-2.5 font-sans text-[14px] text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-sunken)]"
+                >
+                  <FiGrid size={16} className="text-[var(--text-muted)]" />
+                  Creator dashboard
+                </Link>
+              </li>
+            )}
+            <li>
+              <Link
+                href="/wishlist"
+                role="menuitem"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-3 px-4 py-2.5 font-sans text-[14px] text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-sunken)]"
+              >
+                <FiHeart size={16} className="text-[var(--text-muted)]" />
+                Wishlist
+              </Link>
+            </li>
+            {/* TODO: cross-org orders aggregator. Until /orders exists,
+                  buyers see their orders inside each creator's customer
+                  portal at /{creator-slug}/portal/orders. */}
+          </ul>
+          <div className="border-t border-[var(--border)] py-2">
+            <a
+              href={`${CONFIG.BASE_URL}/v1/auth/logout`}
+              role="menuitem"
+              className="flex items-center gap-3 px-4 py-2.5 font-sans text-[14px] text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-sunken)]"
+            >
+              <FiLogOut size={16} className="text-[var(--text-muted)]" />
+              Sign out
+            </a>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
