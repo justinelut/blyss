@@ -23,7 +23,7 @@ const checklist: ReadonlyArray<{
 }> = [
   {
     title: 'Connect Paystack for payouts',
-    body: 'Link Paystack so we can deposit your earnings to your bank or M-Pesa. Required before you can list a product — without it, buyers can\u2019t pay you.',
+    body: 'Link Paystack so we can deposit your earnings to your bank or M-Pesa. Required before you can list a product — without it, buyers can’t pay you.',
     cta: 'Set up payouts',
     href: '/dashboard/{slug}/finance/account',
   },
@@ -97,7 +97,7 @@ export default function OnboardingProductPage({
             Your store is live. Now let&rsquo;s sell something.
           </h1>
           <p className="mt-6 max-w-[58ch] font-sans text-[18px] leading-[1.55] text-[var(--text-secondary)]">
-            Three short steps. Activate payouts first \u2014 buyers can\u2019t
+            Three short steps. Activate payouts first — buyers can’t
             pay you until your Paystack account is connected.
           </p>
         </motion.div>

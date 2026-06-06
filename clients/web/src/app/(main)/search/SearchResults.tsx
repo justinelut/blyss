@@ -83,21 +83,22 @@ export const SearchResults = ({
             'text-[clamp(36px,5vw,64px)] text-[var(--text-primary)]',
           )}
         >
-          {query ? `Results for \u201C${query}\u201D` : 'Find what you need.'}
+          {query ? `Results for “${query}”` : 'Find what you need.'}
         </h1>
       </motion.div>
 
-      {/* Sticky search bar — stays visible while scrolling so refining
-          a query doesn't require scroll-to-top. The sticky offset sits
-          below the marketplace header (h-20). */}
+      {/* Search bar — single editorial line, hairline rule below.
+          No card, no rounded box: a search field is a writing surface,
+          not a UI widget. Hairline turns burnt orange on focus so the
+          buyer knows where the cursor is without a heavy frame. */}
       <motion.form
         onSubmit={submit}
         initial={reduce ? false : { opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease, delay: 0.1 }}
-        className="sticky top-24 z-20 mt-8 -mx-6 bg-[var(--background)] px-6 pb-6 md:-mx-16 md:px-16"
+        className="mt-8"
       >
-        <div className="flex w-full max-w-[720px] items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--surface)] px-4 py-3 transition-colors focus-within:border-[var(--accent)]">
+        <div className="flex w-full max-w-[720px] items-center gap-3 border-b border-[var(--border)] py-3 transition-colors focus-within:border-[var(--accent)]">
           <FiSearch
             size={18}
             className="shrink-0 text-[var(--text-muted)]"
@@ -107,8 +108,8 @@ export const SearchResults = ({
             type="search"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Templates, beats, courses\u2026"
-            className="flex-1 bg-transparent font-sans text-[15px] text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
+            placeholder="Templates, beats, courses…"
+            className="flex-1 bg-transparent font-sans text-[16px] text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
             autoFocus
           />
           {input && (
@@ -116,7 +117,7 @@ export const SearchResults = ({
               type="button"
               onClick={() => setInput('')}
               aria-label="Clear search"
-              className="flex h-7 w-7 items-center justify-center rounded text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-sunken)] hover:text-[var(--text-primary)]"
+              className="flex h-7 w-7 items-center justify-center text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
             >
               <FiX size={16} aria-hidden="true" />
             </button>
@@ -175,7 +176,7 @@ export const SearchResults = ({
             <h2
               className={cn(typography.h3, 'text-[var(--text-primary)]')}
             >
-              Nothing matched \u201C{query}\u201D.
+              Nothing matched “{query}”.
             </h2>
             <p
               className={cn(

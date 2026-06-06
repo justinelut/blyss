@@ -137,7 +137,7 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
         stopPolling()
         setStage('failed')
         setErrorMsg(
-          'STK prompt expired. Safaricom\u2019s window is about three minutes — try again.',
+          'STK prompt expired. Safaricom’s window is about three minutes — try again.',
         )
         return
       }
@@ -379,7 +379,7 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
               className={isRetrying ? 'animate-spin' : ''}
               aria-hidden="true"
             />
-            {isRetrying ? 'Retrying\u2026' : 'Retry'}
+            {isRetrying ? 'Retrying…' : 'Retry'}
           </button>
         )}
       </div>
@@ -463,7 +463,7 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
               className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-[var(--accent)] px-6 font-sans text-[15px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {stage === 'sending' ? (
-                <>Sending prompt\u2026</>
+                <>Sending prompt…</>
               ) : (
                 <>
                   Send STK push & verify
@@ -607,10 +607,10 @@ function WaitingPanel({
             />
           </div>
           <p className="font-sans text-[12px] text-[var(--text-muted)]">
-            {reference ? <>Reference {reference} \u00b7 </> : null}
+            {reference ? <>Reference {reference} · </> : null}
             {isFinalizing
-              ? 'Confirming\u2026'
-              : 'We\u2019ll auto-confirm once you approve'}
+              ? 'Confirming…'
+              : 'We’ll auto-confirm once you approve'}
           </p>
         </>
       )}
@@ -622,7 +622,7 @@ function WaitingPanel({
           </h3>
           <p className="mx-auto max-w-[44ch] font-sans text-[15px] leading-[1.55] text-[var(--text-secondary)]">
             Your M-Pesa is verified and your payout account is set up.
-            We\u2019re refreshing the page now.
+            We’re refreshing the page now.
           </p>
         </div>
       )}
@@ -631,7 +631,7 @@ function WaitingPanel({
         <>
           <div className="space-y-2">
             <h3 className="font-display text-[24px] font-semibold leading-[1.15] tracking-[-0.02em] text-[var(--text-primary)]">
-              That didn\u2019t go through.
+              That didn’t go through.
             </h3>
             <p className="mx-auto max-w-[44ch] font-sans text-[15px] leading-[1.55] text-[var(--text-secondary)]">
               {errorMsg || 'The prompt timed out or was declined.'}
@@ -665,7 +665,7 @@ function PayoutsActiveBlock({
           Payouts
         </p>
         <h2 className="mt-2 font-display text-[28px] font-semibold leading-[1.1] tracking-[-0.02em] text-[var(--text-primary)]">
-          You\u2019re set up to be paid.
+          You’re set up to be paid.
         </h2>
         <p className="mt-3 max-w-[60ch] font-sans text-[15px] leading-[1.55] text-[var(--text-secondary)]">
           Sales settle into your M-Pesa automatically after each

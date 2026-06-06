@@ -929,7 +929,7 @@ const ActiveChargePanel = ({
   return (
     <div className="space-y-3 rounded-md border border-[var(--border)] bg-[var(--surface-elevated)] p-4 text-sm">
       <p className="font-medium text-[var(--text-primary)]">
-        {charge.display_text || 'Waiting for payment\u2026'}
+        {charge.display_text || 'Waiting for payment…'}
       </p>
 
       {charge.account_number && (
@@ -937,7 +937,7 @@ const ActiveChargePanel = ({
           <div className="flex justify-between">
             <dt>Bank</dt>
             <dd className="font-medium text-[var(--text-primary)]">
-              {charge.bank_name || '\u2014'}
+              {charge.bank_name || '—'}
             </dd>
           </div>
           <div className="flex justify-between">

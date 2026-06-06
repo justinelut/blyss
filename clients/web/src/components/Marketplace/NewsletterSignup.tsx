@@ -56,9 +56,9 @@ export function NewsletterSignup({ className }: { className?: string }) {
       setDone(true)
       setEmail('')
       safeToast({
-        title: 'You\u2019re on the list',
+        title: 'You’re on the list',
         description:
-          'We\u2019ll send the occasional editorial update — never spam, easy to unsubscribe.',
+          'We’ll send the occasional editorial update — never spam, easy to unsubscribe.',
         duration: 3500,
       })
     } catch (err) {
@@ -102,7 +102,7 @@ export function NewsletterSignup({ className }: { className?: string }) {
           className="mt-2 inline-flex items-center gap-2 font-sans text-[13px] text-[var(--text-primary)]"
         >
           <FiCheck size={16} className="text-[var(--accent)]" aria-hidden="true" />
-          You\u2019re on the list. Check your inbox for the welcome note.
+          You’re on the list. Check your inbox for the welcome note.
         </p>
       ) : (
         <div className="mt-2 flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
@@ -124,7 +124,7 @@ export function NewsletterSignup({ className }: { className?: string }) {
             className="inline-flex h-10 items-center justify-center gap-1.5 rounded-md bg-[var(--accent)] px-4 font-sans text-[13px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {submitting ? (
-              <span aria-hidden="true">Subscribing\u2026</span>
+              <span aria-hidden="true">Subscribing…</span>
             ) : (
               <>
                 Subscribe

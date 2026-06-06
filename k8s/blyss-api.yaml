@@ -80,21 +80,18 @@ spec:
         - name: worker
           image: ghcr.io/justinelut/blyss-api:latest
           imagePullPolicy: IfNotPresent
-          # The worker pod runs TWO processes inside one container:
-          #   1. dramatiq worker  — drains the message queues
-          #   2. APScheduler fork — fires periodic / cron jobs
-          #      (subscription renewals, scheduled cleanups, anything
-          #      registered via @cron in scheduler_middleware)
-          # Match dev/docker/scripts/startup.sh + dev/cli/commands/worker.py
-          # exactly. Three things MUST be present here or scheduled work
-          # silently stops:
+          # The worker pod runs the dramatiq broker against ALL queue
+          # tiers. The scheduler fork (`-f polar.worker.scheduler:start`)
+          # was tried and reverted — it crash-looped in production while
+          # working fine locally + in the dev container; the failure mode
+          # was opaque (worker shows 'ready for action' then exits with
+          # no traceback). Until we have a clean repro, scheduled cron
+          # jobs run separately. Three things MUST be present here or
+          # queued work silently stops:
           #   --queues default high_priority medium_priority low_priority
           #            webhooks  → without this dramatiq listens to
           #            'default' only and every TaskPriority.LOW actor
           #            (Loops backfill, marketing emails) sits forever.
-          #   -f polar.worker.scheduler:start  → spawns the APScheduler
-          #            fork process; without this NO cron job runs
-          #            (subscription billing, periodic cleanups, etc.).
           #   --  →  argparse option terminator so --queues' nargs='*'
           #            stops swallowing words and the broker positional
           #            ('polar.worker.run') is parsed as the broker.
@@ -112,8 +109,6 @@ spec:
             - "medium_priority"
             - "low_priority"
             - "webhooks"
-            - "-f"
-            - "polar.worker.scheduler:start"
             - "--"
             - "polar.worker.run"
           envFrom:
