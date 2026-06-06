@@ -22,15 +22,16 @@ const checklist: ReadonlyArray<{
   href?: string
 }> = [
   {
+    title: 'Connect Paystack for payouts',
+    body: 'Link Paystack so we can deposit your earnings to your bank or M-Pesa. Required before you can list a product — without it, buyers can\u2019t pay you.',
+    cta: 'Set up payouts',
+    href: '/dashboard/{slug}/finance/account',
+  },
+  {
     title: 'List your first product',
     body: 'Pick what you want to sell — a beat pack, a Notion template, an ebook, a community subscription. Add a name, price, and the file or content. Takes about 2 minutes.',
     cta: 'Create a product',
-  },
-  {
-    title: 'Connect Paystack for payouts',
-    body: 'Link your Paystack account so we can deposit your earnings to your bank or M-Pesa. You only need to do this before your first sale.',
-    cta: 'Set up payouts',
-    href: '/dashboard/{slug}/finance/account',
+    href: '/dashboard/{slug}/products/new',
   },
   {
     title: 'Share your storefront',
@@ -46,9 +47,7 @@ export default function OnboardingProductPage({
   const reduce = useReducedMotion()
   const ease = [0.32, 0.72, 0, 1] as const
 
-  const productNewHref = `/dashboard/${organization.slug}/products/new`
   const dashboardHref = `/dashboard/${organization.slug}`
-
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--text-primary)]">
       <div className="mx-auto max-w-[960px] px-6 py-16 md:px-12 md:py-24">
@@ -98,8 +97,8 @@ export default function OnboardingProductPage({
             Your store is live. Now let&rsquo;s sell something.
           </h1>
           <p className="mt-6 max-w-[58ch] font-sans text-[18px] leading-[1.55] text-[var(--text-secondary)]">
-            Three short steps to your first sale. List a product first — that
-            unlocks the rest of the checklist.
+            Three short steps. Activate payouts first \u2014 buyers can\u2019t
+            pay you until your Paystack account is connected.
           </p>
         </motion.div>
 
@@ -139,9 +138,9 @@ export default function OnboardingProductPage({
                     {step.body}
                   </p>
 
-                  {step.cta && (isPrimary || href) && (
+                  {step.cta && href && (
                     <Link
-                      href={isPrimary ? productNewHref : href ?? dashboardHref}
+                      href={href}
                       className={cn(
                         'mt-5 inline-flex items-center gap-1.5 font-sans text-[14px] font-medium underline-offset-4',
                         isPrimary
@@ -176,10 +175,10 @@ export default function OnboardingProductPage({
             Skip — take me to the dashboard
           </Link>
           <Link
-            href={productNewHref}
+            href={`/dashboard/${organization.slug}/finance/account`}
             className="inline-flex h-11 items-center justify-center gap-1.5 rounded-md bg-[var(--accent)] px-6 font-sans text-[14px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)]"
           >
-            Create my first product
+            Activate payouts
             <FiArrowRight size={14} />
           </Link>
         </motion.div>
