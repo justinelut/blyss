@@ -225,6 +225,33 @@ export const BlyssCartPage = () => {
             >
               {isCheckingOut ? 'Starting checkout...' : 'Checkout'}
             </button>
+
+            {/* Reassurance — Etsy-style trust copy under the CTA. Real
+                affordances only, no invented metrics or trust badges
+                (gates 56 + no-trust-strips). */}
+            <ul className="mt-5 flex flex-col gap-2 font-sans text-[12px] text-[var(--text-muted)]">
+              <li className="flex items-center gap-2">
+                <span
+                  aria-hidden="true"
+                  className="h-1 w-1 rounded-full bg-[var(--accent)]"
+                />
+                Pay with card or M-Pesa
+              </li>
+              <li className="flex items-center gap-2">
+                <span
+                  aria-hidden="true"
+                  className="h-1 w-1 rounded-full bg-[var(--accent)]"
+                />
+                Receipt to your inbox · instant delivery
+              </li>
+              <li className="flex items-center gap-2">
+                <span
+                  aria-hidden="true"
+                  className="h-1 w-1 rounded-full bg-[var(--accent)]"
+                />
+                Every purchase pays the creator directly
+              </li>
+            </ul>
           </div>
         </aside>
       </div>

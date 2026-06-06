@@ -27,22 +27,22 @@ export const ClosingCtaBand = () => {
           )}
         >
           <em className="font-display italic">
-            Your storefront is one signup away.
+            Find work worth supporting.
           </em>
         </h2>
 
         <div className="mt-10 flex flex-col items-center justify-center gap-4 md:flex-row md:gap-6">
           <Link
-            href="/start"
+            href="/marketplace"
             className="inline-flex h-12 items-center justify-center rounded-md bg-[#F97316] px-7 font-sans text-[15px] font-medium text-[#0F0E0C] transition-colors hover:bg-[#FFA052]"
           >
-            Start selling
+            Browse the marketplace
           </Link>
           <Link
-            href="/login"
+            href="/start"
             className="font-sans text-[14px] text-[#BAB5A8] underline-offset-4 transition-colors hover:text-[#F5F2EC] hover:underline"
           >
-            Already selling? Sign in
+            Or, are you a creator? Start selling
           </Link>
         </div>
       </div>
