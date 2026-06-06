@@ -68,6 +68,12 @@ async def index(
                     disabled=not has_key,
                 ):
                     text("Sync all users to Loops")
+                with button(
+                    variant="ghost",
+                    hx_post=str(request.url_for("loops:test")),
+                    disabled=not has_key,
+                ):
+                    text("Test connection (upsert one contact)")
 
 
 @router.post("/sync", name="loops:sync_all")
@@ -92,4 +98,72 @@ async def sync_all(
         "Sync started. Users are being pushed to Loops in the background.",
         "success",
     )
+    return HXRedirectResponse(request, str(request.url_for("loops:index")))
+
+
+@router.post("/test", name="loops:test")
+async def test_connection(
+    request: Request,
+    session: AsyncSession = Depends(get_db_session),
+    admin: object = Depends(get_admin),
+) -> HXRedirectResponse:
+    """Synchronously upsert ONE test contact directly via the Loops client.
+
+    Bypasses the worker queue so the operator gets immediate signal —
+    success toast, or the actual error from the Loops API. Useful when sync
+    is silent and we need to know whether the key, network egress, or task
+    pickup is the failure point.
+    """
+    from polar.integrations.loops.client import (
+        LoopsClientLogicalError,
+        LoopsClientOperationalError,
+        client as loops_client,
+    )
+
+    loops_key = await runtime_settings.get(session, "LOOPS_API_KEY")
+    if not loops_key:
+        await add_toast(
+            request,
+            "No Loops API key configured. Set LOOPS_API_KEY in Runtime "
+            "settings first.",
+            "error",
+        )
+        return HXRedirectResponse(request, str(request.url_for("loops:index")))
+
+    test_email = "loops-backoffice-test@blyss.co.ke"
+    test_id = "00000000-0000-0000-0000-000000000001"
+    try:
+        await loops_client.update_contact(
+            test_email,
+            test_id,
+            session=session,
+            userGroup="creator",
+            signupIntent="diagnostic",
+            subscribed=False,
+        )
+        await add_toast(
+            request,
+            f"Loops connection OK — upserted {test_email} (subscribed=false). "
+            "Check the Contacts list in your Loops dashboard.",
+            "success",
+        )
+    except LoopsClientLogicalError as e:
+        await add_toast(
+            request,
+            f"Loops rejected the request — HTTP {e.status_code}: {e.body[:200]}",
+            "error",
+        )
+    except LoopsClientOperationalError as e:
+        await add_toast(
+            request,
+            f"Loops connection failed (network/5xx): {str(e)[:200]}",
+            "error",
+        )
+    except Exception as e:
+        await add_toast(
+            request,
+            f"Loops test raised an unexpected error: {type(e).__name__}: {str(e)[:200]}",
+            "error",
+        )
+
     return HXRedirectResponse(request, str(request.url_for("loops:index")))

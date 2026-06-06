@@ -75,8 +75,14 @@ class LoopsClient:
 
         api_key: str | None = None
         if session is not None:
-            api_key = await runtime_settings.get(session, "LOOPS_API_KEY")
-        else:
+            try:
+                api_key = await runtime_settings.get(session, "LOOPS_API_KEY")
+            except Exception as e:
+                # runtime_settings disabled (no master key), or DB error.
+                # Fall through to env so we still have a chance to send.
+                log.warning("loops.runtime_settings.unavailable", error=str(e))
+                api_key = None
+        if not api_key:
             api_key = settings.LOOPS_API_KEY or None
 
         if not api_key:
@@ -87,20 +93,39 @@ class LoopsClient:
     async def update_contact(
         self, email: str, id: str, session: AsyncSession | None = None, **properties: Unpack[Properties]
     ) -> None:
-        log.debug("loops.contact.update", email=email, id=id, **properties)
+        log.info("loops.contact.update", email=email, id=id, **properties)
 
         headers = await self._auth_headers(session)
         if not headers:
             return
 
-        await self._make_request(
-            self.client.build_request(
-                "POST",
-                "/contacts/update",
-                json={"email": email, "userId": id, **properties},
-                headers=headers,
+        try:
+            await self._make_request(
+                self.client.build_request(
+                    "POST",
+                    "/contacts/update",
+                    json={"email": email, "userId": id, **properties},
+                    headers=headers,
+                )
             )
-        )
+            log.info("loops.contact.update.ok", email=email, id=id)
+        except LoopsClientLogicalError as e:
+            log.error(
+                "loops.contact.update.4xx",
+                email=email,
+                id=id,
+                status=e.status_code,
+                body=e.body[:300],
+            )
+            raise
+        except LoopsClientOperationalError as e:
+            log.error(
+                "loops.contact.update.5xx_or_network",
+                email=email,
+                id=id,
+                error=str(e)[:300],
+            )
+            raise
 
     async def send_event(
         self,
