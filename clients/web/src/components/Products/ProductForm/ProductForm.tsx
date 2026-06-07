@@ -16,6 +16,14 @@ export type ProductFormType = Omit<
 > &
   ProductFullMediasMixin & {
     metadata: { key: string; value: string | number | boolean }[]
+    /**
+     * Selected product category UUID. NOT part of ProductCreate /
+     * ProductUpdate payloads — handled out-of-band by the form's
+     * submit handler via POST/DELETE /v1/categories/assignments
+     * after the product row is created or updated. Empty string
+     * means uncategorised.
+     */
+    category_id?: string
   }
 
 const ProductForm = ({

@@ -59,3 +59,36 @@ class CategoryRepository(
         )
         result = await self.session.execute(statement)
         return list(result.scalars().all())
+
+    async def get_categories_for_product(
+        self, product_id: UUID
+    ) -> list[tuple[ProductCategory, int]]:
+        """Return categories the product is currently assigned to,
+        each paired with that category's product count.
+
+        The dashboard product-form picker treats this as effectively
+        single-select (writes via assign + unassign so only one row
+        exists per product), but the underlying ProductCategoryAssignment
+        is many-to-many — keeping the door open for backoffice bulk-tag
+        flows that might want multiple labels on a single product.
+        """
+        statement = (
+            select(ProductCategory)
+            .join(
+                ProductCategoryAssignment,
+                ProductCategoryAssignment.category_id == ProductCategory.id,
+            )
+            .where(ProductCategoryAssignment.product_id == product_id)
+            .order_by(
+                ProductCategory.display_order.asc(),
+                ProductCategory.name.asc(),
+            )
+        )
+        result = await self.session.execute(statement)
+        categories = list(result.scalars().all())
+
+        out: list[tuple[ProductCategory, int]] = []
+        for c in categories:
+            count = await self.get_product_count(c.id)
+            out.append((c, count))
+        return out

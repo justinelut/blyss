@@ -99,6 +99,37 @@ async def list_categories(
 
 
 @router.get(
+    "/by-product/{product_id}",
+    response_model=list[CategoryPublic],
+    summary="Get Product Categories",
+    responses={
+        200: {"description": "Categories assigned to a product."},
+    },
+)
+async def get_product_categories(
+    product_id: Annotated[UUID, Path(description="The product ID.")],
+    session: AsyncSession = Depends(get_db_session),
+) -> list[CategoryPublic]:
+    """Get categories currently assigned to a product.
+
+    The dashboard product-form picker treats this as single-select
+    (writes via assign + unassign so only one row exists per product),
+    but the assignment table is many-to-many — endpoint returns a
+    list to keep room for future bulk-tag flows. No authentication
+    required; product visibility is already governed at the product
+    detail layer.
+    """
+    from .repository import CategoryRepository
+
+    repository = CategoryRepository.from_session(session)
+    pairs = await repository.get_categories_for_product(product_id)
+    return [
+        CategoryPublic(**c.__dict__, product_count=count)
+        for (c, count) in pairs
+    ]
+
+
+@router.get(
     "/{slug}",
     response_model=CategoryPublic,
     summary="Get Category",

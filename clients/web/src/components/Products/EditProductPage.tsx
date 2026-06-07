@@ -4,6 +4,11 @@ import {
   useUpdateProduct,
   useUpdateProductBenefits,
 } from '@/hooks/queries'
+import {
+  useAssignProductToCategory,
+  useProductCategories,
+  useUnassignProductFromCategory,
+} from '@/hooks/queries/categories'
 import { setProductValidationErrors } from '@/utils/api/errors'
 import { ProductEditOrCreateForm } from '@/utils/product'
 import { isValidationError, schemas } from '@/lib/api'
@@ -49,6 +54,17 @@ export const EditProductPage = ({
     [enabledBenefits],
   )
 
+  // Pre-fill the category picker with whatever's currently assigned.
+  // The picker is single-select on the UI even though the backend
+  // table is many-to-many — we always pick the first row, and on
+  // submit unassign the old + assign the new so only one assignment
+  // ever exists for a Blyss product.
+  const productCategoriesQ = useProductCategories(product.id)
+  const currentCategoryId = useMemo(
+    () => productCategoriesQ.data?.[0]?.id ?? '',
+    [productCategoriesQ.data],
+  )
+
   const form = useForm<ProductEditOrCreateForm>({
     defaultValues: {
       ...product,
@@ -64,7 +80,22 @@ export const EditProductPage = ({
       })),
     },
   })
-  const { handleSubmit, setError, formState } = form
+  const { handleSubmit, setError, formState, reset } = form
+
+  // The picker default has to wait for the by-product fetch — set
+  // it via reset() once the data lands so the <Select> renders
+  // pre-populated for edits.
+  useEffect(() => {
+    if (productCategoriesQ.data) {
+      reset(
+        (prev) => ({
+          ...(prev as ProductEditOrCreateForm),
+          category_id: currentCategoryId,
+        }),
+        { keepDirty: false, keepValues: true },
+      )
+    }
+  }, [currentCategoryId, productCategoriesQ.data, reset])
 
   const originalBenefitIds = useMemo(
     () => product.benefits.map((b) => b.id),
@@ -86,10 +117,13 @@ export const EditProductPage = ({
 
   const updateProduct = useUpdateProduct(organization)
   const updateBenefits = useUpdateProductBenefits(organization)
+  const assignCategory = useAssignProductToCategory()
+  const unassignCategory = useUnassignProductFromCategory()
 
   const onSubmit = useCallback(
     async (productUpdate: ProductEditOrCreateForm) => {
-      const { full_medias, metadata, ...productUpdateRest } = productUpdate
+      const { full_medias, metadata, category_id, ...productUpdateRest } =
+        productUpdate as typeof productUpdate & { category_id?: string }
 
       const { data: updatedProduct, error } = await updateProduct.mutateAsync({
         id: product.id,
@@ -119,6 +153,31 @@ export const EditProductPage = ({
         })
       }
 
+      // Sync the single category assignment. unassign-then-assign
+      // when changing, just unassign when clearing, just assign when
+      // adding from uncategorised. Failures are logged but don't
+      // block the navigate-back since the product itself updated
+      // successfully.
+      const newCategoryId = category_id ?? ''
+      if (newCategoryId !== currentCategoryId) {
+        try {
+          if (currentCategoryId) {
+            await unassignCategory.mutateAsync({
+              product_id: product.id,
+              category_id: currentCategoryId,
+            })
+          }
+          if (newCategoryId) {
+            await assignCategory.mutateAsync({
+              product_id: product.id,
+              category_id: newCategoryId,
+            })
+          }
+        } catch (err) {
+          console.warn('product.update.sync_category.failed', err)
+        }
+      }
+
       router.push(
         getStatusRedirect(
           `/dashboard/${organization.slug}/products/${product.id}`,
@@ -132,8 +191,11 @@ export const EditProductPage = ({
       organization,
       enabledBenefitIds,
       hasBenefitsChanged,
+      currentCategoryId,
       updateProduct,
       updateBenefits,
+      assignCategory,
+      unassignCategory,
       setError,
       router,
     ],

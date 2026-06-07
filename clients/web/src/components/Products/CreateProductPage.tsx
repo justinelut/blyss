@@ -4,6 +4,7 @@ import {
   useCreateProduct,
   useUpdateProductBenefits,
 } from '@/hooks/queries'
+import { useAssignProductToCategory } from '@/hooks/queries/categories'
 import { setProductValidationErrors } from '@/utils/api/errors'
 import { ProductEditOrCreateForm, productToCreateForm } from '@/utils/product'
 import { schemas } from '@/lib/api'
@@ -102,12 +103,14 @@ export const CreateProductPage = ({
 
   const createProduct = useCreateProduct(organization)
   const updateBenefits = useUpdateProductBenefits(organization)
+  const assignCategory = useAssignProductToCategory()
 
   const onSubmit = useCallback(
     async (productCreate: ProductEditOrCreateForm) => {
       setIsSubmitting(true)
       try {
-        const { full_medias, metadata, ...productCreateRest } = productCreate
+        const { full_medias, metadata, category_id, ...productCreateRest } =
+          productCreate as typeof productCreate & { category_id?: string }
 
         // When duplicating, re-upload medias to create new files
         let mediaIds = full_medias.map((media) => media.id)
@@ -141,6 +144,24 @@ export const CreateProductPage = ({
           },
         })
 
+        // Out-of-band category assignment — ProductCreate has no
+        // category field on purpose (keeps the upstream Polar
+        // surface unchanged), so we fire a separate
+        // POST /v1/categories/assignments after the product row
+        // exists. Failure here is non-fatal: the product is still
+        // created, just uncategorised — surfaced via console only,
+        // not a toast, since the create itself succeeded.
+        if (category_id) {
+          try {
+            await assignCategory.mutateAsync({
+              product_id: product.id,
+              category_id,
+            })
+          } catch (err) {
+            console.warn('product.create.assign_category.failed', err)
+          }
+        }
+
         router.push(
           getStatusRedirect(
             `/dashboard/${organization.slug}/products`,
@@ -158,6 +179,7 @@ export const CreateProductPage = ({
       enabledBenefitIds,
       createProduct,
       updateBenefits,
+      assignCategory,
       setError,
       router,
     ],
