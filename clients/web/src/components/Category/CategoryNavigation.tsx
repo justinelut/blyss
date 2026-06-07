@@ -14,7 +14,31 @@ export function CategoryNavigation({
   className,
   variant = 'horizontal',
 }: CategoryNavigationProps) {
-  const { data: categories, isLoading } = useCategories()
+  const { data, isLoading } = useCategories()
+  // /v1/categories/ returns the ListResource shape {items, pagination}
+  // — NOT a bare array. The previous code used `data` directly which
+  // crashed [...data].sort() with 'a is not iterable' downstream.
+  // Extract the array up front so consumers operate on a real list.
+  const categories: Array<{
+    id: string
+    name: string
+    slug: string
+    display_order: number
+  }> = Array.isArray(data)
+    ? (data as Array<{
+        id: string
+        name: string
+        slug: string
+        display_order: number
+      }>)
+    : ((data as { items?: unknown } | undefined)?.items as
+        | Array<{
+            id: string
+            name: string
+            slug: string
+            display_order: number
+          }>
+        | undefined) ?? []
   const pathname = usePathname()
 
   if (isLoading) {

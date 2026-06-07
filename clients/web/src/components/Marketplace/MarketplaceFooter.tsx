@@ -21,7 +21,7 @@ const footerColumns = [
     heading: 'Browse',
     links: [
       { href: '/marketplace', label: 'All products' },
-      { href: '/marketplace', label: 'Categories' },
+      { href: '/categories', label: 'Categories' },
       { href: '/creators', label: 'Creators' },
       { href: '/marketplace?type=subscription', label: 'Subscriptions' },
     ],
