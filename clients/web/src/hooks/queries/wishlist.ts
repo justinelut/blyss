@@ -1,36 +1,9 @@
 import { toast } from '@/components/Toast/use-toast'
 import { getQueryClient } from '@/utils/api/query'
 import { api } from '@/utils/client'
+import { formatApiError } from '@/lib/api/format-error'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { defaultRetry } from './retry'
-
-/**
- * Coerce any backend error shape into a safe display string.
- *
- * FastAPI 422 returns detail as an ARRAY of {type, loc, msg, input}
- * validation errors — passing that to a JSX child blows up React
- * (Minified error #31: 'object with keys {type, loc, msg, input}').
- * Stripe-style errors return detail as a string. Network failures
- * surface error.message. This helper handles all three uniformly so
- * toast({description}) always gets a string.
- */
-function formatApiError(error: unknown, fallback: string): string {
-  if (!error || typeof error !== 'object') return fallback
-  const e = error as {
-    body?: { detail?: unknown }
-    detail?: unknown
-    message?: string
-  }
-  const detail = e.body?.detail ?? e.detail
-  if (typeof detail === 'string') return detail
-  if (Array.isArray(detail)) {
-    // FastAPI validation array — pick the first msg.
-    const first = detail[0] as { msg?: string } | undefined
-    if (first && typeof first.msg === 'string') return first.msg
-  }
-  if (typeof e.message === 'string') return e.message
-  return fallback
-}
 
 export const useWishlist = (enabled = true) => {
   return useQuery({

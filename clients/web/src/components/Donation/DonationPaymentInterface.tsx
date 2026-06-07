@@ -166,6 +166,46 @@ export const DonationPaymentInterface = ({
   const [qr, setQr] = useState<QRFields>({ qr_provider: '' })
   const [eft, setEft] = useState<EFTFields>({ eft_provider: '' })
 
+  // Channel-specific validity. The parent's `canPay` only checks
+  // amount + email; we additionally gate the Send-tip button on the
+  // fields each channel needs so the request never reaches the
+  // backend missing required data (which used to 422 silently).
+  const channelFieldsValid = useMemo(() => {
+    if (!selected) return false
+    switch (selected.id) {
+      case 'card':
+        return (
+          card.card_number.replace(/\s+/g, '').length >= 12 &&
+          card.expiry_month.length >= 1 &&
+          card.expiry_year.length >= 2 &&
+          card.cvv.length >= 3
+        )
+      case 'mobile_money': {
+        // Strip whitespace + leading '+' the same way buildChargePayload
+        // does so the gate matches what's actually sent to paystack.
+        const cleaned = momo.phone.replace(/\s+/g, '').replace(/^\+/, '')
+        return (
+          // Kenyan mobile money: 12-digit MSISDN (254XXXXXXXXX) — same
+          // shape buildChargePayload sends.
+          /^\d{9,15}$/.test(cleaned) &&
+          !!(momo.provider || selected.providers?.[0]?.code)
+        )
+      }
+      case 'bank':
+        return !!bank.bank_code && bank.bank_account_number.length >= 4
+      case 'bank_transfer':
+        return true
+      case 'ussd':
+        return !!(ussd.ussd_type || selected.providers?.[0]?.code)
+      case 'qr':
+        return !!(qr.qr_provider || selected.providers?.[0]?.code)
+      case 'eft':
+        return !!(eft.eft_provider || selected.providers?.[0]?.code)
+      default:
+        return false
+    }
+  }, [selected, card, momo, bank, ussd, qr, eft])
+
   useEffect(() => {
     if (!selectedTab || !selected) return
     if (selected.id === 'mobile_money' && selectedTab.providerCode) {
@@ -343,7 +383,7 @@ export const DonationPaymentInterface = ({
         variant="default"
         className="w-full"
         loading={charge.isPending}
-        disabled={!canPay || charge.isPending}
+        disabled={!canPay || !channelFieldsValid || charge.isPending}
         onClick={onPay}
       >
         Send tip

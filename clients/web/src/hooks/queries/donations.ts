@@ -1,6 +1,8 @@
 import { getQueryClient } from '@/utils/api/query'
 import { api } from '@/utils/client'
 import { unwrap } from '@/lib/api'
+import { formatApiError } from '@/lib/api/format-error'
+import { toast } from '@/components/Toast/use-toast'
 import { useMutation, useQuery } from '@tanstack/react-query'
 
 /**
@@ -112,6 +114,22 @@ export const useDonationCharge = (slug: string) =>
           body,
         }),
       ) as Promise<DonationChargeResponse>,
+    onError: (error: unknown) => {
+      // Surface the actual backend / paystack error instead of the
+      // silent fallthrough that left donors staring at a generic
+      // 'Payment failed' panel. formatApiError handles all three
+      // shapes: string detail (paystack-routed), array of validation
+      // errors (FastAPI 422), or bare error.message (network).
+      toast({
+        title: 'Could not start the tip',
+        description: formatApiError(
+          error,
+          'Try again, or pick a different payment method.',
+        ),
+        variant: 'error',
+        duration: 4000,
+      })
+    },
   })
 
 export const useDonationChargeSubmitStep = (reference: string) =>
