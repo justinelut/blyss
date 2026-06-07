@@ -40,3 +40,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# embed bundle is built at build time via tsup
+# (see tsup.embed.config.ts + package.json's `build:embed` script).
+# Source lives at src/components/Checkout/embed.ts.
+public/checkout/embed.global.js
