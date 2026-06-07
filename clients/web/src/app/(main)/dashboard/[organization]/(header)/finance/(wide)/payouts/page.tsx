@@ -17,9 +17,12 @@ export default async function Page(props: {
   const params = await props.params
   const searchParams = await props.searchParams
   const api = await getServerSideAPI()
+  // Bypass the 10 min ISR cache so post-activation refresh shows the
+  // current subaccount_status (income/payouts banners read it).
   const organization = await getOrganizationBySlugOrNotFound(
     api,
     params.organization,
+    true,
   )
 
   const { pagination, sorting } = parseSearchParams(

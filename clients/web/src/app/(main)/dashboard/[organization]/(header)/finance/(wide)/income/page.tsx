@@ -17,9 +17,13 @@ export default async function Page(props: {
   const params = await props.params
   const searchParams = await props.searchParams
   const api = await getServerSideAPI()
+  // Bypass the 10 min ISR cache: the income page reads
+  // subaccount_status to render the 'Set up payouts' banner. Stale
+  // cache made the banner persist after the user activated payouts.
   const organization = await getOrganizationBySlugOrNotFound(
     api,
     params.organization,
+    true,
   )
 
   const { pagination, sorting } = parseSearchParams(

@@ -19,7 +19,9 @@ import {
   type DonationPaymentChannelProvider,
 } from '@/hooks/queries/donations'
 import { cn } from '@/lib/utils'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { FiPhone, FiRefreshCw, FiX } from 'react-icons/fi'
+import { translatePaystackError } from '@/lib/paystack/translate-error'
 import {
   AirtelMoneyLogo,
   AirteltigoLogo,
@@ -262,6 +264,7 @@ export const DonationPaymentInterface = ({
       <ActiveChargePanel
         charge={chargeResponse}
         status={statusQ.data ?? null}
+        channel={selected?.id ?? 'mobile_money'}
         submitting={submitStep.isPending}
         onSubmitStep={async (action, value) => {
           const resp = await submitStep.mutateAsync({ action, value })
@@ -673,6 +676,7 @@ const EFTFieldsBlock = ({
 const ActiveChargePanel = ({
   charge,
   status,
+  channel,
   submitting,
   onSubmitStep,
   onRetry,
@@ -682,6 +686,7 @@ const ActiveChargePanel = ({
     status: string
     next_action?: { action?: string; display_text?: string } | null
   } | null
+  channel: DonationPaymentChannel['id']
   submitting: boolean
   onSubmitStep: (
     action: 'otp' | 'pin' | 'phone' | 'birthday',
@@ -690,21 +695,44 @@ const ActiveChargePanel = ({
   onRetry: () => void
 }) => {
   const [stepValue, setStepValue] = useState('')
+  const [elapsedMs, setElapsedMs] = useState(0)
+  const startedAtRef = useRef<number>(Date.now())
   const failed = status?.status === 'failed'
   const action = status?.next_action ?? null
 
+  // Tick every second while polling so the progress bar ticks up.
+  useEffect(() => {
+    if (failed || action?.action || status?.status === 'success') return
+    const id = setInterval(() => {
+      setElapsedMs(Date.now() - startedAtRef.current)
+    }, 1000)
+    return () => clearInterval(id)
+  }, [failed, action?.action, status?.status])
+
   if (failed) {
     return (
-      <div className="min-w-0 space-y-3 rounded-xl border border-red-300 bg-red-50 p-4 text-sm text-red-900">
-        <div>
-          <span className="font-medium">Payment failed.</span>{' '}
-          {charge.display_text || 'Please try a different method.'}
+      <div className="flex flex-col items-center gap-5 rounded-md border border-[var(--border)] bg-[var(--surface)] px-6 py-10 text-center">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--background)]">
+          <FiX
+            size={24}
+            className="text-[var(--text-secondary)]"
+            aria-hidden="true"
+          />
+        </div>
+        <div className="space-y-2">
+          <h3 className="font-display text-[20px] font-semibold leading-[1.15] tracking-[-0.02em] text-[var(--text-primary)]">
+            That didn&rsquo;t go through.
+          </h3>
+          <p className="mx-auto max-w-[44ch] font-sans text-[14px] leading-[1.55] text-[var(--text-secondary)]">
+            {translatePaystackError(charge.display_text)}
+          </p>
         </div>
         <button
           type="button"
           onClick={onRetry}
-          className="cursor-pointer rounded-md border border-red-300 bg-white px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2"
+          className="inline-flex h-10 items-center gap-2 rounded-md bg-[var(--accent)] px-5 font-sans text-[14px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)]"
         >
+          <FiRefreshCw size={14} aria-hidden="true" />
           Choose another method
         </button>
       </div>
@@ -749,6 +777,55 @@ const ActiveChargePanel = ({
     )
   }
 
+  // Pending — channel-aware waiting state. Mobile money gets the
+  // centered Trimly phone-frame layout; other channels keep the
+  // plain spinner since their action is implicit (read account
+  // number, scan QR, dial USSD).
+  const isMobileMoney = channel === 'mobile_money'
+  const STK_WINDOW_MS = 180_000
+  const progressPct = Math.min(
+    95,
+    Math.round((elapsedMs / STK_WINDOW_MS) * 100),
+  )
+
+  if (isMobileMoney) {
+    return (
+      <div
+        role="status"
+        className="flex flex-col items-center gap-6 rounded-md border border-[var(--border)] bg-[var(--surface)] px-6 py-12 text-center"
+      >
+        <div className="relative flex h-16 w-16 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--background)]">
+          <FiPhone
+            size={26}
+            className="text-[var(--accent)]"
+            aria-hidden="true"
+          />
+        </div>
+        <div className="space-y-2">
+          <h3 className="font-display text-[22px] font-semibold leading-[1.15] tracking-[-0.02em] text-[var(--text-primary)]">
+            Check your phone for the M-Pesa prompt.
+          </h3>
+          <p className="mx-auto max-w-[44ch] font-sans text-[14px] leading-[1.55] text-[var(--text-secondary)]">
+            {charge.display_text ||
+              'Approve the STK push to send the donation.'}
+          </p>
+        </div>
+        <div
+          className="h-1.5 w-full max-w-[360px] overflow-hidden rounded-full bg-[var(--surface-sunken)]"
+          aria-hidden="true"
+        >
+          <div
+            className="h-full rounded-full bg-[var(--accent)] transition-[width] duration-300 ease-linear"
+            style={{ width: `${progressPct}%` }}
+          />
+        </div>
+        <p className="font-sans text-[12px] text-[var(--text-muted)]">
+          We&rsquo;ll auto-confirm once you approve
+        </p>
+      </div>
+    )
+  }
+
   return (
     <div
       role="status"
@@ -758,7 +835,7 @@ const ActiveChargePanel = ({
       <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
       <span className="min-w-0 break-words">
         {charge.display_text ||
-          'Waiting for you to authorise the payment on your phone…'}
+          'Waiting for you to authorise the payment\u2026'}
       </span>
     </div>
   )

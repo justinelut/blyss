@@ -17,9 +17,12 @@ export default async function Page(props: {
   const searchParams = await props.searchParams
   const params = await props.params
   const api = await getServerSideAPI()
+  // Bypass the 10 min ISR cache so the New Product CTA gating reflects
+  // current subaccount_status the moment payouts are activated.
   const organization = await getOrganizationBySlugOrNotFound(
     api,
     params.organization,
+    true,
   )
   const { pagination, sorting } = parseSearchParams(
     searchParams,

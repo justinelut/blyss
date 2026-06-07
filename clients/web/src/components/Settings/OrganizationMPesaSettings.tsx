@@ -275,17 +275,12 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
     setElapsedMs(0)
   }
 
-  // ── Already active ────────────────────────────────────────────
-  if (isPayoutsActive && payoutMethod === 'mpesa' && organization.mpesa_verified) {
-    return (
-      <div className="space-y-6">
-        <PayoutsActiveBlock
-          number={organization.mpesa_number || ''}
-          onChangeMethod={() => form.setValue('payout_method', 'bank')}
-        />
-      </div>
-    )
-  }
+  // ── Already active — show a green banner at top, but keep the form
+  //    rendered below so creators can change number / switch to bank.
+  //    Previously this branch short-circuited to a static
+  //    "you're set up" block, which left no path to edit. Removing the
+  //    short-circuit; the active banner is now part of the normal
+  //    render path.
 
   // ── Waiting / succeeded / failed ─────────────────────────────
   if (stage === 'waiting' || stage === 'succeeded' || stage === 'failed') {
@@ -334,20 +329,71 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
         </Link>
       )}
 
-      {/* Header */}
+      {/* Header — adapts to active state. When already verified, the
+          headline reads "You're set up to be paid" instead of the
+          welcome copy, and explains how to change method / number
+          below. */}
       <div>
         <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
           Payouts
         </p>
-        <h2 className="mt-2 font-display text-[28px] font-semibold leading-[1.1] tracking-[-0.02em] text-[var(--text-primary)]">
-          Get paid for your work.
-        </h2>
-        <p className="mt-3 max-w-[60ch] font-sans text-[15px] leading-[1.55] text-[var(--text-secondary)]">
-          Pick where Blyss should send your earnings. We charge a one-time
-          KSh&nbsp;100 from your M-Pesa to confirm the number is yours and
-          protect against fraud — non-refundable.
-        </p>
+        {isPayoutsActive ? (
+          <>
+            <h2 className="mt-2 font-display text-[28px] font-semibold leading-[1.1] tracking-[-0.02em] text-[var(--text-primary)]">
+              You&rsquo;re set up to be paid.
+            </h2>
+            <p className="mt-3 max-w-[60ch] font-sans text-[15px] leading-[1.55] text-[var(--text-secondary)]">
+              Sales settle into your{' '}
+              {payoutMethod === 'mpesa' ? 'M-Pesa' : 'bank account'}{' '}
+              automatically after each successful order, minus the
+              marketplace fee. Need to change something? Update the
+              method or number below.
+            </p>
+          </>
+        ) : (
+          <>
+            <h2 className="mt-2 font-display text-[28px] font-semibold leading-[1.1] tracking-[-0.02em] text-[var(--text-primary)]">
+              Get paid for your work.
+            </h2>
+            <p className="mt-3 max-w-[60ch] font-sans text-[15px] leading-[1.55] text-[var(--text-secondary)]">
+              Pick where Blyss should send your earnings. We charge a
+              one-time KSh&nbsp;100 from your M-Pesa to confirm the number
+              is yours and protect against fraud — non-refundable.
+            </p>
+          </>
+        )}
       </div>
+
+      {/* Active summary card — shows when payouts are configured. Holds
+          the current method + number, and is the visible signal that
+          the form below is for *changing* setup, not first-time setup. */}
+      {isPayoutsActive && (
+        <div className="rounded-md border border-[var(--accent)] bg-[var(--surface-elevated)] p-5">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 flex h-8 w-8 flex-none items-center justify-center rounded-full bg-[var(--accent)]/10">
+              <FiCheck
+                size={16}
+                className="text-[var(--accent)]"
+                aria-hidden="true"
+              />
+            </div>
+            <div className="flex-1 space-y-1">
+              <p className="font-sans text-[15px] font-semibold text-[var(--text-primary)]">
+                {payoutMethod === 'mpesa'
+                  ? 'M-Pesa active'
+                  : 'Bank account active'}
+              </p>
+              <p className="font-sans text-[13px] text-[var(--text-secondary)]">
+                {payoutMethod === 'mpesa' && organization.mpesa_number
+                  ? `Settling to ${organization.mpesa_number}`
+                  : payoutMethod === 'bank' && organization.bank_account_number
+                    ? `Settling to bank account ending ${String(organization.bank_account_number).slice(-4)}`
+                    : 'Settling to your selected payout account'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Status row */}
       <div className="flex items-center justify-between gap-4 border-y border-[var(--border)] py-4">
@@ -645,61 +691,6 @@ function WaitingPanel({
           </button>
         </>
       )}
-    </div>
-  )
-}
-
-function PayoutsActiveBlock({
-  number,
-  onChangeMethod,
-}: {
-  number: string
-  onChangeMethod: () => void
-}) {
-  return (
-    <div className="space-y-6">
-      <div>
-        <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
-          Payouts
-        </p>
-        <h2 className="mt-2 font-display text-[28px] font-semibold leading-[1.1] tracking-[-0.02em] text-[var(--text-primary)]">
-          You’re set up to be paid.
-        </h2>
-        <p className="mt-3 max-w-[60ch] font-sans text-[15px] leading-[1.55] text-[var(--text-secondary)]">
-          Sales settle into your M-Pesa automatically after each
-          successful order, minus the marketplace fee.
-        </p>
-      </div>
-      <dl className="grid grid-cols-1 gap-4 border-y border-[var(--border)] py-5 sm:grid-cols-2">
-        <div>
-          <dt className="font-sans text-[12px] font-medium uppercase tracking-[0.12em] text-[var(--text-muted)]">
-            Method
-          </dt>
-          <dd className="mt-1 inline-flex items-center gap-2 font-sans text-[15px] text-[var(--text-primary)]">
-            <FiCheck
-              size={14}
-              className="text-[var(--accent)]"
-              aria-hidden="true"
-            />
-            M-Pesa verified
-          </dd>
-        </div>
-        <div>
-          <dt className="font-sans text-[12px] font-medium uppercase tracking-[0.12em] text-[var(--text-muted)]">
-            Number
-          </dt>
-          <dd className="mt-1 font-sans text-[15px] tabular-nums text-[var(--text-primary)]">
-            {number}
-          </dd>
-        </div>
-      </dl>
-      <button
-        type="button"
-        onClick={onChangeMethod}
-        className="font-sans text-[14px] underline-offset-4 hover:underline text-[var(--text-secondary)]"
-      >
-        Switch to a bank account instead
-      </button>
     </div>
   )
 }
