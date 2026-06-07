@@ -14,9 +14,15 @@ export default async function Page(props: {
 }) {
   const params = await props.params
   const api = await getServerSideAPI()
+  // Bypass the 10 min ISR cache: the finance/account surface reads
+  // mutable per-user state (subaccount_status, mpesa_verified). After
+  // the user activates payouts, window.location.reload() must surface
+  // the fresh state, not a stale 'Not configured' from before
+  // activation.
   const organization = await getOrganizationBySlugOrNotFound(
     api,
     params.organization,
+    true,
   )
 
   return <AccountPage organization={organization} />

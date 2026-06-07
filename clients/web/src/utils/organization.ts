@@ -37,8 +37,15 @@ export const getOrganizationBySlug = cache(_getOrganizationBySlugCached)
 export const getOrganizationBySlugOrNotFound = async (
   api: Client,
   slug: string,
+  bypassCache: boolean = false,
 ): Promise<schemas['Organization']> => {
-  let organization = await getOrganizationBySlug(api, slug)
+  // Caller can opt out of the 10 min ISR cache when the page reads
+  // mutable per-user state (e.g. /dashboard/{slug}/finance/account
+  // reads subaccount_status which the user just activated). Default
+  // false preserves the cache on most dashboard pages.
+  let organization = bypassCache
+    ? await _getOrganizationBySlug(api, slug, true)
+    : await getOrganizationBySlug(api, slug)
 
   // If the organization is not found, refetch bypassing the cache
   // This avoids race conditions with new organizations (e.g. during onboarding)
