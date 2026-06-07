@@ -3,6 +3,7 @@ from uuid import UUID
 
 import structlog
 from fastapi import Depends, Path
+from pydantic import BaseModel, Field
 
 from polar.auth.dependencies import WebUserRead
 from polar.openapi import APITag
@@ -22,6 +23,17 @@ log = structlog.get_logger()
 router = APIRouter(prefix="/wishlist", tags=["wishlist", APITag.public])
 
 
+class WishlistAddRequest(BaseModel):
+    """JSON body for POST /v1/wishlist/.
+
+    Without this wrapper, FastAPI treated `product_id: UUID` as a query
+    parameter (the rule for primitive-typed params with no Body()) and
+    returned 422 every time the frontend sent it inside a JSON body.
+    """
+
+    product_id: UUID = Field(..., description="Product to add.")
+
+
 @router.post(
     "/",
     response_model=WishlistItemPublic,
@@ -35,7 +47,7 @@ router = APIRouter(prefix="/wishlist", tags=["wishlist", APITag.public])
     },
 )
 async def add_to_wishlist(
-    product_id: UUID,
+    body: WishlistAddRequest,
     auth_subject: WebUserRead,
     session: AsyncSession = Depends(get_db_session),
 ) -> WishlistItemPublic:
@@ -44,7 +56,7 @@ async def add_to_wishlist(
         wishlist_item = await wishlist_service.add_to_wishlist(
             session,
             auth_subject.subject.id,
-            product_id,
+            body.product_id,
         )
 
         # Re-fetch with eager-loaded product so the response includes

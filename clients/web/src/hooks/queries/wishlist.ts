@@ -4,6 +4,34 @@ import { api } from '@/utils/client'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { defaultRetry } from './retry'
 
+/**
+ * Coerce any backend error shape into a safe display string.
+ *
+ * FastAPI 422 returns detail as an ARRAY of {type, loc, msg, input}
+ * validation errors — passing that to a JSX child blows up React
+ * (Minified error #31: 'object with keys {type, loc, msg, input}').
+ * Stripe-style errors return detail as a string. Network failures
+ * surface error.message. This helper handles all three uniformly so
+ * toast({description}) always gets a string.
+ */
+function formatApiError(error: unknown, fallback: string): string {
+  if (!error || typeof error !== 'object') return fallback
+  const e = error as {
+    body?: { detail?: unknown }
+    detail?: unknown
+    message?: string
+  }
+  const detail = e.body?.detail ?? e.detail
+  if (typeof detail === 'string') return detail
+  if (Array.isArray(detail)) {
+    // FastAPI validation array — pick the first msg.
+    const first = detail[0] as { msg?: string } | undefined
+    if (first && typeof first.msg === 'string') return first.msg
+  }
+  if (typeof e.message === 'string') return e.message
+  return fallback
+}
+
 export const useWishlist = (enabled = true) => {
   return useQuery({
     queryKey: ['wishlist'],
@@ -90,9 +118,14 @@ export const useAddToWishlist = () => {
         )
       }
 
-      // Show error toast
-      const errorMessage =
-        error?.body?.detail || error?.message || 'Failed to add to wishlist'
+      // Show error toast. FastAPI 422 returns detail as an ARRAY of
+      // {type, loc, msg, input} validation errors — passing that to
+      // a JSX child blows up React with #31. Coerce to a clean string
+      // unconditionally before rendering.
+      const errorMessage = formatApiError(
+        error,
+        'Failed to add to wishlist',
+      )
       toast({
         title: 'Error',
         description: errorMessage,
@@ -103,7 +136,7 @@ export const useAddToWishlist = () => {
       if (result.error) {
         toast({
           title: 'Error',
-          description: result.error.detail || 'Failed to add to wishlist',
+          description: formatApiError(result.error, 'Failed to add to wishlist'),
           variant: 'error',
         })
         return
@@ -177,11 +210,11 @@ export const useRemoveFromWishlist = () => {
         )
       }
 
-      // Show error toast
-      const errorMessage =
-        error?.body?.detail ||
-        error?.message ||
-        'Failed to remove from wishlist'
+      // Show error toast — coerced to string to avoid React #31.
+      const errorMessage = formatApiError(
+        error,
+        'Failed to remove from wishlist',
+      )
       toast({
         title: 'Error',
         description: errorMessage,
@@ -192,7 +225,10 @@ export const useRemoveFromWishlist = () => {
       if (result.error) {
         toast({
           title: 'Error',
-          description: result.error.detail || 'Failed to remove from wishlist',
+          description: formatApiError(
+            result.error,
+            'Failed to remove from wishlist',
+          ),
           variant: 'error',
         })
         return
