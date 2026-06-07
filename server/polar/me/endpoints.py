@@ -21,6 +21,7 @@ from uuid import UUID
 
 import structlog
 from fastapi import Depends, Query
+from pydantic import BaseModel
 from sqlalchemy import desc, select
 from sqlalchemy.orm import contains_eager, joinedload, selectinload
 
@@ -28,6 +29,9 @@ from polar.auth.dependencies import WebUserRead
 from polar.customer_portal.schemas.order import CustomerOrder
 from polar.customer_portal.schemas.subscription import CustomerSubscription
 from polar.customer_portal.schemas.wallet import CustomerWallet
+from polar.customer_session.service import (
+    customer_session as customer_session_service,
+)
 from polar.exceptions import ResourceNotFound
 from polar.kit.pagination import ListResource, PaginationParamsQuery
 from polar.models import (
@@ -41,6 +45,7 @@ from polar.models import (
 )
 from polar.openapi import APITag
 from polar.order.schemas import OrderID
+from polar.organization.schemas import OrganizationID
 from polar.postgres import AsyncSession, get_db_session
 from polar.routing import APIRouter
 from polar.subscription.schemas import SubscriptionID
@@ -309,4 +314,89 @@ async def list_my_wallets(
         [CustomerWallet.model_validate(w) for w in wallets],
         total,
         pagination,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Customer-session token mint
+# ---------------------------------------------------------------------------
+
+
+class MeCustomerSessionRequest(BaseModel):
+    organization_id: UUID
+
+
+class MeCustomerSessionResponse(BaseModel):
+    token: str
+    customer_id: UUID
+    organization_id: UUID
+
+
+@router.post(
+    "/customer-session",
+    summary="Mint a customer-session token for me + a creator",
+    response_model=MeCustomerSessionResponse,
+    responses={
+        404: {"description": "No customer row exists for this user + creator."},
+    },
+)
+async def create_my_customer_session(
+    body: MeCustomerSessionRequest,
+    auth_subject: WebUserRead,
+    session: AsyncSession = Depends(get_db_session),
+) -> MeCustomerSessionResponse:
+    """Skip-the-magic-link customer-session-token mint.
+
+    The standard customer-session flow requires the buyer to enter
+    their email + click a magic-link emailed by the creator. For the
+    marketplace portal we want the EXISTING per-creator portal pages
+    (orders detail, sub detail, wallet) to "just work" when the buyer
+    drills into a creator's section — but they're already authenticated
+    as a Blyss user, so making them re-enter their email + wait for an
+    email is hostile.
+
+    This endpoint resolves the buyer's customer row for the requested
+    org by case-insensitive email match (same rule as
+    customer_resolver.get_user_customer_ids), then mints a session
+    token via customer_session_service.create_customer_session WITHOUT
+    going through the magic-link service. Auth is WebUserRead — so
+    only the auth'd user can mint their own token.
+
+    Returns the raw token + customer/org ids. Frontend stores the
+    token in the URL query param (`?customer_session_token=…`) when
+    deep-linking into a per-creator portal page so that page's
+    existing component tree authenticates against the
+    /v1/customer-portal/* surface as before.
+    """
+    user = auth_subject.subject
+
+    stmt = (
+        select(Customer)
+        .where(
+            Customer.organization_id == body.organization_id,
+            Customer.deleted_at.is_(None),
+        )
+        .options(joinedload(Customer.organization))
+    )
+    result = await session.execute(stmt)
+    rows = result.scalars().unique().all()
+
+    # Case-insensitive email match — mirrors the unique
+    # ix_customers_organization_id_email_case_insensitive index.
+    user_email_lower = (user.email or "").lower()
+    customer = next(
+        (c for c in rows if (c.email or "").lower() == user_email_lower),
+        None,
+    )
+    if customer is None:
+        raise ResourceNotFound()
+
+    token, _ = await customer_session_service.create_customer_session(
+        session, customer
+    )
+
+    return MeCustomerSessionResponse(
+        token=token,
+        customer_id=customer.id,
+        organization_id=customer.organization_id,
     )
