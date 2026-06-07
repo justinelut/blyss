@@ -206,15 +206,37 @@ export const StorefrontHero = ({
                   bannerUrl ? 'text-white' : 'text-[var(--text-primary)]',
                 )}
               >
-                <h1
-                  id="storefront-name"
-                  className={cn(
-                    'font-display font-semibold leading-[1.05] tracking-[-0.02em]',
-                    'text-[clamp(26px,4vw,48px)]',
+                <div className="flex items-start gap-3">
+                  <h1
+                    id="storefront-name"
+                    className={cn(
+                      'min-w-0 flex-1 break-words font-display font-semibold leading-[1.05] tracking-[-0.02em]',
+                      'text-[clamp(26px,4vw,48px)]',
+                    )}
+                  >
+                    {name}
+                  </h1>
+                  {/* Compact 'Tip' inline beside the name. Smaller +
+                      icon-led so it doesn't dominate the hero like
+                      the previous full-width CTA did, but still
+                      visible above the fold. */}
+                  {tipEnabled && (
+                    <button
+                      type="button"
+                      onClick={onTipClick}
+                      aria-label={`Tip ${name}`}
+                      className={cn(
+                        'mt-1 inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md px-3 font-sans text-[12px] font-medium uppercase tracking-[0.1em] transition-colors',
+                        bannerUrl
+                          ? 'bg-white/15 text-white backdrop-blur-md hover:bg-white/25'
+                          : 'border border-[var(--border-strong)] text-[var(--text-primary)] hover:bg-[var(--surface-sunken)]',
+                      )}
+                    >
+                      <FiHeart size={13} aria-hidden="true" />
+                      Tip
+                    </button>
                   )}
-                >
-                  {name}
-                </h1>
+                </div>
                 <div
                   className={cn(
                     'mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 font-sans text-[14px]',
@@ -277,10 +299,13 @@ export const StorefrontHero = ({
               </div>
             </div>
 
-            {/* CTAs — Subscribe + Tip. Full-width on mobile, inline on
-                desktop. */}
-            <div className="flex w-full items-center gap-3 md:w-auto">
-              {hasSubscriptions && (
+            {/* Primary CTA — Subscribe. Tip lives inline beside the
+                name (above) as a compact uppercase pill, freeing this
+                row for a single full-width primary CTA on mobile. The
+                hasSubscriptions gate prevents an empty row when the
+                creator hasn't published any tiers. */}
+            {hasSubscriptions && (
+              <div className="flex w-full items-center gap-3 md:w-auto">
                 <button
                   type="button"
                   onClick={onSubscribeClick}
@@ -288,23 +313,8 @@ export const StorefrontHero = ({
                 >
                   Subscribe
                 </button>
-              )}
-              {tipEnabled && (
-                <button
-                  type="button"
-                  onClick={onTipClick}
-                  className={cn(
-                    'inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-md px-5 font-sans text-[14px] font-medium transition-colors md:flex-none',
-                    bannerUrl
-                      ? 'bg-white/10 text-white backdrop-blur-md hover:bg-white/20'
-                      : 'border border-[var(--border-strong)] text-[var(--text-primary)] hover:bg-[var(--surface-sunken)]',
-                  )}
-                >
-                  <FiHeart size={16} />
-                  Tip
-                </button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </motion.div>
