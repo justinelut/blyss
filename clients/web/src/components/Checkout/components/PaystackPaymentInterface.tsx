@@ -26,6 +26,8 @@ import {
   type PaymentChannelProvider,
 } from '@/hooks/queries/checkoutPaystack'
 import { cn } from '@/lib/utils'
+import { normalizeKenyanMsisdn } from '@/lib/phone/kenyan-msisdn'
+import { toast } from '@/components/Toast/use-toast'
 import { translatePaystackError } from '@/lib/paystack/translate-error'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useFormContext } from 'react-hook-form'
@@ -241,17 +243,21 @@ const PaystackPaymentInterface = ({
           expiry_year: card.expiry_year,
           cvv: card.cvv,
         }
-      case 'mobile_money':
+      case 'mobile_money': {
+        // Normalise to canonical 254XXXXXXXXX MSISDN so all the
+        // shapes Kenyan buyers actually type — '+254 712 345 678',
+        // '254712345678', '0712345678', '712345678' — reach
+        // Paystack in the bare-digit form its mobile_money charge
+        // endpoint expects. Returns null if the input isn't a
+        // recognisable Kenyan number; onPay() guards against that.
+        const phone = normalizeKenyanMsisdn(momo.phone)
+        if (!phone) return null
         return {
           channel: 'mobile_money',
-          // Strip whitespace so '+254 710 000 000' becomes
-          // '+254710000000' — Paystack's mobile-money charge expects an
-          // E.164 phone with no separators. Without this, valid Kenyan
-          // numbers (and the +254 710 000 000 test number) get rejected
-          // upstream.
-          phone: momo.phone.replace(/\s+/g, ''),
+          phone,
           provider: momo.provider || selected.providers?.[0]?.code,
         }
+      }
       case 'bank':
         return {
           channel: 'bank',
@@ -280,7 +286,22 @@ const PaystackPaymentInterface = ({
 
   const onPay = async () => {
     const body = buildChargePayload()
-    if (!body) return
+    if (!body) {
+      // buildChargePayload returns null when the channel-specific
+      // input is invalid (most commonly: mobile_money phone the
+      // Kenyan-MSISDN normalizer can't interpret). Surface that as a
+      // toast instead of silently no-oping — buyer was getting
+      // 'Invalid phone number format' from Paystack with no client-
+      // side hint as to why.
+      toast({
+        title: 'Check your details',
+        description:
+          'Enter your M-Pesa number as 0712 345 678 or +254 712 345 678.',
+        variant: 'error',
+        duration: 4500,
+      })
+      return
+    }
     try {
       const resp = await charge.mutateAsync(body)
       setChargeResponse(resp)

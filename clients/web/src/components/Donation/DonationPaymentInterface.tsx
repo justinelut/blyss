@@ -19,6 +19,7 @@ import {
   type DonationPaymentChannelProvider,
 } from '@/hooks/queries/donations'
 import { cn } from '@/lib/utils'
+import { isValidKenyanMsisdn, normalizeKenyanMsisdn } from '@/lib/phone/kenyan-msisdn'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { FiPhone, FiRefreshCw, FiX } from 'react-icons/fi'
 import { translatePaystackError } from '@/lib/paystack/translate-error'
@@ -181,13 +182,13 @@ export const DonationPaymentInterface = ({
           card.cvv.length >= 3
         )
       case 'mobile_money': {
-        // Strip whitespace + leading '+' the same way buildChargePayload
-        // does so the gate matches what's actually sent to paystack.
-        const cleaned = momo.phone.replace(/\s+/g, '').replace(/^\+/, '')
+        // Strip everything non-digit (and the leading + the user
+        // commonly types) and accept any of the four shapes Kenyan
+        // buyers actually use: +254..., 254..., 0..., bare 9-digit.
+        // The normalizer returns null for unrecognisable inputs so
+        // the Pay button stays disabled.
         return (
-          // Kenyan mobile money: 12-digit MSISDN (254XXXXXXXXX) — same
-          // shape buildChargePayload sends.
-          /^\d{9,15}$/.test(cleaned) &&
+          isValidKenyanMsisdn(momo.phone) &&
           !!(momo.provider || selected.providers?.[0]?.code)
         )
       }
@@ -251,12 +252,14 @@ export const DonationPaymentInterface = ({
         return {
           ...base,
           channel: 'mobile_money',
-          // Strip whitespace + leading '+' so '+254 710 000 000' becomes
-          // '254710000000' — Paystack's mobile_money charge endpoint
-          // expects bare digits with no separators. Without this, valid
-          // Kenyan numbers (and the +254 710 000 000 test number) get
-          // rejected upstream and the request returns 422.
-          phone: momo.phone.replace(/\s+/g, '').replace(/^\+/, ''),
+          // Normalise to canonical 254XXXXXXXXX MSISDN so all the
+          // shapes Kenyan buyers actually type ('+254 712 345 678',
+          // '254712345678', '0712345678', '712345678') reach Paystack
+          // in the bare-digit form its mobile_money charge endpoint
+          // expects. The Send-tip button is gated on
+          // isValidKenyanMsisdn(momo.phone) above so we trust the
+          // non-null result here.
+          phone: normalizeKenyanMsisdn(momo.phone) ?? '',
           provider: momo.provider || selected.providers?.[0]?.code,
         }
       case 'bank':
