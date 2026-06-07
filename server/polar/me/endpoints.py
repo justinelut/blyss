@@ -1,34 +1,51 @@
-"""Marketplace-level "me" endpoints.
+"""Marketplace-level "me" endpoints — WebUser-auth aggregation across creators.
 
-Polar's customer portal at /{org-slug}/portal/* is per-organization by
-design — `Customer` is org-scoped at the DB level (organization_id +
-unique (org, email)). A single buyer who's purchased from N creators
-has N distinct `customer` rows.
+Polar's customer portal at /v1/customer-portal/* is per-org by design:
+the buyer authenticates per-creator via a magic-link customer-session-
+token, and every endpoint filters resources by `customer_id == that
+token's customer.id`.
 
-This module gives signed-in Blyss users a unified view across all
-their per-org customer rows by joining `users.email == customers.email`
-and aggregating the orders behind them. The per-creator portal stays
-the canonical home for management actions (cancel sub, download files,
-license keys, refund) — the aggregator deep-links into it.
+These /v1/me/* endpoints provide the same response shapes (CustomerOrder,
+CustomerSubscription, CustomerWallet, ...) but auth via the buyer's
+Blyss WebUser session and filter resources by `customer_id IN (every
+customer.id this user has across every creator)`.
+
+The frontend portal pages can swap from /v1/customer-portal/* →
+/v1/me/* and render the same component tree without any visual
+redesign — that's the design goal.
 """
 
-from datetime import datetime
+from collections.abc import Sequence
 from typing import Annotated
 from uuid import UUID
 
 import structlog
 from fastapi import Depends, Query
-from pydantic import Field
-from sqlalchemy import func, select
+from sqlalchemy import desc, select
 from sqlalchemy.orm import contains_eager, joinedload, selectinload
 
 from polar.auth.dependencies import WebUserRead
-from polar.kit.pagination import PaginationParamsQuery
-from polar.kit.schemas import Schema, TimestampedSchema
-from polar.models import Customer, Order, Organization, Product, User
+from polar.customer_portal.schemas.order import CustomerOrder
+from polar.customer_portal.schemas.subscription import CustomerSubscription
+from polar.customer_portal.schemas.wallet import CustomerWallet
+from polar.exceptions import ResourceNotFound
+from polar.kit.pagination import ListResource, PaginationParamsQuery
+from polar.models import (
+    Customer,
+    Order,
+    OrderItem,
+    Product,
+    ProductPrice,
+    Subscription,
+    Wallet,
+)
 from polar.openapi import APITag
+from polar.order.schemas import OrderID
 from polar.postgres import AsyncSession, get_db_session
 from polar.routing import APIRouter
+from polar.subscription.schemas import SubscriptionID
+
+from .customer_resolver import get_user_customer_ids
 
 log = structlog.get_logger()
 
@@ -36,187 +53,260 @@ router = APIRouter(prefix="/me", tags=["me", APITag.public])
 
 
 # ---------------------------------------------------------------------------
-# Schemas
+# Order eager-load helper — mirrors customer_portal/repository/order.py
+# get_eager_options so the CustomerOrder schema serializes with
+# product, organization, items, subscription, etc populated.
 # ---------------------------------------------------------------------------
 
 
-class MeOrderCreator(Schema):
-    """Compact creator card for the orders aggregator.
-
-    Just enough for the row to render the wordmark + a deep-link to
-    /{slug}/portal/orders/{id}. Avoids pulling the full Organization
-    schema (which carries 30+ fields the aggregator doesn't need).
-    """
-
-    id: UUID
-    name: str
-    slug: str
-    avatar_url: str | None = None
-
-
-class MeOrderProduct(Schema):
-    """Compact product card.
-
-    Same lean shape — name + thumbnail. Full product details are
-    available on the per-creator portal page the user deep-links into.
-    """
-
-    id: UUID
-    name: str
-    thumbnail_url: str | None = Field(
-        default=None,
-        description="First product media URL, if any.",
+def _order_eager_options() -> Sequence:
+    return (
+        joinedload(Order.customer).joinedload(Customer.organization),
+        joinedload(Order.discount),
+        joinedload(Order.subscription).joinedload(Subscription.customer),
+        joinedload(Order.product).options(
+            selectinload(Product.product_medias),
+            joinedload(Product.organization),
+        ),
+        selectinload(Order.items)
+        .joinedload(OrderItem.product_price)
+        .joinedload(ProductPrice.product),
     )
 
 
-class MeOrderItem(TimestampedSchema):
-    """A single buyer-side order row."""
-
-    id: UUID
-    status: str
-    currency: str
-    subtotal_amount: int
-    discount_amount: int
-    tax_amount: int
-    refunded_amount: int
-    invoice_number: str
-    created_at: datetime
-    creator: MeOrderCreator
-    product: MeOrderProduct | None = None
-
-
-class MeOrdersResponse(Schema):
-    """Paginated list of orders for the auth'd user across all creators."""
-
-    items: list[MeOrderItem]
-    pagination: dict
+def _subscription_eager_options() -> Sequence:
+    return (
+        joinedload(Subscription.customer).joinedload(Customer.organization),
+        joinedload(Subscription.product).options(
+            selectinload(Product.product_medias),
+            joinedload(Product.organization),
+        ),
+        joinedload(Subscription.discount),
+    )
 
 
 # ---------------------------------------------------------------------------
-# Endpoint
+# Orders
 # ---------------------------------------------------------------------------
 
 
 @router.get(
     "/orders",
-    response_model=MeOrdersResponse,
-    summary="List my purchases across all creators",
-    responses={
-        200: {"description": "List of buyer's orders, newest first."},
-    },
+    summary="List my orders across all creators",
+    response_model=ListResource[CustomerOrder],
 )
 async def list_my_orders(
     auth_subject: WebUserRead,
     pagination: PaginationParamsQuery,
+    query: str | None = Query(
+        None, description="Search by product or organization name."
+    ),
     session: AsyncSession = Depends(get_db_session),
-) -> MeOrdersResponse:
-    """Aggregated buyer-side order history.
+) -> ListResource[CustomerOrder]:
+    """List the auth'd user's orders aggregated across every creator."""
+    customer_ids = await get_user_customer_ids(session, auth_subject.subject)
+    if not customer_ids:
+        return ListResource.from_paginated_results([], 0, pagination)
 
-    Joins `User.email` (case-insensitive) → `Customer.email` (case-
-    insensitive) across every organization, then returns the orders
-    behind those customer rows. Newest-first.
-
-    The per-creator portal at /{slug}/portal/orders/{id} stays the
-    canonical management surface — clients should deep-link there for
-    refund / cancel / download actions. This endpoint is purely a
-    discovery / aggregation surface for the marketplace shell.
-
-    Auth: `WebUserRead` (the buyer's Blyss user session). Guest buyers
-    who never made a Blyss account are unsupported here — they keep
-    using the per-creator email-magic-link portal.
-    """
-    user: User = auth_subject.subject
-    page = pagination.page
-    limit = pagination.limit
-
-    # Match Customer.email case-insensitively to User.email. Polar's
-    # customer rows are created from order receipts and may carry
-    # casing different from the user's signup email — the unique
-    # index on customers is itself case-insensitive
-    # (ix_customers_organization_id_email_case_insensitive).
-    email_lower = func.lower(user.email)
-
-    base_filter = func.lower(Customer.email) == email_lower
-
-    # Count first so the response carries total/has_more cheaply.
-    count_stmt = (
-        select(func.count(Order.id))
-        .join(Customer, Customer.id == Order.customer_id)
-        .where(base_filter)
-    )
-    total = (await session.execute(count_stmt)).scalar_one()
-
-    # Eager-load customer → organization (for creator card) and
-    # product → product_medias (for thumbnail). We DON'T pull the
-    # full product graph (benefits, prices, custom fields) — the
-    # aggregator only needs name + first thumb.
     stmt = (
         select(Order)
-        .join(Customer, Customer.id == Order.customer_id)
-        .where(base_filter)
-        .options(
-            contains_eager(Order.customer).options(
-                joinedload(Customer.organization),
-            ),
-            joinedload(Order.product).options(
-                selectinload(Product.product_medias),
-            ),
-        )
-        .order_by(Order.created_at.desc())
-        .offset((page - 1) * limit)
-        .limit(limit)
+        .join(Order.product, isouter=True)
+        .where(Order.customer_id.in_(customer_ids), Order.deleted_at.is_(None))
+        .options(*_order_eager_options())
     )
 
-    result = await session.execute(stmt)
+    if query is not None:
+        stmt = stmt.where(Product.name.icontains(query, autoescape=True))
+
+    stmt = stmt.order_by(desc(Order.created_at))
+
+    # Manual pagination — same shape as kit's RepositoryBase.paginate.
+    count_stmt = select(Order.id).where(
+        Order.customer_id.in_(customer_ids),
+        Order.deleted_at.is_(None),
+    )
+    total = len((await session.execute(count_stmt)).scalars().all())
+
+    page_stmt = stmt.offset((pagination.page - 1) * pagination.limit).limit(
+        pagination.limit
+    )
+    result = await session.execute(page_stmt)
     orders = result.scalars().unique().all()
 
-    items: list[MeOrderItem] = []
-    for order in orders:
-        customer: Customer = order.customer
-        org: Organization = customer.organization
-        product: Product | None = order.product
+    return ListResource.from_paginated_results(
+        [CustomerOrder.model_validate(o) for o in orders],
+        total,
+        pagination,
+    )
 
-        thumbnail_url: str | None = None
-        if product is not None and product.product_medias:
-            first_media = product.product_medias[0]
-            file = getattr(first_media, "file", None)
-            if file is not None:
-                thumbnail_url = getattr(file, "public_url", None)
 
-        items.append(
-            MeOrderItem(
-                id=order.id,
-                status=str(order.status),
-                currency=order.currency,
-                subtotal_amount=order.subtotal_amount,
-                discount_amount=order.discount_amount,
-                tax_amount=order.tax_amount,
-                refunded_amount=order.refunded_amount,
-                invoice_number=order.invoice_number,
-                created_at=order.created_at,
-                modified_at=order.modified_at,
-                creator=MeOrderCreator(
-                    id=org.id,
-                    name=org.name,
-                    slug=org.slug,
-                    avatar_url=org.avatar_url,
-                ),
-                product=(
-                    MeOrderProduct(
-                        id=product.id,
-                        name=product.name,
-                        thumbnail_url=thumbnail_url,
-                    )
-                    if product is not None
-                    else None
-                ),
-            )
+@router.get(
+    "/orders/{id}",
+    summary="Get my order",
+    response_model=CustomerOrder,
+    responses={404: {"description": "Order not found."}},
+)
+async def get_my_order(
+    id: OrderID,
+    auth_subject: WebUserRead,
+    session: AsyncSession = Depends(get_db_session),
+) -> Order:
+    """Fetch one order the auth'd user is entitled to read."""
+    customer_ids = await get_user_customer_ids(session, auth_subject.subject)
+    if not customer_ids:
+        raise ResourceNotFound()
+
+    stmt = (
+        select(Order)
+        .where(
+            Order.id == id,
+            Order.customer_id.in_(customer_ids),
+            Order.deleted_at.is_(None),
         )
+        .options(*_order_eager_options())
+    )
+    order = (await session.execute(stmt)).unique().scalar_one_or_none()
+    if order is None:
+        raise ResourceNotFound()
+    return order
 
-    return MeOrdersResponse(
-        items=items,
-        pagination={
-            "total_count": total,
-            "max_page": max(1, (total + limit - 1) // limit) if limit else 1,
-        },
+
+# ---------------------------------------------------------------------------
+# Subscriptions
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/subscriptions",
+    summary="List my subscriptions across all creators",
+    response_model=ListResource[CustomerSubscription],
+)
+async def list_my_subscriptions(
+    auth_subject: WebUserRead,
+    pagination: PaginationParamsQuery,
+    active: bool | None = Query(
+        None,
+        description="Filter by active status (status in {active, trialing}).",
+    ),
+    session: AsyncSession = Depends(get_db_session),
+) -> ListResource[CustomerSubscription]:
+    """List the auth'd user's subscriptions aggregated across every creator."""
+    customer_ids = await get_user_customer_ids(session, auth_subject.subject)
+    if not customer_ids:
+        return ListResource.from_paginated_results([], 0, pagination)
+
+    stmt = (
+        select(Subscription)
+        .where(
+            Subscription.customer_id.in_(customer_ids),
+            Subscription.deleted_at.is_(None),
+        )
+        .options(*_subscription_eager_options())
+    )
+
+    if active is True:
+        stmt = stmt.where(Subscription.status.in_(["active", "trialing"]))
+    elif active is False:
+        stmt = stmt.where(Subscription.status.notin_(["active", "trialing"]))
+
+    stmt = stmt.order_by(desc(Subscription.started_at))
+
+    count_stmt = select(Subscription.id).where(
+        Subscription.customer_id.in_(customer_ids),
+        Subscription.deleted_at.is_(None),
+    )
+    total = len((await session.execute(count_stmt)).scalars().all())
+
+    page_stmt = stmt.offset((pagination.page - 1) * pagination.limit).limit(
+        pagination.limit
+    )
+    result = await session.execute(page_stmt)
+    subscriptions = result.scalars().unique().all()
+
+    return ListResource.from_paginated_results(
+        [CustomerSubscription.model_validate(s) for s in subscriptions],
+        total,
+        pagination,
+    )
+
+
+@router.get(
+    "/subscriptions/{id}",
+    summary="Get my subscription",
+    response_model=CustomerSubscription,
+    responses={404: {"description": "Subscription not found."}},
+)
+async def get_my_subscription(
+    id: SubscriptionID,
+    auth_subject: WebUserRead,
+    session: AsyncSession = Depends(get_db_session),
+) -> Subscription:
+    """Fetch one subscription the auth'd user is entitled to read."""
+    customer_ids = await get_user_customer_ids(session, auth_subject.subject)
+    if not customer_ids:
+        raise ResourceNotFound()
+
+    stmt = (
+        select(Subscription)
+        .where(
+            Subscription.id == id,
+            Subscription.customer_id.in_(customer_ids),
+            Subscription.deleted_at.is_(None),
+        )
+        .options(*_subscription_eager_options())
+    )
+    subscription = (await session.execute(stmt)).unique().scalar_one_or_none()
+    if subscription is None:
+        raise ResourceNotFound()
+    return subscription
+
+
+# ---------------------------------------------------------------------------
+# Wallets
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/wallets",
+    summary="List my wallets across all creators",
+    response_model=ListResource[CustomerWallet],
+)
+async def list_my_wallets(
+    auth_subject: WebUserRead,
+    pagination: PaginationParamsQuery,
+    session: AsyncSession = Depends(get_db_session),
+) -> ListResource[CustomerWallet]:
+    """List the auth'd user's wallet balance per creator."""
+    customer_ids = await get_user_customer_ids(session, auth_subject.subject)
+    if not customer_ids:
+        return ListResource.from_paginated_results([], 0, pagination)
+
+    stmt = (
+        select(Wallet)
+        .where(
+            Wallet.customer_id.in_(customer_ids),
+            Wallet.deleted_at.is_(None),
+        )
+        .options(
+            joinedload(Wallet.customer).joinedload(Customer.organization)
+        )
+        .order_by(desc(Wallet.created_at))
+    )
+
+    count_stmt = select(Wallet.id).where(
+        Wallet.customer_id.in_(customer_ids),
+        Wallet.deleted_at.is_(None),
+    )
+    total = len((await session.execute(count_stmt)).scalars().all())
+
+    page_stmt = stmt.offset((pagination.page - 1) * pagination.limit).limit(
+        pagination.limit
+    )
+    result = await session.execute(page_stmt)
+    wallets = result.scalars().unique().all()
+
+    return ListResource.from_paginated_results(
+        [CustomerWallet.model_validate(w) for w in wallets],
+        total,
+        pagination,
     )
