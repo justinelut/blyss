@@ -3,32 +3,41 @@ import { ACCOUNT_TYPE_DISPLAY_NAMES, ACCOUNT_TYPE_ICON } from '@/utils/account'
 import { ClientResponseError, schemas } from '@/lib/api'
 import Button from '@/components/atoms/Button'
 import Banner from '@/components/molecules/Banner'
-import { CircleAlertIcon } from 'lucide-react'
+import { FiAlertCircle } from 'react-icons/fi'
 import Link from 'next/link'
 import Icon from '../Icons/Icon'
 
+/**
+ * Generic banner for Polar's legacy Stripe-Connect account flow. Only
+ * shown when there is NO Blyss subaccount yet AND no in-flight Polar
+ * onboarding. Blyss creators activate their payout subaccount via
+ * /dashboard/{slug}/finance/account (M-Pesa or KE bank), which sets
+ * organization.subaccount_status='active'. Once that flips, this
+ * banner is suppressed unconditionally — see AccountBanner below.
+ */
 const GenericAccountBanner: React.FC<{
   account: schemas['Account'] | undefined
   setupLink: string
 }> = ({ account, setupLink }) => {
   if (!account) {
     return (
-      <>
-        <Banner
-          color="default"
-          right={
-            <Link href={setupLink}>
-              <Button size="sm">Setup</Button>
-            </Link>
-          }
-        >
-          <CircleAlertIcon className="h-6 w-6 text-red-500" />
-          <span className="text-sm">
-            You need to set up a <strong>payout account</strong> to receive
-            payouts
-          </span>
-        </Banner>
-      </>
+      <Banner
+        color="default"
+        right={
+          <Link href={setupLink}>
+            <Button size="sm">Setup</Button>
+          </Link>
+        }
+      >
+        <FiAlertCircle
+          className="h-6 w-6 text-[var(--accent)]"
+          aria-hidden="true"
+        />
+        <span className="text-sm">
+          You need to set up a <strong>payout account</strong> to receive
+          payouts
+        </span>
+      </Banner>
     )
   }
 
@@ -77,6 +86,25 @@ const AccountBanner = ({
     (accountError as ClientResponseError)?.response?.status === 403
 
   if (isNotAdmin) {
+    return null
+  }
+
+  // Blyss's primary payout signal lives on the org row, not on the
+  // legacy Polar/Stripe `Account` table. If the M-Pesa / bank
+  // subaccount is active (subaccount_code populated, status='active'),
+  // suppress the banner — the creator has finished setup. Without this
+  // gate, the banner persisted on /finance/income and /finance/payouts
+  // forever after activation because Blyss never creates a Polar
+  // `Account` row, so `useOrganizationAccount` always resolves to
+  // undefined and the legacy "set up a payout account" banner showed.
+  const subaccountCode = (organization as { subaccount_code?: string | null })
+    .subaccount_code
+  const subaccountStatus = (
+    organization as { subaccount_status?: string }
+  ).subaccount_status
+  const blyssPayoutsActive =
+    !!subaccountCode && subaccountStatus === 'active'
+  if (blyssPayoutsActive) {
     return null
   }
 
