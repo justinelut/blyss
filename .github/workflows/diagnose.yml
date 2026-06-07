@@ -116,6 +116,11 @@ jobs:
             echo "-- effective from-address env --"
             sudo kubectl -n $NS exec $POD -- sh -c 'echo "  EMAIL_FROM_LOCAL=$POLAR_EMAIL_FROM_LOCAL EMAIL_FROM_DOMAIN=$POLAR_EMAIL_FROM_DOMAIN"' 2>&1 | head -2
             echo
+            echo "-- product_categories: count + active counts --"
+            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select count(*) as total, count(*) filter (where is_active) as active, count(*) filter (where is_active=false) as inactive from product_categories;\"" 2>&1 | head -8
+            echo "-- product_categories: all rows --"
+            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select id, name, slug, is_active, display_order from product_categories order by display_order, name limit 30;\"" 2>&1 | head -40
+            echo
 
             echo "═══════════════════════════════════════"
             echo " S3 / MINIO PROBE"
