@@ -48,6 +48,11 @@ NAVIGATION = [
         active_route_name_prefix="creator_categories:",
     ),
     navigation.NavigationItem(
+        "Product categories",
+        "product_categories:list",
+        active_route_name_prefix="product_categories:",
+    ),
+    navigation.NavigationItem(
         "Loops",
         "loops:index",
         active_route_name_prefix="loops:",
