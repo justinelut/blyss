@@ -198,7 +198,7 @@ export const MarketplaceHeader = ({ alwaysBlurred = false }: MarketplaceHeaderPr
             {authenticated && currentUser ? (
               <>
                 <Link
-                  href="/orders"
+                  href="/portal/orders"
                   onClick={() => setMobileOpen(false)}
                   className="font-display text-3xl font-medium text-[var(--text-primary)]"
                 >
@@ -231,7 +231,7 @@ export const MarketplaceHeader = ({ alwaysBlurred = false }: MarketplaceHeaderPr
             ) : (
               <>
                 <Link
-                  href="/login?return_to=/orders"
+                  href="/login?return_to=/portal/orders"
                   onClick={() => setMobileOpen(false)}
                   className="font-display text-3xl font-medium text-[var(--text-primary)]"
                 >
@@ -353,7 +353,7 @@ function AccountMenu() {
             </li>
             <li>
               <Link
-                href="/orders"
+                href="/portal/orders"
                 role="menuitem"
                 onClick={() => setOpen(false)}
                 className="flex items-center gap-3 px-4 py-2.5 font-sans text-[14px] text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-sunken)]"
