@@ -24,12 +24,14 @@ export function CategoryNavigation({
     name: string
     slug: string
     display_order: number
+    product_count?: number
   }> = Array.isArray(data)
     ? (data as Array<{
         id: string
         name: string
         slug: string
         display_order: number
+        product_count?: number
       }>)
     : ((data as { items?: unknown } | undefined)?.items as
         | Array<{
@@ -37,6 +39,7 @@ export function CategoryNavigation({
             name: string
             slug: string
             display_order: number
+            product_count?: number
           }>
         | undefined) ?? []
   const pathname = usePathname()
