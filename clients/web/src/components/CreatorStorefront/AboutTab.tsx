@@ -1,6 +1,18 @@
 'use client'
 
-import { FiMail, FiGlobe, FiInstagram, FiTwitter } from 'react-icons/fi'
+import { useState } from 'react'
+import {
+  FiCheck,
+  FiCopy,
+  FiFacebook,
+  FiGlobe,
+  FiInstagram,
+  FiLinkedin,
+  FiMail,
+  FiSend,
+  FiShare2,
+  FiTwitter,
+} from 'react-icons/fi'
 import { LegalDoc, typography } from '@/design'
 import { cn } from '@/lib/utils'
 
@@ -13,6 +25,8 @@ export interface AboutTabSocialLinks {
 export interface AboutTabProps {
   /** Display name */
   name: string
+  /** URL slug — used to build the canonical share link. */
+  slug?: string | null
   /** Long-form bio. Up to ~1000 chars per spec. May contain markdown. */
   bio?: string | null
   /** Social handles — twitter / instagram / website */
@@ -40,7 +54,7 @@ interface SocialItem {
  * Layout: max 64ch column for the bio (matches §3.4 text column rule); social
  * links appear as a row below.
  */
-export const AboutTab = ({ name, bio, socials, email }: AboutTabProps) => {
+export const AboutTab = ({ name, slug, bio, socials, email }: AboutTabProps) => {
   // Build the social link list. Defensive trims + URL normalization. We do
   // NOT echo raw user-supplied URLs without scheme — coerce them through
   // `normalizeUrl` to avoid open-redirect-like surfaces and broken links.
@@ -69,8 +83,9 @@ export const AboutTab = ({ name, bio, socials, email }: AboutTabProps) => {
 
   const hasBio = !!bio?.trim()
   const hasContacts = items.length > 0 || !!email
+  const hasShare = !!slug
 
-  if (!hasBio && !hasContacts) {
+  if (!hasBio && !hasContacts && !hasShare) {
     return (
       <section className="mx-auto max-w-[1280px] px-6 py-16 md:px-16 md:py-24">
         <div className="max-w-[48ch]">
@@ -108,13 +123,19 @@ export const AboutTab = ({ name, bio, socials, email }: AboutTabProps) => {
           )}
         </div>
 
-        {/* Contact column — 4/12 on desktop */}
-        {hasContacts && (
+        {/* Contact / share column — 4/12 on desktop. Renders when the
+            creator has any reach link OR the page has a shareable slug
+            (always true on the storefront). The "Find them at" section
+            hides itself when empty so the column reads cleanly with
+            just the share row. */}
+        {(hasContacts || hasShare) && (
           <aside className="lg:col-span-4">
-            <h3 className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
-              Find them at
-            </h3>
-            <ul className="mt-5 flex flex-col gap-3">
+            {hasContacts && (
+              <>
+                <h3 className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+                  Find them at
+                </h3>
+                <ul className="mt-5 flex flex-col gap-3">
               {items.map(({ href, label, Icon }) => (
                 <li key={href}>
                   <a
@@ -149,10 +170,148 @@ export const AboutTab = ({ name, bio, socials, email }: AboutTabProps) => {
                 </li>
               )}
             </ul>
+              </>
+            )}
+
+            {/* Share row — visitors who landed via the creator's bio
+                link can pass the storefront on. Web Share API on mobile,
+                explicit network buttons on desktop. */}
+            {slug && <ShareRow name={name} slug={slug} />}
           </aside>
         )}
       </div>
     </section>
+  )
+}
+
+interface ShareRowProps {
+  name: string
+  slug: string
+}
+
+/**
+ * ShareRow — copy-link + WhatsApp / X / Facebook / Telegram / LinkedIn.
+ *
+ * Each link uses the platform's standard share URL with the creator's
+ * canonical storefront URL pre-encoded. The 'Copy link' button uses
+ * navigator.clipboard with a 2 s 'Copied' affordance — no toast required
+ * since the button is right there.
+ */
+function ShareRow({ name, slug }: ShareRowProps) {
+  const url = `https://blyss.co.ke/creators/${slug}`
+  const text = `Check out ${name} on Blyss`
+  const [copied, setCopied] = useState(false)
+
+  const onCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // Browsers without clipboard API (rare) silently no-op.
+    }
+  }
+
+  const onNativeShare = async () => {
+    if (typeof navigator !== 'undefined' && 'share' in navigator) {
+      try {
+        await (navigator as Navigator & {
+          share: (data: ShareData) => Promise<void>
+        }).share({ title: name, text, url })
+      } catch {
+        // User cancelled — no-op.
+      }
+    }
+  }
+
+  const targets: Array<{
+    href: string
+    label: string
+    Icon: typeof FiTwitter
+  }> = [
+    {
+      href: `https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`,
+      label: 'WhatsApp',
+      Icon: FiSend,
+    },
+    {
+      href: `https://x.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
+      label: 'X',
+      Icon: FiTwitter,
+    },
+    {
+      href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
+      label: 'Facebook',
+      Icon: FiFacebook,
+    },
+    {
+      href: `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`,
+      label: 'Telegram',
+      Icon: FiSend,
+    },
+    {
+      href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`,
+      label: 'LinkedIn',
+      Icon: FiLinkedin,
+    },
+  ]
+
+  return (
+    <div className="mt-10 border-t border-[var(--border)] pt-6">
+      <h3 className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+        Share their work
+      </h3>
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        {targets.map(({ href, label, Icon }) => (
+          <a
+            key={label}
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`Share on ${label}`}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[var(--border)] text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+          >
+            <Icon size={16} aria-hidden="true" />
+          </a>
+        ))}
+        {/* Native Share API — only meaningful on mobile; the button shows
+            on every device but on desktop it just no-ops if the API is
+            absent. Saves a row when iOS / Android users want to send to
+            an app we didn't enumerate (Signal, iMessage, Slack, etc.). */}
+        <button
+          type="button"
+          onClick={onNativeShare}
+          aria-label="Share via your device"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[var(--border)] text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+        >
+          <FiShare2 size={16} aria-hidden="true" />
+        </button>
+      </div>
+
+      {/* Copy-link affordance with inline 'Copied' confirmation. The full
+          URL is mono so creators can verify what they're pasting. */}
+      <button
+        type="button"
+        onClick={onCopy}
+        className="mt-3 inline-flex w-full items-center justify-between gap-2 rounded-md border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 font-sans text-[12px] text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+        aria-label="Copy storefront link"
+      >
+        <span className="truncate font-mono text-[11px]">{url}</span>
+        <span className="inline-flex items-center gap-1.5 font-sans text-[11px] font-medium uppercase tracking-[0.1em]">
+          {copied ? (
+            <>
+              <FiCheck size={13} aria-hidden="true" />
+              Copied
+            </>
+          ) : (
+            <>
+              <FiCopy size={13} aria-hidden="true" />
+              Copy
+            </>
+          )}
+        </span>
+      </button>
+    </div>
   )
 }
 

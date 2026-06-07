@@ -60,11 +60,24 @@ export async function MarketplaceShell({ children }: PropsWithChildren) {
     pathname.includes('/portal/authenticate') ||
     isCreatorStorefront
 
-  if (skipChrome) {
-    return <>{children}</>
-  }
-
+  // Resolve geo BEFORE the chrome branch so creator storefronts (which
+  // suppress the marketplace header + footer) still get a working
+  // CurrencyProvider — without it, useDisplayCurrency() falls back to
+  // USD and product cards on /creators/{slug} show USD even for KE
+  // visitors.
   const { country, currency } = await getServerGeo()
+
+  if (skipChrome) {
+    return (
+      <CurrencyProvider initialCountry={country} initialCurrency={currency}>
+        {children}
+        {/* Toaster mounts so chrome-less surfaces (login, portal,
+            creator storefronts) can still surface toast notifications
+            (wishlist save, M-Pesa errors, etc.). */}
+        <Toaster />
+      </CurrencyProvider>
+    )
+  }
 
   return (
     <CurrencyProvider initialCountry={country} initialCurrency={currency}>

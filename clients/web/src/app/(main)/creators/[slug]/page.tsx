@@ -131,7 +131,18 @@ export async function generateMetadata({
       creator.bio?.trim() ||
       `Digital products and subscriptions from ${creator.name}, on Blyss — the modern creator marketplace.`
     const canonical = `${SITE_BASE}/creators/${creator.slug}`
-    const ogImage = creator.avatar_url || `${SITE_BASE}/api/og?title=${encodeURIComponent(creator.name)}`
+    // Prefer the creator's banner (16:9, designed to be shareable) for
+    // social previews; fall back to avatar then to the OG generator.
+    // Twitter / Facebook / WhatsApp / LinkedIn all crop a 1200x630
+    // banner cleanly, but a square avatar reads as a tiny circle.
+    const bannerUrl =
+      ((creator as { cover_image_url?: string | null }).cover_image_url) ??
+      ((creator as unknown as { banner_url?: string | null }).banner_url) ??
+      null
+    const ogImage =
+      bannerUrl ||
+      creator.avatar_url ||
+      `${SITE_BASE}/api/og?title=${encodeURIComponent(creator.name)}`
 
     return {
       title,

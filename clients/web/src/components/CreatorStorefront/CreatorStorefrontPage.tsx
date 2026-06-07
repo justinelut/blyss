@@ -195,6 +195,7 @@ export function CreatorStorefrontPage({
         {tab === 'about' && (
           <AboutTab
             name={creator.name}
+            slug={creator.slug}
             bio={creator.bio}
             socials={creator.socialLinks}
             email={creator.email}
