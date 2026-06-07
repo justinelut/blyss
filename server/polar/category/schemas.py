@@ -29,7 +29,13 @@ class CategoryPublic(Schema):
     is_active: bool
     product_count: int
     created_at: datetime
-    updated_at: datetime
+    # RecordModel exposes `modified_at` (nullable until first edit). The
+    # schema previously required `updated_at` which doesn't exist on the
+    # model — every GET /v1/categories/ 500'd against pydantic with
+    # 'Field required: updated_at'. Map to the actual ORM column and
+    # make it optional so freshly seeded rows (modified_at IS NULL)
+    # serialize cleanly.
+    modified_at: datetime | None = None
 
     model_config = {"from_attributes": True}
 
