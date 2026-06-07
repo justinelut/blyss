@@ -176,11 +176,15 @@ export const StorefrontHero = ({
           <div className="flex flex-col items-stretch gap-5 md:flex-row md:items-end md:justify-between md:gap-8">
             {/* Identity column. Mobile: stack vertical so the bio doesn't
                 squeeze against the avatar; desktop: side-by-side aligned to
-                the baseline. */}
-            <div className="flex flex-col items-start gap-4 md:flex-row md:items-end md:gap-5">
-              {/* Avatar 72px mobile / 88px desktop */}
+                the baseline. min-w-0 + w-full on the wrapper so the bio's
+                truncate cascades correctly through the flex tree (without
+                this, max-w-[52ch] on the bio breaks out of mobile viewport). */}
+            <div className="flex w-full min-w-0 flex-col items-start gap-4 md:flex-row md:items-end md:gap-5">
+              {/* Avatar 56px mobile / 88px desktop. Smaller on mobile so
+                  it sits visually below the 'Back to Blyss' pill without
+                  competing with it for the top-of-page anchor. */}
               <div
-                className="relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-full bg-[var(--surface-sunken)] ring-2 ring-[var(--background)] md:h-[88px] md:w-[88px]"
+                className="relative h-[56px] w-[56px] shrink-0 overflow-hidden rounded-full bg-[var(--surface-sunken)] ring-2 ring-[var(--background)] md:h-[88px] md:w-[88px]"
               >
                 <OptimizedImage
                   src={avatarUrl ?? undefined}
@@ -193,10 +197,12 @@ export const StorefrontHero = ({
 
               {/* Name + handle + bio + city. Text color depends on whether
                   a banner image is present (white over scrim) or absent
-                  (dark over the tonal surface block). */}
+                  (dark over the tonal surface block). w-full + min-w-0
+                  is required for the truncate inside .bio to behave on
+                  narrow mobile viewports. */}
               <div
                 className={cn(
-                  'min-w-0 pb-1',
+                  'w-full min-w-0 pb-1',
                   bannerUrl ? 'text-white' : 'text-[var(--text-primary)]',
                 )}
               >
@@ -235,12 +241,15 @@ export const StorefrontHero = ({
                   )}
                 </div>
                 {bio && (
-                  <div className="mt-2 flex max-w-[52ch] items-baseline gap-2">
+                  <div className="mt-2 flex w-full max-w-full items-baseline gap-2 md:max-w-[52ch]">
                     <p
                       className={cn(
                         // Single line, smaller font (13px), truncate
                         // with ellipsis. Keeps the hero compact and
-                        // CTAs anchored.
+                        // CTAs anchored. The wrapping div constrains
+                        // width to the parent column on mobile (where
+                        // 52ch can be wider than the viewport) and
+                        // caps at 52ch on desktop for readability.
                         'min-w-0 flex-1 truncate font-sans text-[13px] leading-[1.5] md:text-[14px]',
                         bannerUrl
                           ? 'text-white/80'
