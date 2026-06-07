@@ -18,6 +18,7 @@ import { useRouter } from 'next/navigation'
 import { parseAsStringEnum, useQueryState } from 'nuqs'
 import { schemas } from '@/lib/api'
 import { StorefrontHero } from './StorefrontHero'
+import { CreatorStorefrontFooter } from './CreatorStorefrontFooter'
 import {
   StorefrontTabs,
   type StorefrontTab,
@@ -215,6 +216,19 @@ export function CreatorStorefrontPage({
         }
       />
 
+      {/* Creator-owned footer — replaces the standard Blyss marketplace
+          footer on this route. The MarketplaceShell suppresses chrome
+          for /creators/{slug}, so this is the canonical footer for the
+          storefront. Carries the creator's wordmark, full bio, social
+          links, and an inconspicuous 'Powered by Blyss' attribution. */}
+      <CreatorStorefrontFooter
+        name={creator.name}
+        slug={creator.slug}
+        bio={creator.bio}
+        city={creator.city}
+        email={creator.email}
+        socials={creator.socialLinks}
+      />
     </div>
   )
 }
