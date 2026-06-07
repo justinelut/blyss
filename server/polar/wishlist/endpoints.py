@@ -9,7 +9,7 @@ from polar.openapi import APITag
 from polar.postgres import AsyncSession, get_db_session
 from polar.routing import APIRouter
 
-from .schemas import WishlistItemPublic
+from .schemas import WishlistItemPublic, WishlistResponse
 from .service import (
     ProductArchivedError,
     ProductNotFoundError,
@@ -47,6 +47,18 @@ async def add_to_wishlist(
             product_id,
         )
 
+        # Re-fetch with eager-loaded product so the response includes
+        # full product details (the create() call doesn't load
+        # WishlistItem.product, which is lazy='raise').
+        items = await wishlist_service.get_user_wishlist(
+            session, auth_subject.subject.id
+        )
+        for item in items:
+            if item.id == wishlist_item.id:
+                return WishlistItemPublic.model_validate(item)
+        # Fallback: shouldn't happen, but if eager re-fetch missed the
+        # row, return the bare item (frontend will refetch via the
+        # invalidate hook).
         return WishlistItemPublic.model_validate(wishlist_item)
 
     except (
@@ -80,23 +92,28 @@ async def remove_from_wishlist(
 
 @router.get(
     "/",
-    response_model=list[WishlistItemPublic],
+    response_model=WishlistResponse,
     summary="Get User Wishlist",
     responses={
-        200: {"description": "List of wishlist items."},
+        200: {"description": "Wishlist contents wrapped in {items, item_count}."},
     },
 )
 async def get_user_wishlist(
     auth_subject: WebUserRead,
     session: AsyncSession = Depends(get_db_session),
-) -> list[WishlistItemPublic]:
-    """Get user wishlist. Requires authentication."""
+) -> WishlistResponse:
+    """Get the authenticated user's wishlist.
+
+    Returns the items list AND an item_count so the header heart icon
+    can render a badge without a separate count call. Mirrors the cart
+    endpoint shape; see polar/cart/schemas.py CartResponse.
+    """
     wishlist_items = await wishlist_service.get_user_wishlist(
         session,
         auth_subject.subject.id,
     )
-
-    return [WishlistItemPublic.model_validate(item) for item in wishlist_items]
+    items = [WishlistItemPublic.model_validate(item) for item in wishlist_items]
+    return WishlistResponse(items=items, item_count=len(items))
 
 
 @router.get(

@@ -50,7 +50,7 @@ const ITEMS: NavItem[] = [
 
 export function MarketplaceMobileNav() {
   const pathname = usePathname() ?? ''
-  const { authenticated } = useAuth()
+  const { authenticated, userOrganizations } = useAuth()
   const { data: cart } = useCart(authenticated)
   const { data: wishlist } = useWishlist(authenticated)
 
@@ -60,10 +60,25 @@ export function MarketplaceMobileNav() {
   const isDonation = /^\/[a-z]{2}\/donation\/|^\/donation\//.test(pathname)
   if (isPDP || isDonation) return null
 
-  // Account tab: when signed in → /dashboard; when out → /login.
+  // Account tab routing for the bottom nav. The bottom nav is the
+  // BUYER's primary navigation surface — buyers shouldn't land on the
+  // creator dashboard, so:
+  //   * Not authenticated → /login
+  //   * Authenticated, no creator org → /wishlist (closest 'your stuff'
+  //     page; the eventual /account profile page can replace this).
+  //   * Authenticated + has creator org → /dashboard/{primary-slug}
+  //     deep-link (creators expect their dashboard from this icon).
+  const primaryOrg = userOrganizations[0]
+  const accountHref = !authenticated
+    ? '/login'
+    : primaryOrg
+      ? `/dashboard/${primaryOrg.slug}`
+      : '/wishlist'
+  const accountLabel = !authenticated ? 'Sign in' : 'Account'
+
   const items = ITEMS.map((item) => {
-    if (item.label === 'Sign in' && authenticated) {
-      return { ...item, href: '/dashboard', label: 'Account' }
+    if (item.label === 'Sign in') {
+      return { ...item, href: accountHref, label: accountLabel }
     }
     return item
   }).filter((item) => !item.authOnly || authenticated)
@@ -75,9 +90,13 @@ export function MarketplaceMobileNav() {
     return pathname.includes(href)
   }
 
+  // Wishlist + cart now BOTH return the same {items, item_count} shape
+  // from their respective endpoints. Read item_count consistently for
+  // the badge.
   const counts: Record<string, number> = {
-    cart: ((cart as any)?.item_count as number) ?? 0,
-    wishlist: ((wishlist as any)?.length as number) ?? 0,
+    cart: ((cart as { item_count?: number } | undefined)?.item_count) ?? 0,
+    wishlist:
+      ((wishlist as { item_count?: number } | undefined)?.item_count) ?? 0,
   }
 
   return (
