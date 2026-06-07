@@ -53,7 +53,7 @@ export const MarketplaceHeader = ({ alwaysBlurred = false }: MarketplaceHeaderPr
   const [scrolled, setScrolled] = useState(alwaysBlurred)
   const [mobileOpen, setMobileOpen] = useState(false)
   const reduce = useReducedMotion()
-  const { currentUser, authenticated } = useAuth()
+  const { currentUser, authenticated, userOrganizations } = useAuth()
 
   // Track scroll for blur transition
   useEffect(() => {
@@ -198,6 +198,13 @@ export const MarketplaceHeader = ({ alwaysBlurred = false }: MarketplaceHeaderPr
             {authenticated && currentUser ? (
               <>
                 <Link
+                  href="/orders"
+                  onClick={() => setMobileOpen(false)}
+                  className="font-display text-3xl font-medium text-[var(--text-primary)]"
+                >
+                  Your purchases
+                </Link>
+                <Link
                   href="/wishlist"
                   onClick={() => setMobileOpen(false)}
                   className="font-display text-3xl font-medium text-[var(--text-primary)]"
@@ -211,22 +218,24 @@ export const MarketplaceHeader = ({ alwaysBlurred = false }: MarketplaceHeaderPr
                 >
                   Cart
                 </Link>
-                <Link
-                  href="/dashboard"
-                  onClick={() => setMobileOpen(false)}
-                  className="font-display text-3xl font-medium text-[var(--text-primary)]"
-                >
-                  Dashboard
-                </Link>
+                {userOrganizations.length > 0 && (
+                  <Link
+                    href={`/dashboard/${userOrganizations[0].slug}`}
+                    onClick={() => setMobileOpen(false)}
+                    className="font-display text-3xl font-medium text-[var(--text-primary)]"
+                  >
+                    Dashboard
+                  </Link>
+                )}
               </>
             ) : (
               <>
                 <Link
-                  href="/login"
+                  href="/login?return_to=/orders"
                   onClick={() => setMobileOpen(false)}
                   className="font-display text-3xl font-medium text-[var(--text-primary)]"
                 >
-                  Sign in
+                  Sign in to see your orders
                 </Link>
                 <Link
                   href="/start"
