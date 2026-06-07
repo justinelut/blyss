@@ -948,7 +948,51 @@ class ReviewAnalyzer:
             "overall verdict and recommendation."
         )
 
-        return "\n".join(parts)
+        full = "\n".join(parts)
+
+        # Hard cap on prompt size so the smallest provider in the fallback
+        # chain (Groq's llama-3.3-70b-versatile, ~32K token / ~96K char
+        # context) doesn't 413 'Request too large'. The website collector
+        # already caps at 5 pages × 15K chars = 75K just for the website
+        # section, plus org details, products, identity, account — total
+        # easily exceeded the 32K Groq context.
+        #
+        # 60K chars ≈ 15K tokens, leaving generous headroom for the system
+        # prompt + the model's reasoning + JSON output. If we're over,
+        # truncate the WEBSITE section since that's where the bulk lives;
+        # don't drop org details / products / identity which the verdict
+        # critically depends on.
+        MAX_PROMPT_CHARS = 60_000
+        if len(full) > MAX_PROMPT_CHARS:
+            overflow = len(full) - MAX_PROMPT_CHARS
+            website_marker = "\n## Website Content"
+            ws_start = full.find(website_marker)
+            if ws_start >= 0:
+                # Find the next "## " section header after the website
+                # block so we can keep everything from there onwards intact.
+                next_section = full.find("\n## ", ws_start + len(website_marker))
+                if next_section < 0:
+                    next_section = len(full)
+                website_block = full[ws_start:next_section]
+                # Cut characters from the END of the website block so the
+                # base_url + first paragraphs survive, only the deep
+                # crawl chatter at the bottom is dropped.
+                cut = min(overflow + 200, max(0, len(website_block) - 800))
+                if cut > 0:
+                    truncated_block = (
+                        website_block[: len(website_block) - cut]
+                        + "\n\n[Website content truncated to fit model context]"
+                    )
+                    full = full[:ws_start] + truncated_block + full[next_section:]
+            # Final safety net — if the website-only trim wasn't enough
+            # (e.g. very long product list) tail-truncate the whole prompt.
+            if len(full) > MAX_PROMPT_CHARS:
+                full = (
+                    full[: MAX_PROMPT_CHARS - 200]
+                    + "\n\n[Prompt truncated to fit model context]"
+                )
+
+        return full
 
 
 def _fallback_report(summary: str, finding: str, action: str) -> ReviewAgentReport:
