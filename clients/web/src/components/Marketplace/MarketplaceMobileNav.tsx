@@ -73,7 +73,7 @@ export function MarketplaceMobileNav() {
     ? '/login'
     : primaryOrg
       ? `/dashboard/${primaryOrg.slug}`
-      : '/wishlist'
+      : '/orders'
   const accountLabel = !authenticated ? 'Sign in' : 'Account'
 
   const items = ITEMS.map((item) => {

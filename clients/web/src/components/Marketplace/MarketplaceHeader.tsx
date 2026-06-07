@@ -15,7 +15,7 @@
  */
 
 import { FiSearch, FiUser, FiMenu, FiX, FiHeart } from 'react-icons/fi'
-import { FiGrid, FiLogOut } from 'react-icons/fi'
+import { FiGrid, FiLogOut, FiPackage } from 'react-icons/fi'
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
@@ -342,9 +342,17 @@ function AccountMenu() {
                 Wishlist
               </Link>
             </li>
-            {/* TODO: cross-org orders aggregator. Until /orders exists,
-                  buyers see their orders inside each creator's customer
-                  portal at /{creator-slug}/portal/orders. */}
+            <li>
+              <Link
+                href="/orders"
+                role="menuitem"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-3 px-4 py-2.5 font-sans text-[14px] text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-sunken)]"
+              >
+                <FiPackage size={16} className="text-[var(--text-muted)]" />
+                Your purchases
+              </Link>
+            </li>
           </ul>
           <div className="border-t border-[var(--border)] py-2">
             <a
