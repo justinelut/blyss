@@ -1,4 +1,4 @@
-from typing import Annotated, Literal
+from typing import Annotated
 
 from pydantic import UUID4, AliasPath, Field, computed_field
 from pydantic.json_schema import SkipJsonSchema
@@ -69,8 +69,18 @@ _discount_id_description = (
 
 
 class CheckoutLinkCreateBase(TrialConfigurationInputMixin, MetadataInputMixin, Schema):
-    payment_processor: Literal[PaymentProcessor.stripe] = Field(
-        description="Payment processor to use. Currently only Stripe is supported."
+    # Accepts any supported processor. The actual processor used for a
+    # buyer's checkout is decided at checkout-session creation time
+    # (`checkout/service.py::_create_checkout_from_link`) — Blyss orgs
+    # are routed to Paystack via `organization_service.uses_paystack`,
+    # mirroring the direct-PDP path. Default kept as Stripe to preserve
+    # the upstream Polar API contract.
+    payment_processor: PaymentProcessor = Field(
+        default=PaymentProcessor.stripe,
+        description=(
+            "Payment processor to use. Blyss organisations are auto-routed "
+            "to Paystack at checkout time regardless of this value."
+        ),
     )
     label: str | None = Field(
         description="Optional label to distinguish links internally", default=None

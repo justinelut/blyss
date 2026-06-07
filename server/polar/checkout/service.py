@@ -814,7 +814,14 @@ class CheckoutService:
             discount=discount,
             embed_origin=embed_origin,
             customer_ip_address=ip_address,
-            payment_processor=checkout_link.payment_processor,
+            # Mirror the direct-PDP path at line 572: Blyss orgs always
+            # use Paystack regardless of the link's stored processor.
+            # The link schema defaults to stripe (Polar upstream merge
+            # surface), but the actual buyer-facing checkout has to run
+            # through whichever processor the org is configured for.
+            payment_processor=PaymentProcessor.paystack
+            if organization_service.uses_paystack(product.organization)
+            else checkout_link.payment_processor,
             success_url=checkout_link.success_url,
             return_url=checkout_link.return_url,
             user_metadata=checkout_link.user_metadata,
