@@ -120,9 +120,9 @@ REGISTRY: list[RegisteredKey] = [
         label="M-Pesa Verification Amount",
         description=(
             "Anti-fraud charge a creator pays to verify their M-Pesa "
-            "payout number. Stored in the smallest currency unit "
-            "(1 KES = 100). Default: 10000 (KES 100). "
-            "Examples: 100 = KES 1, 5000 = KES 50, 25000 = KES 250."
+            "payout number. Enter the amount in the smallest unit — "
+            "KES * 100. Examples: 100 = KES 1, 500 = KES 5, "
+            "5000 = KES 50, 10000 = KES 100, 25000 = KES 250."
         ),
         sensitive=False,
         requires_verification=False,
