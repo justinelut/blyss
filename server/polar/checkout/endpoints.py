@@ -1,5 +1,7 @@
 from typing import Annotated, List
 
+import secrets
+
 from fastapi import Depends, Path, Query, Request
 from pydantic import UUID4
 from sse_starlette.sse import EventSourceResponse
@@ -349,10 +351,18 @@ async def client_charge(
     amount = checkout.total_amount
 
     # Build Paystack /charge payload
+    # Pre-generate a Blyss-branded reference so the customer-facing
+    # receipt number reads 'blyss_…' instead of Paystack's auto-
+    # generated 'momo_…' (which leaks the channel + isn't branded).
+    # 8 hex chars from the checkout id + 8 random urlsafe chars keeps
+    # it short, unique, and easy for support to grep against the
+    # checkout row in the DB.
+    reference = f"blyss_{checkout.id.hex[:8]}_{secrets.token_urlsafe(8)}"
     payload: dict = {
         "email": email,
         "amount": amount,
         "currency": checkout.currency or "KES",
+        "reference": reference,
     }
 
     ch = body.channel

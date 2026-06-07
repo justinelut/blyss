@@ -121,8 +121,17 @@ const INTERNAL_PATH_PATTERNS: RegExp[] = [
   /\.[a-z0-9]{2,5}$/i, // any file with extension (og-image.png, etc.)
 ]
 
-const isInternalPath = (pathname: string): boolean =>
-  INTERNAL_PATH_PATTERNS.some((re) => re.test(pathname))
+const isInternalPath = (pathname: string): boolean => {
+  // Strip a locale prefix first so /{country}/portal/... doesn't get
+  // mis-classified as a /:org/portal/... internal path. Without this,
+  // /ke/portal/ matched the per-org portal regex (org=ke), the proxy
+  // skipped locale rewriting, and Next.js routed to
+  // [organization]/portal with organization='ke' — 404 because no org
+  // has slug 'ke'.
+  const segment = extractLocaleSegment(pathname)
+  const effective = segment ? segment.rest : pathname
+  return INTERNAL_PATH_PATTERNS.some((re) => re.test(effective))
+}
 
 /**
  * Look up the authenticated user from the polar_session cookie. Returns

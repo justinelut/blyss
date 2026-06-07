@@ -617,7 +617,10 @@ class PaystackService:
         import uuid
 
         if reference is None:
-            reference = f"momo_{uuid.uuid4().hex[:16]}"
+            # Customer-facing receipt prefix — Blyss-branded so the
+            # buyer sees 'blyss_momo_…' on their receipt, not the bare
+            # 'momo_…' which read as Paystack-internal jargon.
+            reference = f"blyss_momo_{uuid.uuid4().hex[:16]}"
 
         payload: dict[str, Any] = {
             "email": email,
@@ -662,7 +665,7 @@ class PaystackService:
         # Generate a unique reference for the verification transaction
         import uuid
 
-        reference = f"mpesa_verify_{uuid.uuid4().hex[:16]}"
+        reference = f"blyss_verify_{uuid.uuid4().hex[:16]}"
 
         # Prepare request payload for transfer
         payload = {
