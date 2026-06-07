@@ -24,6 +24,13 @@ import {
 import React from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Button } from './Button'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/atoms/Select'
 
 // ─── Table primitives ────────────────────────────────────────────────────────
 
@@ -160,17 +167,24 @@ function DataTablePagination<TData>({
         <span className="dark:text-polar-500 text-sm text-neutral-500">
           Rows per page
         </span>
-        <select
-          value={pageSize}
-          onChange={(e) => table.setPageSize(Number(e.target.value))}
-          className="dark:bg-polar-800 dark:text-polar-200 h-8 rounded-md border-0 bg-neutral-100 px-2 text-sm text-black outline-none"
+        <Select
+          value={String(pageSize)}
+          onValueChange={(v) => table.setPageSize(Number(v))}
         >
-          {SUPPORTED_PAGE_SIZES.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger
+            aria-label="Rows per page"
+            className="h-8 w-auto min-w-[64px] rounded-md border-0 bg-neutral-100 px-2 text-sm text-black dark:bg-polar-800 dark:text-polar-200"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {SUPPORTED_PAGE_SIZES.map((s) => (
+              <SelectItem key={s} value={String(s)}>
+                {s}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="dark:text-polar-500 flex flex-1 items-center justify-start text-sm text-neutral-500 sm:w-40 sm:flex-none sm:justify-center">

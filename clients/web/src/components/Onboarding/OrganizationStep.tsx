@@ -12,6 +12,13 @@ import { CONFIG } from '@/utils/config'
 import { schemas } from '@/lib/api'
 import Button from '@/components/atoms/Button'
 import Input from '@/components/atoms/Input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/atoms/Select'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
   Form,
@@ -298,19 +305,26 @@ export const OrganizationStep = ({
                       >
                         Category
                       </label>
-                      <select
-                        id="creator_category"
-                        value={selectedCategory}
-                        onChange={(e) => setSelectedCategory(e.target.value)}
-                        className="w-full rounded-md bg-[var(--surface-sunken)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:ring-1 focus:ring-[var(--border-strong)]"
+                      <Select
+                        value={selectedCategory || '__none__'}
+                        onValueChange={(v) =>
+                          setSelectedCategory(v === '__none__' ? '' : v)
+                        }
                       >
-                        <option value="">Choose a category (optional)</option>
-                        {creatorCategories.map((c) => (
-                          <option key={c.id} value={c.slug}>
-                            {c.name}
-                          </option>
-                        ))}
-                      </select>
+                        <SelectTrigger id="creator_category">
+                          <SelectValue placeholder="Choose a category (optional)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">
+                            Choose a category (optional)
+                          </SelectItem>
+                          {creatorCategories.map((c) => (
+                            <SelectItem key={c.id} value={c.slug}>
+                              {c.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <p className="text-sm text-[var(--text-muted)]">
                         Helps buyers discover you on the creators directory. You
                         can change this later in settings.

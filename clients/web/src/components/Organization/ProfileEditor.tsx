@@ -5,6 +5,13 @@ import { setValidationErrors } from '@/utils/api/errors'
 import { isValidationError, schemas } from '@/lib/api'
 import Button from '@/components/atoms/Button'
 import Input from '@/components/atoms/Input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/atoms/Select'
 import TextArea from '@/components/atoms/TextArea'
 import {
   Form,
@@ -158,17 +165,24 @@ export const ProfileEditor = ({ organization }: ProfileEditorProps) => {
             <div>
               <label className="mb-2 block text-sm font-medium">Category</label>
               <FormControl>
-                <select
-                  {...field}
-                  className="w-full rounded-md bg-[var(--surface-sunken)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:ring-1 focus:ring-[var(--border-strong)]"
+                <Select
+                  value={field.value || '__none__'}
+                  onValueChange={(v) =>
+                    field.onChange(v === '__none__' ? '' : v)
+                  }
                 >
-                  <option value="">No category</option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.slug}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger>
+                    <SelectValue placeholder="No category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">No category</SelectItem>
+                    {categories.map((c) => (
+                      <SelectItem key={c.id} value={c.slug}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </FormControl>
               <p className="mt-1 text-xs text-gray-500">
                 Shown as a filter on the public creators directory.

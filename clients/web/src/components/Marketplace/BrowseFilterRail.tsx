@@ -12,6 +12,13 @@
 
 import { Eyebrow } from '@/design'
 import { cn } from '@/lib/utils'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/atoms/Select'
 
 export interface FilterCategory {
   id: string
@@ -93,28 +100,37 @@ export const BrowseFilterRail = ({
         </div>
       )}
 
-      {/* Sort — typographic select */}
+      {/* Sort — shadcn Select, typographic trigger to keep the
+          editorial hairline rule + transparent bg of the original
+          native control. */}
       <div className="flex flex-col gap-3">
         <Eyebrow>Sort</Eyebrow>
-        <select
+        <Select
           value={filters.sort}
-          onChange={(e) =>
-            onChange({ sort: e.target.value as BrowseFilters['sort'] })
+          onValueChange={(v) =>
+            onChange({ sort: v as BrowseFilters['sort'] })
           }
-          aria-label="Sort"
-          className={cn(
-            'h-10 w-full appearance-none bg-transparent pr-6 font-sans text-[14px] text-[var(--text-primary)]',
-            'border-0 border-b border-[var(--border)] focus:border-[var(--text-primary)]',
-            'focus:outline-none focus:ring-0 transition-colors',
-            "bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2210%22 height=%226%22 fill=%22none%22><path d=%22M1 1l4 4 4-4%22 stroke=%22%23594139%22 stroke-width=%221%22/></svg>')] bg-[length:10px_6px] bg-[right_4px_center] bg-no-repeat",
-          )}
         >
-          {sortOptions.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger
+            aria-label="Sort"
+            className={cn(
+              'h-10 w-full bg-transparent pr-6 font-sans text-[14px] text-[var(--text-primary)]',
+              'border-0 border-b border-[var(--border)] rounded-none',
+              'focus:border-[var(--text-primary)] focus:outline-none focus:ring-0',
+              'data-[state=open]:border-[var(--text-primary)]',
+              'transition-colors',
+            )}
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {sortOptions.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Category — type-led list, hairline rules */}

@@ -9,6 +9,13 @@ import { ProductGrid } from './ProductGrid'
 import { Pagination } from './Pagination'
 import Footer from '../Organization/Footer'
 import { api } from '@/utils/client'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/atoms/Select'
 
 interface Category {
   id: string
@@ -138,17 +145,21 @@ export function BrowseMarketplace({
               <label className="text-xs font-label uppercase tracking-widest text-on-surface-variant">
                 Sort By
               </label>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="bg-surface-container-low border-none rounded-lg text-sm px-4 py-2 focus:ring-2 focus:ring-secondary cursor-pointer"
-              >
-                <option value="relevance">Relevance</option>
-                <option value="newest">Newest Arrivals</option>
-                <option value="price-low">Price: Low to High</option>
-                <option value="price-high">Price: High to Low</option>
-                <option value="rating">Top Rated</option>
-              </select>
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger
+                  className="bg-surface-container-low border-none rounded-lg text-sm px-4 h-9 focus:ring-2 focus:ring-secondary"
+                  aria-label="Sort by"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="relevance">Relevance</SelectItem>
+                  <SelectItem value="newest">Newest Arrivals</SelectItem>
+                  <SelectItem value="price-low">Price: Low to High</SelectItem>
+                  <SelectItem value="price-high">Price: High to Low</SelectItem>
+                  <SelectItem value="rating">Top Rated</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
