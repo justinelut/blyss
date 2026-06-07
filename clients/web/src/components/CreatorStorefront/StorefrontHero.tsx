@@ -1,7 +1,9 @@
 'use client'
 
-import { motion, useReducedMotion } from 'motion/react'
-import { FiHeart } from 'react-icons/fi'
+import { motion, useReducedMotion, AnimatePresence } from 'motion/react'
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
+import { FiArrowLeft, FiHeart, FiX } from 'react-icons/fi'
 import { OptimizedImage } from '@/components/Image/OptimizedImage'
 import { cn } from '@/lib/utils'
 
@@ -62,6 +64,28 @@ export const StorefrontHero = ({
 }: StorefrontHeroProps) => {
   const reduce = useReducedMotion()
   const ease = [0.32, 0.72, 0, 1] as const
+  const [bioOpen, setBioOpen] = useState(false)
+
+  // Bio is line-clamped to 3 lines in the hero. Anything longer gets a
+  // 'Read more' affordance that opens a fullscreen modal — prevents long
+  // copy from pushing the CTAs off the right side and stacking the
+  // identity column over the avatar on mobile.
+  const isLongBio = !!bio && bio.length > 180
+
+  // Close modal on Escape + lock body scroll while open.
+  useEffect(() => {
+    if (!bioOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setBioOpen(false)
+    }
+    document.addEventListener('keydown', onKey)
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prevOverflow
+    }
+  }, [bioOpen])
 
   // Reveal timing for hero overlay (matches Hero.tsx home pattern)
   const bgAnim = reduce
@@ -84,6 +108,24 @@ export const StorefrontHero = ({
       aria-labelledby="storefront-name"
       className="relative isolate overflow-hidden bg-[var(--surface)]"
     >
+      {/* Discreet 'back to Blyss' affordance — the main marketplace
+          header is suppressed on this route (creator owns the page),
+          so this is the only persistent way back to the marketplace.
+          Top-left, low-contrast, doesn't compete with the creator's
+          name. */}
+      <Link
+        href="/marketplace"
+        className={cn(
+          'absolute left-4 top-4 z-20 inline-flex h-9 items-center gap-1.5 rounded-md px-3 font-sans text-[12px] font-medium uppercase tracking-[0.1em] transition-colors md:left-8 md:top-6',
+          bannerUrl
+            ? 'bg-black/30 text-white/85 backdrop-blur-md hover:bg-black/45 hover:text-white'
+            : 'border border-[var(--border)] bg-[var(--background)]/80 text-[var(--text-secondary)] backdrop-blur hover:bg-[var(--surface-sunken)] hover:text-[var(--text-primary)]',
+        )}
+        aria-label="Back to Blyss marketplace"
+      >
+        <FiArrowLeft size={14} aria-hidden="true" />
+        Blyss
+      </Link>
       {/* Banner — 16:9 when an image is provided. When there's no image we
           render a SHORT single-tone editorial block (no scrim) to avoid the
           visual two-banner stack the dark scrim would otherwise create over
@@ -191,16 +233,36 @@ export const StorefrontHero = ({
                   )}
                 </div>
                 {bio && (
-                  <p
-                    className={cn(
-                      'mt-3 max-w-[52ch] font-sans text-[14px] leading-[1.5] md:text-[16px]',
-                      bannerUrl
-                        ? 'text-white/85'
-                        : 'text-[var(--text-secondary)]',
+                  <div className="mt-3 max-w-[52ch]">
+                    <p
+                      className={cn(
+                        'font-sans text-[14px] leading-[1.5] md:text-[16px]',
+                        // line-clamp-3: max 3 visible lines, ellipsis the
+                        // rest. The 'Read more' button below reveals the
+                        // full bio in a fullscreen modal.
+                        'line-clamp-3 [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:3]',
+                        bannerUrl
+                          ? 'text-white/85'
+                          : 'text-[var(--text-secondary)]',
+                      )}
+                    >
+                      {bio}
+                    </p>
+                    {isLongBio && (
+                      <button
+                        type="button"
+                        onClick={() => setBioOpen(true)}
+                        className={cn(
+                          'mt-2 inline-flex items-center font-sans text-[13px] font-medium underline-offset-4 hover:underline',
+                          bannerUrl
+                            ? 'text-white/85 hover:text-white'
+                            : 'text-[var(--accent)]',
+                        )}
+                      >
+                        Read more
+                      </button>
                     )}
-                  >
-                    {bio}
-                  </p>
+                  </div>
                 )}
               </div>
             </div>
@@ -236,6 +298,60 @@ export const StorefrontHero = ({
           </div>
         </div>
       </motion.div>
+
+      {/* Full-screen bio modal — opened by 'Read more' on the hero. The
+          long-form biography lives on the About tab too, but having it
+          one click away from the hero keeps visitors in flow without
+          forcing a tab switch. */}
+      <AnimatePresence>
+        {bioOpen && bio && (
+          <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="storefront-bio-title"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-50 flex items-end justify-center bg-[rgba(15,14,12,0.6)] p-0 sm:items-center sm:p-6"
+            onClick={() => setBioOpen(false)}
+          >
+            <motion.div
+              initial={{ y: 24, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 24, opacity: 0 }}
+              transition={{ duration: 0.25, ease }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative w-full max-w-[640px] overflow-hidden rounded-t-2xl bg-[var(--background)] sm:rounded-2xl"
+            >
+              <button
+                type="button"
+                onClick={() => setBioOpen(false)}
+                aria-label="Close"
+                className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-md text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-sunken)] hover:text-[var(--text-primary)]"
+              >
+                <FiX size={20} aria-hidden="true" />
+              </button>
+              <div className="px-6 pt-12 pb-8 sm:px-10 sm:pt-14 sm:pb-12">
+                <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
+                  About
+                </p>
+                <h2
+                  id="storefront-bio-title"
+                  className="mt-2 font-display text-[28px] font-semibold leading-[1.15] tracking-[-0.02em] text-[var(--text-primary)]"
+                >
+                  {name}
+                </h2>
+                <div className="mt-6 max-h-[60vh] overflow-y-auto pr-2">
+                  <p className="whitespace-pre-line font-sans text-[15px] leading-[1.6] text-[var(--text-secondary)]">
+                    {bio}
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   )
 }

@@ -47,9 +47,18 @@ export async function MarketplaceShell({ children }: PropsWithChildren) {
   // match for that one specific path. Anywhere else "/portal/" appears as
   // a prefix of a creator's storefront path it's intentional — only the
   // /portal/authenticate magic-link page wants the bare layout.
+  //
+  // Creator storefronts (/creators/{slug}) also drop the main Blyss
+  // header so the page reads as the creator's own — they bring their
+  // own StorefrontHero with their avatar/banner. The /creators
+  // directory itself (no trailing slug) keeps the chrome since it's a
+  // Blyss-curated index.
+  const isCreatorStorefront =
+    /^(?:\/[a-z]{2})?\/creators\/[^/]+\/?$/.test(pathname)
   const skipChrome =
     NO_CHROME_PREFIXES.some((p) => pathname.startsWith(p)) ||
-    pathname.includes('/portal/authenticate')
+    pathname.includes('/portal/authenticate') ||
+    isCreatorStorefront
 
   if (skipChrome) {
     return <>{children}</>
