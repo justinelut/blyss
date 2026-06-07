@@ -425,39 +425,14 @@ async def finalize_mpesa_verification(
         flush=True,
     )
 
-    # Test-mode bypass.
-    # Paystack's test mode rejects subaccount creation for Kenyan M-Pesa
-    # with 'Account number is invalid' — their test env doesn't have
-    # access to the Safaricom number registry, so it can't validate any
-    # real number (including +254 710 000 000). To unblock end-to-end
-    # testing without flipping the integration to live, we detect a
-    # test secret key and short-circuit: the org is marked active with
-    # a synthetic ACCT_test_* code so downstream split-creation paths
-    # don't blow up. In live mode this branch is skipped and the real
-    # Paystack subaccount API call runs.
-    secret_key = await paystack._resolve_secret_key(session)  # type: ignore[attr-defined]
-    if secret_key.startswith("sk_test_"):
-        log.info(
-            "paystack.mpesa.finalize_verification.test_mode_bypass",
-            organization_id=organization.id,
-            note=(
-                "test-mode subaccount bypass: paystack test env can't "
-                "validate Kenyan M-Pesa numbers; mocking active state"
-            ),
-        )
-        synthetic_code = (
-            organization.subaccount_code
-            or f"ACCT_test_mpesa_{organization.id.hex[:12]}"
-        )
-        organization = await repository.update(
-            organization,
-            update_dict={
-                "subaccount_code": synthetic_code,
-                "subaccount_status": "active",
-            },
-            flush=True,
-        )
-        return OrganizationSchema.model_validate(organization)
+    # We used to short-circuit subaccount creation in test mode because
+    # Paystack's test env rejected Kenyan M-Pesa numbers with
+    # 'Account number is invalid'. That bypass made the dashboard
+    # report success but the subaccount never appeared in Paystack's
+    # test dashboard — which is what the user is seeing right now.
+    # Removed: the real /subaccount call now fires in both test and
+    # live mode. If Paystack test mode still rejects, the upstream
+    # error message is surfaced via the existing 422 path below.
 
     try:
         # Paystack's subaccount API expects M-Pesa MSISDN without the '+'
