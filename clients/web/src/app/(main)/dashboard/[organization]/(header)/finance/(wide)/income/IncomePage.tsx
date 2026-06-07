@@ -1,6 +1,7 @@
 'use client'
 
 import AccessRestricted from '@/components/Finance/AccessRestricted'
+import { BlyssEarningsCard } from '@/components/Finance/BlyssEarningsCard'
 import AccountBalance from '@/components/Payouts/AccountBalance'
 import AccountBanner from '@/components/Transactions/AccountBanner'
 import TransactionsList from '@/components/Transactions/TransactionsList'
@@ -87,6 +88,13 @@ export default function ClientPage({
   return (
     <div className="flex flex-col gap-y-8">
       <AccountBanner organization={organization} />
+      {/* Blyss earnings card — shown to creators with an active
+          Paystack subaccount. Replaces the legacy AccountBalance +
+          Withdraw flow which is Polar/Stripe-only. */}
+      {(organization as { subaccount_status?: string }).subaccount_status ===
+        'active' &&
+        (organization as { subaccount_code?: string | null })
+          .subaccount_code && <BlyssEarningsCard organization={organization} />}
       {account && (
         <AccountBalance
           account={account}

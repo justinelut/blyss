@@ -2,6 +2,7 @@
 
 import AccessRestricted from '@/components/Finance/AccessRestricted'
 import AccountBalance from '@/components/Payouts/AccountBalance'
+import { BlyssEarningsCard } from '@/components/Finance/BlyssEarningsCard'
 import DownloadInvoice, {
   InvoiceModal,
 } from '@/components/Payouts/DownloadInvoice'
@@ -275,6 +276,15 @@ export default function ClientPage({
     <PayoutProvider>
       <div className="flex flex-col gap-y-8">
         <AccountBanner organization={organization} />
+        {/* Blyss earnings card — replaces the Polar/Stripe AccountBalance
+            for creators using Paystack subaccounts. Paystack auto-settles
+            T+2; there's nothing to "withdraw" manually. */}
+        {(organization as { subaccount_status?: string }).subaccount_status ===
+          'active' &&
+          (organization as { subaccount_code?: string | null })
+            .subaccount_code && (
+            <BlyssEarningsCard organization={organization} />
+          )}
         {account && (
           <AccountBalance account={account} organization={organization} />
         )}
