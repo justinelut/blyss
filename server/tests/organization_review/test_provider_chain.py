@@ -103,20 +103,21 @@ class TestProviderChainBuilder:
             monkeypatch,
             POLAR_AI_PROVIDER="auto",
             POLAR_GROQ_API_KEY="test-groq",
-            POLAR_OPENROUTER_API_KEY="test-or",
+            POLAR_GOOGLE_AI_API_KEY="test-gemini",
         )
         from pydantic_ai.models.fallback import FallbackModel
 
         model, names = analyzer_mod._build_provider_chain()
         assert isinstance(model, FallbackModel)
         assert len(names) == 2
-        # Order matters — Groq first (free, fastest), OpenRouter second.
+        # Order matters — Gemini first (1M context, handles big prompts),
+        # Groq second (32K context, fast fallback).
         assert names == [
+            "gemini:gemini-2.0-flash",
             "groq:llama-3.3-70b-versatile",
-            "openrouter:meta-llama/llama-3.3-70b-instruct:free",
         ]
 
-    def test_full_chain_orders_free_first_paid_last(self, monkeypatch):
+    def test_full_chain_orders_large_context_first_paid_last(self, monkeypatch):
         analyzer_mod = _set_env(
             monkeypatch,
             POLAR_AI_PROVIDER="auto",
@@ -128,14 +129,17 @@ class TestProviderChainBuilder:
         )
         _model, names = analyzer_mod._build_provider_chain()
         # Strict order assertion — the analyzer's behavior depends on this.
-        # Free tiers first (Groq → Cerebras → OpenRouter → Gemini), paid last
-        # (OpenAI). Don't reorder without thinking through cost implications.
+        # Gemini first (1M context window, handles big org-review snapshots
+        # without 413 'Request too large'), then Groq + Cerebras as fast
+        # 32K-context fallbacks, OpenAI last (paid backstop).
+        # OpenRouter is intentionally NOT in the auto chain — its free
+        # Llama models share the 32K limit; setting AI_PROVIDER=openrouter
+        # explicitly is the only way to use it.
         provider_names = [n.split(":", 1)[0] for n in names]
         assert provider_names == [
+            "gemini",
             "groq",
             "cerebras",
-            "openrouter",
-            "gemini",
             "openai",
         ]
 

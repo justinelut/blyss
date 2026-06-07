@@ -396,12 +396,17 @@ def _build_provider_chain() -> tuple[Model, list[str]]:
     analyzer auto-switches when one fails (4xx from Google quota, 429 from
     Groq, network blip, etc.).
 
-    Order is free-tier-first, paid-last:
-        1. Groq        — fast, generous free tier
-        2. Cerebras    — fastest inference, generous free tier (OpenAI-compat)
-        3. OpenRouter  — gateway with free Llama/Gemma models
-        4. Google Gemini — 1500 req/day free
-        5. OpenAI      — paid, last resort
+    Order is large-context-first, paid-last:
+        1. Google Gemini — gemini-2.0-flash, 1M context window, 1500 req/day free
+                           (handles big review snapshots without 413 'Request too large')
+        2. Groq          — llama-3.3-70b-versatile, fast but 32K context cap
+        3. Cerebras      — fastest inference, OpenAI-compatible, 32K context cap
+        4. OpenAI        — paid, last resort
+
+    OpenRouter intentionally excluded from the auto chain: its free Llama
+    models share Groq's 32K context limit and re-introduce 413 errors on
+    large org-review prompts. Set AI_PROVIDER=openrouter explicitly if you
+    need it.
 
     Returns the model (single Model if one provider is configured, FallbackModel
     if 2+) and the list of provider names in order — used for the init log.
@@ -411,7 +416,17 @@ def _build_provider_chain() -> tuple[Model, list[str]]:
     candidates: list[Model] = []
     names: list[str] = []
 
-    # 1. Groq
+    # 1. Gemini (large context, generous free tier)
+    if settings.GOOGLE_AI_API_KEY:
+        candidates.append(
+            GoogleModel(
+                settings.GOOGLE_AI_MODEL,
+                provider=GoogleProvider(api_key=settings.GOOGLE_AI_API_KEY),
+            )
+        )
+        names.append(f"gemini:{settings.GOOGLE_AI_MODEL}")
+
+    # 2. Groq
     if settings.GROQ_API_KEY:
         candidates.append(
             GroqModel(
@@ -421,7 +436,7 @@ def _build_provider_chain() -> tuple[Model, list[str]]:
         )
         names.append(f"groq:{settings.GROQ_MODEL}")
 
-    # 2. Cerebras (OpenAI-compatible API)
+    # 3. Cerebras (OpenAI-compatible API)
     if settings.CEREBRAS_API_KEY:
         candidates.append(
             OpenAIChatModel(
@@ -434,27 +449,7 @@ def _build_provider_chain() -> tuple[Model, list[str]]:
         )
         names.append(f"cerebras:{settings.CEREBRAS_MODEL}")
 
-    # 3. OpenRouter
-    if settings.OPENROUTER_API_KEY:
-        candidates.append(
-            OpenAIChatModel(
-                settings.OPENROUTER_MODEL,
-                provider=OpenRouterProvider(api_key=settings.OPENROUTER_API_KEY),
-            )
-        )
-        names.append(f"openrouter:{settings.OPENROUTER_MODEL}")
-
-    # 4. Gemini
-    if settings.GOOGLE_AI_API_KEY:
-        candidates.append(
-            GoogleModel(
-                settings.GOOGLE_AI_MODEL,
-                provider=GoogleProvider(api_key=settings.GOOGLE_AI_API_KEY),
-            )
-        )
-        names.append(f"gemini:{settings.GOOGLE_AI_MODEL}")
-
-    # 5. OpenAI (paid, last)
+    # 4. OpenAI (paid, last)
     if settings.OPENAI_API_KEY:
         candidates.append(
             OpenAIChatModel(
@@ -523,8 +518,23 @@ class ReviewAnalyzer:
             ), [f"openai:{settings.OPENAI_MODEL}"]
 
         # auto / chain mode
+        # Order: Gemini first (1M context window — handles big org-review
+        # snapshots without 413 'Request too large'), then Groq /
+        # Cerebras as fast fallbacks, OpenAI last as paid backstop.
+        # OpenRouter is intentionally NOT in the auto chain — its free
+        # Llama models share Groq's 32K context limit and re-introduce
+        # the 413 surface. If you specifically want OpenRouter, set
+        # AI_PROVIDER=openrouter (handled below).
         candidates: list[Model] = []
         names: list[str] = []
+
+        google_key = await _get_key("POLAR_GOOGLE_AI_API_KEY", "GOOGLE_AI_API_KEY")
+        if google_key:
+            candidates.append(GoogleModel(
+                settings.GOOGLE_AI_MODEL,
+                provider=GoogleProvider(api_key=google_key),
+            ))
+            names.append(f"gemini:{settings.GOOGLE_AI_MODEL}")
 
         groq_key = await _get_key("POLAR_GROQ_API_KEY", "GROQ_API_KEY")
         if groq_key:
@@ -538,22 +548,6 @@ class ReviewAnalyzer:
                 provider=OpenAIProvider(api_key=cerebras_key, base_url=settings.CEREBRAS_BASE_URL),
             ))
             names.append(f"cerebras:{settings.CEREBRAS_MODEL}")
-
-        openrouter_key = await _get_key("POLAR_OPENROUTER_API_KEY", "OPENROUTER_API_KEY")
-        if openrouter_key:
-            candidates.append(OpenAIChatModel(
-                settings.OPENROUTER_MODEL,
-                provider=OpenRouterProvider(api_key=openrouter_key),
-            ))
-            names.append(f"openrouter:{settings.OPENROUTER_MODEL}")
-
-        google_key = await _get_key("POLAR_GOOGLE_AI_API_KEY", "GOOGLE_AI_API_KEY")
-        if google_key:
-            candidates.append(GoogleModel(
-                settings.GOOGLE_AI_MODEL,
-                provider=GoogleProvider(api_key=google_key),
-            ))
-            names.append(f"gemini:{settings.GOOGLE_AI_MODEL}")
 
         openai_key = await _get_key("POLAR_OPENAI_API_KEY", "OPENAI_API_KEY")
         if openai_key:
