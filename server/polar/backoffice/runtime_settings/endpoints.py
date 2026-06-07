@@ -30,7 +30,11 @@ CATEGORY_DESCRIPTIONS = {
 
 
 @contextlib.contextmanager
-def _source_badge(status: str | None, has_env: bool) -> Generator[None]:
+def _source_badge(
+    status: str | None,
+    has_env: bool,
+    has_in_code_default: bool = False,
+) -> Generator[None]:
     """Render a DaisyUI badge for the setting source/status."""
     with tag.div(classes="badge badge-sm"):
         if status == RuntimeSettingStatus.active:
@@ -45,6 +49,14 @@ def _source_badge(status: str | None, has_env: bool) -> Generator[None]:
         elif status is None and has_env:
             classes("badge-info")
             text("Env fallback")
+        elif status is None and has_in_code_default:
+            # Non-sensitive setting with a built-in default — system
+            # IS using a value (the default), it's just not been
+            # overridden by an admin yet. Avoids the misleading
+            # "Not configured" badge for tunables that always have
+            # a working fallback.
+            classes("badge-info")
+            text("Default")
         else:
             classes("badge-neutral")
             text("Not configured")
@@ -58,11 +70,16 @@ def _value_preview(
     plain_value: str | None = None,
 ) -> str:
     # Non-sensitive settings (e.g. tunable amounts, feature flags)
-    # can be displayed in cleartext so admins can see the actual
-    # value without having to re-enter it. Sensitive secrets stay
-    # masked to the last 4 chars of the value hash.
-    if not reg.sensitive and plain_value is not None:
-        return plain_value
+    # render in cleartext so admins can SEE the active value
+    # without re-entering. Sensitive secrets always mask.
+    if not reg.sensitive:
+        if plain_value is not None:
+            return plain_value
+        if reg.default_value is not None:
+            # No DB override AND no env var — surface the in-code
+            # default so admins know what the system is using right
+            # now and what their override would replace.
+            return f"{reg.default_value} (default)"
     if row is not None:
         vh = getattr(row, "value_hash", None)
         if reg.sensitive and vh:
@@ -157,7 +174,14 @@ async def list_page(
                                         ):
                                             text(reg.description)
                                         with tag.td():
-                                            with _source_badge(status, env):
+                                            with _source_badge(
+                                                status,
+                                                env,
+                                                has_in_code_default=(
+                                                    not reg.sensitive
+                                                    and reg.default_value is not None
+                                                ),
+                                            ):
                                                 pass
                                             if (
                                                 status

@@ -26,6 +26,12 @@ class RegisteredKey:
     sensitive: bool = True
     requires_verification: bool = True
     verifier: VerifierFn | None = None
+    # In-code fallback shown in the backoffice list when no DB row
+    # AND no env var override exists. Only used for non-sensitive
+    # settings — secrets always render masked. Persist as a string
+    # so non-string types (ints, durations) round-trip cleanly through
+    # the runtime_settings encryption layer.
+    default_value: str | None = None
 
 
 ALLOWED_CATEGORIES = {"payments", "email", "ai", "auth", "other"}
@@ -114,11 +120,13 @@ REGISTRY: list[RegisteredKey] = [
         label="M-Pesa Verification Amount",
         description=(
             "Anti-fraud charge a creator pays to verify their M-Pesa "
-            "payout number. In kobo (KES * 100). Non-refundable, kept by "
-            "Blyss. Default: 10000 (KES 100)."
+            "payout number. Stored in the smallest currency unit "
+            "(1 KES = 100). Default: 10000 (KES 100). "
+            "Examples: 100 = KES 1, 5000 = KES 50, 25000 = KES 250."
         ),
         sensitive=False,
         requires_verification=False,
+        default_value="10000",
     ),
 ]
 
