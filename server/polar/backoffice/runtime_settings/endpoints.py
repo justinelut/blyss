@@ -51,7 +51,18 @@ def _source_badge(status: str | None, has_env: bool) -> Generator[None]:
     yield
 
 
-def _value_preview(reg: RegisteredKey, row: object | None, has_env: bool) -> str:
+def _value_preview(
+    reg: RegisteredKey,
+    row: object | None,
+    has_env: bool,
+    plain_value: str | None = None,
+) -> str:
+    # Non-sensitive settings (e.g. tunable amounts, feature flags)
+    # can be displayed in cleartext so admins can see the actual
+    # value without having to re-enter it. Sensitive secrets stay
+    # masked to the last 4 chars of the value hash.
+    if not reg.sensitive and plain_value is not None:
+        return plain_value
     if row is not None:
         vh = getattr(row, "value_hash", None)
         if reg.sensitive and vh:
@@ -76,6 +87,20 @@ async def list_page(
     repo = RuntimeSettingsRepository(session)
     all_rows = await repo.list_all()
     rows_map = {r.key: r for r in all_rows}
+
+    # Pre-fetch decrypted plaintext for non-sensitive registered keys
+    # so the table can display them as actual values rather than the
+    # masked …xxxx hash preview. Failures (runtime_settings disabled,
+    # env-var fallback) silently produce None and the preview helper
+    # falls back to its existing render.
+    plain_values: dict[str, str | None] = {}
+    for reg in REGISTRY:
+        if reg.sensitive:
+            continue
+        try:
+            plain_values[reg.key] = await runtime_settings.get(session, reg.key)
+        except Exception:
+            plain_values[reg.key] = None
 
     grouped: dict[str, list[RegisteredKey]] = {c: [] for c in CATEGORY_ORDER}
     for reg in REGISTRY:
@@ -145,7 +170,16 @@ async def list_page(
                                                 ):
                                                     text(row.last_error)
                                         with tag.td(classes="font-mono text-xs"):
-                                            text(_value_preview(reg, row, env))
+                                            text(
+                                                _value_preview(
+                                                    reg,
+                                                    row,
+                                                    env,
+                                                    plain_value=plain_values.get(
+                                                        reg.key
+                                                    ),
+                                                )
+                                            )
                                         with tag.td(classes="text-xs"):
                                             if row and row.last_verified_at:
                                                 text(

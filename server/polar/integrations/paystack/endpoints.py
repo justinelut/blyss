@@ -21,6 +21,7 @@ from polar.organization.schemas import Organization as OrganizationSchema
 from polar.organization.service import organization as organization_service
 from polar.postgres import AsyncSession, get_db_session
 from polar.routing import APIRouter
+from polar.runtime_settings.service import runtime_settings
 
 from .service import paystack
 
@@ -219,8 +220,42 @@ class MPesaChargeStatusResponse(BaseModel):
 
 
 # Anti-fraud verification charge amount in kobo (KES cents).
-# 100 KES = 10000 kobo. Non-refundable, kept by Blyss.
-MPESA_VERIFICATION_AMOUNT_KOBO = 10000
+# Default 100 KES = 10000 kobo. Non-refundable, kept by Blyss.
+# Tunable at runtime via /backoffice/runtime-settings — set the
+# MPESA_VERIFICATION_AMOUNT_KOBO row to override without redeploying.
+DEFAULT_MPESA_VERIFICATION_AMOUNT_KOBO = 10000
+
+
+async def _resolve_mpesa_verification_amount(session: AsyncSession) -> int:
+    """Return the M-Pesa verification charge amount in kobo.
+
+    Read order: runtime_settings DB row → env var → built-in default.
+    Failures (parse errors, runtime_settings disabled) fall through to
+    the default so a misconfigured override never blocks a creator
+    from finishing onboarding.
+    """
+    try:
+        raw = await runtime_settings.get(session, "MPESA_VERIFICATION_AMOUNT_KOBO")
+    except Exception as e:  # noqa: BLE001 — runtime_settings can raise if disabled
+        log.warning(
+            "paystack.mpesa.verification_amount.runtime_settings_unavailable",
+            error=str(e),
+        )
+        raw = None
+    if raw is None:
+        return DEFAULT_MPESA_VERIFICATION_AMOUNT_KOBO
+    try:
+        amount = int(str(raw).strip())
+        if amount <= 0:
+            raise ValueError("non-positive")
+        return amount
+    except (ValueError, TypeError) as e:
+        log.warning(
+            "paystack.mpesa.verification_amount.invalid_override",
+            raw_value=str(raw),
+            error=str(e),
+        )
+        return DEFAULT_MPESA_VERIFICATION_AMOUNT_KOBO
 
 
 @router.post(
@@ -246,9 +281,10 @@ async def initiate_mpesa_verification(
         raise ResourceNotFound("Organization not found")
 
     try:
+        amount_kobo = await _resolve_mpesa_verification_amount(session)
         charge = await paystack.charge_mobile_money(
             email=auth_subject.subject.email,
-            amount=MPESA_VERIFICATION_AMOUNT_KOBO,
+            amount=amount_kobo,
             phone=request.mpesa_number,
             provider="mpesa",
             metadata={

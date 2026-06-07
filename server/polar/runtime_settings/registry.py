@@ -108,6 +108,18 @@ REGISTRY: list[RegisteredKey] = [
         description="Plain.com support API token",
         requires_verification=False,
     ),
+    RegisteredKey(
+        key="MPESA_VERIFICATION_AMOUNT_KOBO",
+        category="payments",
+        label="M-Pesa Verification Amount",
+        description=(
+            "Anti-fraud charge a creator pays to verify their M-Pesa "
+            "payout number. In kobo (KES * 100). Non-refundable, kept by "
+            "Blyss. Default: 10000 (KES 100)."
+        ),
+        sensitive=False,
+        requires_verification=False,
+    ),
 ]
 
 REGISTRY_MAP: dict[str, RegisteredKey] = {r.key: r for r in REGISTRY}
