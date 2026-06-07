@@ -123,7 +123,9 @@ class DonationService:
         if donation is None:
             raise DonationNotFoundError(payment_reference)
 
-        transaction_data = await paystack_service.verify_transaction(payment_reference)
+        transaction_data = await paystack_service.verify_transaction(
+            payment_reference, session=session
+        )
 
         if transaction_data.get("status") == "success":
             donation.payment_status = "success"
@@ -208,7 +210,7 @@ class DonationService:
 
         _apply_channel_payload(payload, charge)
 
-        result = await paystack_service.charge(payload)
+        result = await paystack_service.charge(payload, session=session)
 
         # Persist the returned reference + status (reference may be echoed back).
         donation.payment_reference = result.get("reference") or payment_reference
@@ -247,7 +249,7 @@ class DonationService:
             raise DonationNotFoundError(payment_reference)
 
         result = await paystack_service.submit_charge_step(
-            action, payment_reference, value
+            action, payment_reference, value, session=session
         )
 
         status = result.get("status")
@@ -288,7 +290,9 @@ class DonationService:
 
         # Verify against Paystack.
         try:
-            tx = await paystack_service.verify_transaction(payment_reference)
+            tx = await paystack_service.verify_transaction(
+                payment_reference, session=session
+            )
             tx_status = tx.get("status")
             if tx_status == "success":
                 donation.payment_status = "success"

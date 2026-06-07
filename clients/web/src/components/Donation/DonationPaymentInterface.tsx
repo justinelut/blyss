@@ -211,7 +211,12 @@ export const DonationPaymentInterface = ({
         return {
           ...base,
           channel: 'mobile_money',
-          phone: momo.phone,
+          // Strip whitespace + leading '+' so '+254 710 000 000' becomes
+          // '254710000000' — Paystack's mobile_money charge endpoint
+          // expects bare digits with no separators. Without this, valid
+          // Kenyan numbers (and the +254 710 000 000 test number) get
+          // rejected upstream and the request returns 422.
+          phone: momo.phone.replace(/\s+/g, '').replace(/^\+/, ''),
           provider: momo.provider || selected.providers?.[0]?.code,
         }
       case 'bank':

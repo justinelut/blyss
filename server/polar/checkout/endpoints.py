@@ -384,9 +384,7 @@ async def client_charge(
     elif ch == "eft":
         payload["eft"] = {"provider": body.eft_provider}
 
-    result = await paystack_service.charge(payload)
-
-    # Persist reference + status to checkout metadata
+    result = await paystack_service.charge(payload, session=session)
     meta = dict(checkout.payment_processor_metadata or {})
     meta["charge_reference"] = result["reference"]
     meta["charge_status"] = result["status"]
@@ -432,7 +430,7 @@ async def client_charge_submit(
     if not reference:
         raise ResourceNotFound()
 
-    result = await paystack_service.submit_charge_step(action, reference, body.value)
+    result = await paystack_service.submit_charge_step(action, reference, body.value, session=session)
 
     # Update metadata
     meta = dict(meta)
@@ -478,7 +476,7 @@ async def client_payment_status(
 
     # Try verify_transaction first
     try:
-        tx = await paystack_service.verify_transaction(reference)
+        tx = await paystack_service.verify_transaction(reference, session=session)
         tx_status = tx.get("status")
         if tx_status == "success":
             return CheckoutPaymentStatus(status="success", message="Payment successful.")
@@ -492,7 +490,7 @@ async def client_payment_status(
 
     # If still pending, check /charge/{reference} for next-action info
     try:
-        pending = await paystack_service.check_pending_charge(reference)
+        pending = await paystack_service.check_pending_charge(reference, session=session)
         p_status = pending.get("status")
         if p_status == "success":
             return CheckoutPaymentStatus(status="success", message="Payment successful.")

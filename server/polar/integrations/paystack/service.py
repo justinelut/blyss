@@ -453,9 +453,19 @@ class PaystackService:
             )
 
     async def submit_charge_step(
-        self, action: str, reference: str, value: str
+        self,
+        action: str,
+        reference: str,
+        value: str,
+        *,
+        session: object | None = None,
     ) -> dict[str, Any]:
-        """Call POST /charge/submit_{action} (otp, pin, phone, birthday)."""
+        """Call POST /charge/submit_{action} (otp, pin, phone, birthday).
+
+        Pass `session` so the runtime-overlaid Paystack secret key is used
+        for the step submit, otherwise it falls back to the env-var key
+        (which may be live while the original charge ran on test).
+        """
         if action not in ("otp", "pin", "phone", "birthday"):
             raise PaystackValidationError(f"Invalid charge step action: {action}")
 
@@ -466,9 +476,11 @@ class PaystackService:
         )
 
         try:
+            secret_key = await self._resolve_secret_key(session)
             response = await self._client.post(
                 f"/charge/submit_{action}",
                 json={"reference": reference, action: value},
+                headers=self._auth_headers(secret_key),
             )
 
             if response.status_code == 401:
@@ -518,12 +530,23 @@ class PaystackService:
                 f"Network error communicating with Paystack: {e}"
             )
 
-    async def check_pending_charge(self, reference: str) -> dict[str, Any]:
-        """Call GET /charge/{reference} to check a pending charge."""
+    async def check_pending_charge(
+        self, reference: str, *, session: object | None = None
+    ) -> dict[str, Any]:
+        """Call GET /charge/{reference} to check a pending charge.
+
+        Pass `session` so the runtime-overlaid Paystack secret key is used
+        and the verify lands on the same account context (test/live) the
+        original charge ran in.
+        """
         log.info("paystack.charge.check_pending", reference=reference)
 
         try:
-            response = await self._client.get(f"/charge/{reference}")
+            secret_key = await self._resolve_secret_key(session)
+            response = await self._client.get(
+                f"/charge/{reference}",
+                headers=self._auth_headers(secret_key),
+            )
 
             if response.status_code == 401:
                 raise PaystackAuthenticationError(
