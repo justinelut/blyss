@@ -451,11 +451,14 @@ export const CheckoutLinkForm = ({
                 Add Metadata
               </Button>
             </div>
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-3">
               {fields.map((field, index) => (
                 <div
                   key={field.id}
-                  className="flex flex-row items-center gap-2"
+                  // Stack key/value vertically on mobile so each input
+                  // gets the full width — side-by-side at 320px crushes
+                  // both inputs to ~110px each which is unusable.
+                  className="flex flex-col gap-2 sm:flex-row sm:items-start"
                 >
                   <FormField
                     control={control}
@@ -490,12 +493,11 @@ export const CheckoutLinkForm = ({
                     )}
                   />
                   <Button
-                    className={
-                      'border-none bg-transparent text-[16px] opacity-50 transition-opacity hover:opacity-100 dark:bg-transparent'
-                    }
+                    className="self-end border-none bg-transparent text-[16px] opacity-50 transition-opacity hover:opacity-100 sm:self-start dark:bg-transparent"
                     size="icon"
                     variant="secondary"
                     type="button"
+                    aria-label="Remove metadata row"
                     onClick={() => remove(index)}
                   >
                     <ClearOutlined fontSize="inherit" />
@@ -505,9 +507,16 @@ export const CheckoutLinkForm = ({
             </div>
           </FormItem>
 
-          <div className="flex flex-row gap-x-4">
+          {/* Submit row.
+              Mobile: full-width Create button so it's tap-friendly and
+              sits at the natural end of the scroll. The modal is
+              already overflow-y-auto so the button rides with the
+              content rather than floating.
+              Desktop (sm+): inline auto-width to match the original
+              compact layout. */}
+          <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:gap-x-4 sm:pt-0">
             <Button
-              className="self-start"
+              className="w-full sm:w-auto sm:self-start"
               type="submit"
               loading={isCreatePending || isUpdatePending}
             >
