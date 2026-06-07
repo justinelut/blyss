@@ -50,10 +50,16 @@ export const StorefrontTabs = ({
   return (
     <div
       className={cn(
-        // sticky positioning under the 80px header
-        'sticky top-20 z-30',
-        // Translucent backdrop matches the marketplace header's blur
-        'bg-[var(--background)]/90 backdrop-blur-xl',
+        // Sticky to the very top — the creator storefront route
+        // suppresses the main marketplace header (MarketplaceShell
+        // matches /creators/{slug} and skips chrome), so the tabs
+        // claim the top slot. top-0 on both mobile and desktop;
+        // previously sat at top-20 to clear an 80px header that
+        // no longer renders here.
+        'sticky top-0 z-30',
+        // Translucent backdrop with blur matches the rest of the
+        // marketplace surfaces.
+        'bg-[var(--background)]/95 backdrop-blur-xl',
         // Hairline at bottom defines the tab track
         'border-b border-[var(--border)]',
         className,

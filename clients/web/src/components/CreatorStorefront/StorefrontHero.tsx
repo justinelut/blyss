@@ -66,11 +66,13 @@ export const StorefrontHero = ({
   const ease = [0.32, 0.72, 0, 1] as const
   const [bioOpen, setBioOpen] = useState(false)
 
-  // Bio is line-clamped to 3 lines in the hero. Anything longer gets a
-  // 'Read more' affordance that opens a fullscreen modal — prevents long
-  // copy from pushing the CTAs off the right side and stacking the
-  // identity column over the avatar on mobile.
-  const isLongBio = !!bio && bio.length > 180
+  // Bio is truncated to a single line in the hero. Long copy was
+  // pushing the CTAs off the right and stacking the identity column
+  // over the avatar on mobile, so we hard-clamp to one line and route
+  // the full copy through the 'Read more' modal. Threshold is low
+  // (60 chars) — anything that's likely to ellipse in a 52ch column
+  // gets the affordance so we don't silently hide useful copy.
+  const isLongBio = !!bio && bio.length > 60
 
   // Close modal on Escape + lock body scroll while open.
   useEffect(() => {
@@ -233,16 +235,15 @@ export const StorefrontHero = ({
                   )}
                 </div>
                 {bio && (
-                  <div className="mt-3 max-w-[52ch]">
+                  <div className="mt-2 flex max-w-[52ch] items-baseline gap-2">
                     <p
                       className={cn(
-                        'font-sans text-[14px] leading-[1.5] md:text-[16px]',
-                        // line-clamp-3: max 3 visible lines, ellipsis the
-                        // rest. The 'Read more' button below reveals the
-                        // full bio in a fullscreen modal.
-                        'line-clamp-3 [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:3]',
+                        // Single line, smaller font (13px), truncate
+                        // with ellipsis. Keeps the hero compact and
+                        // CTAs anchored.
+                        'min-w-0 flex-1 truncate font-sans text-[13px] leading-[1.5] md:text-[14px]',
                         bannerUrl
-                          ? 'text-white/85'
+                          ? 'text-white/80'
                           : 'text-[var(--text-secondary)]',
                       )}
                     >
@@ -253,7 +254,7 @@ export const StorefrontHero = ({
                         type="button"
                         onClick={() => setBioOpen(true)}
                         className={cn(
-                          'mt-2 inline-flex items-center font-sans text-[13px] font-medium underline-offset-4 hover:underline',
+                          'shrink-0 font-sans text-[12px] font-medium underline-offset-4 hover:underline',
                           bannerUrl
                             ? 'text-white/85 hover:text-white'
                             : 'text-[var(--accent)]',
