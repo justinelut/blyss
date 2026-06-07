@@ -96,7 +96,7 @@ export function CategoryNavigation({
         <span>All Products</span>
         {categories && (
           <span className="ml-2 font-sans text-xs tabular-nums text-[var(--text-muted)]">
-            {categories.reduce((sum, cat) => sum + cat.product_count, 0)}
+            {categories.reduce((sum, cat) => sum + (cat.product_count ?? 0), 0)}
           </span>
         )}
       </Link>
