@@ -47,11 +47,11 @@ Recurring subscriptions are first-class in Blyss. Set a monthly or yearly price 
 
 ### How to buy
 
-Click **Buy now** on any product. Pay with your card or M-Pesa. Your purchase appears under **My orders** at [blyss.co.ke/my](https://my.blyss.co.ke), and you can re-download files any time.
+Click **Buy now** on any product. Pay with your card or M-Pesa. Your purchase appears under [**Your purchases**](/portal/orders), and you can re-download files any time.
 
 ### Where do my files go?
 
-Digital downloads are linked to your Blyss account email. Sign in at [blyss.co.ke/login](/login) and go to **My orders** to access them. Subscription benefits (Discord access, members-only feeds) are also managed from there.
+Digital downloads are linked to your Blyss account email. Sign in at [blyss.co.ke/login](/login) and go to [**Your purchases**](/portal/orders) to access them. Subscription benefits (Discord access, members-only feeds) are also managed from there.
 
 ### Refunds
 
