@@ -959,6 +959,28 @@ class CheckoutService:
     ) -> Checkout:
         async with self._lock_checkout_update(session, checkout) as checkout:
             checkout = await self._update_checkout(session, checkout, checkout_confirm)
+            # Defensive auto-correct. Some checkouts were created with
+            # payment_processor=stripe before the Paystack override
+            # was wired in / fully deployed, or via a path that
+            # bypasses _create_checkout. Confirming them as Stripe
+            # blows up at the Stripe customer create call (we don't
+            # carry a Stripe key in production). Always re-evaluate
+            # the processor at confirm time against the org's current
+            # payouts setup so stale checkouts work.
+            if (
+                checkout.payment_processor == PaymentProcessor.stripe
+                and organization_service.uses_paystack(checkout.organization)
+            ):
+                log.info(
+                    "checkout.confirm.auto_correct_processor",
+                    checkout_id=checkout.id,
+                    organization_id=checkout.organization_id,
+                    from_processor="stripe",
+                    to_processor="paystack",
+                )
+                checkout.payment_processor = PaymentProcessor.paystack
+                session.add(checkout)
+                await session.flush()
             # When redeeming a discount, we need to lock the discount to prevent concurrent redemptions
             if checkout.discount is not None:
                 try:
@@ -2796,8 +2818,24 @@ class CheckoutService:
                 # Could be a malicious user trying to take over an existing customer's account by using their email
                 generate_customer_session = False
 
+        # Polar upstream creates a Stripe customer here unconditionally
+        # so the downstream PaymentIntent / SetupIntent has somewhere
+        # to attach. Blyss runs the buyer-side checkout through Paystack;
+        # Stripe is never invoked. With the live STRIPE_API_KEY unset
+        # (or invalid) the unconditional create_customer call 401s and
+        # 500s the entire confirm endpoint.
+        #
+        # Skip the Stripe round-trip when the checkout's payment
+        # processor is paystack — the customer row still gets persisted
+        # below, just without a stripe_customer_id (which is null in
+        # the Customer model on purpose for our records).
+        is_paystack = checkout.payment_processor == PaymentProcessor.paystack
+
         stripe_customer_id = customer.stripe_customer_id
-        if stripe_customer_id is None:
+        if is_paystack:
+            # Don't touch Stripe. stripe_customer_id stays None.
+            pass
+        elif stripe_customer_id is None:
             create_params: CustomerCreateParams = {"email": customer.email}
             if checkout.customer_billing_name is not None:
                 create_params["name"] = checkout.customer_billing_name
