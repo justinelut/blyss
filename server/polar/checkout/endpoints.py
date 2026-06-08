@@ -379,7 +379,13 @@ async def client_charge(
     payload: dict = {
         "email": email,
         "amount": amount,
-        "currency": checkout.currency or "KES",
+        # Paystack returns the misleading 'Invalid provider' error when
+        # currency is lowercase. Verified live 2026-06-08:
+        #   currency='KES' → accepted
+        #   currency='kes' → 'Invalid provider' (lies — not a provider issue)
+        # Polar's settings.DEFAULT_CURRENCY is 'kes' lowercase so checkout
+        # rows inherit that. Always uppercase before sending to Paystack.
+        "currency": (checkout.currency or "KES").upper(),
         "reference": reference,
     }
 

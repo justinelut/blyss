@@ -512,6 +512,16 @@ class PaystackService:
                 },
             }
 
+        # Defense-in-depth currency normalization: Paystack returns the
+        # misleading 'Invalid provider' error when currency is lowercase
+        # (e.g. 'kes' instead of 'KES'). Verified live 2026-06-08.
+        # Polar's DEFAULT_CURRENCY is 'kes' lowercase so checkouts/orders/
+        # donations created via the default code path can inherit that.
+        # Uppercase here so every /charge call lands cleanly regardless
+        # of upstream casing.
+        if isinstance(payload.get("currency"), str):
+            payload = {**payload, "currency": payload["currency"].upper()}
+
         # Defense-in-depth: Paystack's KE M-PESA charge accepts the
         # provider value case-insensitively but only the spelling
         # 'mpesa' (no dash, not 'safaricom', not 'M-Pesa'). 'airtel'
