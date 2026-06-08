@@ -34,6 +34,7 @@ from polar.customer_session.service import (
 )
 from polar.exceptions import ResourceNotFound
 from polar.kit.pagination import ListResource, PaginationParamsQuery
+from polar.locker import Locker, get_locker
 from polar.models import (
     Customer,
     Order,
@@ -49,6 +50,7 @@ from polar.organization.schemas import OrganizationID
 from polar.postgres import AsyncSession, get_db_session
 from polar.routing import APIRouter
 from polar.subscription.schemas import SubscriptionID
+from polar.subscription.service import subscription as subscription_service
 
 from .customer_resolver import get_user_customer_ids
 
@@ -264,6 +266,52 @@ async def get_my_subscription(
     if subscription is None:
         raise ResourceNotFound()
     return subscription
+
+
+@router.post(
+    "/subscriptions/{id}/cancel",
+    summary="Cancel my subscription",
+    response_model=CustomerSubscription,
+    responses={404: {"description": "Subscription not found."}},
+)
+async def cancel_my_subscription(
+    id: SubscriptionID,
+    auth_subject: WebUserRead,
+    session: AsyncSession = Depends(get_db_session),
+    locker: Locker = Depends(get_locker),
+) -> Subscription:
+    """Cancel a subscription owned by the auth'd user.
+
+    Blyss-as-MoR pattern: the buyer self-cancels from /portal/subscriptions
+    rather than going through each creator's per-org portal. We control
+    renewal billing (P3c), so cancellation is a local DB state change —
+    no Paystack/Stripe API call required at cancel time. The renewal
+    worker will see canceled_at and skip the next cycle.
+    """
+    customer_ids = await get_user_customer_ids(session, auth_subject.subject)
+    if not customer_ids:
+        raise ResourceNotFound()
+
+    stmt = (
+        select(Subscription)
+        .where(
+            Subscription.id == id,
+            Subscription.customer_id.in_(customer_ids),
+            Subscription.deleted_at.is_(None),
+        )
+        .options(*_subscription_eager_options())
+    )
+    subscription = (await session.execute(stmt)).unique().scalar_one_or_none()
+    if subscription is None:
+        raise ResourceNotFound()
+
+    log.info(
+        "me.subscription.cancel",
+        subscription_id=str(id),
+        user_id=str(auth_subject.subject.id),
+    )
+    async with subscription_service.lock(locker, subscription):
+        return await subscription_service.cancel(session, subscription)
 
 
 # ---------------------------------------------------------------------------

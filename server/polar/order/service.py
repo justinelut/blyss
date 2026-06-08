@@ -1,3 +1,4 @@
+import secrets
 import uuid
 from collections.abc import AsyncIterator, Sequence
 from contextlib import asynccontextmanager
@@ -1101,6 +1102,84 @@ class OrderService:
                             raise PaymentFailed(PaymentFailedReason.card_error) from e
 
                     raise
+
+            elif payment_method.processor == PaymentProcessor.paystack:
+                # P3c: Paystack renewal billing via stored authorization
+                # code. Unlike Stripe payment intents (async, awaits a
+                # webhook), Paystack's /transaction/charge_authorization
+                # is SYNCHRONOUS — the response immediately tells us
+                # whether the charge succeeded. So we mark the order
+                # paid in-place via handle_payment() rather than waiting
+                # for the charge.success webhook.
+                #
+                # The charge.success webhook will still fire for this
+                # renewal charge, but the existing webhook handler
+                # returns early on missing metadata.checkout_id (renewal
+                # isn't tied to a checkout, only to a subscription) so
+                # no duplicate Order is created.
+                from polar.integrations.paystack.fee_calculator import (
+                    calculate_platform_fee,
+                )
+                from polar.integrations.paystack.service import (
+                    PaystackError,
+                    paystack as paystack_service,
+                )
+
+                renewal_reference = (
+                    f"renewal_{order.id}_{secrets.token_urlsafe(8)}"
+                )
+                try:
+                    charge_data = await paystack_service.charge_authorization(
+                        authorization_code=payment_method.processor_id,
+                        email=order.customer.email,
+                        amount=order.due_amount,
+                        currency=order.currency,
+                        reference=renewal_reference,
+                        metadata={
+                            "organization_id": str(order.organization.id),
+                            "order_id": str(order.id),
+                            "subscription_id": str(order.subscription_id)
+                            if order.subscription_id
+                            else "",
+                            "billing_reason": "subscription_cycle",
+                        },
+                        subaccount=order.organization.subaccount_code,
+                        session=session,
+                    )
+                except PaystackError as e:
+                    log.info(
+                        "paystack.renewal.failed",
+                        order_id=str(order.id),
+                        error=str(e),
+                    )
+                    raise PaymentFailed(PaymentFailedReason.card_error) from e
+
+                if charge_data.get("status") != "success":
+                    log.info(
+                        "paystack.renewal.declined",
+                        order_id=str(order.id),
+                        gateway_response=charge_data.get("gateway_response"),
+                    )
+                    raise PaymentFailed(PaymentFailedReason.card_error)
+
+                # Record platform fee for the renewal order, mirroring the
+                # one-time + subscription_create paths in
+                # paystack/tasks.py charge_success.
+                platform_fee_amount, creator_payout_amount = (
+                    calculate_platform_fee(order.total_amount, order.currency)
+                )
+                order.platform_fee_amount = platform_fee_amount
+                order.platform_fee_currency = order.currency
+                order.creator_payout_amount = creator_payout_amount
+                order.stripe_invoice_id = charge_data.get(
+                    "reference", renewal_reference
+                )
+                await session.flush()
+
+                # Mark order paid + grant benefits + record tax + emit
+                # webhook events. Same code path Stripe uses after its
+                # payment_intent.succeeded webhook.
+                await self.handle_payment(session, order, payment=None)
 
     async def process_retry_payment(
         self,

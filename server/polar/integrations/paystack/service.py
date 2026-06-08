@@ -374,6 +374,116 @@ class PaystackService:
         safe.pop("pin", None)
         return safe
 
+    async def charge_authorization(
+        self,
+        *,
+        authorization_code: str,
+        email: str,
+        amount: int,
+        currency: str,
+        reference: str,
+        metadata: dict[str, Any] | None = None,
+        subaccount: str | None = None,
+        session: object | None = None,
+    ) -> dict[str, Any]:
+        """Charge a stored Paystack authorization (off-session renewal).
+
+        Used by the subscription renewal worker to bill again at the end of
+        each period without re-prompting the buyer for card details. The
+        authorization_code was captured from the FIRST charge.success
+        webhook for this customer (P3a/3b) and stored on a PaymentMethod
+        row linked to the Subscription.
+
+        Returns the parsed `data` block from Paystack's response. The
+        synchronous response includes `status` ('success' / 'failed' /
+        'reversed' / etc) — unlike Stripe payment intents which require
+        a webhook to confirm the charge actually went through.
+
+        Args:
+            authorization_code: 'AUTH_xxx' from a previous successful charge
+            email: customer email (must match the original auth)
+            amount: amount in lowest currency unit (kobo for KES)
+            currency: ISO currency (e.g. 'KES')
+            reference: unique idempotency key for this charge
+            metadata: arbitrary data Paystack will echo back in the webhook
+            subaccount: creator's subaccount code for split payouts
+            session: optional DB session for runtime_settings secret key
+
+        Raises:
+            PaystackAuthenticationError, PaystackValidationError,
+            PaystackNetworkError, PaystackTransactionError as for charge()
+        """
+        payload: dict[str, Any] = {
+            "authorization_code": authorization_code,
+            "email": email,
+            "amount": amount,
+            "currency": currency,
+            "reference": reference,
+        }
+        if metadata is not None:
+            payload["metadata"] = metadata
+        if subaccount is not None:
+            payload["subaccount"] = subaccount
+
+        log.info(
+            "paystack.charge_authorization",
+            reference=reference,
+            authorization_code=authorization_code[:8] + "…",  # don't echo full
+            amount=amount,
+            currency=currency,
+        )
+
+        secret_key = await self._resolve_secret_key(session)
+
+        try:
+            response = await self._client.post(
+                "/transaction/charge_authorization",
+                json=payload,
+                headers=self._auth_headers(secret_key),
+            )
+
+            if response.status_code == 401:
+                raise PaystackAuthenticationError(
+                    "Paystack API authentication failed"
+                )
+            if response.status_code == 422:
+                response_data = response.json()
+                error_message = response_data.get("message", "Validation error")
+                log.error(
+                    "paystack.charge_authorization.validation_error",
+                    reference=reference,
+                    error_message=error_message,
+                )
+                raise PaystackValidationError(error_message)
+            if response.status_code >= 500:
+                log.error(
+                    "paystack.charge_authorization.server_error",
+                    reference=reference,
+                    status_code=response.status_code,
+                )
+                raise PaystackNetworkError(
+                    f"Paystack API server error: {response.status_code}"
+                )
+
+            response_data = response.json()
+            if not response_data.get("status"):
+                error_message = response_data.get("message", "Charge failed")
+                log.error(
+                    "paystack.charge_authorization.failed",
+                    reference=reference,
+                    error_message=error_message,
+                )
+                raise PaystackTransactionError(error_message)
+
+            return response_data.get("data", {})
+        except httpx.HTTPError as e:
+            log.error(
+                "paystack.charge_authorization.network_error",
+                reference=reference,
+                error=str(e),
+            )
+            raise PaystackNetworkError(str(e)) from e
+
     async def charge(
         self, payload: dict[str, Any], *, session: object | None = None
     ) -> dict[str, Any]:
