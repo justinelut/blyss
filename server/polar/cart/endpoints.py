@@ -10,7 +10,12 @@ from polar.postgres import AsyncSession, get_db_session
 from polar.routing import APIRouter
 
 from .auth import CartRead, CartWrite
-from .schemas import CartItemCreate, CartItemResponse, CartResponse
+from .schemas import (
+    CartGroupedResponse,
+    CartItemCreate,
+    CartItemResponse,
+    CartResponse,
+)
 from .service import cart
 
 
@@ -93,15 +98,60 @@ async def remove_cart_item(
 )
 async def get_cart(
     auth_subject: CartRead,
+    organization_id: UUID | None = None,
     session: AsyncSession = Depends(get_db_session),
 ) -> CartResponse:
-    """Get all cart items with calculated totals."""
-    cart_data = await cart.get_cart(
+    """Get cart items with calculated totals.
+
+    When `organization_id` is provided, only items belonging to that
+    creator's products are returned. This is the per-creator cart view
+    surfaced on creator storefront pages — the buyer sees just their
+    open items with that creator, not other creators' carts.
+
+    Without `organization_id` the response is the legacy flat list
+    across all creators (preserved for backwards compatibility with
+    existing callers; new code should prefer /v1/cart/grouped or pass
+    organization_id explicitly).
+    """
+    if organization_id is not None:
+        cart_data = await cart.get_cart_for_organization(
+            session=session,
+            auth_subject=auth_subject,
+            organization_id=organization_id,
+        )
+    else:
+        cart_data = await cart.get_cart(
+            session=session,
+            auth_subject=auth_subject,
+        )
+
+    return CartResponse(**cart_data)
+
+
+@router.get(
+    "/grouped",
+    summary="Get Cart Grouped by Creator",
+    response_model=CartGroupedResponse,
+)
+async def get_cart_grouped(
+    auth_subject: CartRead,
+    session: AsyncSession = Depends(get_db_session),
+) -> CartGroupedResponse:
+    """Return the buyer's cart grouped by creator.
+
+    Polar's transactional model is per-org. Marketplace cart UX renders
+    one section per creator, each with its own subtotal and a "Pay
+    {Creator}" button that creates a checkout for just that section.
+    Cross-creator combined checkout is intentionally not supported.
+
+    Sorted most-recently-modified-creator first so the creator the
+    buyer most recently engaged with appears at the top.
+    """
+    data = await cart.get_cart_grouped(
         session=session,
         auth_subject=auth_subject,
     )
-
-    return CartResponse(**cart_data)
+    return CartGroupedResponse(**data)
 
 
 @router.delete(
@@ -129,21 +179,29 @@ async def clear_cart(
 async def checkout_cart(
     auth_subject: CartWrite,
     ip_geolocation_client: ip_geolocation.IPGeolocationClient,
+    organization_id: UUID | None = None,
     session: AsyncSession = Depends(get_db_session),
 ) -> CartCheckoutResponse:
-    """Create a hosted Polar checkout session containing every item in the
-    requesting buyer's cart, and return its client secret.
+    """Create a hosted Polar checkout session for one creator's cart slice.
+
+    Multi-creator marketplace pattern: the buyer's cart is the
+    aggregation of N per-creator carts. This endpoint checks out a
+    SINGLE creator's items per call. The frontend calls it once per
+    "Pay {Creator}" button press; other creators' items remain in the
+    buyer's cart for subsequent checkouts.
+
+    Pass `organization_id` to scope to one creator's items. Without it,
+    the legacy single-creator-cart-only path runs (rejects 422 if the
+    buyer has items from more than one creator).
 
     Public endpoint. Authenticated users check out by user_id; guest
-    sessions check out by their X-Guest-Session-Token. Multiple products
-    are supported as long as they all belong to the same creator (Polar's
-    hosted checkout supports multi-product carts; cross-creator carts are
-    rejected with 422 — buyers complete one creator's basket at a time).
+    sessions check out by their X-Guest-Session-Token.
     """
     checkout = await cart.create_checkout_from_cart(
         session=session,
         auth_subject=auth_subject,
         ip_geolocation_client=ip_geolocation_client,
+        organization_id=organization_id,
     )
 
     return CartCheckoutResponse(

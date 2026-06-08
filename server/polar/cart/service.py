@@ -176,6 +176,158 @@ class CartService:
             "item_count": len(cart_items),
         }
 
+    async def get_cart_grouped(
+        self,
+        session: AsyncSession,
+        auth_subject: AuthSubject[User | Anonymous],
+    ) -> dict:
+        """Group cart items by the creator who owns each product.
+
+        Polar's transactional model is per-org. The buyer-facing
+        marketplace cart is the aggregation of these per-org carts —
+        one section per creator. Each section is independently
+        checkable.
+
+        Sorted by most-recently-modified item first so the creator the
+        buyer most recently engaged with surfaces at the top of the
+        cart drawer / page.
+        """
+        user_id, session_token = self._extract_owner_identifiers(auth_subject)
+
+        repository = CartRepository(session)
+        if user_id is not None:
+            cart_items = await repository.get_by_user(user_id)
+        else:
+            cart_items = await repository.get_by_session(session_token)
+
+        # Group by product.organization_id. Skip items whose product
+        # somehow lacks an organization (shouldn't happen but defensive
+        # for anyone hand-rolling test data).
+        from collections import defaultdict
+
+        by_org: dict[UUID, list] = defaultdict(list)
+        org_meta: dict[UUID, dict] = {}
+        latest_modified: dict[UUID, object] = {}
+
+        for item in cart_items:
+            product = item.product
+            organization = product.organization
+            if organization is None:
+                continue
+            org_id = organization.id
+            by_org[org_id].append(item)
+            org_meta[org_id] = {
+                "id": organization.id,
+                "slug": organization.slug,
+                "name": organization.name,
+                "avatar_url": organization.avatar_url,
+            }
+            existing_latest = latest_modified.get(org_id)
+            if existing_latest is None or item.modified_at > existing_latest:
+                latest_modified[org_id] = item.modified_at
+
+        groups: list[dict] = []
+        total_count = 0
+        for org_id, items in by_org.items():
+            subtotal = 0
+            items_data = []
+            for item in items:
+                product = item.product
+                item_subtotal = self._calculate_item_subtotal(
+                    product, item.quantity
+                )
+                subtotal += item_subtotal
+                items_data.append(
+                    {
+                        "id": item.id,
+                        "product_id": item.product_id,
+                        "product": product,
+                        "quantity": item.quantity,
+                        "subtotal": item_subtotal,
+                        "created_at": item.created_at,
+                        "modified_at": item.modified_at,
+                    }
+                )
+            tax = self._calculate_tax(subtotal)
+            total = subtotal + tax
+            groups.append(
+                {
+                    "organization": org_meta[org_id],
+                    "items": items_data,
+                    "subtotal": subtotal,
+                    "tax": tax,
+                    "total": total,
+                    "item_count": len(items),
+                }
+            )
+            total_count += len(items)
+
+        # Sort groups: most recently modified first
+        groups.sort(
+            key=lambda g: latest_modified[g["organization"]["id"]],
+            reverse=True,
+        )
+
+        return {"groups": groups, "item_count": total_count}
+
+    async def get_cart_for_organization(
+        self,
+        session: AsyncSession,
+        auth_subject: AuthSubject[User | Anonymous],
+        organization_id: UUID,
+    ) -> dict:
+        """Return only the cart items belonging to one creator.
+
+        Mirrors get_cart()'s shape so the existing CartResponse schema
+        can serialize the result unchanged. Used by creator-storefront
+        pages where the buyer should see only this creator's pending
+        items, not other creators' carts.
+        """
+        user_id, session_token = self._extract_owner_identifiers(auth_subject)
+
+        repository = CartRepository(session)
+        if user_id is not None:
+            cart_items = await repository.get_by_user(user_id)
+        else:
+            cart_items = await repository.get_by_session(session_token)
+
+        # Filter by product.organization_id
+        scoped = [
+            item
+            for item in cart_items
+            if item.product.organization
+            and item.product.organization.id == organization_id
+        ]
+
+        items_data = []
+        subtotal = 0
+        for item in scoped:
+            product = item.product
+            item_subtotal = self._calculate_item_subtotal(product, item.quantity)
+            subtotal += item_subtotal
+            items_data.append(
+                {
+                    "id": item.id,
+                    "product_id": item.product_id,
+                    "product": product,
+                    "quantity": item.quantity,
+                    "subtotal": item_subtotal,
+                    "created_at": item.created_at,
+                    "modified_at": item.modified_at,
+                }
+            )
+
+        tax = self._calculate_tax(subtotal)
+        total = subtotal + tax
+
+        return {
+            "items": items_data,
+            "subtotal": subtotal,
+            "tax": tax,
+            "total": total,
+            "item_count": len(scoped),
+        }
+
     async def clear_cart(
         self,
         session: AsyncSession,
@@ -273,6 +425,7 @@ class CartService:
         session: AsyncSession,
         auth_subject: AuthSubject[User | Anonymous],
         ip_geolocation_client: object | None = None,
+        organization_id: UUID | None = None,
     ) -> "Checkout":
         """Create a hosted Polar checkout session from the buyer's cart.
 
@@ -285,9 +438,15 @@ class CartService:
         its `client_secret` so the frontend can redirect to
         `/checkout/{client_secret}`.
 
+        When `organization_id` is provided (multi-creator marketplace
+        flow), only items belonging to that creator are checked out —
+        leaving other creators' items in the cart for separate
+        sequential checkouts. Without the filter, the legacy
+        single-creator-only path runs (cross-creator carts → 422).
+
         Raises:
-          EmptyCart                  — cart is empty
-          MultiOrganizationCart      — cart spans creators (one-org rule)
+          EmptyCart                  — cart is empty (or empty for the requested creator)
+          MultiOrganizationCart      — cart spans creators AND no organization_id was provided
           (any error from checkout_service.create — e.g. recurring product)
         """
         # Local imports to avoid heavy module-load circular imports between
@@ -311,12 +470,23 @@ class CartService:
         if not cart_items:
             raise EmptyCart()
 
-        # All cart items must belong to one organization. The downstream
-        # checkout_service also enforces this, but we check up-front so the
-        # buyer sees a clean 422 instead of a deeper validation error.
-        org_ids = {ci.product.organization_id for ci in cart_items}
-        if len(org_ids) > 1:
-            raise MultiOrganizationCart()
+        if organization_id is not None:
+            # Filter to just this creator's items. Empty after filter is
+            # the same as an empty cart from the buyer's POV.
+            cart_items = [
+                ci
+                for ci in cart_items
+                if ci.product.organization_id == organization_id
+            ]
+            if not cart_items:
+                raise EmptyCart()
+        else:
+            # Backwards-compat path: enforce single-creator cart at the
+            # service boundary. Prefer the new organization_id parameter
+            # in new code paths.
+            org_ids = {ci.product.organization_id for ci in cart_items}
+            if len(org_ids) > 1:
+                raise MultiOrganizationCart()
 
         organization = cart_items[0].product.organization
 
