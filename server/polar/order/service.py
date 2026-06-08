@@ -1600,46 +1600,39 @@ class OrderService:
             case OrderBillingReasonInternal.purchase:
                 template_name = "order_confirmation"
                 subject_template = "Your {description} order confirmation"
-                url_path_template = "/{organization}/portal"
+                # Blyss-as-MoR: email links land in the unified buyer
+                # portal, not per-creator portal. Buyers manage all
+                # creators' purchases from one place.
+                url_path_template = "/portal/orders/{order}"
                 url_params = {
-                    "customer_session_token": "{token}",
-                    "id": "{order}",
                     "email": "{email}",
                 }
             case OrderBillingReasonInternal.subscription_create:
                 template_name = "subscription_confirmation"
                 subject_template = "Your {description} subscription"
-                url_path_template = "/{organization}/portal"
+                url_path_template = "/portal/subscriptions/{subscription}"
                 url_params = {
-                    "customer_session_token": "{token}",
-                    "id": "{subscription}",
                     "email": "{email}",
                 }
             case OrderBillingReasonInternal.subscription_cycle:
                 template_name = "subscription_cycled"
                 subject_template = "Your {description} subscription has been renewed"
-                url_path_template = "/{organization}/portal"
+                url_path_template = "/portal/subscriptions/{subscription}"
                 url_params = {
-                    "customer_session_token": "{token}",
-                    "id": "{subscription}",
                     "email": "{email}",
                 }
             case OrderBillingReasonInternal.subscription_cycle_after_trial:
                 template_name = "subscription_cycled_after_trial"
                 subject_template = "Your {description} subscription is now active"
-                url_path_template = "/{organization}/portal"
+                url_path_template = "/portal/subscriptions/{subscription}"
                 url_params = {
-                    "customer_session_token": "{token}",
-                    "id": "{subscription}",
                     "email": "{email}",
                 }
             case OrderBillingReasonInternal.subscription_update:
                 template_name = "subscription_updated"
                 subject_template = "Your subscription has changed to {description}"
-                url_path_template = "/{organization}/portal"
+                url_path_template = "/portal/subscriptions/{subscription}"
                 url_params = {
-                    "customer_session_token": "{token}",
-                    "id": "{subscription}",
                     "email": "{email}",
                 }
 
@@ -1678,7 +1671,14 @@ class OrderService:
             for key, value in url_params.items()
         }
         query_string = urlencode(params)
-        url_path = url_path_template.format(organization=organization.slug)
+        # url_path_template includes {organization}, {order}, or {subscription}
+        # placeholders depending on the template. Provide all three so the
+        # format call works for every billing reason without KeyError.
+        url_path = url_path_template.format(
+            organization=organization.slug,
+            order=order.id,
+            subscription=subscription.id if subscription else "",
+        )
         url = settings.generate_frontend_url(f"{url_path}?{query_string}")
         subject = subject_template.format(description=order.description)
         email = EmailAdapter.validate_python(
