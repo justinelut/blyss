@@ -45,7 +45,14 @@ _VERDICT_MAP: dict[ReviewVerdict, str] = {
 @actor(
     actor_name="organization_review.run_agent",
     priority=TaskPriority.LOW,
-    time_limit=180_000,  # 3 min timeout
+    # 4 min timeout. Budget breakdown:
+    #   ~90s — website collector (browser scraping)
+    #   ~120s — analyzer chain (10 slots: 2 Gemini, 5 OpenRouter,
+    #           Groq, Cerebras, OpenAI; matches DEFAULT_TIMEOUT_S
+    #           in analyzer.py)
+    #   ~30s — snapshot building, DB persistence, headroom
+    # Bumped from 180s after the chain grew from 5 → 10 fallbacks.
+    time_limit=240_000,
     max_retries=1,
 )
 async def run_review_agent(

@@ -1,5 +1,6 @@
 import asyncio
 
+import httpx
 import structlog
 from pydantic_ai import Agent
 from pydantic_ai.models import Model
@@ -20,6 +21,41 @@ from .schemas import DataSnapshot, ReviewAgentReport, ReviewContext, UsageInfo
 from .thresholds import thresholds_for_prompt
 
 log = structlog.get_logger(__name__)
+
+
+# Default per-call timeout for the WHOLE analyzer chain. With up to
+# 10 fallback slots in the chain (2x Gemini, 5x OpenRouter, Groq,
+# Cerebras, OpenAI), 60s was too tight — slow free-tier OpenRouter
+# pools can take 15-20s each, so a chain run that exhausts most
+# slots before reaching paid OpenAI was timing out at 60s. 120s
+# leaves enough budget while staying comfortably inside the worker's
+# 240s time_limit.
+DEFAULT_TIMEOUT_S = 120
+
+# Per-attempt HTTP timeout for OpenAI-compatible providers
+# (OpenRouter, Cerebras, OpenAI). Free OpenRouter pools share GPUs
+# across thousands of users; without this, a single hung free model
+# can eat 60s+ before httpx defaults give up and the FallbackModel
+# moves on. 30s per attempt means even if all 5 OpenRouter slots
+# hang, we burn at most 150s before falling through to Groq /
+# Cerebras / OpenAI.
+PER_MODEL_HTTP_TIMEOUT_S = 30
+
+
+def _openai_compat_http_client() -> httpx.AsyncClient:
+    """Build a per-model httpx client for OpenAI-compatible providers
+    (OpenRouter, Cerebras, OpenAI). Caps connect/read/write at 30s so
+    slow free-tier OpenRouter pools fail fast rather than hanging the
+    chain. Connect at 10s — most free-tier pools cold-start in <5s
+    when reachable; >10s usually means routing failure."""
+    return httpx.AsyncClient(
+        timeout=httpx.Timeout(
+            connect=10.0,
+            read=PER_MODEL_HTTP_TIMEOUT_S,
+            write=PER_MODEL_HTTP_TIMEOUT_S,
+            pool=PER_MODEL_HTTP_TIMEOUT_S,
+        ),
+    )
 
 SYSTEM_PROMPT = f"""\
 You are an expert compliance and risk analyst for Blyss, a marketplace for \
@@ -463,7 +499,8 @@ def _build_provider_chain() -> tuple[Model, list[str]]:
                 OpenAIChatModel(
                     model_id,
                     provider=OpenRouterProvider(
-                        api_key=settings.OPENROUTER_API_KEY
+                        api_key=settings.OPENROUTER_API_KEY,
+                        http_client=_openai_compat_http_client(),
                     ),
                 )
             )
@@ -487,6 +524,7 @@ def _build_provider_chain() -> tuple[Model, list[str]]:
                 provider=OpenAIProvider(
                     api_key=settings.CEREBRAS_API_KEY,
                     base_url=settings.CEREBRAS_BASE_URL,
+                    http_client=_openai_compat_http_client(),
                 ),
             )
         )
@@ -497,7 +535,10 @@ def _build_provider_chain() -> tuple[Model, list[str]]:
         candidates.append(
             OpenAIChatModel(
                 settings.OPENAI_MODEL,
-                provider=OpenAIProvider(api_key=settings.OPENAI_API_KEY),
+                provider=OpenAIProvider(
+                    api_key=settings.OPENAI_API_KEY,
+                    http_client=_openai_compat_http_client(),
+                ),
             )
         )
         names.append(f"openai:{settings.OPENAI_MODEL}")
@@ -575,7 +616,10 @@ class ReviewAnalyzer:
                 )
             return OpenAIChatModel(
                 settings.OPENAI_MODEL,
-                provider=OpenAIProvider(api_key=key),
+                provider=OpenAIProvider(
+                    api_key=key,
+                    http_client=_openai_compat_http_client(),
+                ),
             ), [f"openai:{settings.OPENAI_MODEL}"]
 
         # auto / chain mode
@@ -658,7 +702,10 @@ class ReviewAnalyzer:
                     continue
                 candidates.append(OpenAIChatModel(
                     model_id,
-                    provider=OpenRouterProvider(api_key=openrouter_key),
+                    provider=OpenRouterProvider(
+                        api_key=openrouter_key,
+                        http_client=_openai_compat_http_client(),
+                    ),
                 ))
                 names.append(f"openrouter:{model_id}")
 
@@ -671,7 +718,11 @@ class ReviewAnalyzer:
         if cerebras_key:
             candidates.append(OpenAIChatModel(
                 settings.CEREBRAS_MODEL,
-                provider=OpenAIProvider(api_key=cerebras_key, base_url=settings.CEREBRAS_BASE_URL),
+                provider=OpenAIProvider(
+                    api_key=cerebras_key,
+                    base_url=settings.CEREBRAS_BASE_URL,
+                    http_client=_openai_compat_http_client(),
+                ),
             ))
             names.append(f"cerebras:{settings.CEREBRAS_MODEL}")
 
@@ -679,7 +730,10 @@ class ReviewAnalyzer:
         if openai_key:
             candidates.append(OpenAIChatModel(
                 settings.OPENAI_MODEL,
-                provider=OpenAIProvider(api_key=openai_key),
+                provider=OpenAIProvider(
+                    api_key=openai_key,
+                    http_client=_openai_compat_http_client(),
+                ),
             ))
             names.append(f"openai:{settings.OPENAI_MODEL}")
 
@@ -701,7 +755,7 @@ class ReviewAnalyzer:
         self,
         snapshot: DataSnapshot,
         context: ReviewContext = ReviewContext.THRESHOLD,
-        timeout_seconds: int = 60,
+        timeout_seconds: int = DEFAULT_TIMEOUT_S,
         session: AsyncSession | None = None,
     ) -> tuple[ReviewAgentReport, UsageInfo]:
         model, chain_names = await self._build_model(session)
