@@ -3,7 +3,7 @@
 import { motion, useReducedMotion, AnimatePresence } from 'motion/react'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { FiArrowLeft, FiHeart, FiX } from 'react-icons/fi'
+import { FiArrowLeft, FiHeart, FiUser, FiX } from 'react-icons/fi'
 import { OptimizedImage } from '@/components/Image/OptimizedImage'
 import { CartButton } from '@/components/Cart/CartButton'
 import { cn } from '@/lib/utils'
@@ -142,12 +142,32 @@ export const StorefrontHero = ({
           from N other creators" link to /cart. */}
       <div
         className={cn(
-          'absolute right-4 top-4 z-20 rounded-md md:right-8 md:top-6',
+          'absolute right-4 top-4 z-20 flex items-center gap-1 rounded-md md:right-8 md:top-6',
           bannerUrl
             ? 'bg-black/30 text-white/85 backdrop-blur-md'
             : 'border border-[var(--border)] bg-[var(--background)]/80 backdrop-blur',
         )}
       >
+        {/* Per-creator account / portal icon. The bottom mobile nav
+            no longer carries an "Account" tab — Blyss doesn't
+            aggregate purchases at the marketplace level. Buyers
+            access their orders, downloads, refunds, and subscription
+            management on this creator's portal at /{slug}/portal
+            (Polar's native surface). The icon shows only here, on
+            the creator's storefront, because a buyer's relationship
+            with each creator is independent. */}
+        <Link
+          href={`/${slug}/portal`}
+          aria-label="Your purchases with this creator"
+          className={cn(
+            'flex h-10 w-10 items-center justify-center rounded-md transition-colors',
+            bannerUrl
+              ? 'text-white/85 hover:bg-black/15 hover:text-white'
+              : 'text-[var(--text-secondary)] hover:bg-[var(--surface-sunken)] hover:text-[var(--text-primary)]',
+          )}
+        >
+          <FiUser size={18} aria-hidden="true" />
+        </Link>
         <CartButton
           scope={{ organizationId }}
           className={cn(

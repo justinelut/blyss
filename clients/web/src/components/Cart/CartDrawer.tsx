@@ -11,10 +11,8 @@ import {
   SheetClose,
 } from '@/components/ui/sheet'
 import {
-  useCart,
   useCartGrouped,
   useCartForOrganization,
-  useCheckoutCart,
   useCheckoutCartForOrganization,
   useRemoveFromCart,
 } from '@/hooks/queries/cart'
@@ -325,90 +323,6 @@ const CreatorCartDrawer = ({
                   : `${otherCreatorsCount} other creators`}
               </Link>
             )}
-          </div>
-        )}
-      </SheetContent>
-    </Sheet>
-  )
-}
-
-// Legacy single-scope export retained as a thin wrapper for any code
-// that imports the legacy hook-driven flat-cart shape. New code should
-// use <CartDrawer scope={...} /> above.
-//
-// Kept to avoid breaking imports during the multi-cart rollout. Once
-// every callsite is migrated this can be dropped.
-export const LegacyFlatCartDrawer = ({
-  open,
-  onOpenChange,
-}: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-}) => {
-  const router = useRouter()
-  const { authenticated } = useAuth()
-  const { data: cart } = useCart(authenticated)
-  const { mutate: removeItem, variables: removingId } = useRemoveFromCart()
-  const { mutate: checkoutCart, isPending: isCheckingOut } = useCheckoutCart()
-
-  const items = (cart as any)?.items ?? []
-  const subtotal = (cart as any)?.subtotal ?? 0
-  const itemCount = (cart as any)?.item_count ?? items.length
-
-  const handleCheckout = () => {
-    checkoutCart(undefined, {
-      onSuccess: ({ url }) => {
-        onOpenChange(false)
-        router.push(url)
-      },
-    })
-  }
-
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="right"
-        hideClose
-        className="flex w-full flex-col bg-[var(--background)] p-0 sm:max-w-[420px]"
-      >
-        <SheetHeader className="flex flex-row items-center justify-between border-b border-[var(--border)] px-6 py-5">
-          <SheetTitle className="font-display text-[18px] font-semibold text-[var(--text-primary)]">
-            Your cart ({itemCount})
-          </SheetTitle>
-          <SheetClose asChild>
-            <button
-              type="button"
-              aria-label="Close cart"
-              className="flex h-9 w-9 items-center justify-center rounded-md text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-sunken)]"
-            >
-              <FiX size={20} />
-            </button>
-          </SheetClose>
-        </SheetHeader>
-        <div className="flex-1 overflow-y-auto px-6">
-          <div className="divide-y divide-[var(--border)]">
-            {items.map((item: any) => (
-              <CartItemRow
-                key={item.id}
-                item={item}
-                onRemove={(id) => removeItem({ itemId: id })}
-                isRemoving={(removingId as any)?.itemId === item.id}
-                onSaveForLater={() => {}}
-                isSaving={false}
-              />
-            ))}
-          </div>
-        </div>
-        {items.length > 0 && (
-          <div className="border-t border-[var(--border)] px-6 py-5">
-            <button
-              type="button"
-              onClick={handleCheckout}
-              disabled={isCheckingOut}
-              className="mt-3 inline-flex h-12 w-full items-center justify-center rounded-md bg-[var(--accent)] font-sans text-[15px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isCheckingOut ? 'Starting checkout…' : 'Checkout'}
-            </button>
           </div>
         )}
       </SheetContent>

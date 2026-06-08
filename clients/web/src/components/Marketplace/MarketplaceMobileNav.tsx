@@ -1,19 +1,22 @@
 'use client'
 
 /* Hallmark · component: mobile bottom nav · genre: editorial
- * Etsy-style fixed bottom bar — Browse · Wishlist · Cart · Account.
- * Hidden on lg+ where the desktop header carries every affordance, and
- * on the PDP route where the MobileBuyBar owns the fixed-bottom slot.
+ * Three-item bottom bar — Browse · Wishlist · Cart.
  *
- * Mounted by MarketplaceShell so it appears on every public marketplace
- * route (home, /marketplace, /creators, /search, /cart, /wishlist) and
- * stays out of the dashboard / portal / oauth surfaces (those skip
- * chrome via NO_CHROME_PREFIXES).
+ * No "Account" icon: Blyss doesn't aggregate purchases at the
+ * marketplace level. Buyers manage purchases per-creator on Polar's
+ * native portal accessed via the creator's storefront page (or via
+ * the link in their order-confirmation email). Sign-in for guests
+ * remains accessible from the marketplace header.
+ *
+ * Hidden on lg+ where the desktop header carries every affordance,
+ * and on the PDP route where the MobileBuyBar owns the fixed-bottom
+ * slot.
  */
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { FiCompass, FiHeart, FiShoppingBag, FiUser } from 'react-icons/fi'
+import { FiCompass, FiHeart, FiShoppingBag } from 'react-icons/fi'
 import { useAuth } from '@/hooks/auth'
 import { useCart } from '@/hooks/queries/cart'
 import { useWishlist } from '@/hooks/queries/wishlist'
@@ -23,7 +26,7 @@ interface NavItem {
   href: string
   label: string
   icon: typeof FiCompass
-  /** Only render when authenticated (e.g. wishlist, account). */
+  /** Only render when authenticated (e.g. wishlist). */
   authOnly?: boolean
   /** Counter source: 'cart' | 'wishlist' | undefined. */
   counter?: 'cart' | 'wishlist'
@@ -42,15 +45,13 @@ const ITEMS: NavItem[] = [
     href: '/cart',
     label: 'Cart',
     icon: FiShoppingBag,
-    authOnly: true,
     counter: 'cart',
   },
-  { href: '/login', label: 'Sign in', icon: FiUser },
 ]
 
 export function MarketplaceMobileNav() {
   const pathname = usePathname() ?? ''
-  const { authenticated, userOrganizations } = useAuth()
+  const { authenticated } = useAuth()
   const { data: cart } = useCart(authenticated)
   const { data: wishlist } = useWishlist(authenticated)
 
@@ -60,39 +61,17 @@ export function MarketplaceMobileNav() {
   const isDonation = /^\/[a-z]{2}\/donation\/|^\/donation\//.test(pathname)
   if (isPDP || isDonation) return null
 
-  // Account tab routing for the bottom nav. The bottom nav is the
-  // BUYER's primary navigation surface — buyers shouldn't land on the
-  // creator dashboard, so:
-  //   * Not authenticated → /login
-  //   * Authenticated, no creator org → /wishlist (closest 'your stuff'
-  //     page; the eventual /account profile page can replace this).
-  //   * Authenticated + has creator org → /dashboard/{primary-slug}
-  //     deep-link (creators expect their dashboard from this icon).
-  const primaryOrg = userOrganizations[0]
-  const accountHref = !authenticated
-    ? '/login'
-    : primaryOrg
-      ? `/dashboard/${primaryOrg.slug}`
-      : '/orders'
-  const accountLabel = !authenticated ? 'Sign in' : 'Account'
-
-  const items = ITEMS.map((item) => {
-    if (item.label === 'Sign in') {
-      return { ...item, href: accountHref, label: accountLabel }
-    }
-    return item
-  }).filter((item) => !item.authOnly || authenticated)
+  const items = ITEMS.filter((item) => !item.authOnly || authenticated)
 
   const isActive = (href: string) => {
     if (href === '/marketplace') {
-      return /\/(marketplace|creators|search|category|products?)\b/.test(pathname)
+      return /\/(marketplace|creators|search|category|products?)\b/.test(
+        pathname,
+      )
     }
     return pathname.includes(href)
   }
 
-  // Wishlist + cart now BOTH return the same {items, item_count} shape
-  // from their respective endpoints. Read item_count consistently for
-  // the badge.
   const counts: Record<string, number> = {
     cart: ((cart as { item_count?: number } | undefined)?.item_count) ?? 0,
     wishlist:

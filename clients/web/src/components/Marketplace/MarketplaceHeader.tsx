@@ -15,7 +15,7 @@
  */
 
 import { FiSearch, FiUser, FiMenu, FiX, FiHeart } from 'react-icons/fi'
-import { FiGrid, FiLogOut, FiPackage } from 'react-icons/fi'
+import { FiGrid, FiLogOut } from 'react-icons/fi'
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
@@ -198,13 +198,6 @@ export const MarketplaceHeader = ({ alwaysBlurred = false }: MarketplaceHeaderPr
             {authenticated && currentUser ? (
               <>
                 <Link
-                  href="/cart"
-                  onClick={() => setMobileOpen(false)}
-                  className="font-display text-3xl font-medium text-[var(--text-primary)]"
-                >
-                  Your purchases
-                </Link>
-                <Link
                   href="/wishlist"
                   onClick={() => setMobileOpen(false)}
                   className="font-display text-3xl font-medium text-[var(--text-primary)]"
@@ -231,11 +224,11 @@ export const MarketplaceHeader = ({ alwaysBlurred = false }: MarketplaceHeaderPr
             ) : (
               <>
                 <Link
-                  href="/login?return_to=/cart"
+                  href="/login"
                   onClick={() => setMobileOpen(false)}
                   className="font-display text-3xl font-medium text-[var(--text-primary)]"
                 >
-                  Sign in to see your orders
+                  Sign in
                 </Link>
                 <Link
                   href="/start"
@@ -349,17 +342,6 @@ function AccountMenu() {
               >
                 <FiHeart size={16} className="text-[var(--text-muted)]" />
                 Wishlist
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/cart"
-                role="menuitem"
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-3 px-4 py-2.5 font-sans text-[14px] text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-sunken)]"
-              >
-                <FiPackage size={16} className="text-[var(--text-muted)]" />
-                Your purchases
               </Link>
             </li>
           </ul>
