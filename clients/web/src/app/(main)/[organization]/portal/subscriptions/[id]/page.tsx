@@ -56,16 +56,6 @@ export default async function Page(props: {
     await props.searchParams
   const params = await props.params
 
-  // P7: Same redirect rule as the order detail — signed-in Blyss
-  // buyers without a magic-link token go to the unified surface.
-  if (!customer_session_token && !member_session_token) {
-    const { headers } = await import('next/headers')
-    const cookie = (await headers()).get('cookie') || ''
-    if (cookie.includes('polar_session=')) {
-      redirect(`/portal/subscriptions/${params.id}`)
-    }
-  }
-
   const token = customer_session_token ?? member_session_token
   const api = await getServerSideAPI(token)
   const { organization } = await getOrganizationOrNotFound(

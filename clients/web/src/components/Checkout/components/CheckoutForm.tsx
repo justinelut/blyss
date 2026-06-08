@@ -937,22 +937,17 @@ const PaystackCheckoutForm = (props: CheckoutFormProps) => {
           // fired handle_success (P1 wiring) so the Order row exists
           // by the time we redirect.
           //
-          // Buyer-journey rule (Blyss-as-MoR): every signed-in buyer
-          // lands on /portal/orders post-purchase so they can manage
-          // EVERYTHING from one surface — downloads, benefits, cancel
-          // subs, refunds, the lot. Guest buyers (no Blyss session
-          // cookie) fall through to the legacy
-          // /checkout/{secret}/confirmation page which has the
-          // existing 'check your email for a magic link' UX.
+          // Multi-creator marketplace: every buyer (signed-in or
+          // guest) lands on /checkout/{secret}/confirmation which
+          // now hosts the SequentialCheckoutContinue widget — if the
+          // buyer has items from other creators in their cart, the
+          // widget surfaces a "Pay {next creator} now" CTA so they
+          // can complete other creator-scoped checkouts in sequence.
+          // The per-creator order detail (downloads, benefits,
+          // refund) lives at /{org-slug}/portal/orders/{id} and is
+          // linked from the order-confirmation email.
           if (typeof window === 'undefined') return
-          const hasBlyssSession = document.cookie
-            .split(';')
-            .some((c) => c.trim().startsWith('polar_session='))
-          if (hasBlyssSession) {
-            window.location.href = '/portal/orders'
-          } else {
-            window.location.href = `/checkout/${checkout.client_secret}/confirmation`
-          }
+          window.location.href = `/checkout/${checkout.client_secret}/confirmation`
         }}
       />
     </BaseCheckoutForm>

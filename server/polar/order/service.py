@@ -1600,39 +1600,54 @@ class OrderService:
             case OrderBillingReasonInternal.purchase:
                 template_name = "order_confirmation"
                 subject_template = "Your {description} order confirmation"
-                # Blyss-as-MoR: email links land in the unified buyer
-                # portal, not per-creator portal. Buyers manage all
-                # creators' purchases from one place.
-                url_path_template = "/portal/orders/{order}"
+                # Per-creator portal (Polar's native surface). Buyer
+                # manages this specific order — download files, request
+                # refund, see benefit grants — on the creator's portal
+                # at /{org-slug}/portal/orders/{id}. The /v1/me/orders
+                # endpoint + /orders aggregator on the marketplace lets
+                # buyers see purchases across creators, but the
+                # per-order management actions live on the creator's
+                # portal where Polar already handles them.
+                url_path_template = "/{organization}/portal"
                 url_params = {
+                    "customer_session_token": "{token}",
+                    "id": "{order}",
                     "email": "{email}",
                 }
             case OrderBillingReasonInternal.subscription_create:
                 template_name = "subscription_confirmation"
                 subject_template = "Your {description} subscription"
-                url_path_template = "/portal/subscriptions/{subscription}"
+                url_path_template = "/{organization}/portal"
                 url_params = {
+                    "customer_session_token": "{token}",
+                    "id": "{subscription}",
                     "email": "{email}",
                 }
             case OrderBillingReasonInternal.subscription_cycle:
                 template_name = "subscription_cycled"
                 subject_template = "Your {description} subscription has been renewed"
-                url_path_template = "/portal/subscriptions/{subscription}"
+                url_path_template = "/{organization}/portal"
                 url_params = {
+                    "customer_session_token": "{token}",
+                    "id": "{subscription}",
                     "email": "{email}",
                 }
             case OrderBillingReasonInternal.subscription_cycle_after_trial:
                 template_name = "subscription_cycled_after_trial"
                 subject_template = "Your {description} subscription is now active"
-                url_path_template = "/portal/subscriptions/{subscription}"
+                url_path_template = "/{organization}/portal"
                 url_params = {
+                    "customer_session_token": "{token}",
+                    "id": "{subscription}",
                     "email": "{email}",
                 }
             case OrderBillingReasonInternal.subscription_update:
                 template_name = "subscription_updated"
                 subject_template = "Your subscription has changed to {description}"
-                url_path_template = "/portal/subscriptions/{subscription}"
+                url_path_template = "/{organization}/portal"
                 url_params = {
+                    "customer_session_token": "{token}",
+                    "id": "{subscription}",
                     "email": "{email}",
                 }
 

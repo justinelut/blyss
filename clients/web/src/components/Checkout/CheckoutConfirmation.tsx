@@ -21,6 +21,7 @@ import LogoType from '../Brand/logos/LogoType'
 import { SpinnerNoMargin } from '../Shared/Spinner'
 import CheckoutBenefits from './CheckoutBenefits'
 import CheckoutSeatInvitations from './CheckoutSeatInvitations'
+import { SequentialCheckoutContinue } from './SequentialCheckoutContinue'
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_KEY || '')
 
@@ -236,6 +237,9 @@ export const CheckoutConfirmation = ({
                     maxWaitingTimeMs={maxWaitingTimeMs}
                   />
                 )}
+              <SequentialCheckoutContinue
+                justCompletedOrganizationId={checkout.organization?.id}
+              />
               <p className="dark:text-polar-500 text-center text-xs text-gray-500">
                 {t('checkout.footer.merchantOfRecord')}
               </p>

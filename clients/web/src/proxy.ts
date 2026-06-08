@@ -114,7 +114,6 @@ const INTERNAL_PATH_PATTERNS: RegExp[] = [
   /^\/_mintlify(\/|$)/,
   /^\/mintlify-assets(\/|$)/,
   /^\/[^/]+\/portal(\/|$)/, // /:org/portal
-  /^\/portal(\/|$)/, // /portal — Blyss-level marketplace customer portal
   /^\/favicon\./,
   /^\/robots\.txt$/,
   /^\/sitemap\.xml$/,

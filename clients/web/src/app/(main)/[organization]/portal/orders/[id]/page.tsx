@@ -56,19 +56,6 @@ export default async function Page(props: {
     await props.searchParams
   const params = await props.params
 
-  // P7: Redirect signed-in Blyss buyers to the unified /portal/* surface.
-  // We only redirect when the buyer is NOT using a magic-link customer
-  // session token — those flows must continue to work for guest buyers
-  // and old order emails. Skipping the redirect when the token is
-  // present keeps the legacy magic-link path operational as a backstop.
-  if (!customer_session_token && !member_session_token) {
-    const { headers } = await import('next/headers')
-    const cookie = (await headers()).get('cookie') || ''
-    if (cookie.includes('polar_session=')) {
-      redirect(`/portal/orders/${params.id}`)
-    }
-  }
-
   const token = customer_session_token ?? member_session_token
   const api = await getServerSideAPI(token)
   const { organization } = await getOrganizationOrNotFound(
