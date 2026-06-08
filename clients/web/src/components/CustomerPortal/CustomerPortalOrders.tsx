@@ -16,12 +16,23 @@ export interface CustomerPortalOrdersProps {
   organization: schemas['CustomerOrganization']
   orders: schemas['CustomerOrder'][]
   customerSessionToken: string
+  /**
+   * When true, mobile "View Order" link points at the unified
+   * Blyss-level portal (/portal/orders/{id}) instead of the
+   * per-creator portal (/{org}/portal/orders/{id}). Used by the
+   * marketplace /portal/orders surface so signed-in buyers stay
+   * inside /portal/* across navigation. Defaults to false to
+   * preserve the per-creator portal behaviour where this
+   * component originally lived.
+   */
+  marketplaceMode?: boolean
 }
 
 export const CustomerPortalOrders = ({
   organization,
   orders,
   customerSessionToken,
+  marketplaceMode = false,
 }: CustomerPortalOrdersProps) => {
   const api = createClientSideAPI(customerSessionToken)
 
@@ -92,7 +103,11 @@ export const CustomerPortalOrders = ({
                   </Button>
                   <Link
                     className="md:hidden"
-                    href={`/${organization.slug}/portal/orders/${order.id}?customer_session_token=${customerSessionToken}`}
+                    href={
+                      marketplaceMode
+                        ? `/portal/orders/${order.id}`
+                        : `/${organization.slug}/portal/orders/${order.id}?customer_session_token=${customerSessionToken}`
+                    }
                   >
                     <Button variant="secondary" size="sm">
                       View Order

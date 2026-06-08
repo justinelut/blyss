@@ -41,6 +41,7 @@ const ClientPage = ({ sections }: { sections: Section[] }) => {
               organization={s.organization}
               orders={s.orders}
               customerSessionToken={s.customerSessionToken}
+              marketplaceMode
             />
           </div>
         ))}
