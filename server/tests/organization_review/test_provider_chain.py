@@ -130,15 +130,17 @@ class TestProviderChainBuilder:
             POLAR_OPENAI_API_KEY="test-openai",
         )
         _model, names = analyzer_mod._build_provider_chain()
-        # Strict order assertion — the analyzer's behavior depends on
-        # this. Two Gemini slots first (Lite primary, Flash fallback —
-        # both 1M ctx, free), OpenRouter Nemotron 3 Super 120B next
-        # (1M ctx, free, NVIDIA flagship), then Groq + Cerebras as
-        # fast 32K-context fallbacks, OpenAI last (paid backstop).
+        # Strict order assertion. Two Gemini slots first, then ALL the
+        # OpenRouter models (default fans across 5 free vendors), then
+        # Groq + Cerebras as fast 32K-ctx fallbacks, OpenAI last.
         assert names == [
             "gemini:gemini-2.5-flash-lite",
             "gemini:gemini-2.5-flash",
             "openrouter:nvidia/nemotron-3-super-120b-a12b:free",
+            "openrouter:moonshotai/kimi-k2.6:free",
+            "openrouter:qwen/qwen3-next-80b-a3b-instruct:free",
+            "openrouter:openai/gpt-oss-120b:free",
+            "openrouter:z-ai/glm-4.5-air:free",
             "groq:llama-3.3-70b-versatile",
             "cerebras:llama-3.3-70b",
             "openai:gpt-4o-mini",
