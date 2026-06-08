@@ -67,25 +67,48 @@ class PaystackWebhookEventGetter:
     async def _resolve_secret(self, session: AsyncSession | None) -> str:
         """Resolve the webhook secret with runtime_settings overlay.
 
-        Mirrors the PAYSTACK_SECRET_KEY resolution pattern in
-        paystack.service. Lets ops swap webhook secrets without
-        redeploying when a creator switches to a different Paystack
-        business — the secret_key and webhook_secret usually rotate
-        together.
-        """
-        if session is None:
-            return self.secret
-        try:
-            from polar.runtime_settings.service import (
-                runtime_settings as rs_service,
-            )
+        Paystack signs webhooks with the same secret_key used for
+        API auth — there's no separate 'webhook secret' product.
+        Per their docs:
+          https://paystack.com/docs/payments/webhooks#signature-validation
+          const secret = process.env.SECRET_KEY
+          crypto.createHmac('sha512', secret).update(payload).digest('hex')
 
-            override = await rs_service.get(session, "PAYSTACK_WEBHOOK_SECRET")
-            if override:
-                return override
-        except Exception:
-            pass
-        return self.secret
+        Resolution order:
+          1. POLAR_PAYSTACK_WEBHOOK_SECRET runtime_settings overlay —
+             only set if you want a different value from the secret key
+             (rare; some users keep them separate for clarity).
+          2. POLAR_PAYSTACK_SECRET_KEY runtime_settings overlay — the
+             default. Same value used for API auth.
+          3. settings.PAYSTACK_WEBHOOK_SECRET env (if explicitly set
+             and not the placeholder).
+          4. settings.PAYSTACK_SECRET_KEY env — final fallback.
+        """
+        from polar.config import settings as cfg
+
+        if session is not None:
+            try:
+                from polar.runtime_settings.service import (
+                    runtime_settings as rs_service,
+                )
+
+                # Prefer explicit webhook secret if set in runtime_settings
+                override = await rs_service.get(session, "PAYSTACK_WEBHOOK_SECRET")
+                if override and "placeholder" not in override:
+                    return override
+                # Fallback to secret_key from runtime_settings
+                key_override = await rs_service.get(session, "PAYSTACK_SECRET_KEY")
+                if key_override:
+                    return key_override
+            except Exception:
+                pass
+
+        # Env fallbacks. The placeholder check guards against the
+        # default 'whsec_placeholder_set_real_value_when_paystack_
+        # webhook_configured' value some envs ship with.
+        if self.secret and "placeholder" not in self.secret:
+            return self.secret
+        return cfg.PAYSTACK_SECRET_KEY
 
     def _verify_signature(
         self, payload: bytes, signature: str, secret: str
