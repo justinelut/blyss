@@ -5,37 +5,66 @@ import { ErrorState } from '@/components/Shared/ErrorState'
 import {
   useCartGrouped,
   useCheckoutCartForOrganization,
+  useRemoveFromCart,
 } from '@/hooks/queries/cart'
-import { useCurrencyStore } from '@/stores/currencyStore'
-import { formatCurrency } from '@/lib/currency'
-import { Button } from '@/components/ui/button'
+import { useAddToWishlist } from '@/hooks/queries/wishlist'
 import { useAuth } from '@/hooks/auth'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import Avatar from '@/components/atoms/Avatar'
-import { CartItem } from './CartItem'
+import { CartItemRow } from './CartItemRow'
 import { EmptyCart } from './EmptyCart'
+import { FiArrowRight, FiArrowUpRight } from 'react-icons/fi'
 
 /**
- * /cart — full-page marketplace cart.
+ * /cart — full marketplace cart, per-creator sections.
  *
- * Multi-creator marketplace: each creator the buyer has open items
- * with gets its own section, with subtotal + tax + total + a "Pay
- * {Creator}" button. Creators are listed independently — no combined
- * total, no "pay all" button. Polar's transactional model is per-org;
- * we never combine creators in a single charge.
+ * Hallmark · component: cart-page · genre: editorial-utility
+ * theme: blyss-design (light cream + burnt orange #C2410C accent)
  *
- * The buyer may pay one creator now and another later. After a
- * successful checkout, that creator's section disappears (cart cleared
- * server-side); the others remain.
+ * Reference DNA: Are.na list density + Aimé Leon Dore product chrome.
+ * Editorial restraint — hairline borders, surface-tone shifts (no
+ * shadows), Inter Display headlines with -0.02em tracking, Inter body
+ * at 14px/1.6, currency in tabular-nums.
+ *
+ * Per-creator section repeats the drawer's section pattern but at
+ * full-page width:
+ *   - identity row: 40px avatar + creator name + 'View store' link
+ *   - item rows: thumbnail + name + creator + price + actions
+ *   - totals stack: subtotal · tax · total (display sm)
+ *   - primary CTA: "Pay {Creator}" (filled accent, full row width
+ *     on mobile, auto on desktop)
+ *
+ * No combined-pay button: Polar's transactional model is per-org,
+ * every charge resolves to one creator's subaccount. Sequential
+ * checkouts — pay one creator now, the rest stay in the cart for
+ * later.
  */
+
+const fmtPrice = (cents: number, currency = 'KES') => {
+  const major = cents / 100
+  if (currency === 'KES' || currency === 'kes')
+    return `KSh ${major.toLocaleString('en-KE')}`
+  if (currency === 'USD' || currency === 'usd')
+    return `US$ ${major.toLocaleString('en-US')}`
+  return `${currency.toUpperCase()} ${major.toLocaleString()}`
+}
+
 export const CartPage = () => {
   const { authenticated } = useAuth()
   const { data: cart, isLoading, error, refetch } = useCartGrouped(authenticated)
-  const { currency } = useCurrencyStore()
   const router = useRouter()
-  const { mutate: checkoutForOrg, isPending: isCheckingOut, variables: payingOrg } =
-    useCheckoutCartForOrganization()
+  const {
+    mutate: checkoutForOrg,
+    isPending: isCheckingOut,
+    variables: payingOrg,
+  } = useCheckoutCartForOrganization()
+  const { mutate: removeItem, variables: removingId } = useRemoveFromCart()
+  const {
+    mutate: addToWishlist,
+    variables: savingProductId,
+    isPending: isSaving,
+  } = useAddToWishlist()
 
   const handleCheckout = (organizationId: string) => {
     checkoutForOrg(organizationId, {
@@ -46,23 +75,27 @@ export const CartPage = () => {
   if (isLoading) {
     return (
       <div
-        className="flex items-center justify-center py-12"
+        className="flex min-h-[40vh] items-center justify-center"
         role="status"
         aria-live="polite"
         aria-label="Loading cart"
       >
         <Spinner />
-        <span className="sr-only">Loading your shopping cart...</span>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="mx-auto max-w-4xl">
-        <h1 className="font-display mb-8 text-3xl font-semibold tracking-tight text-[var(--text-primary)]">
-          Your purchases
-        </h1>
+      <div className="mx-auto max-w-3xl px-6 py-16 md:px-8">
+        <header className="mb-10">
+          <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+            Cart
+          </p>
+          <h1 className="mt-2 font-display text-[clamp(28px,3.5vw,44px)] font-semibold leading-[1.05] tracking-[-0.02em] text-[var(--text-primary)]">
+            Something went wrong.
+          </h1>
+        </header>
         <ErrorState
           title="Failed to load cart"
           message="We couldn't load your cart. Please try again."
@@ -78,96 +111,141 @@ export const CartPage = () => {
     return <EmptyCart />
   }
 
+  const currency = (groups[0]?.items?.[0] as any)?.product?.prices?.[0]
+    ?.price_currency
+    ? ((groups[0].items[0] as any).product.prices[0].price_currency as string)
+        .toUpperCase()
+    : 'KES'
+
   return (
-    <div className="mx-auto max-w-4xl">
-      <header className="mb-10 flex items-center justify-between">
-        <div>
-          <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
-            Cart · {cart?.item_count ?? 0}{' '}
-            {cart?.item_count === 1 ? 'item' : 'items'}
-          </p>
-          <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight text-[var(--text-primary)]">
-            Your purchases
-          </h1>
-          <p className="mt-3 max-w-prose font-sans text-[14px] text-[var(--text-secondary)]">
-            Each creator you have items from is shown separately. Pay
-            them one at a time — there&rsquo;s no combined checkout.
-          </p>
-        </div>
-        <Link href="/">
-          <Button variant="ghost" size="sm">
-            Continue shopping
-          </Button>
-        </Link>
+    <div className="mx-auto max-w-[960px] px-6 py-12 md:px-8 md:py-16">
+      {/* Editorial header */}
+      <header className="mb-12">
+        <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+          Cart · {cart?.item_count ?? 0}{' '}
+          {cart?.item_count === 1 ? 'item' : 'items'}
+        </p>
+        <h1 className="mt-2 font-display text-[clamp(32px,4vw,52px)] font-semibold leading-[1.05] tracking-[-0.02em] text-[var(--text-primary)]">
+          Your purchases.
+        </h1>
+        <p className="mt-4 max-w-[52ch] font-sans text-[15px] leading-[1.55] text-[var(--text-secondary)]">
+          Each creator&rsquo;s items are checked out separately — pay
+          one now, come back for the others whenever. M-Pesa or card.
+          Receipts and downloads land in each creator&rsquo;s portal,
+          linked from your confirmation email.
+        </p>
       </header>
 
-      <div className="space-y-8">
-        {groups.map((group) => (
+      {/* Per-creator sections — separated by surface-tone breaks (not
+          shadow cards) per the Blyss design system. */}
+      <div className="space-y-px overflow-hidden rounded-md border border-[var(--border)] bg-[var(--background)]">
+        {groups.map((group, idx) => (
           <section
             key={group.organization.id}
-            aria-label={`Cart for ${group.organization.name}`}
-            className="rounded-md border border-[var(--border)] bg-[var(--surface-elevated)] p-6"
+            aria-label={`Cart with ${group.organization.name}`}
+            className="bg-[var(--background)]"
           >
-            <div className="flex items-center gap-3 border-b border-[var(--border)] pb-4">
-              <Avatar
-                className="h-9 w-9"
-                avatar_url={group.organization.avatar_url}
-                name={group.organization.name}
-              />
-              <div className="flex flex-1 items-baseline justify-between gap-4">
-                <h2 className="font-display text-[18px] font-semibold tracking-tight text-[var(--text-primary)]">
-                  {group.organization.name}
-                </h2>
-                <Link
-                  href={`/${group.organization.slug}`}
-                  className="font-sans text-[12px] text-[var(--text-muted)] underline-offset-4 transition-colors hover:text-[var(--accent)] hover:underline"
-                >
-                  View store
-                </Link>
+            {/* Creator identity row */}
+            <div className="flex items-center justify-between gap-4 bg-[var(--surface)] px-6 py-4 md:px-8">
+              <div className="flex min-w-0 items-center gap-3">
+                <Avatar
+                  className="h-9 w-9 shrink-0"
+                  avatar_url={group.organization.avatar_url}
+                  name={group.organization.name}
+                />
+                <div className="min-w-0">
+                  <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+                    From
+                  </p>
+                  <h2 className="truncate font-display text-[18px] font-semibold tracking-[-0.01em] text-[var(--text-primary)]">
+                    {group.organization.name}
+                  </h2>
+                </div>
               </div>
+              <Link
+                href={`/${group.organization.slug}`}
+                className="hidden items-center gap-1 font-sans text-[12px] font-medium text-[var(--text-muted)] underline-offset-4 transition-colors hover:text-[var(--accent)] hover:underline sm:inline-flex"
+              >
+                View store
+                <FiArrowUpRight size={12} aria-hidden="true" />
+              </Link>
             </div>
 
-            <div className="divide-y divide-[var(--border)]">
+            {/* Items */}
+            <div className="divide-y divide-[var(--border)] px-6 md:px-8">
               {group.items.map((item: any) => (
-                <CartItem key={item.id} item={item} currency={currency} />
+                <CartItemRow
+                  key={item.id}
+                  item={item}
+                  onRemove={(id) => removeItem({ itemId: id })}
+                  isRemoving={(removingId as any)?.itemId === item.id}
+                  onSaveForLater={(it) => {
+                    addToWishlist(it.product.id, {
+                      onSuccess: () => removeItem({ itemId: it.id }),
+                    })
+                  }}
+                  isSaving={savingProductId === item.product.id && isSaving}
+                />
               ))}
             </div>
 
-            <div className="mt-5 flex items-center justify-between border-t border-[var(--border)] pt-4">
-              <div className="space-y-1">
-                <div className="flex items-center justify-between gap-8 font-sans text-[13px]">
-                  <span className="text-[var(--text-secondary)]">Subtotal</span>
-                  <span className="tabular-nums text-[var(--text-primary)]">
-                    {formatCurrency('compact')(group.subtotal, currency)}
-                  </span>
+            {/* Totals + Pay CTA */}
+            <div className="grid items-end gap-6 border-t border-[var(--border)] bg-[var(--surface)] px-6 py-5 md:grid-cols-[1fr_auto] md:px-8">
+              <dl className="space-y-1.5 font-sans text-[14px]">
+                <div className="flex items-center justify-between gap-12">
+                  <dt className="text-[var(--text-secondary)]">Subtotal</dt>
+                  <dd className="tabular-nums text-[var(--text-primary)]">
+                    {fmtPrice(group.subtotal, currency)}
+                  </dd>
                 </div>
-                <div className="flex items-center justify-between gap-8 font-sans text-[13px]">
-                  <span className="text-[var(--text-secondary)]">Tax</span>
-                  <span className="tabular-nums text-[var(--text-primary)]">
-                    {formatCurrency('compact')(group.tax, currency)}
-                  </span>
+                {group.tax > 0 && (
+                  <div className="flex items-center justify-between gap-12">
+                    <dt className="text-[var(--text-secondary)]">Tax</dt>
+                    <dd className="tabular-nums text-[var(--text-primary)]">
+                      {fmtPrice(group.tax, currency)}
+                    </dd>
+                  </div>
+                )}
+                <div className="flex items-center justify-between gap-12 pt-1">
+                  <dt className="font-display text-[15px] font-semibold tracking-[-0.01em] text-[var(--text-primary)]">
+                    Total
+                  </dt>
+                  <dd className="font-display text-[18px] font-semibold tabular-nums tracking-[-0.01em] text-[var(--text-primary)]">
+                    {fmtPrice(group.total, currency)}
+                  </dd>
                 </div>
-                <div className="flex items-center justify-between gap-8 pt-1 font-display text-[15px] font-semibold">
-                  <span>Total</span>
-                  <span className="tabular-nums">
-                    {formatCurrency('compact')(group.total, currency)}
-                  </span>
-                </div>
-              </div>
+              </dl>
               <button
                 type="button"
                 onClick={() => handleCheckout(group.organization.id)}
                 disabled={isCheckingOut}
-                className="inline-flex h-12 items-center justify-center rounded-md bg-[var(--accent)] px-6 font-sans text-[15px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-[var(--accent)] px-7 font-sans text-[15px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isCheckingOut && payingOrg === group.organization.id
                   ? 'Starting checkout…'
                   : `Pay ${group.organization.name}`}
+                {!(isCheckingOut && payingOrg === group.organization.id) && (
+                  <FiArrowRight size={14} aria-hidden="true" />
+                )}
               </button>
             </div>
+
+            {/* Hairline between sections (last group has none) */}
+            {idx < groups.length - 1 && (
+              <div className="h-px bg-[var(--border)]" aria-hidden="true" />
+            )}
           </section>
         ))}
       </div>
+
+      {/* Footer note — discreet, editorial */}
+      <p className="mt-8 max-w-prose font-sans text-[12px] leading-[1.6] text-[var(--text-muted)]">
+        Each payment goes directly to that creator via Blyss — your
+        Money is on Paystack&rsquo;s rails, never on Blyss&rsquo;s
+        balance sheet. Refund requests, downloads, and subscription
+        management live on each creator&rsquo;s portal once payment
+        clears.
+      </p>
     </div>
   )
 }

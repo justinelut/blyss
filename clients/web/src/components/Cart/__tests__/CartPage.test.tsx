@@ -5,27 +5,30 @@ import { CartPage } from '../CartPage'
 vi.mock('@/hooks/queries/cart', () => ({
   useCartGrouped: vi.fn(),
   useCheckoutCartForOrganization: vi.fn(),
+  useRemoveFromCart: vi.fn(() => ({ mutate: vi.fn(), variables: undefined })),
+}))
+
+vi.mock('@/hooks/queries/wishlist', () => ({
+  useAddToWishlist: vi.fn(() => ({
+    mutate: vi.fn(),
+    variables: undefined,
+    isPending: false,
+  })),
 }))
 
 vi.mock('@/hooks/auth', () => ({
   useAuth: () => ({ authenticated: true }),
 }))
 
-vi.mock('@/stores/currencyStore', () => ({
-  useCurrencyStore: () => ({ currency: 'KES' }),
-}))
-
 vi.mock('next/navigation', () => ({
   useRouter: vi.fn(),
 }))
 
-vi.mock('@/lib/currency', () => ({
-  formatCurrency: () => (amount: number) => `KSh ${(amount / 100).toFixed(2)}`,
-}))
-
-vi.mock('../CartItem', () => ({
-  CartItem: ({ item }: any) => (
-    <div data-testid={`cart-item-${item.id}`}>{item.product.name}</div>
+vi.mock('../CartItemRow', () => ({
+  CartItemRow: ({ item }: any) => (
+    <div data-testid={`cart-item-${item.id}`}>
+      {item.product?.name ?? 'Unknown'}
+    </div>
   ),
 }))
 
@@ -45,7 +48,10 @@ vi.mock('@/components/Shared/ErrorState', () => ({
   ErrorState: ({ title }: any) => <div data-testid="error-state">{title}</div>,
 }))
 
-import { useCartGrouped, useCheckoutCartForOrganization } from '@/hooks/queries/cart'
+import {
+  useCartGrouped,
+  useCheckoutCartForOrganization,
+} from '@/hooks/queries/cart'
 import { useRouter } from 'next/navigation'
 
 describe('CartPage', () => {
@@ -107,7 +113,7 @@ describe('CartPage', () => {
             items: [
               {
                 id: 'item-1',
-                product: { name: 'Product One' },
+                product: { name: 'Product One', prices: [{ price_currency: 'KES' }] },
                 quantity: 1,
                 subtotal: 5000,
               },
@@ -127,7 +133,7 @@ describe('CartPage', () => {
             items: [
               {
                 id: 'item-2',
-                product: { name: 'Product Two' },
+                product: { name: 'Product Two', prices: [{ price_currency: 'KES' }] },
                 quantity: 1,
                 subtotal: 8000,
               },
@@ -164,7 +170,7 @@ describe('CartPage', () => {
             items: [
               {
                 id: 'item-x',
-                product: { name: 'X Product' },
+                product: { name: 'X Product', prices: [{ price_currency: 'KES' }] },
                 quantity: 1,
                 subtotal: 1000,
               },
