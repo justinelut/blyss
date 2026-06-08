@@ -210,8 +210,100 @@ async def client_get(
     client_secret: CheckoutClientSecret,
     session: AsyncSession = Depends(get_db_session),
 ) -> Checkout:
-    """Get a checkout session by client secret."""
-    return await checkout_service.get_by_client_secret(session, client_secret)
+    """Get a checkout session by client secret.
+
+    Includes a self-heal reconciliation pass for Paystack checkouts
+    stuck at status='confirmed': if the Paystack charge has been
+    confirmed on their side but our webhook hasn't processed
+    charge.success yet (signature verify failure, network blip,
+    Paystack retry queue), call /transaction/verify here and fire
+    handle_success if successful. Without this, the confirmation
+    page polls forever showing 'Processing your order' until the
+    webhook eventually goes through.
+    """
+    checkout = await checkout_service.get_by_client_secret(session, client_secret)
+
+    # Self-heal: confirmed paystack checkout with a charge_reference,
+    # check Paystack live and finalize if charge succeeded.
+    meta = checkout.payment_processor_metadata or {}
+    reference = meta.get("charge_reference")
+    if (
+        checkout.status == CheckoutStatus.confirmed
+        and checkout.payment_processor == "paystack"
+        and reference
+    ):
+        try:
+            from polar.integrations.paystack.service import (
+                paystack as paystack_service,
+            )
+
+            tx = await paystack_service.verify_transaction(
+                reference, session=session
+            )
+            if tx.get("status") == "success":
+                payment_method = None
+                if (
+                    checkout.product is not None
+                    and checkout.product.is_recurring
+                    and checkout.customer is not None
+                ):
+                    auth = tx.get("authorization") or {}
+                    auth_code = auth.get("authorization_code")
+                    if auth_code:
+                        from polar.models.payment_method import PaymentMethod
+                        from polar.enums import PaymentProcessor as _Processor
+                        from sqlalchemy import select
+
+                        existing_q = await session.execute(
+                            select(PaymentMethod).where(
+                                PaymentMethod.processor == _Processor.paystack,
+                                PaymentMethod.processor_id == auth_code,
+                                PaymentMethod.customer_id == checkout.customer.id,
+                            )
+                        )
+                        payment_method = existing_q.scalar_one_or_none()
+                        if payment_method is None:
+                            payment_method = PaymentMethod(
+                                processor=_Processor.paystack,
+                                processor_id=auth_code,
+                                type=auth.get("channel", "card"),
+                                customer_id=checkout.customer.id,
+                                method_metadata={
+                                    "last4": auth.get("last4"),
+                                    "exp_month": auth.get("exp_month"),
+                                    "exp_year": auth.get("exp_year"),
+                                    "card_type": auth.get("card_type"),
+                                    "bank": auth.get("bank"),
+                                    "channel": auth.get("channel"),
+                                    "reusable": auth.get("reusable", False),
+                                    "country_code": auth.get("country_code"),
+                                    "fingerprint": auth.get("signature"),
+                                },
+                            )
+                            session.add(payment_method)
+                            await session.flush()
+
+                checkout = await checkout_service.handle_success(
+                    session,
+                    checkout,
+                    payment=None,
+                    payment_method=payment_method,
+                )
+                log.info(
+                    "checkout.client_get.self_heal.succeeded",
+                    checkout_id=str(checkout.id),
+                    reference=reference,
+                )
+        except Exception as e:
+            # Don't break the GET — confirmation page can keep polling.
+            log.warning(
+                "checkout.client_get.self_heal.failed",
+                checkout_id=str(checkout.id),
+                reference=reference,
+                error=str(e),
+            )
+
+    return checkout
 
 
 @inner_router.patch(

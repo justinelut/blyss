@@ -64,29 +64,66 @@ class PaystackWebhookEventGetter:
     def __init__(self, secret: str) -> None:
         self.secret = secret
 
-    def _verify_signature(self, payload: bytes, signature: str) -> bool:
+    async def _resolve_secret(self, session: AsyncSession | None) -> str:
+        """Resolve the webhook secret with runtime_settings overlay.
+
+        Mirrors the PAYSTACK_SECRET_KEY resolution pattern in
+        paystack.service. Lets ops swap webhook secrets without
+        redeploying when a creator switches to a different Paystack
+        business — the secret_key and webhook_secret usually rotate
+        together.
+        """
+        if session is None:
+            return self.secret
+        try:
+            from polar.runtime_settings.service import (
+                runtime_settings as rs_service,
+            )
+
+            override = await rs_service.get(session, "PAYSTACK_WEBHOOK_SECRET")
+            if override:
+                return override
+        except Exception:
+            pass
+        return self.secret
+
+    def _verify_signature(
+        self, payload: bytes, signature: str, secret: str
+    ) -> bool:
         """Verify webhook signature using HMAC-SHA512."""
         if not signature:
             return False
 
         # Compute expected signature
         expected_signature = hmac.new(
-            self.secret.encode("utf-8"), payload, hashlib.sha512
+            secret.encode("utf-8"), payload, hashlib.sha512
         ).hexdigest()
 
         # Use constant-time comparison to prevent timing attacks
         return hmac.compare_digest(signature, expected_signature)
 
-    async def __call__(self, request: Request) -> dict[str, Any]:
+    async def __call__(
+        self,
+        request: Request,
+        session: AsyncSession = Depends(get_db_session),
+    ) -> dict[str, Any]:
         """Extract and verify webhook event from request."""
         payload = await request.body()
         signature = request.headers.get("x-paystack-signature", "")
 
+        # Resolve secret with runtime_settings overlay so ops can rotate
+        # the webhook secret without redeploying when a creator switches
+        # Paystack businesses.
+        secret = await self._resolve_secret(session)
+
         # Verify signature
-        if not self._verify_signature(payload, signature):
+        if not self._verify_signature(payload, signature, secret):
             log.warning(
                 "paystack.webhook.signature_verification_failed",
                 signature_provided=bool(signature),
+                secret_source="runtime_settings"
+                if secret != self.secret
+                else "env",
             )
             raise HTTPException(
                 status_code=HTTP_401_UNAUTHORIZED, detail="Invalid signature"
