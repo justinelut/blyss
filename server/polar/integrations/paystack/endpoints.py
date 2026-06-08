@@ -560,9 +560,26 @@ async def finalize_mpesa_verification(
         mpesa_account_number = _to_kenya_local_msisdn(
             organization.mpesa_number
         )
-        if organization.subaccount_code:
+        # Synthetic codes ('ACCT_test_*') are leftovers from the old
+        # test-mode bypass that mocked subaccount creation. Treat them
+        # as no-existing-code so the CREATE path fires and we get a
+        # real Paystack subaccount. Without this, finalize-verification
+        # routed to UPDATE on a code Paystack never knew about, which
+        # 422'd with 'Account details are invalid' and stranded the
+        # creator in a state where they couldn't retry.
+        existing_subaccount_code = organization.subaccount_code
+        if existing_subaccount_code and existing_subaccount_code.startswith(
+            "ACCT_test_"
+        ):
+            log.info(
+                "paystack.mpesa.finalize_verification.clearing_synthetic_code",
+                organization_id=organization.id,
+                synthetic_code=existing_subaccount_code,
+            )
+            existing_subaccount_code = None
+        if existing_subaccount_code:
             await paystack.update_subaccount(
-                subaccount_code=organization.subaccount_code,
+                subaccount_code=existing_subaccount_code,
                 settlement_bank="MPESA",
                 account_number=mpesa_account_number,
                 session=session,
@@ -722,9 +739,17 @@ async def configure_bank(
         raise ResourceNotFound("Organization not found")
 
     try:
-        if organization.subaccount_code:
+        # Same synthetic-code handling as the M-Pesa flow above.
+        # Test-mode bypass leftovers (`ACCT_test_*`) need clearing
+        # so the CREATE path fires.
+        existing_subaccount_code = organization.subaccount_code
+        if existing_subaccount_code and existing_subaccount_code.startswith(
+            "ACCT_test_"
+        ):
+            existing_subaccount_code = None
+        if existing_subaccount_code:
             await paystack.update_subaccount(
-                subaccount_code=organization.subaccount_code,
+                subaccount_code=existing_subaccount_code,
                 settlement_bank=request.bank_code,
                 account_number=request.account_number,
                 session=session,
