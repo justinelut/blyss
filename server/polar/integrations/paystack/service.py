@@ -965,21 +965,69 @@ class PaystackService:
                 f"Network error communicating with Paystack: {e}"
             )
 
+    async def fetch_subaccount(
+        self,
+        subaccount_code: str,
+        *,
+        session: object | None = None,
+    ) -> dict[str, Any] | None:
+        """Fetch a subaccount by code. Returns None if Paystack 404s
+        (subaccount was deleted or the code never existed). Used by
+        finalize_mpesa_verification to compare the existing
+        subaccount's account_number against the just-verified M-Pesa
+        number — Paystack's M-Pesa subaccount account_number is
+        immutable, so when the creator changes their number we
+        deactivate the old one and create fresh.
+        """
+        secret_key = await self._resolve_secret_key(session)
+        try:
+            response = await self._client.get(
+                f"/subaccount/{subaccount_code}",
+                headers=self._auth_headers(secret_key),
+            )
+            if response.status_code == 404:
+                return None
+            if response.status_code >= 400:
+                # Treat any other error as 'unknown state' — the
+                # caller will fall through to creating a fresh
+                # subaccount, which is the safe default.
+                log.warning(
+                    "paystack.subaccount.fetch.error",
+                    subaccount_code=subaccount_code,
+                    status_code=response.status_code,
+                )
+                return None
+            data = response.json().get("data", {})
+            return data if isinstance(data, dict) else None
+        except Exception as e:  # noqa: BLE001 — defensive, network blips
+            log.warning(
+                "paystack.subaccount.fetch.exception",
+                subaccount_code=subaccount_code,
+                error=str(e),
+            )
+            return None
+
     async def update_subaccount(
         self,
         subaccount_code: str,
         *,
         settlement_bank: str | None = None,
         account_number: str | None = None,
+        active: bool | None = None,
         session: object | None = None,
     ) -> dict[str, Any]:
         """
-        Update subaccount settlement details.
+        Update subaccount settlement details or activation state.
 
         Args:
             subaccount_code: The subaccount code to update
             settlement_bank: Bank code for settlement (optional)
             account_number: Account number for settlement (optional)
+            active: Set true to activate, false to deactivate
+                (used to retire old M-Pesa subaccounts when a creator
+                changes their number — Paystack's M-Pesa subaccount
+                account_number is immutable, so the only way to
+                'change' it is deactivate-then-create-new).
             session: Optional DB session to read the runtime-overlaid
                 Paystack secret key from. Without it the env var is used.
 
@@ -993,13 +1041,16 @@ class PaystackService:
             PaystackTransactionError: If subaccount update fails
         """
         # Prepare request payload with only provided fields
-        payload = {}
+        payload: dict[str, Any] = {}
 
         if settlement_bank is not None:
             payload["settlement_bank"] = settlement_bank
 
         if account_number is not None:
             payload["account_number"] = account_number
+
+        if active is not None:
+            payload["active"] = active
 
         # Log the API call with sanitized parameters
         log.info(

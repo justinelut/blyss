@@ -577,19 +577,87 @@ async def finalize_mpesa_verification(
                 synthetic_code=existing_subaccount_code,
             )
             existing_subaccount_code = None
+
+        # Decide what to do with any real existing subaccount.
+        # Paystack's M-Pesa subaccount account_number is immutable —
+        # PUT /subaccount/{code} with a different account_number
+        # returns 'Account details are invalid' / invalid_params.
+        # So when the creator's mpesa_number has changed since the
+        # last successful create, we have to deactivate the old
+        # subaccount and create a fresh one. When the number hasn't
+        # changed, the existing subaccount is fine — just mark
+        # active in our DB and skip any Paystack call.
+        should_create_new = not existing_subaccount_code
+        old_subaccount_to_deactivate: str | None = None
+
         if existing_subaccount_code:
-            await paystack.update_subaccount(
-                subaccount_code=existing_subaccount_code,
-                settlement_bank="MPESA",
-                account_number=mpesa_account_number,
-                session=session,
+            existing_subaccount = await paystack.fetch_subaccount(
+                existing_subaccount_code, session=session
             )
-            organization = await repository.update(
-                organization,
-                update_dict={"subaccount_status": "active"},
-                flush=True,
+            existing_account_number = (
+                existing_subaccount.get("account_number")
+                if existing_subaccount
+                else None
             )
-        else:
+            if existing_subaccount is None:
+                # Paystack lost track of it / never had it — create new.
+                should_create_new = True
+            elif existing_account_number != mpesa_account_number:
+                # Number changed. Deactivate the old subaccount so
+                # any future splits don't accidentally land on the
+                # creator's old M-Pesa number, then create a fresh
+                # one with the new number.
+                should_create_new = True
+                old_subaccount_to_deactivate = existing_subaccount_code
+            else:
+                # Same number, existing subaccount good. Just make
+                # sure it's marked active at Paystack (rare edge:
+                # they auto-deactivated it for KYC) and bump our
+                # local status.
+                if existing_subaccount.get("active") is False:
+                    try:
+                        await paystack.update_subaccount(
+                            subaccount_code=existing_subaccount_code,
+                            active=True,
+                            session=session,
+                        )
+                    except Exception as e:  # noqa: BLE001
+                        log.warning(
+                            "paystack.mpesa.reactivate.failed",
+                            organization_id=organization.id,
+                            error=str(e),
+                        )
+                organization = await repository.update(
+                    organization,
+                    update_dict={"subaccount_status": "active"},
+                    flush=True,
+                )
+
+        if old_subaccount_to_deactivate:
+            try:
+                await paystack.update_subaccount(
+                    subaccount_code=old_subaccount_to_deactivate,
+                    active=False,
+                    session=session,
+                )
+                log.info(
+                    "paystack.mpesa.deactivated_old_subaccount",
+                    organization_id=organization.id,
+                    old_code=old_subaccount_to_deactivate,
+                )
+            except Exception as e:  # noqa: BLE001
+                # Non-fatal — the new subaccount creation below is
+                # what matters. Old one stays around but we'll
+                # overwrite organization.subaccount_code so it
+                # doesn't affect anything downstream.
+                log.warning(
+                    "paystack.mpesa.deactivate_old_subaccount.failed",
+                    organization_id=organization.id,
+                    old_code=old_subaccount_to_deactivate,
+                    error=str(e),
+                )
+
+        if should_create_new:
             sub = await paystack.create_subaccount(
                 business_name=organization.name,
                 settlement_bank="MPESA",
