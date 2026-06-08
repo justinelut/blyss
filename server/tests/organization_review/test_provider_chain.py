@@ -109,10 +109,12 @@ class TestProviderChainBuilder:
 
         model, names = analyzer_mod._build_provider_chain()
         assert isinstance(model, FallbackModel)
-        assert len(names) == 2
-        # Order matters — Gemini first (1M context, handles big prompts),
-        # Groq second (32K context, fast fallback).
+        # Gemini gets two slots (Lite primary + Flash fallback) so a
+        # single Gemini key actually contributes 2 candidates to the
+        # chain. With Groq present we expect 3 total: Lite, Flash,
+        # Groq.
         assert names == [
+            "gemini:gemini-2.5-flash-lite",
             "gemini:gemini-2.5-flash",
             "groq:llama-3.3-70b-versatile",
         ]
@@ -128,19 +130,19 @@ class TestProviderChainBuilder:
             POLAR_OPENAI_API_KEY="test-openai",
         )
         _model, names = analyzer_mod._build_provider_chain()
-        # Strict order assertion — the analyzer's behavior depends on this.
-        # Gemini first (1M context window, handles big org-review snapshots
-        # without 413 'Request too large'), then Groq + Cerebras as fast
-        # 32K-context fallbacks, OpenAI last (paid backstop).
+        # Strict order assertion — the analyzer's behavior depends on
+        # this. Two Gemini slots first (Lite primary, Flash fallback —
+        # both 1M context, free-tier-generous), then Groq + Cerebras
+        # as fast 32K-context fallbacks, OpenAI last (paid backstop).
         # OpenRouter is intentionally NOT in the auto chain — its free
-        # Llama models share the 32K limit; setting AI_PROVIDER=openrouter
+        # Llama models share the 32K limit; AI_PROVIDER=openrouter
         # explicitly is the only way to use it.
-        provider_names = [n.split(":", 1)[0] for n in names]
-        assert provider_names == [
-            "gemini",
-            "groq",
-            "cerebras",
-            "openai",
+        assert names == [
+            "gemini:gemini-2.5-flash-lite",
+            "gemini:gemini-2.5-flash",
+            "groq:llama-3.3-70b-versatile",
+            "cerebras:llama-3.3-70b",
+            "openai:gpt-4o-mini",
         ]
 
     def test_only_paid_provider_works(self, monkeypatch):
@@ -175,7 +177,8 @@ class TestAnalyzerInit:
 
         model, names = await self._build(analyzer_mod)
         assert isinstance(model, FallbackModel)
-        assert len(names) == 2
+        # Gemini contributes 2 slots (Lite + Flash), Groq adds 1 → 3.
+        assert len(names) == 3
 
     @pytest.mark.asyncio
     async def test_auto_mode_with_one_key_uses_single_model(self, monkeypatch):

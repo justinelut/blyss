@@ -416,7 +416,9 @@ def _build_provider_chain() -> tuple[Model, list[str]]:
     candidates: list[Model] = []
     names: list[str] = []
 
-    # 1. Gemini (large context, generous free tier)
+    # 1. Gemini Flash-Lite (large context, generous free tier).
+    # Two slots — Lite first, Flash second — see the auto-chain
+    # comment in _build_model below for rationale.
     if settings.GOOGLE_AI_API_KEY:
         candidates.append(
             GoogleModel(
@@ -425,6 +427,20 @@ def _build_provider_chain() -> tuple[Model, list[str]]:
             )
         )
         names.append(f"gemini:{settings.GOOGLE_AI_MODEL}")
+
+        if (
+            settings.GOOGLE_AI_MODEL_FALLBACK
+            and settings.GOOGLE_AI_MODEL_FALLBACK != settings.GOOGLE_AI_MODEL
+        ):
+            candidates.append(
+                GoogleModel(
+                    settings.GOOGLE_AI_MODEL_FALLBACK,
+                    provider=GoogleProvider(
+                        api_key=settings.GOOGLE_AI_API_KEY
+                    ),
+                )
+            )
+            names.append(f"gemini:{settings.GOOGLE_AI_MODEL_FALLBACK}")
 
     # 2. Groq
     if settings.GROQ_API_KEY:
@@ -548,11 +564,36 @@ class ReviewAnalyzer:
 
         google_key = await _get_key("POLAR_GOOGLE_AI_API_KEY", "GOOGLE_AI_API_KEY")
         if google_key:
+            # Length-only log so future 401 chases can confirm the
+            # right key got loaded without leaking it. Real Gemini
+            # keys are 39 chars (AIzaSy...). Anything wildly off
+            # (0, 100+, etc.) → corrupted store / wrong env var.
+            log.info(
+                "review_analyzer.gemini_key_resolved",
+                length=len(google_key),
+            )
+            # Gemini gets two slots — primary (Flash-Lite, 1000 req/day,
+            # optimised for structured output) and fallback (Flash,
+            # 250 req/day, higher analytical depth). We try Lite first
+            # because the structured-output task fits its sweet spot;
+            # if Lite returns malformed JSON the fallback engages
+            # automatically. Both share the same 1M context window so
+            # neither will 413 on our prompts.
             candidates.append(GoogleModel(
                 settings.GOOGLE_AI_MODEL,
                 provider=GoogleProvider(api_key=google_key),
             ))
             names.append(f"gemini:{settings.GOOGLE_AI_MODEL}")
+
+            if (
+                settings.GOOGLE_AI_MODEL_FALLBACK
+                and settings.GOOGLE_AI_MODEL_FALLBACK != settings.GOOGLE_AI_MODEL
+            ):
+                candidates.append(GoogleModel(
+                    settings.GOOGLE_AI_MODEL_FALLBACK,
+                    provider=GoogleProvider(api_key=google_key),
+                ))
+                names.append(f"gemini:{settings.GOOGLE_AI_MODEL_FALLBACK}")
 
         groq_key = await _get_key("POLAR_GROQ_API_KEY", "GROQ_API_KEY")
         if groq_key:

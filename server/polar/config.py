@@ -256,8 +256,14 @@ class Settings(BaseSettings):
     OPENAI_MODEL: str = "gpt-4o-mini"
 
     # Google Gemini Configuration
+    # Primary: gemini-2.5-flash-lite — 15 RPM, 1000 req/day free,
+    # explicitly designed for high-volume structured-output workloads.
+    # Fallback: gemini-2.5-flash — 10 RPM, 250 req/day free, slightly
+    # higher analytical depth for cases where Lite returns malformed
+    # structured output.
     GOOGLE_AI_API_KEY: str = ""
-    GOOGLE_AI_MODEL: str = "gemini-2.5-flash"
+    GOOGLE_AI_MODEL: str = "gemini-2.5-flash-lite"
+    GOOGLE_AI_MODEL_FALLBACK: str = "gemini-2.5-flash"
 
     # Groq Configuration — get a free key at https://console.groq.com
     GROQ_API_KEY: str = ""

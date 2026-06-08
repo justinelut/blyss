@@ -60,8 +60,25 @@ class RuntimeSettingsService:
                 self._cache[key] = (decrypted, time.time())
                 return decrypted
 
-        # Fall through to env
-        return getattr(settings, key, None) or None
+        # Fall through to env via the pydantic-settings instance.
+        # Try both the literal registry key (e.g. POLAR_GROQ_API_KEY)
+        # AND the stripped form (GROQ_API_KEY) — pydantic-settings
+        # configures env_prefix='POLAR_' which strips the prefix at
+        # load time, so the actual attribute on `settings` is the
+        # stripped form. Without this, env-only keys (no DB row) were
+        # invisible to runtime_settings.get and the analyzer kept
+        # missing Gemini.
+        # Reject non-string values defensively — fixtures sometimes
+        # patch `settings` to a MagicMock and the attribute access
+        # then returns a MagicMock, which would corrupt downstream
+        # callers (toast renderers, structured-output parsers).
+        for candidate in (key, key.removeprefix("POLAR_") if key.startswith("POLAR_") else None):
+            if not candidate:
+                continue
+            value = getattr(settings, candidate, None)
+            if isinstance(value, str) and value:
+                return value
+        return None
 
     async def set(
         self,
@@ -70,6 +87,13 @@ class RuntimeSettingsService:
         plaintext: str,
         updated_by_user_id: UUID | None,
     ) -> RuntimeSetting:
+        # Strip whitespace defensively. Admins paste keys from
+        # email / 1Password / a textarea — trailing newlines and
+        # surrounding spaces are common. Without this, the encrypted
+        # value carries the whitespace through to upstream API calls
+        # which then 401 on auth comparison ('sk_xxx ' != 'sk_xxx').
+        plaintext = plaintext.strip() if plaintext else plaintext
+
         master_key = self._master_key()
         encrypted = encrypt(plaintext, master_key)
         vh = hash_value(plaintext)
