@@ -77,7 +77,6 @@ from polar.user.endpoints import router as user_router
 from polar.wallet.endpoints import router as wallet_router
 from polar.webhook.endpoints import router as webhook_router
 from polar.wishlist.endpoints import router as wishlist_router
-from polar.me.endpoints import router as me_router
 
 router = APIRouter(prefix="/v1")
 
@@ -212,5 +211,3 @@ router.include_router(chargeback_stop_router)
 router.include_router(review_router)
 # /wishlist
 router.include_router(wishlist_router)
-# /me (marketplace-level "your stuff" — orders aggregator across creators)
-router.include_router(me_router)

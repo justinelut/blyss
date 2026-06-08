@@ -50,7 +50,7 @@ const Footer = () => {
               <FooterLink href="/creators">Creators</FooterLink>
               <FooterLink href="/cart">Cart</FooterLink>
               <FooterLink href="/wishlist">Wishlist</FooterLink>
-              <FooterLink href="/orders">Your purchases</FooterLink>
+              <FooterLink href="/cart">Your purchases</FooterLink>
             </div>
           </div>
 
