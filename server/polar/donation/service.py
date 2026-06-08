@@ -357,7 +357,7 @@ def _apply_channel_payload(payload: dict, charge: DonationChargeRequest) -> None
     elif ch == "mobile_money":
         payload["mobile_money"] = {
             "phone": charge.phone,
-            "provider": charge.provider or "mpesa",
+            "provider": charge.provider or "Mpesa",
         }
     elif ch == "bank":
         payload["bank"] = {

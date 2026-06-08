@@ -18,7 +18,7 @@ class TestGetChannelsForCurrency:
         # frontend can render M-Pesa AND Airtel Money as separate tabs.
         momo = next(c for c in channels if c.id == "mobile_money")
         codes = {p["code"] for p in (momo.providers or [])}
-        assert "mpesa" in codes
+        assert "Mpesa" in codes
         assert "airtel" in codes
 
     def test_ngn_has_five_channels(self):

@@ -104,7 +104,7 @@ class TestChargeMobileMoneyHappyPath:
         assert body["email"] == "c@example.com"
         assert body["mobile_money"] == {
             "phone": "+254700000000",
-            "provider": "mpesa",
+            "provider": "Mpesa",
         }
         assert body["reference"].startswith("blyss_")
 

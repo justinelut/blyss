@@ -493,6 +493,25 @@ class PaystackService:
         {reference, status, display_text, raw}. Pass `session` to honor any
         runtime_settings overlay on the Paystack secret key.
         """
+        # Defense-in-depth: Paystack's KE individual M-PESA charge
+        # requires provider='Mpesa' (capital M). Lowercase 'mpesa' (the
+        # general mobile_money provider code Paystack publishes for
+        # Ghana etc) is rejected for KES with 'Invalid provider'.
+        # Normalize here so older callers / DB rows / cached UI state
+        # don't break on the casing change.
+        if (
+            payload.get("currency") == "KES"
+            and isinstance(payload.get("mobile_money"), dict)
+            and payload["mobile_money"].get("provider", "").lower() == "mpesa"
+        ):
+            payload = {
+                **payload,
+                "mobile_money": {
+                    **payload["mobile_money"],
+                    "provider": "Mpesa",
+                },
+            }
+
         log.info(
             "paystack.charge",
             payload=self._mask_payload_for_logging(payload),
@@ -713,7 +732,7 @@ class PaystackService:
         email: str,
         amount: int,
         phone: str,
-        provider: str = "mpesa",
+        provider: str = "Mpesa",
         currency: str = "KES",
         reference: str | None = None,
         metadata: dict[str, Any] | None = None,

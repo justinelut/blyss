@@ -381,7 +381,7 @@ async def client_charge(
     elif ch == "mobile_money":
         payload["mobile_money"] = {
             "phone": body.phone,
-            "provider": body.provider or "mpesa",
+            "provider": body.provider or "Mpesa",
         }
     elif ch == "bank":
         payload["bank"] = {
