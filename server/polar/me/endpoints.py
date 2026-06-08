@@ -33,6 +33,7 @@ from polar.customer_session.service import (
     customer_session as customer_session_service,
 )
 from polar.exceptions import ResourceNotFound
+from polar.kit.address import Address
 from polar.kit.pagination import ListResource, PaginationParamsQuery
 from polar.locker import Locker, get_locker
 from polar.models import (
@@ -447,4 +448,132 @@ async def create_my_customer_session(
         token=token,
         customer_id=customer.id,
         organization_id=customer.organization_id,
+    )
+
+
+
+# ---------------------------------------------------------------------------
+# Unified profile (Blyss-as-MoR)
+# ---------------------------------------------------------------------------
+
+
+class MeProfile(BaseModel):
+    """Unified buyer profile aggregated across creators.
+
+    Polar's data model has one Customer row per (User, creator-org)
+    pair. For the buyer-side UX Blyss presents these as a single
+    profile — Blyss is the merchant of record, not each creator.
+
+    The values returned reflect the most-recent customer row's
+    snapshot. PATCH writes fan out to every customer row so
+    downstream invoice/receipt rendering stays consistent.
+    """
+
+    email: str
+    name: str | None = None
+    billing_address: Address | None = None
+    tax_id: str | None = None
+
+
+class MeProfileUpdate(BaseModel):
+    name: str | None = None
+    billing_address: Address | None = None
+
+
+@router.get(
+    "/profile",
+    summary="Get my unified buyer profile",
+    response_model=MeProfile,
+)
+async def get_my_profile(
+    auth_subject: WebUserRead,
+    session: AsyncSession = Depends(get_db_session),
+) -> MeProfile:
+    """Return the buyer's unified profile.
+
+    Reads the most recent Customer row matching the user's email
+    across all creators. If the user has never purchased anything
+    yet, returns just the email from their User record.
+    """
+    user = auth_subject.subject
+    stmt = (
+        select(Customer)
+        .where(
+            Customer.deleted_at.is_(None),
+        )
+        .order_by(desc(Customer.created_at))
+    )
+    rows = (await session.execute(stmt)).scalars().all()
+    user_email_lower = (user.email or "").lower()
+    customer = next(
+        (c for c in rows if (c.email or "").lower() == user_email_lower),
+        None,
+    )
+
+    if customer is None:
+        return MeProfile(email=user.email or "", name=None, billing_address=None)
+
+    return MeProfile(
+        email=customer.email,
+        name=customer.name,
+        billing_address=customer.billing_address,
+        tax_id=customer.tax_id[1] if customer.tax_id else None,
+    )
+
+
+@router.patch(
+    "/profile",
+    summary="Update my unified buyer profile",
+    response_model=MeProfile,
+)
+async def update_my_profile(
+    update: MeProfileUpdate,
+    auth_subject: WebUserRead,
+    session: AsyncSession = Depends(get_db_session),
+) -> MeProfile:
+    """Update profile across every creator the buyer has bought from.
+
+    Blyss-as-MoR: one address change here, applied uniformly to
+    every Customer row this user owns. So future invoices for ANY
+    creator render with the correct address — buyers don't have
+    to update billing details creator-by-creator.
+    """
+    user = auth_subject.subject
+    user_email_lower = (user.email or "").lower()
+
+    stmt = select(Customer).where(Customer.deleted_at.is_(None))
+    all_customers = (await session.execute(stmt)).scalars().all()
+    matching = [
+        c for c in all_customers if (c.email or "").lower() == user_email_lower
+    ]
+
+    if not matching:
+        # No customer rows yet — nothing to update
+        return MeProfile(
+            email=user.email or "",
+            name=update.name,
+            billing_address=update.billing_address,
+        )
+
+    for customer in matching:
+        if update.name is not None:
+            customer.name = update.name
+        if update.billing_address is not None:
+            customer.billing_address = update.billing_address
+        session.add(customer)
+
+    await session.flush()
+
+    log.info(
+        "me.profile.updated",
+        user_id=str(user.id),
+        customer_count=len(matching),
+    )
+
+    latest = max(matching, key=lambda c: c.created_at)
+    return MeProfile(
+        email=latest.email,
+        name=latest.name,
+        billing_address=latest.billing_address,
+        tax_id=latest.tax_id[1] if latest.tax_id else None,
     )
