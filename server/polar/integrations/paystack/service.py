@@ -928,18 +928,29 @@ class PaystackService:
             # Extract subaccount data
             data = response_data.get("data", {})
             subaccount_code = data.get("subaccount_code")
-            subaccount_status = data.get("is_verified", False)
+            # Paystack uses two flags. `is_verified` is their internal
+            # manual KYC review which can take days and is NOT
+            # required for the subaccount to receive split payments.
+            # `active` flips to true the moment the subaccount is
+            # provisioned and is what gates whether splits actually
+            # land on it. We surface our own 'active' status off the
+            # `active` flag so creators can sell immediately while
+            # Paystack's KYC catches up in the background.
+            is_active = bool(data.get("active", True))
+            is_verified = bool(data.get("is_verified", False))
 
             log.info(
                 "paystack.subaccount.create.success",
                 business_name=business_name,
                 subaccount_code=subaccount_code,
-                is_verified=subaccount_status,
+                is_active=is_active,
+                is_verified=is_verified,
             )
 
             return {
                 "subaccount_code": subaccount_code,
-                "status": "active" if subaccount_status else "pending",
+                "status": "active" if is_active else "pending",
+                "is_verified": is_verified,
                 "business_name": data.get("business_name"),
                 "percentage_charge": data.get("percentage_charge"),
             }
