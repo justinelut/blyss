@@ -33,8 +33,7 @@ CHANNELS_BY_CURRENCY: dict[str, list[CheckoutPaymentChannel]] = {
             description="Pay via M-Pesa or Airtel Money STK push.",
             fields=["phone", "provider"],
             providers=[
-                {"code": "Mpesa", "name": "M-Pesa", "country": "KE"},
-                {"code": "airtel", "name": "Airtel Money", "country": "KE"},
+                {"code": "mpesa", "name": "M-Pesa", "country": "KE"},
             ],
         ),
         CheckoutPaymentChannel(

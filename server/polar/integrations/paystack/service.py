@@ -512,6 +512,28 @@ class PaystackService:
                 },
             }
 
+        # Defense-in-depth: Paystack's KE M-PESA charge accepts the
+        # provider value case-insensitively but only the spelling
+        # 'mpesa' (no dash, not 'safaricom', not 'M-Pesa'). 'airtel'
+        # and other Kenyan-mobile-money names also return 'Invalid
+        # provider' on this account. Normalize known M-Pesa variants
+        # to the canonical lowercase form. Verified against live
+        # Paystack API on 2026-06-08.
+        if (
+            payload.get("currency") == "KES"
+            and isinstance(payload.get("mobile_money"), dict)
+        ):
+            prov = payload["mobile_money"].get("provider", "")
+            normalized = prov.lower().replace("-", "").replace(" ", "")
+            if normalized in ("mpesa", "safaricom"):
+                payload = {
+                    **payload,
+                    "mobile_money": {
+                        **payload["mobile_money"],
+                        "provider": "mpesa",
+                    },
+                }
+
         log.info(
             "paystack.charge",
             payload=self._mask_payload_for_logging(payload),
@@ -732,7 +754,7 @@ class PaystackService:
         email: str,
         amount: int,
         phone: str,
-        provider: str = "Mpesa",
+        provider: str = "mpesa",
         currency: str = "KES",
         reference: str | None = None,
         metadata: dict[str, Any] | None = None,

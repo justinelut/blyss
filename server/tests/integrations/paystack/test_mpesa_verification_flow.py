@@ -67,7 +67,7 @@ class TestInitiateMPesaVerification:
         call_kwargs = mock_charge.call_args.kwargs
         assert call_kwargs["amount"] == 10000  # KSh 100 in kobo
         assert call_kwargs["phone"] == VALID_PHONE
-        assert call_kwargs["provider"] == "Mpesa"
+        assert call_kwargs["provider"] == "mpesa"
 
         # Re-fetch (test client expunges session between requests).
         from polar.organization.repository import OrganizationRepository

@@ -321,7 +321,7 @@ async def initiate_mpesa_verification(
             email=auth_subject.subject.email,
             amount=amount_kobo,
             phone=request.mpesa_number,
-            provider="Mpesa",
+            provider="mpesa",
             metadata={
                 "purpose": "blyss.payout_method.mpesa.verification",
                 "organization_id": str(organization.id),

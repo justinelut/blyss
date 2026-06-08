@@ -8,18 +8,19 @@ from polar.checkout.payment_channels import get_channels_for_currency
 
 
 class TestGetChannelsForCurrency:
-    def test_kes_has_card_mpesa_airtel_bank(self):
+    def test_kes_has_card_mpesa_bank(self):
         channels = get_channels_for_currency("KES")
         ids = [c.id for c in channels]
         assert "card" in ids
         assert "mobile_money" in ids
         assert "bank" in ids
-        # Both Kenyan mobile-money providers must be exposed so the
-        # frontend can render M-Pesa AND Airtel Money as separate tabs.
+        # Only M-Pesa is exposed for KE — this Paystack account doesn't
+        # have Airtel Money enabled (live API rejects 'airtel' with
+        # 'Invalid provider'). Verified 2026-06-08.
         momo = next(c for c in channels if c.id == "mobile_money")
         codes = {p["code"] for p in (momo.providers or [])}
-        assert "Mpesa" in codes
-        assert "airtel" in codes
+        assert "mpesa" in codes
+        assert "airtel" not in codes
 
     def test_ngn_has_five_channels(self):
         channels = get_channels_for_currency("NGN")
