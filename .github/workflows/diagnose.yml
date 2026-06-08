@@ -90,6 +90,7 @@ jobs:
             echo "-- payment-status / handle_success / checkout flow logs --"
             sudo kubectl -n $NS logs deployment/blyss-api --tail=3000 2>&1 | grep -E "payment_status|handle_success|checkout.payment_status|payment-status|checkout.*confirmed|checkout.*succeeded|order.*created.*from_checkout" | tail -40 || echo "(no flow events)"
             echo "-- last 5 checkouts in DB --"
+            PG=$(sudo kubectl -n $NS get pods -l app=postgres -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
             sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select id, status, payment_processor, payment_processor_metadata->>'charge_reference' as charge_ref, payment_processor_metadata->>'charge_status' as charge_status, organization_id, created_at from checkouts where created_at > now() - interval '2 hours' order by created_at desc limit 10;\"" 2>&1 | head -25
             echo "-- recent orders for justinequartz@gmail.com --"
             sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select o.id, o.status, o.product_id, o.customer_id, o.created_at, p.name as product_name from orders o join customers c on o.customer_id=c.id join products p on o.product_id=p.id where lower(c.email)='justinequartz@gmail.com' and o.created_at > now() - interval '24 hours' order by o.created_at desc limit 5;\"" 2>&1 | head -15
