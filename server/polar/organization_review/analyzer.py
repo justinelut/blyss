@@ -397,16 +397,18 @@ def _build_provider_chain() -> tuple[Model, list[str]]:
     Groq, network blip, etc.).
 
     Order is large-context-first, paid-last:
-        1. Google Gemini — gemini-2.0-flash, 1M context window, 1500 req/day free
-                           (handles big review snapshots without 413 'Request too large')
-        2. Groq          — llama-3.3-70b-versatile, fast but 32K context cap
-        3. Cerebras      — fastest inference, OpenAI-compatible, 32K context cap
-        4. OpenAI        — paid, last resort
+        1. Gemini Flash-Lite (1M ctx, 1000/day free) — primary
+        2. Gemini Flash      (1M ctx, 250/day free)  — fallback
+        3. OpenRouter Nemotron 3 Super 120B (1M ctx, free)
+        4. Groq Llama 3.3 70B (32K ctx, fast)
+        5. Cerebras Llama 3.3 70B (32K ctx, fastest)
+        6. OpenAI gpt-4o-mini (paid, last resort)
 
-    OpenRouter intentionally excluded from the auto chain: its free Llama
-    models share Groq's 32K context limit and re-introduce 413 errors on
-    large org-review prompts. Set AI_PROVIDER=openrouter explicitly if you
-    need it.
+    The default OpenRouter model is now Nemotron 3 Super 120B at 1M
+    context — Llama 3.3 70B at 32K was the previous default and kept
+    413'ing on large review prompts. Override OPENROUTER_MODEL if you
+    want a different free model (kimi-k2.6, qwen3-next-80b,
+    gpt-oss-120b are all 130K+ context free options as of 2026).
 
     Returns the model (single Model if one provider is configured, FallbackModel
     if 2+) and the list of provider names in order — used for the init log.
@@ -442,7 +444,17 @@ def _build_provider_chain() -> tuple[Model, list[str]]:
             )
             names.append(f"gemini:{settings.GOOGLE_AI_MODEL_FALLBACK}")
 
-    # 2. Groq
+    # 3. OpenRouter Nemotron 3 Super 120B (1M ctx, free tier)
+    if settings.OPENROUTER_API_KEY:
+        candidates.append(
+            OpenAIChatModel(
+                settings.OPENROUTER_MODEL,
+                provider=OpenRouterProvider(api_key=settings.OPENROUTER_API_KEY),
+            )
+        )
+        names.append(f"openrouter:{settings.OPENROUTER_MODEL}")
+
+    # 4. Groq
     if settings.GROQ_API_KEY:
         candidates.append(
             GroqModel(
@@ -452,7 +464,7 @@ def _build_provider_chain() -> tuple[Model, list[str]]:
         )
         names.append(f"groq:{settings.GROQ_MODEL}")
 
-    # 3. Cerebras (OpenAI-compatible API)
+    # 5. Cerebras (OpenAI-compatible API)
     if settings.CEREBRAS_API_KEY:
         candidates.append(
             OpenAIChatModel(
@@ -465,7 +477,7 @@ def _build_provider_chain() -> tuple[Model, list[str]]:
         )
         names.append(f"cerebras:{settings.CEREBRAS_MODEL}")
 
-    # 4. OpenAI (paid, last)
+    # 6. OpenAI (paid, last)
     if settings.OPENAI_API_KEY:
         candidates.append(
             OpenAIChatModel(
@@ -552,13 +564,17 @@ class ReviewAnalyzer:
             ), [f"openai:{settings.OPENAI_MODEL}"]
 
         # auto / chain mode
-        # Order: Gemini first (1M context window — handles big org-review
-        # snapshots without 413 'Request too large'), then Groq /
-        # Cerebras as fast fallbacks, OpenAI last as paid backstop.
-        # OpenRouter is intentionally NOT in the auto chain — its free
-        # Llama models share Groq's 32K context limit and re-introduce
-        # the 413 surface. If you specifically want OpenRouter, set
-        # AI_PROVIDER=openrouter (handled below).
+        # Order: large-context-first, paid-last. All free providers
+        # ahead of paid OpenAI.
+        #   1. Gemini Flash-Lite     (1M ctx, 1000/day)
+        #   2. Gemini Flash          (1M ctx, 250/day, analytical depth)
+        #   3. OpenRouter Nemotron   (1M ctx, NVIDIA's flagship free)
+        #   4. Groq Llama            (32K ctx, fast)
+        #   5. Cerebras Llama        (32K ctx, fastest)
+        #   6. OpenAI gpt-4o-mini    (paid backstop)
+        # OpenRouter Llama 3.3 was previously excluded because its
+        # 32K context kept 413'ing on org-review snapshots; the new
+        # Nemotron Super 120B default at 1M context fixes that.
         candidates: list[Model] = []
         names: list[str] = []
 
@@ -594,6 +610,22 @@ class ReviewAnalyzer:
                     provider=GoogleProvider(api_key=google_key),
                 ))
                 names.append(f"gemini:{settings.GOOGLE_AI_MODEL_FALLBACK}")
+
+        openrouter_key = await _get_key(
+            "POLAR_OPENROUTER_API_KEY", "OPENROUTER_API_KEY"
+        )
+        if openrouter_key:
+            # OpenRouter slot uses Nemotron 3 Super 120B (1M ctx) by
+            # default — back in the auto chain because the new model
+            # doesn't have the 32K-context 413 problem the previous
+            # Llama 3.3 70B default had. Override via OPENROUTER_MODEL
+            # if you want a different free model
+            # (kimi-k2.6, qwen3-next, gpt-oss-120b, etc).
+            candidates.append(OpenAIChatModel(
+                settings.OPENROUTER_MODEL,
+                provider=OpenRouterProvider(api_key=openrouter_key),
+            ))
+            names.append(f"openrouter:{settings.OPENROUTER_MODEL}")
 
         groq_key = await _get_key("POLAR_GROQ_API_KEY", "GROQ_API_KEY")
         if groq_key:

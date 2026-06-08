@@ -132,14 +132,13 @@ class TestProviderChainBuilder:
         _model, names = analyzer_mod._build_provider_chain()
         # Strict order assertion — the analyzer's behavior depends on
         # this. Two Gemini slots first (Lite primary, Flash fallback —
-        # both 1M context, free-tier-generous), then Groq + Cerebras
-        # as fast 32K-context fallbacks, OpenAI last (paid backstop).
-        # OpenRouter is intentionally NOT in the auto chain — its free
-        # Llama models share the 32K limit; AI_PROVIDER=openrouter
-        # explicitly is the only way to use it.
+        # both 1M ctx, free), OpenRouter Nemotron 3 Super 120B next
+        # (1M ctx, free, NVIDIA flagship), then Groq + Cerebras as
+        # fast 32K-context fallbacks, OpenAI last (paid backstop).
         assert names == [
             "gemini:gemini-2.5-flash-lite",
             "gemini:gemini-2.5-flash",
+            "openrouter:nvidia/nemotron-3-super-120b-a12b:free",
             "groq:llama-3.3-70b-versatile",
             "cerebras:llama-3.3-70b",
             "openai:gpt-4o-mini",

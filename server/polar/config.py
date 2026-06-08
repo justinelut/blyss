@@ -270,9 +270,16 @@ class Settings(BaseSettings):
     GROQ_MODEL: str = "llama-3.3-70b-versatile"
 
     # OpenRouter Configuration — get a free key at https://openrouter.ai
-    # The default model is OpenRouter's free Llama 3.3 70B endpoint.
+    # Default model is NVIDIA Nemotron 3 Super 120B (1M context, free
+    # tier, ~20 req/min on the public free pool). Llama 3.3 70B was
+    # the previous default but its 32K context kept 413'ing on
+    # org-review snapshots; Nemotron's 1M window solves that. Other
+    # strong free options on OpenRouter as of 2026:
+    #   moonshotai/kimi-k2.6:free                  262K ctx
+    #   qwen/qwen3-next-80b-a3b-instruct:free      262K ctx
+    #   openai/gpt-oss-120b:free                   131K ctx
     OPENROUTER_API_KEY: str = ""
-    OPENROUTER_MODEL: str = "meta-llama/llama-3.3-70b-instruct:free"
+    OPENROUTER_MODEL: str = "nvidia/nemotron-3-super-120b-a12b:free"
 
     # Cerebras Configuration — get a free key at https://cloud.cerebras.ai
     # Uses the OpenAI-compatible API at api.cerebras.ai/v1.
