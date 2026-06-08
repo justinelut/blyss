@@ -226,6 +226,41 @@ class MPesaChargeStatusResponse(BaseModel):
 DEFAULT_MPESA_VERIFICATION_AMOUNT_KOBO = 10000
 
 
+def _to_kenya_local_msisdn(raw: str | None) -> str:
+    """Convert any Kenyan phone format to local 10-digit form
+    starting with '0' (e.g. '0712345678').
+
+    Paystack's subaccount API for Kenya M-Pesa explicitly requires
+    this format. Other forms ('+254712345678', '254712345678',
+    '712345678') get rejected with 'Account number is invalid'
+    (code=invalid_account_number), even though they're valid Kenyan
+    MSISDNs.
+
+    Verified empirically against POST https://api.paystack.co/subaccount
+    in live mode — only the '0XXXXXXXXX' shape creates the subaccount
+    successfully.
+
+    Returns '' if raw is None or empty so callers can short-circuit.
+    """
+    if not raw:
+        return ""
+    digits = "".join(c for c in raw if c.isdigit())
+    if not digits:
+        return ""
+    # Already local 10-digit '0XXXXXXXXX'
+    if digits.startswith("0") and len(digits) == 10:
+        return digits
+    # International with country code '254XXXXXXXXX' (12 digits)
+    if digits.startswith("254") and len(digits) == 12:
+        return "0" + digits[3:]
+    # Bare 9-digit trunk '7XXXXXXXX' or '1XXXXXXXX'
+    if len(digits) == 9 and digits[0] in "17":
+        return "0" + digits
+    # Couldn't normalise — return as-is and let Paystack reject so
+    # the error bubbles up with a clear message.
+    return digits
+
+
 async def _resolve_mpesa_verification_amount(session: AsyncSession) -> int:
     """Return the M-Pesa verification charge amount in kobo.
 
@@ -514,10 +549,17 @@ async def finalize_mpesa_verification(
     # error message is surfaced via the existing 422 path below.
 
     try:
-        # Paystack's subaccount API expects M-Pesa MSISDN without the '+'
-        # (i.e. '254712345678', not '+254712345678'). Strip it on the way
-        # in. Storage stays in E.164 form for our own UI / display.
-        mpesa_account_number = (organization.mpesa_number or "").lstrip("+")
+        # Paystack's subaccount API for Kenya M-Pesa expects the
+        # account_number in LOCAL 10-digit format with leading 0
+        # (e.g. '0712345678'), NOT '+254712345678' or '254712345678'.
+        # Verified empirically: '254712345678' returns
+        # 'Account number is invalid' / code=invalid_account_number,
+        # while '0712345678' creates the subaccount cleanly. Storage
+        # stays in E.164 form (+254712345678) for our own UI; we
+        # convert here at the boundary.
+        mpesa_account_number = _to_kenya_local_msisdn(
+            organization.mpesa_number
+        )
         if organization.subaccount_code:
             await paystack.update_subaccount(
                 subaccount_code=organization.subaccount_code,
