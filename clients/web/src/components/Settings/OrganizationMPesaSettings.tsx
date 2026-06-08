@@ -24,6 +24,7 @@ import { api } from '@/utils/client'
 import { schemas, unwrap } from '@/lib/api'
 import { translatePaystackError } from '@/lib/paystack/translate-error'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import {
   FiArrowRight,
@@ -36,6 +37,16 @@ import {
 import { useForm } from 'react-hook-form'
 import { toast } from '../Toast/use-toast'
 import OrganizationBankSettings from './OrganizationBankSettings'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 interface MPesaConfigurationForm {
   mpesa_number: string
@@ -91,6 +102,8 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
   const [isFinalizing, setIsFinalizing] = useState(false)
   const [isRetrying, setIsRetrying] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
+  const [resetDialogOpen, setResetDialogOpen] = useState(false)
+  const router = useRouter()
 
   // Verification charge amount — fetched from the backend so the
   // dashboard copy always matches what the creator is actually
@@ -304,12 +317,6 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
     // the next initiate-verification fires the create path. Calls
     // DELETE /v1/integrations/paystack/organizations/{id}/mpesa.
     if (!currentUser) return
-    if (
-      !confirm(
-        'Reset M-Pesa setup? Your current number will be removed and you can enter a different one. The KSh 100 verification charge already paid is non-refundable.',
-      )
-    )
-      return
     setIsResetting(true)
     try {
       await unwrap(
@@ -322,7 +329,16 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
         title: 'M-Pesa setup cleared',
         description: 'Enter a new M-Pesa number below to start fresh.',
       })
-      window.location.reload()
+      setResetDialogOpen(false)
+      // Soft refresh of the server component tree — pulls a fresh
+      // organization row through the cache-bypass path on
+      // /finance/account so subaccount_status / mpesa_number reflect
+      // the cleared state without a full page reload.
+      router.refresh()
+      // Belt-and-braces: also reset local form + UI so the creator
+      // can immediately start a new STK push without waiting for
+      // the parent re-render.
+      resetIdle()
     } catch (error: any) {
       toast({
         title: 'Reset failed',
@@ -465,7 +481,7 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
             </div>
             <button
               type="button"
-              onClick={onResetMpesa}
+              onClick={() => setResetDialogOpen(true)}
               disabled={isResetting}
               className="ml-2 inline-flex h-9 items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 font-sans text-[13px] font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-sunken)] disabled:cursor-not-allowed disabled:opacity-60"
               aria-label="Reset M-Pesa configuration"
@@ -611,6 +627,40 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
           <OrganizationBankSettings organization={organization} />
         </div>
       )}
+
+      <AlertDialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset M-Pesa setup?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove your current M-Pesa number{' '}
+              <span className="font-medium text-[var(--text-primary)]">
+                {organization.mpesa_number || ''}
+              </span>{' '}
+              and deactivate the linked Paystack subaccount. You can
+              then enter a different M-Pesa number to verify and
+              reconnect. The KSh 100 verification charge you already
+              paid is non-refundable.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isResetting}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                // Don't auto-close — onResetMpesa controls dialog state
+                e.preventDefault()
+                onResetMpesa()
+              }}
+              disabled={isResetting}
+              className="bg-[var(--danger)] text-white hover:bg-[var(--danger)]/90"
+            >
+              {isResetting ? 'Resetting…' : 'Reset M-Pesa'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </form>
   )
 }
