@@ -90,6 +90,7 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
   const [elapsedMs, setElapsedMs] = useState(0)
   const [isFinalizing, setIsFinalizing] = useState(false)
   const [isRetrying, setIsRetrying] = useState(false)
+  const [isResetting, setIsResetting] = useState(false)
 
   // Verification charge amount — fetched from the backend so the
   // dashboard copy always matches what the creator is actually
@@ -296,6 +297,46 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
     }
   }
 
+  async function onResetMpesa() {
+    // Hard-clear M-Pesa config so the creator can re-enter a different
+    // number. Deactivates the Paystack subaccount on their side and
+    // wipes mpesa_number / mpesa_verified / subaccount_code locally so
+    // the next initiate-verification fires the create path. Calls
+    // DELETE /v1/integrations/paystack/organizations/{id}/mpesa.
+    if (!currentUser) return
+    if (
+      !confirm(
+        'Reset M-Pesa setup? Your current number will be removed and you can enter a different one. The KSh 100 verification charge already paid is non-refundable.',
+      )
+    )
+      return
+    setIsResetting(true)
+    try {
+      await unwrap(
+        (api as any).DELETE(
+          '/v1/integrations/paystack/organizations/{id}/mpesa',
+          { params: { path: { id: organization.id } } },
+        ),
+      )
+      toast({
+        title: 'M-Pesa setup cleared',
+        description: 'Enter a new M-Pesa number below to start fresh.',
+      })
+      window.location.reload()
+    } catch (error: any) {
+      toast({
+        title: 'Reset failed',
+        description:
+          error?.body?.detail ||
+          error?.message ||
+          'Could not reset M-Pesa setup.',
+        variant: 'error',
+      })
+    } finally {
+      setIsResetting(false)
+    }
+  }
+
   function resetIdle() {
     stopPolling()
     setStage('idle')
@@ -422,6 +463,20 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
                     : 'Settling to your selected payout account'}
               </p>
             </div>
+            <button
+              type="button"
+              onClick={onResetMpesa}
+              disabled={isResetting}
+              className="ml-2 inline-flex h-9 items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 font-sans text-[13px] font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-sunken)] disabled:cursor-not-allowed disabled:opacity-60"
+              aria-label="Reset M-Pesa configuration"
+            >
+              <FiRefreshCw
+                size={14}
+                className={isResetting ? 'animate-spin' : ''}
+                aria-hidden="true"
+              />
+              {isResetting ? 'Resetting…' : 'Change number'}
+            </button>
           </div>
         </div>
       )}

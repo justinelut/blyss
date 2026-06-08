@@ -583,10 +583,27 @@ class PaystackService:
 
             response_data = response.json()
             if not response_data.get("status"):
-                error_message = response_data.get("message", "Charge failed")
+                # Paystack often returns a misleading outer message
+                # ('Charge attempted', 'Validation failed') while the
+                # actual reason sits in data.message. Concatenate so
+                # the surfaced error is actionable.
+                outer = response_data.get("message", "Charge failed")
+                inner_data = response_data.get("data", {}) or {}
+                inner = inner_data.get("message") if isinstance(inner_data, dict) else None
+                meta = response_data.get("meta", {}) or {}
+                next_step = meta.get("nextStep") if isinstance(meta, dict) else None
+                error_message = outer
+                if inner and inner != outer:
+                    error_message = f"{outer}: {inner}"
+                if next_step:
+                    error_message = f"{error_message} ({next_step})"
                 log.error(
                     "paystack.charge.failed",
-                    error_message=error_message,
+                    outer_message=outer,
+                    inner_message=inner,
+                    next_step=next_step,
+                    response_code=response_data.get("code"),
+                    response_type=response_data.get("type"),
                 )
                 raise PaystackTransactionError(error_message)
 

@@ -725,6 +725,85 @@ async def finalize_mpesa_verification(
     return OrganizationSchema.model_validate(organization)
 
 
+@router.delete(
+    "/organizations/{id}/mpesa",
+    response_model=OrganizationSchema,
+)
+async def reset_mpesa_configuration(
+    id: UUID,
+    auth_subject: WebUserWrite,
+    session: AsyncSession = Depends(get_db_session),
+) -> OrganizationSchema:
+    """Clear the M-Pesa number + subaccount so the creator can start fresh.
+
+    Use cases:
+      - Creator typed the wrong number, finalize-verification has been
+        attempted and the row is stuck on a verified-but-wrong number
+      - Creator wants to switch to a different M-Pesa number entirely
+      - Creator wants to switch payout method from M-Pesa to bank
+
+    What this does:
+      - Deactivates the Paystack subaccount (Paystack disallows DELETE
+        on subaccounts; PUT { active: false } is the supported clear
+        path)
+      - Clears mpesa_number, mpesa_verified, subaccount_code,
+        subaccount_status on the org row so the next initiate-
+        verification call goes through the create path
+
+    Doesn't touch the M-Pesa verification CHARGE (KSh 100) — that's
+    non-refundable per our docs and the creator already paid for it.
+    """
+    repository = OrganizationRepository.from_session(session)
+    organization = await repository.get_by_id(id)
+    if not organization:
+        raise ResourceNotFound("Organization not found")
+
+    # Deactivate the Paystack subaccount if one exists. We don't fail
+    # the local clear if the deactivation fails — the local DB clear is
+    # the source of truth for our flow, and Paystack subaccounts can
+    # always be reactivated/recreated. Log + carry on.
+    if (
+        organization.subaccount_code
+        and not organization.subaccount_code.startswith("ACCT_test_")
+    ):
+        try:
+            await paystack.update_subaccount(
+                organization.subaccount_code,
+                active=False,
+                session=session,
+            )
+            log.info(
+                "paystack.mpesa.subaccount.deactivated",
+                organization_id=str(organization.id),
+                subaccount_code=organization.subaccount_code,
+            )
+        except Exception as e:
+            log.warning(
+                "paystack.mpesa.subaccount.deactivate_failed",
+                organization_id=str(organization.id),
+                subaccount_code=organization.subaccount_code,
+                error=str(e),
+            )
+
+    organization = await repository.update(
+        organization,
+        update_dict={
+            "mpesa_number": None,
+            "mpesa_verified": False,
+            "subaccount_code": None,
+            "subaccount_status": "pending",
+        },
+        flush=True,
+    )
+
+    log.info(
+        "paystack.mpesa.reset",
+        organization_id=str(organization.id),
+    )
+
+    return OrganizationSchema.model_validate(organization)
+
+
 @router.post("/organizations/{id}/mpesa", response_model=MPesaInitiateVerificationResponse)
 async def configure_mpesa(
     id: UUID,
