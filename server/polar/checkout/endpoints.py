@@ -353,6 +353,21 @@ async def client_charge(
     email = checkout.customer_email or "customer@checkout.blyss.africa"
     amount = checkout.total_amount
 
+    # Guard: creator must have an active Paystack subaccount before
+    # we can route money to them via split payments. Mirrors the
+    # check in checkout_service._confirm_inner for the hosted-page
+    # flow. Without this, /charge would either silently send funds
+    # to the platform account (not the creator) or hit obscure
+    # Paystack errors. The creator-side dashboard has the canonical
+    # banner explaining what action is needed; this branch only
+    # ever fires if the buyer cached an old checkout link.
+    org = checkout.organization
+    if (
+        checkout.payment_processor == "paystack"
+        and org.subaccount_status != "active"
+    ):
+        raise PaymentNotReady("This item is currently unavailable. Please try again later.")
+
     # Build Paystack /charge payload
     # Pre-generate a Blyss-branded reference so the customer-facing
     # receipt number reads 'blyss_…' instead of Paystack's auto-
@@ -367,6 +382,13 @@ async def client_charge(
         "currency": checkout.currency or "KES",
         "reference": reference,
     }
+
+    # Split payment via subaccount: the creator's funds land in
+    # their Paystack subaccount, Blyss platform fee stays in the
+    # main account. Mirrors the hosted-page initialize_transaction
+    # path which has been doing this since launch.
+    if org.subaccount_code:
+        payload["subaccount"] = org.subaccount_code
 
     ch = body.channel
     if ch == "card":
