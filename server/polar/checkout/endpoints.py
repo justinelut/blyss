@@ -2,6 +2,7 @@ from typing import Annotated, List
 
 import secrets
 
+import structlog
 from fastapi import Depends, Path, Query, Request
 from pydantic import UUID4
 from sse_starlette.sse import EventSourceResponse
@@ -50,6 +51,8 @@ from .service import (
 from .service import checkout as checkout_service
 
 inner_router = APIRouter(tags=["checkouts", APITag.public])
+
+log = structlog.get_logger()
 
 
 CheckoutID = Annotated[UUID4, Path(description="The checkout session ID.")]
@@ -475,7 +478,17 @@ async def client_payment_status(
     client_secret: CheckoutClientSecret,
     session: AsyncSession = Depends(get_db_session),
 ) -> CheckoutPaymentStatus:
-    """Check the current payment status of a checkout's charge."""
+    """Check the current payment status of a checkout's charge.
+
+    On the FIRST observation of `status='success'` we also fire the
+    Order-creation pipeline (handle_success) — Polar upstream relied on
+    a Stripe webhook for this, but the inline Paystack STK push flow
+    has no webhook in the loop. Without firing handle_success here,
+    the buyer's payment succeeds, the success page renders, but no
+    Order row, no benefit grants, no /portal/orders entry, and no
+    download link. handle_success is idempotent — it guards on
+    checkout.status != confirmed so retries / poll-races are safe.
+    """
     checkout = await checkout_service.get_by_client_secret(session, client_secret)
     meta = checkout.payment_processor_metadata or {}
     reference = meta.get("charge_reference")
@@ -484,11 +497,37 @@ async def client_payment_status(
             status="pending", message="No charge initiated yet."
         )
 
+    async def _fire_handle_success() -> None:
+        # Only run once per checkout. handle_success itself raises
+        # NotConfirmedCheckout when the checkout isn't in 'confirmed'
+        # state. We explicitly transition open → confirmed here so the
+        # call lands cleanly. Wrapped in try so a transient
+        # post-success failure (DB hiccup, benefit-grant queue full)
+        # doesn't fail the status poll the buyer is watching.
+        try:
+            from polar.models.checkout import CheckoutStatus
+
+            if checkout.status == CheckoutStatus.confirmed:
+                return  # already processed
+            if checkout.status == CheckoutStatus.open:
+                checkout.status = CheckoutStatus.confirmed
+                session.add(checkout)
+                await session.flush()
+            await checkout_service.handle_success(session, checkout)
+        except Exception as e:
+            log.error(
+                "checkout.payment_status.handle_success_failed",
+                checkout_id=str(checkout.id),
+                reference=reference,
+                error=str(e),
+            )
+
     # Try verify_transaction first
     try:
         tx = await paystack_service.verify_transaction(reference, session=session)
         tx_status = tx.get("status")
         if tx_status == "success":
+            await _fire_handle_success()
             return CheckoutPaymentStatus(status="success", message="Payment successful.")
         if tx_status == "failed":
             return CheckoutPaymentStatus(
@@ -503,6 +542,7 @@ async def client_payment_status(
         pending = await paystack_service.check_pending_charge(reference, session=session)
         p_status = pending.get("status")
         if p_status == "success":
+            await _fire_handle_success()
             return CheckoutPaymentStatus(status="success", message="Payment successful.")
         if p_status in ("send_otp", "send_pin", "send_phone", "send_birthday"):
             action = p_status.replace("send_", "")
