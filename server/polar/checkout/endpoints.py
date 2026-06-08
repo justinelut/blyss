@@ -497,7 +497,7 @@ async def client_payment_status(
             status="pending", message="No charge initiated yet."
         )
 
-    async def _fire_handle_success() -> None:
+    async def _fire_handle_success(verified_tx: dict | None = None) -> None:
         # Only run once per checkout. handle_success itself raises
         # NotConfirmedCheckout when the checkout isn't in 'confirmed'
         # state. We explicitly transition open → confirmed here so the
@@ -513,7 +513,56 @@ async def client_payment_status(
                 checkout.status = CheckoutStatus.confirmed
                 session.add(checkout)
                 await session.flush()
-            await checkout_service.handle_success(session, checkout)
+
+            # P3: For recurring products, persist the Paystack
+            # authorization_code as a PaymentMethod so the renewal
+            # worker can charge again later via charge_authorization.
+            payment_method = None
+            if (
+                verified_tx
+                and checkout.product is not None
+                and checkout.product.is_recurring
+                and checkout.customer is not None
+            ):
+                auth = verified_tx.get("authorization") or {}
+                auth_code = auth.get("authorization_code")
+                if auth_code:
+                    from polar.models.payment_method import PaymentMethod
+                    from polar.enums import PaymentProcessor as _Processor
+                    from sqlalchemy import select
+
+                    existing_q = await session.execute(
+                        select(PaymentMethod).where(
+                            PaymentMethod.processor == _Processor.paystack,
+                            PaymentMethod.processor_id == auth_code,
+                            PaymentMethod.customer_id == checkout.customer.id,
+                        )
+                    )
+                    payment_method = existing_q.scalar_one_or_none()
+                    if payment_method is None:
+                        payment_method = PaymentMethod(
+                            processor=_Processor.paystack,
+                            processor_id=auth_code,
+                            type=auth.get("channel", "card"),
+                            customer_id=checkout.customer.id,
+                            method_metadata={
+                                "last4": auth.get("last4"),
+                                "exp_month": auth.get("exp_month"),
+                                "exp_year": auth.get("exp_year"),
+                                "card_type": auth.get("card_type"),
+                                "bank": auth.get("bank"),
+                                "channel": auth.get("channel"),
+                                "reusable": auth.get("reusable", False),
+                                "country_code": auth.get("country_code"),
+                                "fingerprint": auth.get("signature"),
+                            },
+                        )
+                        session.add(payment_method)
+                        await session.flush()
+
+            await checkout_service.handle_success(
+                session, checkout, payment=None, payment_method=payment_method
+            )
         except Exception as e:
             log.error(
                 "checkout.payment_status.handle_success_failed",
@@ -527,7 +576,7 @@ async def client_payment_status(
         tx = await paystack_service.verify_transaction(reference, session=session)
         tx_status = tx.get("status")
         if tx_status == "success":
-            await _fire_handle_success()
+            await _fire_handle_success(verified_tx=tx)
             return CheckoutPaymentStatus(status="success", message="Payment successful.")
         if tx_status == "failed":
             return CheckoutPaymentStatus(
@@ -542,7 +591,7 @@ async def client_payment_status(
         pending = await paystack_service.check_pending_charge(reference, session=session)
         p_status = pending.get("status")
         if p_status == "success":
-            await _fire_handle_success()
+            await _fire_handle_success(verified_tx=pending)
             return CheckoutPaymentStatus(status="success", message="Payment successful.")
         if p_status in ("send_otp", "send_pin", "send_phone", "send_birthday"):
             action = p_status.replace("send_", "")

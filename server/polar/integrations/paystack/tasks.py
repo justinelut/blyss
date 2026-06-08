@@ -230,60 +230,100 @@ async def charge_success(event_id: uuid.UUID) -> None:
                     )
                     return
 
-                # Create order from checkout
+                # P3: For recurring products, persist the Paystack
+                # authorization_code returned with this charge as a
+                # PaymentMethod so the renewal worker can charge again
+                # at the end of each period without re-prompting the
+                # buyer. Linked to the Subscription via payment_method.
+                payment_method = None
                 if checkout.product and checkout.product.is_recurring:
-                    # For recurring products, we need subscription handling
-                    # This will be implemented in the checkout integration task
-                    log.warning(
-                        "paystack.webhook.charge.success.recurring_not_supported",
+                    auth = verified_transaction.get("authorization") or {}
+                    auth_code = auth.get("authorization_code")
+                    customer_id_meta = metadata.get("customer_id")
+                    if auth_code and customer_id_meta:
+                        from polar.models.payment_method import PaymentMethod
+                        from polar.enums import PaymentProcessor as _Processor
+                        from sqlalchemy import select
+
+                        existing_q = await session.execute(
+                            select(PaymentMethod).where(
+                                PaymentMethod.processor == _Processor.paystack,
+                                PaymentMethod.processor_id == auth_code,
+                                PaymentMethod.customer_id
+                                == uuid.UUID(customer_id_meta),
+                            )
+                        )
+                        payment_method = existing_q.scalar_one_or_none()
+                        if payment_method is None:
+                            payment_method = PaymentMethod(
+                                processor=_Processor.paystack,
+                                processor_id=auth_code,
+                                type=auth.get("channel", "card"),
+                                customer_id=uuid.UUID(customer_id_meta),
+                                method_metadata={
+                                    "last4": auth.get("last4"),
+                                    "exp_month": auth.get("exp_month"),
+                                    "exp_year": auth.get("exp_year"),
+                                    "card_type": auth.get("card_type"),
+                                    "bank": auth.get("bank"),
+                                    "channel": auth.get("channel"),
+                                    "reusable": auth.get("reusable", False),
+                                    "country_code": auth.get("country_code"),
+                                    "fingerprint": auth.get("signature"),
+                                },
+                            )
+                            session.add(payment_method)
+                            await session.flush()
+
+                # Unified order/subscription creation via handle_success.
+                # handle_success branches internally on product.is_recurring,
+                # creating Subscription + Order(billing_reason=subscription_create)
+                # for recurring products and Order(billing_reason=purchase) for
+                # one-time. Keeps trial-redemption + cart-cleanup + admin-notif
+                # logic centralized — Paystack matches the Stripe webhook
+                # path's behavior now.
+                checkout = await checkout_service.handle_success(
+                    session, checkout, payment=None, payment_method=payment_method
+                )
+                order = checkout.order
+                if order is None:
+                    log.error(
+                        "paystack.webhook.charge.success.handle_success_no_order",
                         event_id=event_id,
                         reference=transaction_reference,
                         checkout_id=checkout_id,
                     )
                     return
-                else:
-                    # Create one-time order
-                    order = await order_service.create_from_checkout_one_time(
-                        session, checkout, payment=None
-                    )
 
-                    # Calculate and store platform fee for Paystack orders
-                    from polar.integrations.paystack.fee_calculator import (
-                        calculate_platform_fee,
-                    )
+                # Calculate and store platform fee for Paystack orders
+                from polar.integrations.paystack.fee_calculator import (
+                    calculate_platform_fee,
+                )
 
-                    platform_fee_amount, creator_payout_amount = calculate_platform_fee(
-                        order.total_amount, order.currency
-                    )
+                platform_fee_amount, creator_payout_amount = calculate_platform_fee(
+                    order.total_amount, order.currency
+                )
 
-                    # Update order with platform fee information
-                    order.platform_fee_amount = platform_fee_amount
-                    order.platform_fee_currency = order.currency
-                    order.creator_payout_amount = creator_payout_amount
+                order.platform_fee_amount = platform_fee_amount
+                order.platform_fee_currency = order.currency
+                order.creator_payout_amount = creator_payout_amount
 
-                    # Store Paystack transaction reference in order
-                    # Using stripe_invoice_id field for backward compatibility
-                    order.stripe_invoice_id = transaction_reference
-                    await session.flush()
+                # Store Paystack transaction reference for back-compat
+                order.stripe_invoice_id = transaction_reference
+                await session.flush()
 
-                    log.info(
-                        "paystack.webhook.charge.success.platform_fee_calculated",
-                        event_id=event_id,
-                        reference=transaction_reference,
-                        order_id=order.id,
-                        order_amount=order.total_amount,
-                        platform_fee_amount=platform_fee_amount,
-                        creator_payout_amount=creator_payout_amount,
-                        currency=order.currency,
-                    )
-
-                    log.info(
-                        "paystack.webhook.charge.success.order_created",
-                        event_id=event_id,
-                        reference=transaction_reference,
-                        checkout_id=checkout_id,
-                        order_id=order.id,
-                    )
+                log.info(
+                    "paystack.webhook.charge.success.order_created",
+                    event_id=event_id,
+                    reference=transaction_reference,
+                    checkout_id=checkout_id,
+                    order_id=order.id,
+                    is_recurring=checkout.product.is_recurring
+                    if checkout.product
+                    else False,
+                    platform_fee_amount=platform_fee_amount,
+                    creator_payout_amount=creator_payout_amount,
+                )
 
             except Exception as e:
                 log.error(
