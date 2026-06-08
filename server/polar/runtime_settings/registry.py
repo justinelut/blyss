@@ -128,6 +128,30 @@ REGISTRY: list[RegisteredKey] = [
         requires_verification=False,
         default_value="10000",
     ),
+    RegisteredKey(
+        key="POLAR_OPENROUTER_MODELS",
+        category="ai",
+        label="OpenRouter Free Model Chain",
+        description=(
+            "Comma-separated OpenRouter model IDs the analyzer tries "
+            "in order, in addition to Gemini / Groq / Cerebras / OpenAI. "
+            "Each gets its own slot in the FallbackModel so per-model "
+            "outages don't take the chain down. Default lineup is the "
+            "5 strongest free models as of 2026 — Nemotron 120B, Kimi "
+            "K2.6, Qwen3-Next-80B, GPT-OSS-120B, GLM 4.5 Air. Append "
+            "':free' to any model id to use OpenRouter's free pool. "
+            "Browse the catalogue: https://openrouter.ai/models?q=:free"
+        ),
+        sensitive=False,
+        requires_verification=False,
+        default_value=(
+            "nvidia/nemotron-3-super-120b-a12b:free,"
+            "moonshotai/kimi-k2.6:free,"
+            "qwen/qwen3-next-80b-a3b-instruct:free,"
+            "openai/gpt-oss-120b:free,"
+            "z-ai/glm-4.5-air:free"
+        ),
+    ),
 ]
 
 REGISTRY_MAP: dict[str, RegisteredKey] = {r.key: r for r in REGISTRY}

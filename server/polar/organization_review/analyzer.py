@@ -637,12 +637,22 @@ class ReviewAnalyzer:
             # OPENROUTER_MODELS (comma-separated). Five different
             # vendors at 1M / 262K / 131K context windows means the
             # chain has 5 large-context free fallbacks before it ever
-            # drops to 32K-context Groq / Cerebras Llamas. Falls back
-            # to OPENROUTER_MODEL (singular, deprecated) if MODELS is
-            # somehow blank.
-            models_csv = (
-                settings.OPENROUTER_MODELS or settings.OPENROUTER_MODEL or ""
+            # drops to 32K-context Groq / Cerebras Llamas.
+            #
+            # Read order:
+            #   1. runtime_settings DB row POLAR_OPENROUTER_MODELS
+            #      (admin-editable at /backoffice/runtime-settings)
+            #   2. settings.OPENROUTER_MODELS env var
+            #   3. settings.OPENROUTER_MODEL (deprecated singular alias)
+            models_csv = await _get_key(
+                "POLAR_OPENROUTER_MODELS", "OPENROUTER_MODELS"
             )
+            if not models_csv:
+                models_csv = (
+                    settings.OPENROUTER_MODELS
+                    or settings.OPENROUTER_MODEL
+                    or ""
+                )
             for model_id in (m.strip() for m in models_csv.split(",")):
                 if not model_id:
                     continue
