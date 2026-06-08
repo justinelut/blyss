@@ -536,6 +536,21 @@ async def finalize_mpesa_verification(
                 settlement_bank="MPESA",
                 account_number=mpesa_account_number,
                 percentage_charge=20.0,
+                # Paystack's Kenya M-Pesa path frequently rejects
+                # bare-minimum payloads in live mode with
+                # 'Field validation failed' / 'Settlement account not
+                # supported' and no per-field detail. Forwarding the
+                # creator's contact + a short description gets us
+                # past that without requiring the creator to add
+                # extra info on the dashboard.
+                description=(
+                    f"Blyss creator payouts for {organization.name}"
+                ),
+                primary_contact_email=(
+                    organization.email or auth_subject.subject.email or None
+                ),
+                primary_contact_name=organization.name,
+                primary_contact_phone=organization.mpesa_number,
                 session=session,
             )
             organization = await repository.update(

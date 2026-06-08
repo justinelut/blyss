@@ -617,10 +617,12 @@ class PaystackService:
         import uuid
 
         if reference is None:
-            # Customer-facing receipt prefix — Blyss-branded so the
-            # buyer sees 'blyss_momo_…' on their receipt, not the bare
-            # 'momo_…' which read as Paystack-internal jargon.
-            reference = f"blyss_momo_{uuid.uuid4().hex[:16]}"
+            # Customer-facing receipt prefix — single 'blyss_' tag,
+            # no leaky channel jargon (was 'blyss_momo_…' which read
+            # as Paystack-internal mobile-money plumbing on the
+            # receipt; users specifically asked to drop the 'momo_'
+            # bit). 16 hex chars from uuid4 for collision safety.
+            reference = f"blyss_{uuid.uuid4().hex[:16]}"
 
         payload: dict[str, Any] = {
             "email": email,
@@ -769,16 +771,37 @@ class PaystackService:
         settlement_bank: str | None = None,
         account_number: str | None = None,
         percentage_charge: float,
+        description: str | None = None,
+        primary_contact_email: str | None = None,
+        primary_contact_name: str | None = None,
+        primary_contact_phone: str | None = None,
         session: object | None = None,
     ) -> dict[str, Any]:
         """
         Create a subaccount for automatic payment splits.
 
+        Per Paystack v2 docs (https://docs-v2.paystack.com/docs/api/subaccount/)
+        the required fields are business_name, settlement_bank,
+        account_number, percentage_charge. description /
+        primary_contact_* are documented as optional but Paystack's
+        Kenyan M-Pesa path frequently rejects subaccount creation when
+        they're missing (response: 'Field validation failed' with no
+        per-field detail). We pass them when callers provide them so
+        the live flow has the best chance of succeeding.
+
         Args:
             business_name: Name of the business/organization
-            settlement_bank: Bank code for settlement (optional)
-            account_number: Account number for settlement (optional)
-            percentage_charge: Percentage of transaction to charge (e.g., 20.0 for 20%)
+            settlement_bank: Bank code for settlement (e.g. 'MPESA' for
+                Kenyan mobile money — see GET /bank?country=kenya)
+            account_number: Account number (for M-Pesa, the MSISDN
+                without the leading +, e.g. '254712345678')
+            percentage_charge: Percentage of transaction to charge
+            description: Optional description (often required in live
+                mode for non-Nigerian rails)
+            primary_contact_email: Optional contact email (often
+                required in live mode)
+            primary_contact_name: Optional contact name
+            primary_contact_phone: Optional contact phone
             session: Optional DB session to read the runtime-overlaid
                 Paystack secret key from. Without it the env var is used.
 
@@ -792,7 +815,7 @@ class PaystackService:
             PaystackTransactionError: If subaccount creation fails
         """
         # Prepare request payload
-        payload = {
+        payload: dict[str, Any] = {
             "business_name": business_name,
             "percentage_charge": percentage_charge,
         }
@@ -801,6 +824,19 @@ class PaystackService:
         if settlement_bank and account_number:
             payload["settlement_bank"] = settlement_bank
             payload["account_number"] = account_number
+
+        # Forward the contact / description fields when callers pass
+        # them — Paystack uses them for compliance + payout
+        # notifications. Live mode for Kenyan M-Pesa rejects when
+        # they're absent.
+        if description:
+            payload["description"] = description
+        if primary_contact_email:
+            payload["primary_contact_email"] = primary_contact_email
+        if primary_contact_name:
+            payload["primary_contact_name"] = primary_contact_name
+        if primary_contact_phone:
+            payload["primary_contact_phone"] = primary_contact_phone
 
         # Log the API call with sanitized parameters
         log.info(
@@ -830,14 +866,23 @@ class PaystackService:
                 )
                 raise PaystackAuthenticationError(error_message)
 
-            if response.status_code == 422:
-                response_data = response.json()
-                error_message = response_data.get("message", "Validation error")
-                # Surface the full upstream body to logs so ops can see
-                # exactly which field paystack rejected (settlement_bank
-                # code, account_number format, etc.). Without this the
-                # 'M-Pesa charge succeeded but Paystack rejected the
-                # subaccount' user-facing copy is the only signal.
+            if 400 <= response.status_code < 500:
+                # Capture the real Paystack message for ANY 4xx
+                # (was only 422). Live-mode 400 responses with
+                # field-validation errors were previously swallowed
+                # and raised as a generic 'Subaccount creation
+                # failed', which gave creators no path to fix the
+                # input. Now the message Paystack returned (e.g.
+                # 'Settlement account not supported',
+                # 'Account number is invalid for the provided bank
+                # code') gets surfaced verbatim.
+                try:
+                    response_data = response.json()
+                except Exception:
+                    response_data = {"message": response.text[:300]}
+                error_message = (
+                    response_data.get("message") or "Validation error"
+                )
                 log.error(
                     "paystack.subaccount.create.validation_error",
                     error_message=error_message,
@@ -846,6 +891,10 @@ class PaystackService:
                         "settlement_bank": payload.get("settlement_bank"),
                         "has_account_number": bool(
                             payload.get("account_number")
+                        ),
+                        "has_description": bool(payload.get("description")),
+                        "has_primary_contact_email": bool(
+                            payload.get("primary_contact_email")
                         ),
                     },
                     status_code=response.status_code,

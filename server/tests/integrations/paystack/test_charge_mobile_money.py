@@ -106,7 +106,7 @@ class TestChargeMobileMoneyHappyPath:
             "phone": "+254700000000",
             "provider": "mpesa",
         }
-        assert body["reference"].startswith("blyss_momo_")
+        assert body["reference"].startswith("blyss_")
 
     @pytest.mark.asyncio
     async def test_caller_supplied_reference_is_used(
