@@ -58,8 +58,15 @@ describe('Two-step M-Pesa verification with auto-poll', () => {
     )
   })
 
-  test('KSh 100 anti-fraud copy is present', () => {
-    expect(src).toContain('KSh 100')
+  test('verification amount is rendered dynamically (no hardcode)', () => {
+    // The dashboard now reads the live amount from
+    // /v1/integrations/paystack/mpesa/verification-config so admins
+    // can override KSh 100 → KSh 1 (etc) via runtime_settings without
+    // a code change. Lock down that the source uses a template
+    // literal pulling from state, not a hardcoded number, AND that
+    // the config endpoint is actually wired.
+    expect(src).toContain('/v1/integrations/paystack/mpesa/verification-config')
+    expect(src).toContain('verificationAmountKes')
     expect(src).toContain('non-refundable')
   })
 

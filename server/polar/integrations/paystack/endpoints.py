@@ -331,6 +331,49 @@ async def initiate_mpesa_verification(
     )
 
 
+class MPesaVerificationConfigResponse(BaseModel):
+    """Public-readable M-Pesa verification config.
+
+    Currently exposes only the amount because that's all the dashboard
+    needs to render the right copy on the payouts settings screen.
+    Returns the resolved value (runtime_settings DB row → env var →
+    in-code default) in both kobo (the smallest currency unit Paystack
+    expects) and KES (for human-readable UI rendering).
+    """
+
+    amount_kobo: int = Field(
+        description=(
+            "Verification charge amount in the smallest currency unit "
+            "(KES * 100). e.g. 10000 = KES 100."
+        )
+    )
+    amount_kes: int = Field(
+        description="Same amount expressed in KES for UI rendering.",
+    )
+
+
+@router.get(
+    "/mpesa/verification-config",
+    response_model=MPesaVerificationConfigResponse,
+)
+async def mpesa_verification_config(
+    auth_subject: WebUserWrite,
+    session: AsyncSession = Depends(get_db_session),
+) -> MPesaVerificationConfigResponse:
+    """Return the current M-Pesa verification charge so the dashboard
+    can render copy that matches what's actually charged.
+
+    Without this endpoint, the dashboard hardcoded 'KSh 100' even
+    after the backoffice override flipped the real value to KES 1
+    for testing — a confusing leak between the data layer and the UI.
+    """
+    amount_kobo = await _resolve_mpesa_verification_amount(session)
+    return MPesaVerificationConfigResponse(
+        amount_kobo=amount_kobo,
+        amount_kes=amount_kobo // 100,
+    )
+
+
 @router.get(
     "/organizations/{id}/mpesa/charge-status",
     response_model=MPesaChargeStatusResponse,

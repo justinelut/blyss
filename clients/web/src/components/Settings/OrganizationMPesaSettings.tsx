@@ -91,6 +91,36 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
   const [isFinalizing, setIsFinalizing] = useState(false)
   const [isRetrying, setIsRetrying] = useState(false)
 
+  // Verification charge amount — fetched from the backend so the
+  // dashboard copy always matches what the creator is actually
+  // charged. Backoffice-tunable via runtime_settings; without this
+  // fetch the UI used to hardcode 'KSh 100' even after admins
+  // overrode the real value to KES 1 for testing.
+  const [verificationAmountKes, setVerificationAmountKes] =
+    useState<number>(100)
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const data = (await unwrap(
+          (api as any).GET(
+            '/v1/integrations/paystack/mpesa/verification-config',
+          ),
+        )) as { amount_kobo: number; amount_kes: number } | undefined
+        if (!cancelled && data?.amount_kes != null) {
+          setVerificationAmountKes(Number(data.amount_kes))
+        }
+      } catch {
+        // Fail-quiet: keep the 100 default. The actual charge runs
+        // through the backend which always reads the live value, so
+        // a stale UI label is the worst case here.
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const startedAtRef = useRef<number>(0)
 
@@ -294,6 +324,7 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
         timeoutMs={POLL_TIMEOUT_MS}
         isFinalizing={isFinalizing}
         onTryAgain={resetIdle}
+        amountKes={verificationAmountKes}
       />
     )
   }
@@ -437,7 +468,7 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
           <MethodCard
             active={payoutMethod === 'mpesa'}
             title="M-Pesa"
-            description="Direct to your phone. KSh 100 verification charge."
+            description={`Direct to your phone. KSh ${verificationAmountKes.toLocaleString('en-KE')} verification charge.`}
             onSelect={() => form.setValue('payout_method', 'mpesa')}
           />
           <MethodCard
@@ -584,6 +615,7 @@ function WaitingPanel({
   timeoutMs,
   isFinalizing,
   onTryAgain,
+  amountKes,
 }: {
   stage: 'waiting' | 'succeeded' | 'failed'
   reference: string | null
@@ -593,6 +625,7 @@ function WaitingPanel({
   timeoutMs: number
   isFinalizing: boolean
   onTryAgain: () => void
+  amountKes: number
 }) {
   const progressPct =
     stage === 'succeeded'
@@ -637,7 +670,10 @@ function WaitingPanel({
             </h3>
             <p className="mx-auto max-w-[44ch] font-sans text-[15px] leading-[1.55] text-[var(--text-secondary)]">
               {displayText} Amount:{' '}
-              <strong className="text-[var(--text-primary)]">KSh 100</strong>.
+              <strong className="text-[var(--text-primary)]">
+                KSh {amountKes.toLocaleString('en-KE')}
+              </strong>
+              .
             </p>
           </div>
           {/* Progress bar */}
