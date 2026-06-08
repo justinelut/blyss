@@ -933,13 +933,24 @@ const PaystackCheckoutForm = (props: CheckoutFormProps) => {
         onPaymentMethodSelect={setSelectedChannel}
         onPaymentSuccess={() => {
           // Polling inside PaystackPaymentInterface saw status='success'
-          // — backend has marked the checkout confirmed by now. Push the
-          // buyer to the hosted confirmation page (which routes to the
-          // creator's success_url or a default thank-you screen).
-          // Without this redirect, paystack test-mode payments
-          // (+254 710 000 000 auto-confirms instantly) would just sit on
-          // the success banner forever.
-          if (typeof window !== 'undefined') {
+          // — backend has already marked the checkout confirmed AND
+          // fired handle_success (P1 wiring) so the Order row exists
+          // by the time we redirect.
+          //
+          // Buyer-journey rule (Blyss-as-MoR): every signed-in buyer
+          // lands on /portal/orders post-purchase so they can manage
+          // EVERYTHING from one surface — downloads, benefits, cancel
+          // subs, refunds, the lot. Guest buyers (no Blyss session
+          // cookie) fall through to the legacy
+          // /checkout/{secret}/confirmation page which has the
+          // existing 'check your email for a magic link' UX.
+          if (typeof window === 'undefined') return
+          const hasBlyssSession = document.cookie
+            .split(';')
+            .some((c) => c.trim().startsWith('polar_session='))
+          if (hasBlyssSession) {
+            window.location.href = '/portal/orders'
+          } else {
             window.location.href = `/checkout/${checkout.client_secret}/confirmation`
           }
         }}
