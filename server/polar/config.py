@@ -257,7 +257,7 @@ class Settings(BaseSettings):
 
     # Google Gemini Configuration
     GOOGLE_AI_API_KEY: str = ""
-    GOOGLE_AI_MODEL: str = "gemini-2.0-flash"
+    GOOGLE_AI_MODEL: str = "gemini-2.5-flash"
 
     # Groq Configuration — get a free key at https://console.groq.com
     GROQ_API_KEY: str = ""

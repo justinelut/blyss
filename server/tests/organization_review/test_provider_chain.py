@@ -113,7 +113,7 @@ class TestProviderChainBuilder:
         # Order matters — Gemini first (1M context, handles big prompts),
         # Groq second (32K context, fast fallback).
         assert names == [
-            "gemini:gemini-2.0-flash",
+            "gemini:gemini-2.5-flash",
             "groq:llama-3.3-70b-versatile",
         ]
 

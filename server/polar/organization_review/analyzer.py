@@ -488,8 +488,26 @@ class ReviewAnalyzer:
         from polar.runtime_settings import runtime_settings
 
         async def _get_key(registry_key: str, settings_attr: str) -> str | None:
+            """Resolve a provider API key.
+
+            Read order:
+              1. runtime_settings DB row (only when session is given)
+              2. env var via `settings.<settings_attr>` (pydantic-settings
+                 strips the POLAR_ prefix, so the attr name is e.g.
+                 GOOGLE_AI_API_KEY rather than POLAR_GOOGLE_AI_API_KEY)
+
+            Earlier this function only checked (1) when a session was
+            present and stopped — masking env vars when no DB row
+            existed. That left Gemini (no backoffice row, env var only)
+            permanently invisible to the analyzer in production, so
+            the chain dropped Gemini and the 1M-context fallback never
+            fired against the 32K-context Llama model. Now (2) always
+            runs as a fallthrough when (1) returns None.
+            """
             if session is not None:
-                return await runtime_settings.get(session, registry_key)
+                from_db = await runtime_settings.get(session, registry_key)
+                if from_db:
+                    return from_db
             return getattr(settings, settings_attr, None) or None
 
         provider_override = settings.AI_PROVIDER.lower().strip()
