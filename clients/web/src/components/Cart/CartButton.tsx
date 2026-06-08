@@ -3,26 +3,52 @@
 import { useState } from 'react'
 import { FiShoppingBag } from 'react-icons/fi'
 import { motion, useReducedMotion, AnimatePresence } from 'motion/react'
-import { useCart } from '@/hooks/queries/cart'
+import {
+  useCartGrouped,
+  useCartForOrganization,
+} from '@/hooks/queries/cart'
 import { useAuth } from '@/hooks/auth'
 import { CartDrawer } from './CartDrawer'
 import { cn } from '@/lib/utils'
 
 interface CartButtonProps {
   className?: string
+  /**
+   * Scope:
+   *   - undefined → marketplace (default): badge counts items across
+   *     ALL creators' carts
+   *   - { organizationId } → creator-storefront: badge counts only
+   *     that creator's items
+   * Same prop is forwarded to CartDrawer so click-to-open keeps the
+   * scope consistent.
+   */
+  scope?: 'marketplace' | { organizationId: string }
 }
 
 /**
  * CartButton — header cart icon with item count badge.
- * Opens the CartDrawer on click. Badge animates in/out as items are added.
+ *
+ * In the marketplace context (default) the badge sums items across
+ * every creator's cart. On a creator's storefront the badge shows only
+ * that creator's count. Click opens CartDrawer with matching scope.
  */
-export const CartButton = ({ className }: CartButtonProps) => {
+export const CartButton = ({ className, scope = 'marketplace' }: CartButtonProps) => {
   const [open, setOpen] = useState(false)
   const reduce = useReducedMotion()
   const { authenticated } = useAuth()
-  const { data: cart } = useCart(authenticated)
 
-  const count = (cart as any)?.item_count ?? (cart as any)?.items?.length ?? 0
+  const groupedQuery = useCartGrouped(
+    authenticated && scope === 'marketplace',
+  )
+  const scopedQuery = useCartForOrganization(
+    typeof scope === 'object' ? scope.organizationId : undefined,
+    authenticated && typeof scope === 'object',
+  )
+
+  const count =
+    scope === 'marketplace'
+      ? groupedQuery.data?.item_count ?? 0
+      : (scopedQuery.data as any)?.item_count ?? 0
 
   return (
     <>
@@ -37,7 +63,6 @@ export const CartButton = ({ className }: CartButtonProps) => {
       >
         <FiShoppingBag size={20} />
 
-        {/* Item count badge */}
         <AnimatePresence>
           {count > 0 && (
             <motion.span
@@ -58,7 +83,7 @@ export const CartButton = ({ className }: CartButtonProps) => {
         </AnimatePresence>
       </button>
 
-      <CartDrawer open={open} onOpenChange={setOpen} />
+      <CartDrawer open={open} onOpenChange={setOpen} scope={scope} />
     </>
   )
 }

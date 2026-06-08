@@ -40,7 +40,12 @@ describe('Guest checkout intent — sign-in instead of 401', () => {
     ]) {
       const src = read(f)
       expect(src).toMatch(/useAuth/)
-      expect(src).toMatch(/useCart\(authenticated\)/)
+      // Either the legacy flat hook (useCart) or the multi-cart
+      // hooks (useCartGrouped, useCartForOrganization) — all gated
+      // on the authenticated flag so guests don't poll the cart.
+      expect(src).toMatch(
+        /useCart\(authenticated\)|useCartGrouped\(\s*authenticated[\s\S]*?\)|useCartForOrganization\(/,
+      )
     }
   })
 

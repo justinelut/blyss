@@ -157,6 +157,7 @@ export function CreatorStorefrontPage({
       <StorefrontHero
         name={creator.name}
         slug={creator.slug}
+        organizationId={creator.id}
         bio={creator.bio}
         avatarUrl={creator.avatarUrl}
         bannerUrl={creator.bannerUrl}

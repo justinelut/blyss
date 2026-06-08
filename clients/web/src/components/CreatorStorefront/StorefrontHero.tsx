@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { FiArrowLeft, FiHeart, FiX } from 'react-icons/fi'
 import { OptimizedImage } from '@/components/Image/OptimizedImage'
+import { CartButton } from '@/components/Cart/CartButton'
 import { cn } from '@/lib/utils'
 
 export interface StorefrontHeroProps {
@@ -12,6 +13,8 @@ export interface StorefrontHeroProps {
   name: string
   /** URL slug — also used as the @handle */
   slug: string
+  /** Organization id — needed to scope the cart icon to this creator */
+  organizationId: string
   /** Single-line bio shown beneath the name */
   bio?: string | null
   /** Avatar (1:1) — 88px square */
@@ -53,6 +56,7 @@ export interface StorefrontHeroProps {
 export const StorefrontHero = ({
   name,
   slug,
+  organizationId,
   bio,
   avatarUrl,
   bannerUrl,
@@ -128,6 +132,31 @@ export const StorefrontHero = ({
         <FiArrowLeft size={14} aria-hidden="true" />
         Blyss
       </Link>
+
+      {/* Creator-scoped cart button — top right.
+          Mirrors the back-to-Blyss link's visual chrome (low-contrast,
+          backdrop-blurred) so it doesn't compete with the creator's
+          banner imagery. The badge counts only items in THIS creator's
+          cart (scope={organizationId}); items the buyer has from other
+          creators are surfaced via the drawer's "you also have items
+          from N other creators" link to /cart. */}
+      <div
+        className={cn(
+          'absolute right-4 top-4 z-20 rounded-md md:right-8 md:top-6',
+          bannerUrl
+            ? 'bg-black/30 text-white/85 backdrop-blur-md'
+            : 'border border-[var(--border)] bg-[var(--background)]/80 backdrop-blur',
+        )}
+      >
+        <CartButton
+          scope={{ organizationId }}
+          className={cn(
+            bannerUrl
+              ? 'text-white/85 hover:bg-black/15 hover:text-white'
+              : 'text-[var(--text-secondary)]',
+          )}
+        />
+      </div>
       {/* Banner — 16:9 when an image is provided. When there's no image we
           render a SHORT single-tone editorial block (no scrim) to avoid the
           visual two-banner stack the dark scrim would otherwise create over

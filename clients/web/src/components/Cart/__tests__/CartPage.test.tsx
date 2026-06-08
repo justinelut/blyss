@@ -1,9 +1,18 @@
 import { render, screen, fireEvent } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { CartPage } from '../CartPage'
 
 vi.mock('@/hooks/queries/cart', () => ({
-  useCart: vi.fn(),
+  useCartGrouped: vi.fn(),
+  useCheckoutCartForOrganization: vi.fn(),
+}))
+
+vi.mock('@/hooks/auth', () => ({
+  useAuth: () => ({ authenticated: true }),
+}))
+
+vi.mock('@/stores/currencyStore', () => ({
+  useCurrencyStore: () => ({ currency: 'KES' }),
 }))
 
 vi.mock('next/navigation', () => ({
@@ -11,12 +20,13 @@ vi.mock('next/navigation', () => ({
 }))
 
 vi.mock('@/lib/currency', () => ({
-  formatCurrency: (amount: number, currency: string) =>
-    `$${(amount / 100).toFixed(2)}`,
+  formatCurrency: () => (amount: number) => `KSh ${(amount / 100).toFixed(2)}`,
 }))
 
 vi.mock('../CartItem', () => ({
-  CartItem: ({ item }: any) => <div data-testid={`cart-item-${item.id}`}>{item.product.name}</div>,
+  CartItem: ({ item }: any) => (
+    <div data-testid={`cart-item-${item.id}`}>{item.product.name}</div>
+  ),
 }))
 
 vi.mock('../EmptyCart', () => ({
@@ -27,225 +37,155 @@ vi.mock('@/components/Shared/Spinner', () => ({
   default: () => <div data-testid="spinner">Loading...</div>,
 }))
 
-import { useCart } from '@/hooks/queries/cart'
+vi.mock('@/components/atoms/Avatar', () => ({
+  default: ({ name }: any) => <div data-testid="avatar">{name}</div>,
+}))
+
+vi.mock('@/components/Shared/ErrorState', () => ({
+  ErrorState: ({ title }: any) => <div data-testid="error-state">{title}</div>,
+}))
+
+import { useCartGrouped, useCheckoutCartForOrganization } from '@/hooks/queries/cart'
 import { useRouter } from 'next/navigation'
 
 describe('CartPage', () => {
-  const mockRouter = {
-    push: vi.fn(),
-  }
+  const mockRouter = { push: vi.fn() }
+  const mockCheckoutMutate = vi.fn()
 
   beforeEach(() => {
+    vi.clearAllMocks()
     vi.mocked(useRouter).mockReturnValue(mockRouter as any)
+    vi.mocked(useCheckoutCartForOrganization).mockReturnValue({
+      mutate: mockCheckoutMutate,
+      isPending: false,
+      variables: undefined,
+    } as any)
   })
 
-  it('displays loading spinner when loading', () => {
-    vi.mocked(useCart).mockReturnValue({
+  it('shows spinner when loading', () => {
+    vi.mocked(useCartGrouped).mockReturnValue({
       data: undefined,
       isLoading: true,
       error: null,
     } as any)
-
     render(<CartPage />)
-
-    expect(screen.getByTestId('spinner')).toBeInTheDocument()
+    expect(screen.getByTestId('spinner')).toBeTruthy()
   })
 
-  it('displays error message when there is an error', () => {
-    vi.mocked(useCart).mockReturnValue({
+  it('shows error state when fetch fails', () => {
+    vi.mocked(useCartGrouped).mockReturnValue({
       data: undefined,
       isLoading: false,
-      error: new Error('Failed to load'),
+      error: new Error('boom'),
+      refetch: vi.fn(),
     } as any)
-
     render(<CartPage />)
-
-    expect(screen.getByText('Failed to load cart. Please try again.')).toBeInTheDocument()
+    expect(screen.getByTestId('error-state')).toBeTruthy()
   })
 
-  it('displays empty cart when cart has no items', () => {
-    vi.mocked(useCart).mockReturnValue({
-      data: { items: [], item_count: 0, subtotal: 0, tax: 0, total: 0 },
+  it('shows empty cart when no creators have items', () => {
+    vi.mocked(useCartGrouped).mockReturnValue({
+      data: { groups: [], item_count: 0 },
       isLoading: false,
       error: null,
     } as any)
-
     render(<CartPage />)
-
-    expect(screen.getByTestId('empty-cart')).toBeInTheDocument()
+    expect(screen.getByTestId('empty-cart')).toBeTruthy()
   })
 
-  it('displays all cart items', () => {
-    const mockCart = {
-      items: [
-        {
-          id: 'item_1',
-          product: {
-            id: 'prod_1',
-            name: 'Product 1',
-            prices: [{ price_amount: 1000, price_currency: 'usd' }],
+  it('renders one section per creator with their items', () => {
+    vi.mocked(useCartGrouped).mockReturnValue({
+      data: {
+        groups: [
+          {
+            organization: {
+              id: 'org-a',
+              slug: 'creator-a',
+              name: 'Creator A',
+              avatar_url: null,
+            },
+            items: [
+              {
+                id: 'item-1',
+                product: { name: 'Product One' },
+                quantity: 1,
+                subtotal: 5000,
+              },
+            ],
+            subtotal: 5000,
+            tax: 0,
+            total: 5000,
+            item_count: 1,
           },
-          quantity: 1,
-          subtotal: 1000,
-        },
-        {
-          id: 'item_2',
-          product: {
-            id: 'prod_2',
-            name: 'Product 2',
-            prices: [{ price_amount: 2000, price_currency: 'usd' }],
+          {
+            organization: {
+              id: 'org-b',
+              slug: 'creator-b',
+              name: 'Creator B',
+              avatar_url: null,
+            },
+            items: [
+              {
+                id: 'item-2',
+                product: { name: 'Product Two' },
+                quantity: 1,
+                subtotal: 8000,
+              },
+            ],
+            subtotal: 8000,
+            tax: 0,
+            total: 8000,
+            item_count: 1,
           },
-          quantity: 2,
-          subtotal: 4000,
-        },
-      ],
-      item_count: 3,
-      subtotal: 5000,
-      tax: 500,
-      total: 5500,
-    }
-
-    vi.mocked(useCart).mockReturnValue({
-      data: mockCart,
+        ],
+        item_count: 2,
+      },
       isLoading: false,
       error: null,
     } as any)
-
     render(<CartPage />)
-
-    expect(screen.getByTestId('cart-item-item_1')).toBeInTheDocument()
-    expect(screen.getByTestId('cart-item-item_2')).toBeInTheDocument()
+    expect(screen.getAllByText('Creator A').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Creator B').length).toBeGreaterThan(0)
+    expect(screen.getByTestId('cart-item-item-1')).toBeTruthy()
+    expect(screen.getByTestId('cart-item-item-2')).toBeTruthy()
   })
 
-  it('displays subtotal, tax, and total', () => {
-    const mockCart = {
-      items: [
-        {
-          id: 'item_1',
-          product: {
-            id: 'prod_1',
-            name: 'Product 1',
-            prices: [{ price_amount: 1000, price_currency: 'usd' }],
+  it('renders a Pay button per creator and calls scoped checkout', () => {
+    vi.mocked(useCartGrouped).mockReturnValue({
+      data: {
+        groups: [
+          {
+            organization: {
+              id: 'org-x',
+              slug: 'creator-x',
+              name: 'Creator X',
+              avatar_url: null,
+            },
+            items: [
+              {
+                id: 'item-x',
+                product: { name: 'X Product' },
+                quantity: 1,
+                subtotal: 1000,
+              },
+            ],
+            subtotal: 1000,
+            tax: 0,
+            total: 1000,
+            item_count: 1,
           },
-          quantity: 1,
-          subtotal: 1000,
-        },
-      ],
-      item_count: 1,
-      subtotal: 1000,
-      tax: 100,
-      total: 1100,
-    }
-
-    vi.mocked(useCart).mockReturnValue({
-      data: mockCart,
+        ],
+        item_count: 1,
+      },
       isLoading: false,
       error: null,
     } as any)
-
     render(<CartPage />)
-
-    expect(screen.getByText('Subtotal')).toBeInTheDocument()
-    expect(screen.getByText('$10.00')).toBeInTheDocument()
-    expect(screen.getByText('Estimated Tax')).toBeInTheDocument()
-    expect(screen.getByText('$1.00')).toBeInTheDocument()
-    expect(screen.getByText('Total')).toBeInTheDocument()
-    expect(screen.getByText('$11.00')).toBeInTheDocument()
-  })
-
-  it('displays proceed to checkout button', () => {
-    const mockCart = {
-      items: [
-        {
-          id: 'item_1',
-          product: {
-            id: 'prod_1',
-            name: 'Product 1',
-            prices: [{ price_amount: 1000, price_currency: 'usd' }],
-          },
-          quantity: 1,
-          subtotal: 1000,
-        },
-      ],
-      item_count: 1,
-      subtotal: 1000,
-      tax: 100,
-      total: 1100,
-    }
-
-    vi.mocked(useCart).mockReturnValue({
-      data: mockCart,
-      isLoading: false,
-      error: null,
-    } as any)
-
-    render(<CartPage />)
-
-    expect(screen.getByText('Proceed to Checkout')).toBeInTheDocument()
-  })
-
-  it('navigates to checkout when button is clicked', () => {
-    const mockCart = {
-      items: [
-        {
-          id: 'item_1',
-          product: {
-            id: 'prod_1',
-            name: 'Product 1',
-            prices: [{ price_amount: 1000, price_currency: 'usd' }],
-          },
-          quantity: 1,
-          subtotal: 1000,
-        },
-      ],
-      item_count: 1,
-      subtotal: 1000,
-      tax: 100,
-      total: 1100,
-    }
-
-    vi.mocked(useCart).mockReturnValue({
-      data: mockCart,
-      isLoading: false,
-      error: null,
-    } as any)
-
-    render(<CartPage />)
-
-    const checkoutButton = screen.getByText('Proceed to Checkout')
-    fireEvent.click(checkoutButton)
-
-    expect(mockRouter.push).toHaveBeenCalledWith('/checkout')
-  })
-
-  it('displays shopping cart heading', () => {
-    const mockCart = {
-      items: [
-        {
-          id: 'item_1',
-          product: {
-            id: 'prod_1',
-            name: 'Product 1',
-            prices: [{ price_amount: 1000, price_currency: 'usd' }],
-          },
-          quantity: 1,
-          subtotal: 1000,
-        },
-      ],
-      item_count: 1,
-      subtotal: 1000,
-      tax: 100,
-      total: 1100,
-    }
-
-    vi.mocked(useCart).mockReturnValue({
-      data: mockCart,
-      isLoading: false,
-      error: null,
-    } as any)
-
-    render(<CartPage />)
-
-    expect(screen.getByText('Shopping Cart')).toBeInTheDocument()
+    const payButton = screen.getByRole('button', { name: /Pay Creator X/i })
+    fireEvent.click(payButton)
+    expect(mockCheckoutMutate).toHaveBeenCalledWith(
+      'org-x',
+      expect.any(Object),
+    )
   })
 })

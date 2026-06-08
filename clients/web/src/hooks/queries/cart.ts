@@ -244,3 +244,103 @@ export const useClearCart = () => {
     },
   })
 }
+
+
+// ── Multi-creator marketplace cart ──────────────────────────────────
+// Polar's transactional model is per-org. The marketplace cart is the
+// AGGREGATION of N per-creator carts, each with its own checkout. These
+// hooks complement the legacy useCart() flat list above without
+// disturbing it.
+
+interface CartGroupOrganization {
+  id: string
+  slug: string
+  name: string
+  avatar_url: string | null
+}
+
+interface CartGroup {
+  organization: CartGroupOrganization
+  items: any[]
+  subtotal: number
+  tax: number
+  total: number
+  item_count: number
+}
+
+interface CartGroupedResponse {
+  groups: CartGroup[]
+  item_count: number
+}
+
+/**
+ * Marketplace cart: returns the buyer's items grouped by the creator
+ * who owns each product. One section per creator. Sorted most-recently-
+ * modified first.
+ *
+ * Use on marketplace surfaces (homepage / browse / search / /cart page
+ * / global header drawer) where the buyer is operating across all
+ * creators.
+ */
+export const useCartGrouped = (enabled = true) =>
+  useQuery({
+    queryKey: ['cart', 'grouped'],
+    queryFn: () =>
+      unwrap(
+        (api as any).GET('/v1/cart/grouped'),
+      ) as Promise<CartGroupedResponse>,
+    retry: defaultRetry,
+    enabled,
+  })
+
+/**
+ * Creator-scoped cart: returns just one creator's slice of the buyer's
+ * cart. Same shape as the legacy CartResponse, so the existing
+ * presentational components (CartItemRow, etc) reuse unchanged.
+ *
+ * Use on creator-storefront pages where the buyer should see only this
+ * creator's pending items, not other creators' carts.
+ */
+export const useCartForOrganization = (
+  organizationId: string | undefined,
+  enabled = true,
+) =>
+  useQuery({
+    queryKey: ['cart', 'organization', organizationId],
+    queryFn: () =>
+      unwrap(
+        (api as any).GET('/v1/cart', {
+          params: { query: { organization_id: organizationId } },
+        }),
+      ),
+    retry: defaultRetry,
+    enabled: enabled && !!organizationId,
+  })
+
+/**
+ * Checkout one creator's cart slice. Other creators' items remain in
+ * the buyer's cart for sequential per-creator checkouts. Pass the
+ * organization_id whose section's "Pay" button was pressed.
+ */
+export const useCheckoutCartForOrganization = () =>
+  useMutation({
+    mutationFn: (organizationId: string) =>
+      unwrap(
+        (api as any).POST('/v1/cart/checkout', {
+          params: { query: { organization_id: organizationId } },
+        }),
+      ) as Promise<{ client_secret: string; url: string }>,
+    onError: (error: any) => {
+      const errorMessage =
+        error?.error?.detail ||
+        error?.body?.detail ||
+        error?.message ||
+        'Failed to start checkout'
+
+      toast({
+        title: 'Checkout failed',
+        description: errorMessage,
+        variant: 'error',
+      })
+    },
+  })
