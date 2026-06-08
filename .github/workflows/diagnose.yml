@@ -87,6 +87,10 @@ jobs:
             sudo kubectl -n $NS exec $POD -- python3 -c 'import os,httpx;k=os.environ["POLAR_PAYSTACK_SECRET_KEY"];r=httpx.get("https://api.paystack.co/subaccount?perPage=5",headers={"Authorization":"Bearer "+k},timeout=10);print("  HTTP",r.status_code,"body=",r.text[:400])' 2>&1 | head -4 || true
             echo "-- recent paystack.charge logs (last 30 lines) --"
             sudo kubectl -n $NS logs deployment/blyss-api --tail=2000 2>&1 | grep -E "paystack\.charge|paystack\..*failed|provider.*\"|Invalid provider|Invalid Subaccount" | tail -30 || echo "(no paystack charge events logged)"
+            echo "-- payment-status / handle_success / checkout flow logs --"
+            sudo kubectl -n $NS logs deployment/blyss-api --tail=3000 2>&1 | grep -E "payment_status|handle_success|checkout.payment_status|payment-status|checkout.*confirmed|checkout.*succeeded|order.*created.*from_checkout" | tail -40 || echo "(no flow events)"
+            echo "-- last 5 checkouts in DB --"
+            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select id, status, payment_processor, payment_processor_metadata->>'charge_reference' as charge_ref, payment_processor_metadata->>'charge_status' as charge_status, organization_id, created_at from checkouts where created_at > now() - interval '2 hours' order by created_at desc limit 10;\"" 2>&1 | head -25
             echo "-- payment_channels.py KES providers (deployed code) --"
             sudo kubectl -n $NS exec $POD -- python3 -c 'from polar.checkout.payment_channels import get_channels_for_currency; ch=get_channels_for_currency("KES"); momo=next((c for c in ch if c.id=="mobile_money"), None); print("  momo providers:", momo.providers if momo else None)' 2>&1 | head -3 || true
             echo "-- blyss-studio org row: subaccount + mpesa fields --"
