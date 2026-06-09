@@ -839,8 +839,12 @@ class TestGetPaymentStatus:
         mocker: MockerFixture,
         user: User,
     ) -> None:
-        # Grandfathered organization (created before cutoff)
+        # Grandfathered organization (created before cutoff). Real
+        # grandfathered orgs were migrated to ACTIVE status; readiness now
+        # keys off status, not created_at (see
+        # is_organization_ready_for_payment docstring).
         organization.created_at = datetime(2025, 8, 4, 8, 0, tzinfo=UTC)
+        organization.status = OrganizationStatus.ACTIVE
         await save_fixture(organization)
 
         # Mock the API key count
