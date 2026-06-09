@@ -3,137 +3,111 @@ import { readFileSync } from 'fs'
 import { join } from 'path'
 
 /**
- * Inline-Paystack architecture gate.
+ * Paystack Inline JS (Mode A) checkout architecture gate.
  *
- *   - Buyer never redirected to Paystack's hosted checkout.
- *   - Channels driven by the backend's per-currency registry.
- *   - Channel selector is a Stripe-style horizontal-scroll tab strip.
- *   - Inputs use Polar's existing FormField + atoms/Input components,
- *     not raw <input> with custom chrome.
- *   - The component owns NO submit button — the existing Polar Pay
- *     button in BaseCheckoutForm submits.
- *   - No Lucide icon library on this surface; payment-method icons are
- *     custom SVGs from `components/Brand/payment-icons`.
+ * Pre-payment surface (our Blyss design):
+ *   - Email collected in our form via FormField + atoms/Input
+ *   - Pay button uses --accent token, Inter Display label
+ *   - No raw <input> elements with custom chrome
+ *
+ * Payment surface (Paystack popup, opened on Pay):
+ *   - Public key fetched via usePaystackPublicKey() — never bundled
+ *   - paystackPop() helper opens new PaystackPop().newTransaction(...)
+ *   - subaccount + channels + metadata threaded through to the
+ *     charge.success webhook on the backend
+ *   - No /v1/checkouts/{secret}/charge POST — that path was the
+ *     pre-Mode-A server-to-server pattern that triggered Paystack
+ *     fraud flags. Legacy form is preserved at .legacy.tsx but not
+ *     mounted from the active interface.
+ *
+ * Backend integration:
+ *   - GET /v1/integrations/paystack/public-config returns the public
+ *     key from runtime_settings overlay → env fallback
+ *   - charge.success webhook → checkout_service.handle_success →
+ *     Order created + benefits granted (already in place from prior
+ *     Phase 1 work, no test pinning here)
  */
 
 const FILES = {
-  hooks: join(process.cwd(), 'src/hooks/queries/checkoutPaystack.ts'),
   ui: join(
     process.cwd(),
     'src/components/Checkout/components/PaystackPaymentInterface.tsx',
   ),
-  form: join(
+  legacy: join(
     process.cwd(),
-    'src/components/Checkout/components/CheckoutForm.tsx',
+    'src/components/Checkout/components/PaystackPaymentInterface.legacy.tsx',
   ),
-  icons: join(process.cwd(), 'src/components/Brand/payment-icons.tsx'),
+  hook: join(process.cwd(), 'src/hooks/queries/paystackConfig.ts'),
+  helper: join(process.cwd(), 'src/utils/paystack-pop.ts'),
 }
 
-describe('Inline Paystack-native checkout', () => {
-  const hooks = readFileSync(FILES.hooks, 'utf8')
-  const ui = readFileSync(FILES.ui, 'utf8')
-  const form = readFileSync(FILES.form, 'utf8')
-  const icons = readFileSync(FILES.icons, 'utf8')
+const read = (p: string) => readFileSync(p, 'utf8')
 
-  test('no redirect to Paystack authorization_url', () => {
-    expect(form).not.toMatch(
-      /window\.location\.href\s*=\s*[^\n]*authorization_url/,
-    )
-    expect(ui).not.toMatch(/authorization_url/)
+describe('Paystack Inline JS (Mode A) checkout', () => {
+  test('UI imports the inline-js helper + public-key hook', () => {
+    const ui = read(FILES.ui)
+    expect(ui).toContain("from '@/hooks/queries/paystackConfig'")
+    expect(ui).toContain("from '@/utils/paystack-pop'")
+    expect(ui).toContain('usePaystackPublicKey')
+    expect(ui).toContain('paystackPop')
   })
 
-  test('hooks call the backend inline-charge endpoints', () => {
-    expect(hooks).toContain(
-      '/v1/checkouts/client/{client_secret}/payment-channels',
-    )
-    expect(hooks).toContain('/v1/checkouts/client/{client_secret}/charge')
-    expect(hooks).toContain(
-      '/v1/checkouts/client/{client_secret}/charge/submit/{action}',
-    )
-    expect(hooks).toContain(
-      '/v1/checkouts/client/{client_secret}/payment-status',
-    )
+  test('Pay button opens Paystack popup with required config', () => {
+    const ui = read(FILES.ui)
+    expect(ui).toContain('paystackPop({')
+    expect(ui).toMatch(/publicKey:\s*publicConfig\.public_key/)
+    expect(ui).toMatch(/email:\s*email/)
+    expect(ui).toMatch(/amount,/)
+    expect(ui).toMatch(/currency,/)
+    expect(ui).toMatch(/subaccount,/)
+    expect(ui).toContain('onSuccess')
+    expect(ui).toContain('onCancel')
   })
 
-  test('payment status hook polls every 3 seconds while pending', () => {
-    expect(hooks).toContain('refetchInterval')
-    expect(hooks).toMatch(/3000/)
+  test('UI threads checkout_id metadata for webhook reconciliation', () => {
+    const ui = read(FILES.ui)
+    expect(ui).toContain('checkout_id: checkout.id')
   })
 
-  test('UI uses Polar inputs and FormLabel — not raw <input>', () => {
-    expect(ui).toContain("import Input from '@/components/atoms/Input'")
-    expect(ui).toContain('FormLabel')
-    expect(ui).toContain("from '@/components/ui/form'")
+  test('UI does NOT POST to legacy /v1/checkouts/.../charge', () => {
+    const ui = read(FILES.ui)
+    expect(ui).not.toContain('/v1/checkouts/client/{client_secret}/charge')
+    expect(ui).not.toContain('useCheckoutCharge')
+    expect(ui).not.toContain('useCheckoutChargeSubmitStep')
   })
 
-  test('UI has NO Lucide imports', () => {
-    expect(ui).not.toMatch(/from\s+['"]lucide-react['"]/)
+  test('UI uses Blyss design tokens (no shadow cards, accent button)', () => {
+    const ui = read(FILES.ui)
+    expect(ui).toContain('var(--accent)')
+    expect(ui).toContain('var(--text-muted)')
+    // No drop-shadow cards (Blyss anti-pattern)
+    expect(ui).not.toMatch(/className="[^"]*shadow-md/)
+    expect(ui).not.toMatch(/className="[^"]*shadow-lg/)
   })
 
-  test('UI mounts payment-method icons from custom SVG set', () => {
-    expect(ui).toContain("from '@/components/Brand/payment-icons'")
+  test('UI uses react-icons (not Lucide) per Blyss design rules', () => {
+    const ui = read(FILES.ui)
+    expect(ui).toContain("from 'react-icons/fi'")
+    expect(ui).not.toMatch(/from ['"]lucide-react['"]/)
   })
 
-  test('Channel selector is a horizontal-scroll tabs strip', () => {
-    expect(ui).toContain('overflow-x-auto')
-    expect(ui).toContain('scroll-snap-type:x_mandatory')
-    expect(ui).toContain('role="tablist"')
-    expect(ui).toContain('role="tab"')
+  test('Legacy custom-channel form is preserved as fallback', () => {
+    const legacy = read(FILES.legacy)
+    expect(legacy.length).toBeGreaterThan(1000)
+    expect(legacy).toContain('PaystackPaymentInterface')
   })
 
-  test('UI consumes channels dynamically (no hard-coded list)', () => {
-    expect(ui).toContain('useCheckoutPaymentChannels')
-    // Iterate the dynamic channels array, however the implementation
-    // chooses to spread/flatten it. The forbidden pattern is a static
-    // hard-coded paymentMethods array.
-    expect(ui).toMatch(/channels\.(?:map|flatMap)\b/)
-    expect(ui).not.toMatch(/const paymentMethods\s*=\s*\[/)
+  test('public-config hook fetches the runtime key', () => {
+    const hook = read(FILES.hook)
+    expect(hook).toContain("'/v1/integrations/paystack/public-config'")
+    expect(hook).toContain('usePaystackPublicKey')
   })
 
-  test('Mobile-money channels split into per-provider tabs', () => {
-    // The selector must render one tab per mobile-money provider —
-    // M-Pesa and Airtel Money each get their own logo/label, NOT a
-    // single shared "Mobile money" entry that hides the providers.
-    expect(ui).toMatch(/mobile_money:\$\{p\.code\}/)
-    // Per-provider icon dispatch (Kenya: airtel; GH: mtn/tgo/vod).
-    expect(ui).toContain("providerCode === 'airtel'")
-    expect(ui).toContain("providerCode === 'mtn'")
-  })
-
-  test('UI handles next-action steps inline', () => {
-    expect(ui).toContain("'otp' | 'pin' | 'phone' | 'birthday'")
-    expect(ui).toContain('useCheckoutChargeSubmitStep')
-    expect(ui).not.toMatch(/PaystackPop|paystack\.js|paystackjs/)
-  })
-
-  test('UI does not render its own Pay/Submit primary button', () => {
-    // The only buttons in the file are channel tabs, provider selectors,
-    // and the inline next-action submit (OTP/PIN). The component must
-    // NOT add a primary "Pay" button — that's the parent form's job.
-    // Match only actual <button> tags whose visible text is "Pay" or
-    // "Pay now"; the string "Pay now" appearing inside instructional
-    // copy (e.g. "Click Pay now to generate…") is fine.
-    expect(ui).not.toMatch(/<button[^>]*>\s*Pay now\s*</)
-    expect(ui).not.toMatch(/<button[^>]*>\s*Pay\s*</)
-  })
-
-  test('CheckoutForm switches Paystack vs Stripe by payment_processor', () => {
-    expect(form).toMatch(/payment_processor === 'paystack'/)
-  })
-
-  test('CheckoutForm mounts Paystack UI in the children slot', () => {
-    // Match against the same multi-line block we wrote.
-    expect(form).toContain('<PaystackPaymentInterface')
-    expect(form).not.toMatch(/beforeSubmit=\{[\s\S]*?<PaystackPaymentInterface/)
-  })
-
-  test('Payment icons are path-based custom SVGs (no Lucide)', () => {
-    expect(icons).not.toMatch(/from\s+['"]lucide-react['"]/)
-    expect(icons).toMatch(/<svg/)
-    expect(icons).toContain('VisaLogo')
-    expect(icons).toContain('MastercardLogo')
-    expect(icons).toContain('MpesaLogo')
-    expect(icons).toContain('UssdGlyph')
-    expect(icons).toContain('QrGlyph')
+  test('paystackPop helper wraps PaystackPop().newTransaction', () => {
+    const helper = read(FILES.helper)
+    expect(helper).toContain("from '@paystack/inline-js'")
+    expect(helper).toContain('new PaystackPop()')
+    expect(helper).toContain('newTransaction')
+    expect(helper).toContain('generatePaystackReference')
   })
 })

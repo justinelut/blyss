@@ -210,13 +210,34 @@ export default async function Page({ params }: CreatorPageProps) {
   const tipEnabled =
     (raw['donations_enabled'] as boolean | undefined) ?? true
 
-  const socialLinks: AboutTabSocialLinks | null = creator.social_links
-    ? {
-        twitter: creator.social_links.twitter ?? null,
-        instagram: creator.social_links.instagram ?? null,
-        website: creator.social_links.website ?? null,
-      }
-    : null
+  // The CreatorStorefrontSchema added a `socials` field (Polar's
+  // native list) but the frontend OpenAPI types haven't been
+  // regenerated yet — cast through `any` so we can read it without
+  // a full codegen pass. The field is optional anyway.
+  const polarSocials = (creator as any).socials as
+    | Array<{ platform?: string; url?: string }>
+    | null
+    | undefined
+
+  const socialLinks: AboutTabSocialLinks | null =
+    polarSocials && polarSocials.length > 0
+      ? {
+          // Polar's native list — preferred path. AboutTab renders an
+          // icon per platform with the dashboard's editor in mind.
+          socials: polarSocials.map((s) => ({
+            platform: String(s?.platform || 'other'),
+            url: String(s?.url || ''),
+          })),
+        }
+      : creator.social_links
+        ? {
+            // Legacy 3-field shape, kept for orgs that haven't been
+            // migrated to populate socials yet.
+            twitter: creator.social_links.twitter ?? null,
+            instagram: creator.social_links.instagram ?? null,
+            website: creator.social_links.website ?? null,
+          }
+        : null
 
   // Email is only shown when the creator opted in to expose it. The backend
   // currently always returns it on this endpoint; phase-7 adds an opt-in

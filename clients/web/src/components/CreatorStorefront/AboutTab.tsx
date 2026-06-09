@@ -5,6 +5,7 @@ import {
   FiCheck,
   FiCopy,
   FiFacebook,
+  FiGithub,
   FiGlobe,
   FiInstagram,
   FiLinkedin,
@@ -12,11 +13,37 @@ import {
   FiSend,
   FiShare2,
   FiTwitter,
+  FiYoutube,
 } from 'react-icons/fi'
 import { LegalDoc, typography } from '@/design'
 import { cn } from '@/lib/utils'
 
+/**
+ * Polar's native social platforms. Mirrors
+ * server/polar/models/organization.py OrganizationSocialPlatforms enum.
+ * Buyer-facing creator page renders one of these icons per entry.
+ */
+type PolarSocialPlatform =
+  | 'x'
+  | 'twitter'
+  | 'instagram'
+  | 'facebook'
+  | 'youtube'
+  | 'linkedin'
+  | 'github'
+  | 'tiktok'
+  | 'website'
+  | 'other'
+
 export interface AboutTabSocialLinks {
+  /** Polar's native socials list — preferred. Each entry is
+   *  {platform, url}. The platform values match the dashboard
+   *  editor's SOCIAL_PLATFORM_DOMAINS map. */
+  socials?: Array<{ platform: string; url: string }> | null
+
+  /** Legacy 3-field shape (twitter / instagram / website) — kept
+   *  for backwards compatibility while older clients still pass
+   *  this. New code should populate `socials`. */
   twitter?: string | null
   instagram?: string | null
   website?: string | null
@@ -58,27 +85,91 @@ export const AboutTab = ({ name, slug, bio, socials, email }: AboutTabProps) => 
   // Build the social link list. Defensive trims + URL normalization. We do
   // NOT echo raw user-supplied URLs without scheme — coerce them through
   // `normalizeUrl` to avoid open-redirect-like surfaces and broken links.
+  //
+  // Resolution order: prefer Polar's native `socials` list (covers all
+  // 8+ platforms) when present; fall back to the legacy 3-field shape
+  // (twitter/instagram/website) for backwards compatibility.
   const items: SocialItem[] = []
-  if (socials?.twitter) {
-    items.push({
-      href: normalizeUrl(socials.twitter, 'https://x.com/'),
-      label: 'X / Twitter',
-      Icon: FiTwitter,
-    })
+
+  const platformIcon = (platform: string): typeof FiTwitter => {
+    switch (platform.toLowerCase()) {
+      case 'x':
+      case 'twitter':
+        return FiTwitter
+      case 'instagram':
+        return FiInstagram
+      case 'facebook':
+        return FiFacebook
+      case 'youtube':
+        return FiYoutube
+      case 'linkedin':
+        return FiLinkedin
+      case 'github':
+        return FiGithub
+      case 'website':
+        return FiGlobe
+      default:
+        return FiGlobe
+    }
   }
-  if (socials?.instagram) {
-    items.push({
-      href: normalizeUrl(socials.instagram, 'https://instagram.com/'),
-      label: 'Instagram',
-      Icon: FiInstagram,
-    })
+  const platformLabel = (platform: string): string => {
+    switch (platform.toLowerCase()) {
+      case 'x':
+        return 'X'
+      case 'twitter':
+        return 'Twitter'
+      case 'instagram':
+        return 'Instagram'
+      case 'facebook':
+        return 'Facebook'
+      case 'youtube':
+        return 'YouTube'
+      case 'linkedin':
+        return 'LinkedIn'
+      case 'github':
+        return 'GitHub'
+      case 'tiktok':
+        return 'TikTok'
+      case 'website':
+        return 'Website'
+      default:
+        return 'Link'
+    }
   }
-  if (socials?.website) {
-    items.push({
-      href: normalizeUrl(socials.website, 'https://'),
-      label: 'Website',
-      Icon: FiGlobe,
-    })
+
+  if (socials?.socials && socials.socials.length > 0) {
+    // Native Polar list path — preferred
+    for (const entry of socials.socials) {
+      if (!entry?.url?.trim()) continue
+      items.push({
+        href: normalizeUrl(entry.url, 'https://'),
+        label: platformLabel(entry.platform || 'other'),
+        Icon: platformIcon(entry.platform || 'other'),
+      })
+    }
+  } else {
+    // Legacy 3-field path
+    if (socials?.twitter) {
+      items.push({
+        href: normalizeUrl(socials.twitter, 'https://x.com/'),
+        label: 'X / Twitter',
+        Icon: FiTwitter,
+      })
+    }
+    if (socials?.instagram) {
+      items.push({
+        href: normalizeUrl(socials.instagram, 'https://instagram.com/'),
+        label: 'Instagram',
+        Icon: FiInstagram,
+      })
+    }
+    if (socials?.website) {
+      items.push({
+        href: normalizeUrl(socials.website, 'https://'),
+        label: 'Website',
+        Icon: FiGlobe,
+      })
+    }
   }
 
   const hasBio = !!bio?.trim()

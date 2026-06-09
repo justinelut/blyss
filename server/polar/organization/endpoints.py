@@ -313,6 +313,18 @@ async def get_creator(
         bio=organization.bio,
         email=organization.email,
         social_links=social_links_dict if social_links_dict else None,
+        # Polar's native socials list — full {platform, url} entries
+        # (twitter, instagram, youtube, facebook, linkedin, github, x,
+        # tiktok, website, other). Frontend creator page reads this
+        # directly so it can render every platform's icon, not just
+        # the 3 that social_links typed.
+        socials=[
+            {"platform": s.get("platform", "other"), "url": s.get("url", "")}
+            for s in (organization.socials or [])
+            if s.get("url")
+        ]
+        if organization.socials
+        else None,
         tipping_enabled=organization.tipping_enabled,
         products=products,
     )

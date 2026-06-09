@@ -7,7 +7,6 @@ import OrganizationDeleteSettings from '@/components/Settings/OrganizationDelete
 import OrganizationMPesaSettings from '@/components/Settings/OrganizationMPesaSettings'
 import OrganizationNotificationSettings from '@/components/Settings/OrganizationNotificationSettings'
 import OrganizationProfileSettings from '@/components/Settings/OrganizationProfileSettings'
-import { ProfileEditor } from '@/components/Organization/ProfileEditor'
 import { Section, SectionDescription } from '@/components/Settings/Section'
 import { schemas } from '@/lib/api'
 
@@ -25,14 +24,6 @@ export default function ClientPage({
         <Section id="organization">
           <SectionDescription title="Profile" />
           <OrganizationProfileSettings organization={org} />
-        </Section>
-
-        <Section id="creator-profile">
-          <SectionDescription
-            title="Creator Storefront"
-            description="Customize your public creator profile and storefront"
-          />
-          <ProfileEditor organization={org} />
         </Section>
 
         <Section id="notifications">

@@ -513,8 +513,8 @@ export const OrganizationDetailsForm: React.FC<
               Social Media {inKYCMode && '*'}
             </label>
             <p className="mt-2 text-xs text-[var(--text-secondary)]">
-              Your personal social media links are used for identity
-              verification. They will never be shown publicly.
+              Add your social profiles. They appear on your public
+              creator page so buyers can follow you.
             </p>
           </div>
           <OrganizationSocialLinks required={inKYCMode} />
