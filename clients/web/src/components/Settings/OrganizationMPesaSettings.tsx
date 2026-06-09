@@ -690,12 +690,16 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
               How verification works
             </p>
             <p className="mt-3 font-sans text-[14px] leading-[1.6] text-[var(--text-secondary)]">
-              Click <span className="font-medium text-[var(--text-primary)]">Verify M-Pesa</span> below.
-              Paystack&rsquo;s secure popup will open and ask for the
-              M-Pesa number to charge KSh {verificationAmountKes.toLocaleString('en-KE')}{' '}
-              from. Approve the STK push with your M-Pesa PIN, and we
-              automatically link that number to your Blyss payouts. We
-              never see your PIN.
+              Click{' '}
+              <span className="font-medium text-[var(--text-primary)]">
+                Verify M-Pesa
+              </span>{' '}
+              below. Paystack&rsquo;s secure popup will open and ask
+              for the M-Pesa number to charge KSh{' '}
+              {verificationAmountKes.toLocaleString('en-KE')} from.
+              Approve the STK push with your M-Pesa PIN, and we
+              automatically link that number to your Blyss payouts.
+              We never see your PIN.
             </p>
             <p className="mt-2 font-sans text-[12px] text-[var(--text-muted)]">
               The KSh {verificationAmountKes.toLocaleString('en-KE')}{' '}

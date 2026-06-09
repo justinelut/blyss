@@ -2,7 +2,6 @@
 
 import { DashboardBody } from '@/components/Layout/DashboardLayout'
 import FeatureSettings from '@/components/Settings/FeatureSettings'
-import OrganizationAccessTokensSettings from '@/components/Settings/OrganizationAccessTokensSettings'
 import OrganizationDeleteSettings from '@/components/Settings/OrganizationDeleteSettings'
 import OrganizationMPesaSettings from '@/components/Settings/OrganizationMPesaSettings'
 import OrganizationNotificationSettings from '@/components/Settings/OrganizationNotificationSettings'
@@ -45,14 +44,6 @@ export default function ClientPage({
             description="Manage alpha & beta features for your organization"
           />
           <FeatureSettings organization={org} />
-        </Section>
-
-        <Section id="developers">
-          <SectionDescription
-            title="Developers"
-            description="Manage access tokens to authenticate with the Blyss API"
-          />
-          <OrganizationAccessTokensSettings organization={org} />
         </Section>
 
         <Section id="danger">

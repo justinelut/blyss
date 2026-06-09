@@ -197,7 +197,14 @@ async def webhook(
     """Receive and process Paystack webhook events."""
     event_type = event["event"]
     event_data = event["data"]
-    event_id = event_data.get("id", event_data.get("reference", "unknown"))
+    # Paystack sends `data.id` as a 64-bit integer (e.g. 6239467448).
+    # ExternalEvent.external_id is a VARCHAR column, and SQLAlchemy
+    # raises `operator does not exist: character varying = bigint` if
+    # we hand it an int — Postgres won't implicit-cast across types.
+    # Always coerce to str so the lookup works regardless of which
+    # event type Paystack sends.
+    raw_event_id = event_data.get("id", event_data.get("reference", "unknown"))
+    event_id = str(raw_event_id)
 
     # Store webhook event for audit purposes and enqueue processing
     await external_event_service.enqueue(
