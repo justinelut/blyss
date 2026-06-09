@@ -1,10 +1,16 @@
 'use client'
 
-import { motion, useReducedMotion, AnimatePresence } from 'motion/react'
-import { useEffect, useState } from 'react'
+import { motion, useReducedMotion } from 'motion/react'
+import { useState } from 'react'
 import Link from 'next/link'
-import { FiArrowLeft, FiHeart, FiX } from 'react-icons/fi'
+import { FiArrowLeft, FiHeart } from 'react-icons/fi'
 import { OptimizedImage } from '@/components/Image/OptimizedImage'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 
 export interface StorefrontHeroProps {
@@ -76,21 +82,6 @@ export const StorefrontHero = ({
   // (60 chars) — anything that's likely to ellipse in a 52ch column
   // gets the affordance so we don't silently hide useful copy.
   const isLongBio = !!bio && bio.length > 60
-
-  // Close modal on Escape + lock body scroll while open.
-  useEffect(() => {
-    if (!bioOpen) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setBioOpen(false)
-    }
-    document.addEventListener('keydown', onKey)
-    const prevOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.removeEventListener('keydown', onKey)
-      document.body.style.overflow = prevOverflow
-    }
-  }, [bioOpen])
 
   // Reveal timing for hero overlay (matches Hero.tsx home pattern)
   const bgAnim = reduce
@@ -330,56 +321,33 @@ export const StorefrontHero = ({
       {/* Full-screen bio modal — opened by 'Read more' on the hero. The
           long-form biography lives on the About tab too, but having it
           one click away from the hero keeps visitors in flow without
-          forcing a tab switch. */}
-      <AnimatePresence>
-        {bioOpen && bio && (
-          <motion.div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="storefront-bio-title"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-50 flex items-end justify-center bg-[rgba(15,14,12,0.6)] p-0 sm:items-center sm:p-6"
-            onClick={() => setBioOpen(false)}
-          >
-            <motion.div
-              initial={{ y: 24, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 24, opacity: 0 }}
-              transition={{ duration: 0.25, ease }}
-              onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-[640px] overflow-hidden rounded-t-2xl bg-[var(--background)] sm:rounded-2xl"
-            >
-              <button
-                type="button"
-                onClick={() => setBioOpen(false)}
-                aria-label="Close"
-                className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-md text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-sunken)] hover:text-[var(--text-primary)]"
-              >
-                <FiX size={20} aria-hidden="true" />
-              </button>
-              <div className="px-6 pt-12 pb-8 sm:px-10 sm:pt-14 sm:pb-12">
-                <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
-                  About
-                </p>
-                <h2
-                  id="storefront-bio-title"
-                  className="mt-2 font-display text-[28px] font-semibold leading-[1.15] tracking-[-0.02em] text-[var(--text-primary)]"
-                >
-                  {name}
-                </h2>
-                <div className="mt-6 max-h-[60vh] overflow-y-auto pr-2">
-                  <p className="whitespace-pre-line font-sans text-[15px] leading-[1.6] text-[var(--text-secondary)]">
-                    {bio}
-                  </p>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
+          forcing a tab switch.
+
+          Uses shadcn Dialog (portaled to <body>) instead of a hand-rolled
+          fixed-position modal. The hero banner animates with a `scale`
+          transform, which creates a stacking context — a `fixed` modal
+          rendered inside the hero was trapped in it and painted BELOW the
+          product grid further down the page. Portaling to body escapes
+          that entirely. */}
+      <Dialog open={bioOpen} onOpenChange={setBioOpen}>
+        {bio && (
+          <DialogContent className="max-w-[640px] gap-0 p-0">
+            <DialogHeader className="px-6 pt-12 pb-0 text-left sm:px-10 sm:pt-12">
+              <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
+                About
+              </p>
+              <DialogTitle className="mt-2 font-display text-[28px] font-semibold leading-[1.15] tracking-[-0.02em] text-[var(--text-primary)]">
+                {name}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="max-h-[60vh] overflow-y-auto px-6 pb-8 pt-6 sm:px-10 sm:pb-12">
+              <p className="whitespace-pre-line font-sans text-[15px] leading-[1.6] text-[var(--text-secondary)]">
+                {bio}
+              </p>
+            </div>
+          </DialogContent>
         )}
-      </AnimatePresence>
+      </Dialog>
     </section>
   )
 }
