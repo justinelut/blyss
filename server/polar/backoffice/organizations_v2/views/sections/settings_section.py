@@ -302,6 +302,57 @@ class SettingsSection:
                     ):
                         text("No social media links configured")
 
+            # Payouts / Paystack card — shows the creator's subaccount
+            # state and a reset action for switching Paystack environments
+            # (live <-> test). A subaccount provisioned with one set of keys
+            # is invalid under the other; reset clears it so the creator can
+            # re-verify M-Pesa in the current environment.
+            with card(bordered=True):
+                with tag.div(classes="flex items-center justify-between mb-4"):
+                    with tag.h2(classes="text-lg font-bold"):
+                        text("Payouts / Paystack")
+                    with button(
+                        variant="error",
+                        size="sm",
+                        outline=True,
+                        hx_get=str(
+                            request.url_for(
+                                "organizations:reset_paystack_dialog",
+                                organization_id=self.org.id,
+                            )
+                        ),
+                        hx_target="#modal",
+                    ):
+                        text("Reset payout state")
+
+                with tag.div(classes="space-y-2"):
+                    for label, value in [
+                        ("Subaccount code", self.org.subaccount_code or "—"),
+                        ("Subaccount status", str(self.org.subaccount_status)),
+                        ("M-Pesa number", self.org.mpesa_number or "—"),
+                        (
+                            "M-Pesa verified",
+                            "Yes" if self.org.mpesa_verified else "No",
+                        ),
+                        ("Payout method", str(self.org.payout_method)),
+                    ]:
+                        with tag.div(
+                            classes="flex items-center justify-between py-1"
+                        ):
+                            with tag.div(classes="text-sm text-base-content/60"):
+                                text(label)
+                            with tag.div(classes="font-mono text-sm"):
+                                text(value)
+                    with tag.div(
+                        classes="text-xs text-base-content/50 pt-2 border-t border-base-200 mt-2"
+                    ):
+                        text(
+                            "Reset clears subaccount + M-Pesa fields so the "
+                            "creator can re-verify after switching Paystack "
+                            "live ↔ test keys. Products, orders, and members "
+                            "are untouched."
+                        )
+
             # Danger zone card
             with card(bordered=True, classes="border-error/20 bg-error/5"):
                 with tag.h2(classes="text-lg font-bold mb-4 text-error"):

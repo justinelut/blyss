@@ -2568,6 +2568,85 @@ async def delete_dialog(
 
 
 @router.api_route(
+    "/{organization_id}/reset-paystack",
+    name="organizations:reset_paystack_dialog",
+    methods=["GET", "POST"],
+    response_model=None,
+)
+async def reset_paystack_dialog(
+    request: Request,
+    organization_id: UUID4,
+    session: AsyncSession = Depends(get_db_session),
+) -> HXRedirectResponse | None:
+    """Reset an organization's Paystack / M-Pesa payout state.
+
+    Clears the subaccount + M-Pesa fields so the creator can re-verify
+    after switching Paystack environments (live <-> test). A subaccount
+    provisioned with one set of keys is invalid under the other.
+    """
+    repository = OrganizationRepository(session)
+    organization = await repository.get_by_id(
+        organization_id, include_blocked=True
+    )
+    if not organization:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    if request.method == "POST":
+        await organization_service.reset_paystack_state(session, organization)
+        await session.commit()
+        await add_toast(
+            request,
+            "Payout state reset. The creator can now re-verify M-Pesa in "
+            "the current Paystack environment.",
+            "success",
+        )
+        return HXRedirectResponse(
+            request,
+            str(
+                request.url_for(
+                    "organizations:detail", organization_id=organization_id
+                )
+            )
+            + "?section=settings",
+            303,
+        )
+
+    with modal("Reset payout state", open=True):
+        with tag.div(classes="flex flex-col gap-4"):
+            with tag.p(classes="text-sm"):
+                text(
+                    "This clears the Paystack subaccount + M-Pesa fields "
+                    "(subaccount code, status, number, verified flag, payout "
+                    "method, bank details) for this organization."
+                )
+            with tag.p(classes="text-sm text-base-content/70"):
+                text(
+                    "Use it when switching Paystack environments (live ↔ "
+                    "test) — a subaccount provisioned with one set of keys is "
+                    "invalid under the other. After reset, the creator re-runs "
+                    '"Verify M-Pesa" and a fresh subaccount is provisioned. '
+                    "Products, orders, members, and review state are NOT "
+                    "affected."
+                )
+            with tag.div(classes="modal-action pt-6 border-t border-base-200"):
+                with tag.form(method="dialog"):
+                    with button(ghost=True):
+                        text("Cancel")
+                with tag.form(
+                    hx_post=str(
+                        request.url_for(
+                            "organizations:reset_paystack_dialog",
+                            organization_id=organization_id,
+                        )
+                    ),
+                ):
+                    with button(variant="error", type="submit"):
+                        text("Reset payout state")
+
+    return None
+
+
+@router.api_route(
     "/{organization_id}/setup-account",
     name="organizations:setup_account",
     methods=["GET", "POST"],
