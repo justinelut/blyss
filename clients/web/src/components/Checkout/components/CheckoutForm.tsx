@@ -39,6 +39,12 @@ import { isDisplayedField, isRequiredField } from '../utils/address'
 import { convertLocaleToStripeElementLocale } from '../utils/locale'
 import CustomFieldInput from './CustomFieldInput'
 import PolarLogo from './PolarLogo'
+import { usePaystackPublicKey } from '@/hooks/queries/paystackConfig'
+import {
+  paystackPop,
+  generatePaystackReference,
+} from '@/utils/paystack-pop'
+import { toast } from '@/components/Toast/use-toast'
 
 const WALLET_PAYMENT_METHODS = ['apple_pay', 'google_pay', 'link']
 
@@ -895,23 +901,104 @@ const DummyCheckoutForm = (props: CheckoutFormProps) => {
 
 const PaystackCheckoutForm = (props: CheckoutFormProps) => {
   const { checkout } = props
-  const [selectedChannel, setSelectedChannel] = useState<string>('card')
+  const [selectedChannel, setSelectedChannel] = useState<string>('paystack-pop')
+  const [popupCancelled, setPopupCancelled] = useState(false)
 
-  // Confirm wrapper: Paystack does not need a Stripe ConfirmationToken;
-  // pass null. We DO NOT redirect to Paystack's hosted checkout page.
-  // The buyer pays inside our own UI:
-  //   * card  → POST /v1/checkouts/{client_secret}/charge/card with
-  //             {card_number, expiry, cvv}; backend hits Paystack /charge.
-  //   * mpesa → POST /v1/checkouts/{client_secret}/charge/mpesa with
-  //             {phone}; backend hits Paystack /charge mobile_money.
-  // After triggering the charge we poll /payment-status until success or
-  // failure. No Paystack UI is ever shown to the buyer.
+  const { data: paystackConfig } = usePaystackPublicKey()
+  const publicKey = paystackConfig?.public_key
+
+  /**
+   * Mode A confirm: hits the existing /confirm backend (which
+   * updates customer email + locks the checkout for fulfillment),
+   * THEN opens Paystack's popup with the public key. Buyer
+   * authorizes inside Paystack's secure modal — popup handles
+   * card / M-Pesa / 3DS / fraud checks.
+   *
+   * onSuccess from the popup → window.location to the confirmation
+   * page where SequentialCheckoutContinue + the existing webhook
+   * pipeline take over.
+   *
+   * onCancel → clear the cancelled state so the buyer can retry by
+   * clicking Pay again.
+   */
   const confirmPaystack = useCallback(
     async (data: any) => {
+      // 1. Hit the existing confirm endpoint (sets customer email,
+      //    locks checkout state, emits SSE 'confirmed' event for
+      //    SequentialCheckoutContinue to pick up later).
       const updated = await props.confirm(data, null, null)
+
+      // 2. Open the Paystack popup with the now-confirmed checkout's
+      //    details. The form's email is on `updated.customer_email`.
+      if (!publicKey) {
+        toast({
+          title: 'Payment unavailable',
+          description:
+            'Paystack public key not configured. Try again shortly.',
+          variant: 'error',
+        })
+        throw new Error('paystack_public_key_missing')
+      }
+
+      const subaccount =
+        ((updated.organization as any)?.subaccount_code as string | undefined) ||
+        ((checkout.organization as any)?.subaccount_code as string | undefined)
+
+      if (
+        !subaccount &&
+        (updated.payment_processor === 'paystack' ||
+          checkout.payment_processor === 'paystack')
+      ) {
+        toast({
+          title: 'This item is unavailable right now',
+          description:
+            'The creator has not finished setting up payouts. Please try again later.',
+          variant: 'error',
+        })
+        throw new Error('paystack_subaccount_missing')
+      }
+
+      const email =
+        updated.customer_email ||
+        ((updated as any).customer?.email as string | undefined) ||
+        (checkout as any).customer_email ||
+        ''
+
+      const amount = updated.total_amount ?? checkout.total_amount ?? 0
+      const currency = (
+        (updated.currency || checkout.currency || 'KES') as string
+      ).toUpperCase()
+      const reference = generatePaystackReference(updated.id || checkout.id)
+
+      paystackPop({
+        publicKey,
+        email,
+        amount,
+        currency,
+        reference,
+        subaccount,
+        channels: currency === 'KES' ? ['card', 'mobile_money'] : ['card'],
+        metadata: {
+          // Threaded into charge.success webhook → handle_success
+          checkout_id: updated.id || checkout.id,
+          ...((updated as any).user_metadata?.cart_item_ids
+            ? {
+                cart_item_ids: (updated as any).user_metadata.cart_item_ids,
+              }
+            : {}),
+        },
+        onSuccess: () => {
+          if (typeof window === 'undefined') return
+          window.location.href = `/checkout/${checkout.client_secret}/confirmation`
+        },
+        onCancel: () => {
+          setPopupCancelled(true)
+        },
+      })
+
       return updated
     },
-    [props],
+    [props, publicKey, checkout],
   )
 
   return (
@@ -921,34 +1008,16 @@ const PaystackCheckoutForm = (props: CheckoutFormProps) => {
       confirm={confirmPaystack}
     >
       {/*
-        The channel selector + per-channel input fields live inside the
-        `children` slot — the same DOM position where Stripe's
-        <PaymentElement /> renders for the Stripe processor. This keeps
-        the buyer's reading order stable: Email → payment method →
-        Cardholder name → Billing address → Pay now button.
+        The trust line + cancelled-state hint live in the children
+        slot — the same DOM position where Stripe's <PaymentElement />
+        renders for the Stripe processor. No email field, no extra
+        Pay button — Polar's BaseCheckoutForm already provides those.
       */}
       <PaystackPaymentInterface
         checkout={checkout}
         disabled={props.disabled}
         onPaymentMethodSelect={setSelectedChannel}
-        onPaymentSuccess={() => {
-          // Polling inside PaystackPaymentInterface saw status='success'
-          // — backend has already marked the checkout confirmed AND
-          // fired handle_success (P1 wiring) so the Order row exists
-          // by the time we redirect.
-          //
-          // Multi-creator marketplace: every buyer (signed-in or
-          // guest) lands on /checkout/{secret}/confirmation which
-          // now hosts the SequentialCheckoutContinue widget — if the
-          // buyer has items from other creators in their cart, the
-          // widget surfaces a "Pay {next creator} now" CTA so they
-          // can complete other creator-scoped checkouts in sequence.
-          // The per-creator order detail (downloads, benefits,
-          // refund) lives at /{org-slug}/portal/orders/{id} and is
-          // linked from the order-confirmation email.
-          if (typeof window === 'undefined') return
-          window.location.href = `/checkout/${checkout.client_secret}/confirmation`
-        }}
+        cancelled={popupCancelled}
       />
     </BaseCheckoutForm>
   )

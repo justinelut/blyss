@@ -5,33 +5,37 @@ import { join } from 'path'
 /**
  * Paystack Inline JS (Mode A) checkout architecture gate.
  *
- * Pre-payment surface (our Blyss design):
- *   - Email collected in our form via FormField + atoms/Input
- *   - Pay button uses --accent token, Inter Display label
- *   - No raw <input> elements with custom chrome
+ * Mode A wires Paystack's Inline JS popup into Polar's existing
+ * checkout form — buyer fills email + billing in Polar's
+ * BaseCheckoutForm fields, clicks Polar's existing 'Pay now'
+ * button, and the form's confirm callback opens the Paystack
+ * popup. Single email field, single Pay button, popup handles the
+ * actual charge. Webhook on charge.success creates the Order via
+ * handle_success.
  *
- * Payment surface (Paystack popup, opened on Pay):
- *   - Public key fetched via usePaystackPublicKey() — never bundled
+ * Pre-payment surface (Polar's design):
+ *   - Email + billing collected by BaseCheckoutForm
+ *   - Pay-now button is BaseCheckoutForm's, not added by us
+ *   - PaystackPaymentInterface owns no inputs and no Pay button —
+ *     just renders a trust line in the children slot
+ *
+ * Payment surface (Paystack popup, opened by confirmPaystack):
+ *   - Public key fetched via usePaystackPublicKey()
  *   - paystackPop() helper opens new PaystackPop().newTransaction(...)
- *   - subaccount + channels + metadata threaded through to the
- *     charge.success webhook on the backend
- *   - No /v1/checkouts/{secret}/charge POST — that path was the
- *     pre-Mode-A server-to-server pattern that triggered Paystack
- *     fraud flags. Legacy form is preserved at .legacy.tsx but not
- *     mounted from the active interface.
- *
- * Backend integration:
- *   - GET /v1/integrations/paystack/public-config returns the public
- *     key from runtime_settings overlay → env fallback
- *   - charge.success webhook → checkout_service.handle_success →
- *     Order created + benefits granted (already in place from prior
- *     Phase 1 work, no test pinning here)
+ *   - subaccount + channels + checkout_id metadata threaded through
+ *   - No /v1/checkouts/{secret}/charge POST — that path is the
+ *     pre-Mode-A server-to-server pattern that triggered fraud
+ *     flags. Legacy form preserved at .legacy.tsx for reference.
  */
 
 const FILES = {
   ui: join(
     process.cwd(),
     'src/components/Checkout/components/PaystackPaymentInterface.tsx',
+  ),
+  form: join(
+    process.cwd(),
+    'src/components/Checkout/components/CheckoutForm.tsx',
   ),
   legacy: join(
     process.cwd(),
@@ -44,43 +48,50 @@ const FILES = {
 const read = (p: string) => readFileSync(p, 'utf8')
 
 describe('Paystack Inline JS (Mode A) checkout', () => {
-  test('UI imports the inline-js helper + public-key hook', () => {
-    const ui = read(FILES.ui)
-    expect(ui).toContain("from '@/hooks/queries/paystackConfig'")
-    expect(ui).toContain("from '@/utils/paystack-pop'")
-    expect(ui).toContain('usePaystackPublicKey')
-    expect(ui).toContain('paystackPop')
+  test('CheckoutForm imports the inline-js helper + public-key hook', () => {
+    const form = read(FILES.form)
+    expect(form).toContain("from '@/hooks/queries/paystackConfig'")
+    expect(form).toContain("from '@/utils/paystack-pop'")
+    expect(form).toContain('usePaystackPublicKey')
+    expect(form).toContain('paystackPop')
   })
 
-  test('Pay button opens Paystack popup with required config', () => {
-    const ui = read(FILES.ui)
-    expect(ui).toContain('paystackPop({')
-    expect(ui).toMatch(/publicKey:\s*publicConfig\.public_key/)
-    expect(ui).toMatch(/email:\s*email/)
-    expect(ui).toMatch(/amount,/)
-    expect(ui).toMatch(/currency,/)
-    expect(ui).toMatch(/subaccount,/)
-    expect(ui).toContain('onSuccess')
-    expect(ui).toContain('onCancel')
+  test('confirmPaystack opens Paystack popup with required config', () => {
+    const form = read(FILES.form)
+    expect(form).toContain('confirmPaystack')
+    expect(form).toContain('paystackPop({')
+    expect(form).toMatch(/publicKey,?/)
+    expect(form).toMatch(/email,?/)
+    expect(form).toMatch(/amount,?/)
+    expect(form).toMatch(/currency,?/)
+    expect(form).toMatch(/subaccount,?/)
+    expect(form).toContain('onSuccess')
+    expect(form).toContain('onCancel')
   })
 
-  test('UI threads checkout_id metadata for webhook reconciliation', () => {
-    const ui = read(FILES.ui)
-    expect(ui).toContain('checkout_id: checkout.id')
+  test('CheckoutForm threads checkout_id metadata for webhook reconciliation', () => {
+    const form = read(FILES.form)
+    expect(form).toMatch(/checkout_id:\s*updated\.id\s*\|\|\s*checkout\.id/)
   })
 
-  test('UI does NOT POST to legacy /v1/checkouts/.../charge', () => {
-    const ui = read(FILES.ui)
-    expect(ui).not.toContain('/v1/checkouts/client/{client_secret}/charge')
-    expect(ui).not.toContain('useCheckoutCharge')
-    expect(ui).not.toContain('useCheckoutChargeSubmitStep')
+  test('CheckoutForm does NOT POST raw cards to legacy /v1/checkouts/.../charge', () => {
+    const form = read(FILES.form)
+    expect(form).not.toContain('/v1/checkouts/client/{client_secret}/charge')
+    expect(form).not.toContain('useCheckoutCharge')
   })
 
-  test('UI uses Blyss design tokens (no shadow cards, accent button)', () => {
+  test('PaystackPaymentInterface owns no email field and no Pay button', () => {
     const ui = read(FILES.ui)
-    expect(ui).toContain('var(--accent)')
+    // No email Input — Polar's BaseCheckoutForm already has one
+    expect(ui).not.toMatch(/<Input[\s\S]*?type=['"]email['"]/)
+    // No 'Pay …' or 'Tip …' button — Polar's BaseCheckoutForm's
+    // 'Pay now' is the single CTA
+    expect(ui).not.toMatch(/Pay\s+\$\{|Pay\s+KSh/)
+  })
+
+  test('PaystackPaymentInterface uses Blyss design tokens (no shadows)', () => {
+    const ui = read(FILES.ui)
     expect(ui).toContain('var(--text-muted)')
-    // No drop-shadow cards (Blyss anti-pattern)
     expect(ui).not.toMatch(/className="[^"]*shadow-md/)
     expect(ui).not.toMatch(/className="[^"]*shadow-lg/)
   })
