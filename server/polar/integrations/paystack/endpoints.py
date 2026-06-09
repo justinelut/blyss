@@ -447,6 +447,57 @@ class MPesaVerificationConfigResponse(BaseModel):
     )
 
 
+class PaystackPublicConfigResponse(BaseModel):
+    """Frontend-safe Paystack config — public key only.
+
+    The frontend needs the Paystack public key to initialize Paystack
+    Inline JS in the buyer's browser. The public key is safe to ship
+    to the client — it can only initialize transactions, never
+    read/modify them server-side.
+
+    Resolution order:
+      1. POLAR_PAYSTACK_PUBLIC_KEY runtime_settings overlay (so test
+         ↔ live key rotation lands without a redeploy)
+      2. settings.PAYSTACK_PUBLIC_KEY env var
+    """
+
+    public_key: str = Field(
+        description="Paystack public key (pk_live_... or pk_test_...).",
+    )
+
+
+@router.get(
+    "/public-config",
+    response_model=PaystackPublicConfigResponse,
+)
+async def paystack_public_config(
+    session: AsyncSession = Depends(get_db_session),
+) -> PaystackPublicConfigResponse:
+    """Return the Paystack public key for client-side Inline JS.
+
+    Public endpoint (no auth) — the public key is by definition
+    public. Frontend calls this once on mount and caches the value
+    for the lifetime of the session. Resolves runtime_settings
+    overlay first so ops can rotate test ↔ live keys via
+    /backoffice/runtime-settings without a redeploy.
+    """
+    from polar.runtime_settings.service import (
+        runtime_settings as rs_service,
+    )
+
+    public_key = ""
+    try:
+        override = await rs_service.get(session, "PAYSTACK_PUBLIC_KEY")
+        if override:
+            public_key = override
+    except Exception:
+        pass
+    if not public_key:
+        public_key = settings.PAYSTACK_PUBLIC_KEY or ""
+
+    return PaystackPublicConfigResponse(public_key=public_key)
+
+
 @router.get(
     "/mpesa/verification-config",
     response_model=MPesaVerificationConfigResponse,
