@@ -12,12 +12,10 @@ import {
 import { Tabs, TabsList, TabsTrigger } from '@/components/atoms/Tabs'
 import { motion } from 'motion/react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
 import {
   PropsWithChildren,
   useContext,
   useEffect,
-  useState,
   type JSX,
 } from 'react'
 import { twMerge } from 'tailwind-merge'
@@ -44,21 +42,25 @@ const DashboardLayout = (
   return (
     <DashboardProvider organization={organization}>
       <div className="relative flex h-full w-full flex-col bg-white md:flex-row md:bg-[var(--surface)] md:p-2 dark:bg-transparent">
-        <MobileNav
+        <MobileTopbar
           organization={organization}
           organizations={organizations ?? []}
           type={props.type}
         />
-        <div className="hidden md:flex">
-          <DashboardSidebar
-            organization={organization}
-            organizations={organizations ?? []}
-            type={props.type}
-          />
-        </div>
+        {/* Sidebar — shadcn `<Sidebar>` internally renders an inline
+            aside on desktop and a Sheet drawer on mobile via
+            useIsMobile(). Always mounted; the responsive switch is
+            handled by the component itself, not by us hiding it
+            with `md:flex` wrappers (which prevented mobile from ever
+            getting an actual drawer). */}
+        <DashboardSidebar
+          organization={organization}
+          organizations={organizations ?? []}
+          type={props.type}
+        />
         <div
           className={twMerge(
-            'relative flex h-full w-full flex-col',
+            'relative flex h-full w-full min-w-0 flex-col',
             props.className,
           )}
         >
@@ -74,7 +76,14 @@ const DashboardLayout = (
 
 export default DashboardLayout
 
-const MobileNav = ({
+/**
+ * Mobile-only topbar — Blyss logo + topbar-right + sidebar trigger.
+ * Hidden on md+ where the inline DashboardSidebar provides the
+ * navigation surface natively. The trigger uses shadcn's
+ * `useSidebar()` openMobile state to toggle the Sheet drawer that
+ * <Sidebar> renders for mobile.
+ */
+const MobileTopbar = ({
   type = 'organization',
   organization,
   organizations,
@@ -83,47 +92,22 @@ const MobileNav = ({
   organization?: schemas['Organization']
   organizations: schemas['Organization'][]
 }) => {
-  const [mobileNavOpen, setMobileNavOpen] = useState(false)
-  const pathname = usePathname()
   const { currentUser } = useAuth()
 
-  useEffect(() => {
-    setMobileNavOpen(false)
-  }, [pathname])
-
-  const header = (
-    <div className="dark:bg-polar-900 sticky top-0 right-0 left-0 flex w-full flex-row items-center justify-between bg-[var(--surface)] p-4">
+  return (
+    <div className="dark:bg-polar-900 sticky top-0 z-30 flex w-full flex-row items-center justify-between bg-[var(--surface)] p-4 md:hidden">
       {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
       <a
         href="/"
         className="shrink-0 items-center font-semibold text-black dark:text-white"
       >
-        <Logo variant="light" className="h-10 w-10" size={40} />
+        <Logo variant="icon" className="h-10 w-10" size="md" />
       </a>
 
       <div className="flex flex-row items-center gap-x-6">
         <TopbarRight authenticatedUser={currentUser} />
         <SidebarTrigger />
       </div>
-    </div>
-  )
-
-  return (
-    <div className="dark:bg-polar-900 relative z-20 flex w-screen flex-col items-center justify-between bg-[var(--surface)] md:hidden">
-      {mobileNavOpen ? (
-        <div className="relative flex h-full w-full flex-col">
-          {header}
-          <div className="dark:bg-polar-900 flex h-full flex-col bg-[var(--surface)] px-4">
-            <DashboardSidebar
-              organization={organization}
-              organizations={organizations}
-              type={type}
-            />
-          </div>
-        </div>
-      ) : (
-        header
-      )}
     </div>
   )
 }

@@ -3,6 +3,7 @@
 import { OverviewSection } from '@/components/DashboardOverview/OverviewSection'
 import { DashboardBody } from '@/components/Layout/DashboardLayout'
 import PaymentOnboardingStepper from '@/components/Onboarding/PaymentOnboardingStepper'
+import { IncompleteProfileBanner } from '@/components/Onboarding/IncompleteProfileBanner'
 import { AccountWidget } from '@/components/Widgets/AccountWidget'
 import { OrdersWidget } from '@/components/Widgets/OrdersWidget'
 import RevenueWidget from '@/components/Widgets/RevenueWidget'
@@ -24,6 +25,7 @@ export default function OverviewPage({ organization }: OverviewPageProps) {
       {paymentStatus && !paymentStatus.payment_ready && (
         <PaymentOnboardingStepper organization={organization} />
       )}
+      <IncompleteProfileBanner organization={organization} />
       <OverviewSection organization={organization} />
 
       <div className="dark:border-polar-700 overflow-hidden rounded-xl border border-gray-200">
