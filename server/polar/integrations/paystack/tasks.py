@@ -18,8 +18,7 @@ from polar.logging import Logger
 from polar.models.checkout import CheckoutStatus
 from polar.models.external_event import PaystackEvent
 from polar.order.service import order as order_service
-from polar.postgres import AsyncSessionMaker
-from polar.worker import TaskPriority, actor, can_retry
+from polar.worker import AsyncSessionMaker, TaskPriority, actor, can_retry
 
 log: Logger = structlog.get_logger()
 

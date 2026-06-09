@@ -345,10 +345,24 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
     const maxAttempts = 30 // 30 * 2s = 60s
     const poll = async () => {
       attempts++
+      // Drive the progress bar so the creator sees the wait is live.
+      // Without this the bar froze at 0% on the popup path (only the
+      // STK path updated elapsedMs), which read as "nothing happening".
+      setElapsedMs(Date.now() - startedAtRef.current)
       try {
         const res = await unwrap(
           (api as any).GET('/v1/organizations/{id}', {
-            params: { path: { id: organization.id } },
+            params: {
+              path: { id: organization.id },
+              // Cache-buster: an authenticated GET to the org was being
+              // served from the browser's disk cache, so every poll
+              // returned the stale subaccount_status='pending' and the
+              // loop never saw the webhook's flip to 'active'. The
+              // unique _ts forces a fresh request each tick.
+              query: { _ts: Date.now() },
+            },
+            // Belt-and-suspenders: bypass the HTTP cache entirely.
+            cache: 'no-store',
           }),
         )
         const fresh = res as any
@@ -375,7 +389,9 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
       }
       setTimeout(poll, 2000)
     }
-    setTimeout(poll, 2000)
+    // Kick the first poll immediately so the creator sees activity
+    // right after the popup closes, then every 2s after.
+    poll()
   }
 
   async function onSendStk(data: MPesaConfigurationForm) {
