@@ -576,8 +576,10 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
             </h2>
             <p className="mt-3 max-w-[60ch] font-sans text-[15px] leading-[1.55] text-[var(--text-secondary)]">
               Pick where Blyss should send your earnings. We charge a
-              one-time KSh&nbsp;100 from your M-Pesa to confirm the number
-              is yours and protect against fraud — non-refundable.
+              one-time KSh&nbsp;
+              {verificationAmountKes.toLocaleString('en-KE')} from
+              your M-Pesa to confirm the number is yours and protect
+              against fraud — non-refundable.
             </p>
           </>
         )}
