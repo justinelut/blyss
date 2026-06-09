@@ -18,6 +18,7 @@ from polar.integrations.paystack.service import (
 from polar.logging import Logger
 from polar.models.checkout import CheckoutStatus
 from polar.models.external_event import PaystackEvent
+from polar.order.repository import OrderRepository
 from polar.order.service import order as order_service
 from polar.worker import AsyncSessionMaker, TaskPriority, actor, can_retry
 
@@ -287,13 +288,19 @@ async def charge_success(event_id: uuid.UUID) -> None:
                     )
 
                 # Check if order already exists for this checkout
-                if checkout.order:
+                # (idempotency for webhook retries / duplicate events).
+                # checkout.order is lazy='raise' — fetch explicitly.
+                order_repository = OrderRepository.from_session(session)
+                existing_order = await order_repository.get_earliest_by_checkout_id(
+                    checkout.id
+                )
+                if existing_order is not None:
                     log.info(
                         "paystack.webhook.charge.success.order_exists",
                         event_id=event_id,
                         reference=transaction_reference,
                         checkout_id=checkout_id,
-                        order_id=checkout.order.id,
+                        order_id=existing_order.id,
                     )
                     return
 
@@ -352,7 +359,17 @@ async def charge_success(event_id: uuid.UUID) -> None:
                 checkout = await checkout_service.handle_success(
                     session, checkout, payment=None, payment_method=payment_method
                 )
-                order = checkout.order
+                # handle_success creates the Order but does NOT populate the
+                # checkout.order relationship (it's lazy='raise', so reading
+                # checkout.order throws "'Checkout' object has no attribute
+                # 'order'" and crashed the webhook here — order created, but
+                # the task failed before flipping status, so the buyer was
+                # stuck on 'processing'). Fetch the order explicitly by
+                # checkout id instead.
+                order_repository = OrderRepository.from_session(session)
+                order = await order_repository.get_earliest_by_checkout_id(
+                    checkout.id
+                )
                 if order is None:
                     log.error(
                         "paystack.webhook.charge.success.handle_success_no_order",

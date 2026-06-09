@@ -67,7 +67,83 @@ export interface PaystackPopOptions {
  */
 export const paystackPop = (options: PaystackPopOptions): PaystackPop => {
   const pop = new PaystackPop()
-  pop.newTransaction({
+
+  // Teardown for the floating close button we overlay on the popup.
+  let removeCloseButton: (() => void) | null = null
+  const teardownCloseButton = () => {
+    if (removeCloseButton) {
+      removeCloseButton()
+      removeCloseButton = null
+    }
+  }
+
+  // @paystack/inline-js v2 renders a full-bleed cross-origin iframe
+  // (checkout.paystack.com) appended to <body> with no obvious close
+  // affordance — buyers couldn't back out without finishing or reloading.
+  // We can't restyle the iframe, but we overlay our own X button on top of
+  // it (max z-index) and, on click, tear the popup down + fire onCancel.
+  // We try every teardown the lib might expose (the transaction handle's
+  // cancelTransaction, pop.cancelTransaction, pop.close) so it stays robust
+  // across inline-js patch versions.
+  const mountCloseButton = (txn: unknown) => {
+    if (typeof document === 'undefined') return
+    const btn = document.createElement('button')
+    btn.type = 'button'
+    btn.setAttribute('aria-label', 'Close payment')
+    Object.assign(btn.style, {
+      position: 'fixed',
+      top: 'max(16px, env(safe-area-inset-top))',
+      right: 'max(16px, env(safe-area-inset-right))',
+      zIndex: '2147483647',
+      width: '40px',
+      height: '40px',
+      borderRadius: '9999px',
+      border: 'none',
+      background: 'rgba(15, 14, 12, 0.65)',
+      color: '#fff',
+      cursor: 'pointer',
+      boxShadow: '0 2px 10px rgba(0,0,0,0.25)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '0',
+    } as Partial<CSSStyleDeclaration>)
+    btn.innerHTML =
+      '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" ' +
+      'xmlns="http://www.w3.org/2000/svg"><path d="M6 18L18 6M6 6l12 12" ' +
+      'stroke="currentColor" stroke-width="2" stroke-linecap="round" ' +
+      'stroke-linejoin="round"/></svg>'
+
+    const dismiss = () => {
+      try {
+        const t = txn as { cancelTransaction?: () => void } | undefined
+        t?.cancelTransaction?.()
+      } catch {
+        /* noop */
+      }
+      try {
+        ;(pop as unknown as { cancelTransaction?: () => void }).cancelTransaction?.()
+      } catch {
+        /* noop */
+      }
+      try {
+        pop.close?.()
+      } catch {
+        /* noop */
+      }
+      teardownCloseButton()
+      options.onCancel?.()
+    }
+
+    btn.addEventListener('click', dismiss)
+    document.body.appendChild(btn)
+    removeCloseButton = () => {
+      btn.removeEventListener('click', dismiss)
+      btn.remove()
+    }
+  }
+
+  const txn = pop.newTransaction({
     key: options.publicKey,
     email: options.email,
     amount: options.amount,
@@ -79,12 +155,21 @@ export const paystackPop = (options: PaystackPopOptions): PaystackPop => {
     ...(options.firstname ? { firstName: options.firstname } : {}),
     ...(options.lastname ? { lastName: options.lastname } : {}),
     onSuccess: (tx: { reference: string; status?: string }) => {
+      teardownCloseButton()
       options.onSuccess?.(tx)
     },
     onCancel: () => {
+      teardownCloseButton()
       options.onCancel?.()
     },
-  } as any)
+  } as any) as unknown
+
+  // Mount once Paystack has injected its container so our button stacks
+  // on top of the popup.
+  if (typeof window !== 'undefined') {
+    window.setTimeout(() => mountCloseButton(txn), 400)
+  }
+
   return pop
 }
 
