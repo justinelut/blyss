@@ -27,6 +27,7 @@ import {
 import { AllWorkTab } from './AllWorkTab'
 import { SubscriptionsTab } from './SubscriptionsTab'
 import { AboutTab, type AboutTabSocialLinks } from './AboutTab'
+import { StorefrontActionBar } from './StorefrontActionBar'
 import { ReviewsBlock, type ReviewSummary, type ReviewExcerpt } from './ReviewsBlock'
 import { useCurrencyControls } from '@/components/Marketplace/CurrencyProvider'
 
@@ -175,6 +176,12 @@ export function CreatorStorefrontPage({
         tabs={tabs}
         active={tab}
         onChange={(next) => setTab(next)}
+        actions={
+          <StorefrontActionBar
+            slug={creator.slug}
+            organizationId={creator.id}
+          />
+        }
       />
 
       {/* Active tab panel — accessibility ids match StorefrontTabs */}

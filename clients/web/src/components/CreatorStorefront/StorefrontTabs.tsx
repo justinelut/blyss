@@ -20,6 +20,10 @@ export interface StorefrontTabsProps {
   active: StorefrontTabId
   /** Notified when a non-disabled tab is clicked. */
   onChange: (next: StorefrontTabId) => void
+  /** Optional right-aligned slot — used for the cart + account cluster so
+   *  those controls ride along with the sticky bar instead of scrolling
+   *  away with the hero. */
+  actions?: React.ReactNode
   className?: string
 }
 
@@ -45,6 +49,7 @@ export const StorefrontTabs = ({
   tabs,
   active,
   onChange,
+  actions,
   className,
 }: StorefrontTabsProps) => {
   return (
@@ -65,10 +70,10 @@ export const StorefrontTabs = ({
         className,
       )}
     >
-      <div className="mx-auto max-w-[1280px] px-6 md:px-16">
+      <div className="mx-auto flex max-w-[1280px] items-center gap-4 px-6 md:px-16">
         <nav
           aria-label="Storefront sections"
-          className="-mx-6 overflow-x-auto px-6 md:mx-0 md:px-0"
+          className="-mx-6 flex-1 overflow-x-auto px-6 md:mx-0 md:px-0"
         >
           <div className="flex min-w-max items-center gap-2 md:gap-1">
             {tabs.map((tab) => {
@@ -113,6 +118,9 @@ export const StorefrontTabs = ({
             })}
           </div>
         </nav>
+        {actions && (
+          <div className="flex shrink-0 items-center">{actions}</div>
+        )}
       </div>
     </div>
   )

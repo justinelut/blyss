@@ -220,7 +220,7 @@ export const AboutTab = ({ name, slug, bio, socials, email }: AboutTabProps) => 
             hides itself when empty so the column reads cleanly with
             just the share row. */}
         {(hasContacts || hasShare) && (
-          <aside className="lg:col-span-4">
+          <aside className="lg:col-span-4 lg:sticky lg:top-24 lg:self-start">
             {hasContacts && (
               <>
                 <h3 className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">

@@ -3,9 +3,8 @@
 import { motion, useReducedMotion, AnimatePresence } from 'motion/react'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { FiArrowLeft, FiHeart, FiUser, FiX } from 'react-icons/fi'
+import { FiArrowLeft, FiHeart, FiX } from 'react-icons/fi'
 import { OptimizedImage } from '@/components/Image/OptimizedImage'
-import { CartButton } from '@/components/Cart/CartButton'
 import { cn } from '@/lib/utils'
 
 export interface StorefrontHeroProps {
@@ -133,50 +132,10 @@ export const StorefrontHero = ({
         Blyss
       </Link>
 
-      {/* Creator-scoped cart button — top right.
-          Mirrors the back-to-Blyss link's visual chrome (low-contrast,
-          backdrop-blurred) so it doesn't compete with the creator's
-          banner imagery. The badge counts only items in THIS creator's
-          cart (scope={organizationId}); items the buyer has from other
-          creators are surfaced via the drawer's "you also have items
-          from N other creators" link to /cart. */}
-      <div
-        className={cn(
-          'absolute right-4 top-4 z-20 flex items-center gap-1 rounded-md md:right-8 md:top-6',
-          bannerUrl
-            ? 'bg-black/30 text-white/85 backdrop-blur-md'
-            : 'border border-[var(--border)] bg-[var(--background)]/80 backdrop-blur',
-        )}
-      >
-        {/* Per-creator account / portal icon. The bottom mobile nav
-            no longer carries an "Account" tab — Blyss doesn't
-            aggregate purchases at the marketplace level. Buyers
-            access their orders, downloads, refunds, and subscription
-            management on this creator's portal at /{slug}/portal
-            (Polar's native surface). The icon shows only here, on
-            the creator's storefront, because a buyer's relationship
-            with each creator is independent. */}
-        <Link
-          href={`/${slug}/portal`}
-          aria-label="Your purchases with this creator"
-          className={cn(
-            'flex h-10 w-10 items-center justify-center rounded-md transition-colors',
-            bannerUrl
-              ? 'text-white/85 hover:bg-black/15 hover:text-white'
-              : 'text-[var(--text-secondary)] hover:bg-[var(--surface-sunken)] hover:text-[var(--text-primary)]',
-          )}
-        >
-          <FiUser size={18} aria-hidden="true" />
-        </Link>
-        <CartButton
-          scope={{ organizationId }}
-          className={cn(
-            bannerUrl
-              ? 'text-white/85 hover:bg-black/15 hover:text-white'
-              : 'text-[var(--text-secondary)]',
-          )}
-        />
-      </div>
+      {/* Cart + account controls live in the sticky StorefrontTabs bar
+          directly below this hero (see StorefrontActionBar), so they ride
+          along with the bar on scroll instead of scrolling away with the
+          banner. Not duplicated here. */}
       {/* Banner — 16:9 when an image is provided. When there's no image we
           render a SHORT single-tone editorial block (no scrim) to avoid the
           visual two-banner stack the dark scrim would otherwise create over

@@ -85,9 +85,15 @@ describe('Multi-creator cart wiring', () => {
   })
 
   test('Creator storefront mounts cart with creator scope', () => {
-    const hero = read('src/components/CreatorStorefront/StorefrontHero.tsx')
-    expect(hero).toContain("from '@/components/Cart/CartButton'")
-    expect(hero).toMatch(/scope=\{\{\s*organizationId\s*\}\}/)
+    // The cart + account cluster moved out of the hero into the
+    // StorefrontActionBar, which is rendered inside the sticky
+    // StorefrontTabs bar so it rides along on scroll instead of
+    // scrolling away with the banner.
+    const actionBar = read(
+      'src/components/CreatorStorefront/StorefrontActionBar.tsx',
+    )
+    expect(actionBar).toContain("from '@/components/Cart/CartButton'")
+    expect(actionBar).toMatch(/scope=\{\{\s*organizationId\s*\}\}/)
   })
 
   test('SequentialCheckoutContinue surfaces remaining carts after a checkout', () => {

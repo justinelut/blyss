@@ -71,12 +71,16 @@ describe('Per-creator buyer management', () => {
     expect(header).not.toContain('see your orders')
   })
 
-  test('creator storefront hero has the per-creator portal account icon', () => {
-    const hero = read('src/components/CreatorStorefront/StorefrontHero.tsx')
-    // Account icon links into the per-creator portal, scoped by slug
-    expect(hero).toMatch(/href=\{`\/\$\{slug\}\/portal`\}/)
-    expect(hero).toContain('Your purchases with this creator')
-    expect(hero).toContain('FiUser')
+  test('creator storefront has the per-creator portal account icon', () => {
+    // The account icon moved from the hero into StorefrontActionBar
+    // (rendered inside the sticky tabs bar so it rides along on
+    // scroll). Still scoped to the creator's portal by slug.
+    const actionBar = read(
+      'src/components/CreatorStorefront/StorefrontActionBar.tsx',
+    )
+    expect(actionBar).toMatch(/href=\{`\/\$\{slug\}\/portal`\}/)
+    expect(actionBar).toContain('Your purchases with this creator')
+    expect(actionBar).toContain('FiUser')
   })
 
   test('order confirmation emails link to per-creator portal (not marketplace)', () => {
