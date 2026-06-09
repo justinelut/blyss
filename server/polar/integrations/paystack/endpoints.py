@@ -636,6 +636,36 @@ async def paystack_public_config(
     if not public_key:
         public_key = settings.PAYSTACK_PUBLIC_KEY or ""
 
+    # Loud warning when the public key (this popup) and the secret key
+    # (backend verify + subaccount create) are in different Paystack
+    # environments. This is the #1 cause of "Transaction reference not
+    # found" / "Invalid Subaccount" after a live↔test key swap — each key
+    # is valid alone, but a test-mode charge can't be verified with a live
+    # secret key. Surfacing it here (called on every checkout mount) makes
+    # the misconfiguration obvious in logs instead of failing at verify.
+    try:
+        from polar.integrations.paystack.key_environment import (
+            key_environment,
+            keys_mismatched,
+        )
+
+        secret_key = await paystack._resolve_secret_key(session)
+        if keys_mismatched(public_key, secret_key):
+            log.error(
+                "paystack.config.key_environment_mismatch",
+                public_key_env=key_environment(public_key),
+                secret_key_env=key_environment(secret_key),
+                detail=(
+                    "Paystack public and secret keys are in different "
+                    "environments. Set BOTH to test or BOTH to live in "
+                    "backoffice → Runtime Settings (and match the webhook "
+                    "secret). Payments will fail to verify until they match."
+                ),
+            )
+    except Exception:
+        # Never let the diagnostic break the config endpoint.
+        pass
+
     return PaystackPublicConfigResponse(public_key=public_key)
 
 

@@ -35,7 +35,11 @@ from polar.models import (
     User,
     UserOrganization,
 )
-from polar.models.organization import OrganizationStatus
+from polar.models.organization import (
+    OrganizationStatus,
+    PayoutMethod,
+    SubaccountStatus,
+)
 from polar.models.organization_review import OrganizationReview
 from polar.models.transaction import TransactionType
 from polar.models.user import IdentityVerificationStatus
@@ -1357,6 +1361,45 @@ class OrganizationService:
         a single switch here without rewriting checkout creation paths.
         """
         return True
+
+    async def reset_paystack_state(
+        self, session: AsyncSession, organization: Organization
+    ) -> Organization:
+        """Clear all Paystack / M-Pesa payout state on an organization.
+
+        Wipes subaccount_code, subaccount_status, M-Pesa number/verified
+        flag, payout method, and bank details back to defaults. Used when
+        switching Paystack environments (live ↔ test): a subaccount_code
+        provisioned with live keys is meaningless under test keys (and
+        vice-versa), and leaving it set makes verification look "already
+        done" or raises "Invalid Subaccount" at charge time. After a reset
+        the creator simply re-runs "Verify M-Pesa" and a fresh subaccount
+        is provisioned in the current environment.
+
+        Idempotent and safe — only touches payout columns; products,
+        orders, members, and review state are untouched.
+        """
+        repository = OrganizationRepository.from_session(session)
+        organization = await repository.update(
+            organization,
+            update_dict={
+                "subaccount_code": None,
+                "subaccount_status": SubaccountStatus.PENDING,
+                "mpesa_number": None,
+                "mpesa_verified": False,
+                "payout_method": PayoutMethod.BANK,
+                "bank_code": None,
+                "bank_account_number": None,
+                "bank_account_name": None,
+            },
+            flush=True,
+        )
+        log.info(
+            "organization.reset_paystack_state",
+            organization_id=str(organization.id),
+            slug=organization.slug,
+        )
+        return organization
 
     async def update_creator_profile(
         self,

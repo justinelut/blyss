@@ -185,6 +185,28 @@ async def donation_popup_config(
     if not public_key:
         public_key = settings.PAYSTACK_PUBLIC_KEY or ""
 
+    # Same env-mismatch diagnostic as the checkout config endpoint:
+    # a stored subaccount provisioned with live keys throws "Invalid
+    # Subaccount" when the popup runs in test mode. Warn loudly.
+    try:
+        from polar.integrations.paystack.key_environment import (
+            key_environment,
+            keys_mismatched,
+        )
+        from polar.integrations.paystack.service import paystack as _paystack
+
+        secret_key = await _paystack._resolve_secret_key(session)
+        if keys_mismatched(public_key, secret_key):
+            log.error(
+                "paystack.config.key_environment_mismatch",
+                surface="donation_popup_config",
+                public_key_env=key_environment(public_key),
+                secret_key_env=key_environment(secret_key),
+                organization_id=str(organization.id),
+            )
+    except Exception:  # noqa: BLE001
+        pass
+
     return DonationPopupConfig(
         public_key=public_key,
         organization_id=str(organization.id),
