@@ -193,40 +193,15 @@ export const CheckoutFormProvider = ({
       // 'redirect instantly' before the buyer ever saw the M-Pesa
       // PIN-prompt UI.
       //
-      // Instead we throw a tagged 'PaystackHandoff' marker. The outer
-      // SDK's catch path treats this as 'still pending'; it does NOT
-      // redirect, does NOT clear the page, and PaystackPaymentInterface
-      // keeps rendering its ActiveChargePanel until the poll resolves.
-      if (checkout.payment_processor === 'paystack') {
-        setLoadingLabel(t('checkout.loading.processingPayment'))
-        const trigger = document.querySelector<HTMLInputElement>(
-          '[data-paystack-channel-submit]',
-        )
-        if (!trigger) {
-          setLoading(false)
-          setError('root', {
-            message:
-              'Paystack channel form not ready — pick a payment method and try again.',
-          })
-          throw new Error('paystack-channel-not-ready')
-        }
-        // Fire the inline charge. PaystackPaymentInterface's onPay
-        // handles the /v1/checkouts/{secret}/charge/{channel} call and
-        // its useEffect polls /payment-status until it resolves to
-        // success or failed, swapping in ActiveChargePanel for the
-        // STK / next-action UI.
-        trigger.click()
-        // Hand-off marker — handled by the form's catch path, NOT by
-        // the polar-sdk's redirect-on-confirmed logic. We stop the
-        // form's loading state here so the buyer can read the
-        // ActiveChargePanel; the polling effect drives the rest.
-        setLoading(false)
-        const handoff = new Error('paystack-handoff') as Error & {
-          paystackHandoff?: true
-        }
-        handoff.paystackHandoff = true
-        throw handoff
-      }
+      // Mode A (Paystack Inline JS popup): the form's confirm
+      // callback in PaystackCheckoutForm now does TWO things:
+      //   1. Hits /confirm to lock the checkout
+      //   2. Opens Paystack's popup with the confirmed checkout's
+      //      details (email + amount + subaccount + metadata)
+      // The popup handles card / M-Pesa / 3DS / fraud signals and
+      // returns a charge.success webhook to our backend which
+      // creates the Order. Nothing for the SDK form-provider to
+      // do here — the standard confirm path runs cleanly.
 
       // Handle Stripe payments
       if (!stripe || !elements) {

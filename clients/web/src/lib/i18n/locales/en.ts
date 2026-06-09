@@ -5,11 +5,11 @@ export default {
       merchantOfRecord:
         'This order is processed by our online reseller & Merchant of Record, Blyss, who also handles order-related inquiries and returns.',
       mandateSubscriptionTrial:
-        'By clicking "{buttonLabel}," you authorize Blyss, our online reseller and merchant of record, to charge your selected payment method in the amount shown above at the end of your trial period and on each subsequent billing date until you cancel. You may cancel at any time before the end of your trial to avoid being charged.',
+        'Secured by Paystack. After your trial, your selected payment method will be charged the amount shown above on each billing date until you cancel.',
       mandateSubscription:
-        'By clicking "{buttonLabel}," you authorize Blyss, our online reseller and merchant of record, to immediately charge your selected payment method in the amount shown above and to charge the same amount on each subsequent billing date until you cancel.',
+        'Secured by Paystack. Your selected payment method will be charged the amount shown above on each billing date until you cancel.',
       mandateOneTime:
-        'By clicking "{buttonLabel}," you authorize Blyss, our online reseller and merchant of record, to charge your selected payment method the amount shown above. This is a one-time charge.',
+        'Secured by Paystack. One-time payment of the amount shown above.',
     },
     form: {
       email: 'Email',

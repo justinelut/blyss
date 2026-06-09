@@ -34,10 +34,12 @@ describe('Brand identity', () => {
       expect(en).toMatch(/Merchant of Record,\s*Blyss/)
     })
 
-    test('all three mandate variants authorise Blyss', () => {
-      const occurrences = en.match(
-        /you authorize Blyss, our online reseller and merchant of record/g,
-      )
+    test('all three mandate variants reference Paystack', () => {
+      // Mode A: Paystack handles the actual charge inside its
+      // popup, so the mandate copy now points at Paystack as the
+      // payment processor instead of describing Blyss as charging
+      // the buyer directly.
+      const occurrences = en.match(/Secured by Paystack/g)
       expect(occurrences?.length ?? 0).toBe(3)
     })
 

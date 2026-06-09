@@ -708,16 +708,10 @@ const BaseCheckoutForm = ({
           <p className="dark:text-polar-500 text-center text-xs text-gray-500">
             {checkout.is_payment_form_required
               ? checkout.active_trial_interval
-                ? t('checkout.footer.mandateSubscriptionTrial', {
-                    buttonLabel: checkoutLabel,
-                  })
+                ? t('checkout.footer.mandateSubscriptionTrial')
                 : interval
-                  ? t('checkout.footer.mandateSubscription', {
-                      buttonLabel: checkoutLabel,
-                    })
-                  : t('checkout.footer.mandateOneTime', {
-                      buttonLabel: checkoutLabel,
-                    })
+                  ? t('checkout.footer.mandateSubscription')
+                  : t('checkout.footer.mandateOneTime')
               : t('checkout.footer.merchantOfRecord')}
           </p>
         </div>
@@ -970,6 +964,21 @@ const PaystackCheckoutForm = (props: CheckoutFormProps) => {
       ).toUpperCase()
       const reference = generatePaystackReference(updated.id || checkout.id)
 
+      // Channel selection rules for Mode A:
+      //   - Subscription products: card only. Paystack stores the
+      //     authorization code from a successful card charge so we
+      //     can charge again at renewal. M-Pesa STK can't be saved
+      //     server-side for off-session charging — Safaricom requires
+      //     STK approval per charge.
+      //   - One-time products: full KE channel set (card + M-Pesa).
+      const product = (updated.product as any) || (checkout.product as any)
+      const isRecurring = !!(product && product.is_recurring)
+      const channels: ('card' | 'mobile_money')[] = isRecurring
+        ? ['card']
+        : currency === 'KES'
+          ? ['card', 'mobile_money']
+          : ['card']
+
       paystackPop({
         publicKey,
         email,
@@ -977,10 +986,15 @@ const PaystackCheckoutForm = (props: CheckoutFormProps) => {
         currency,
         reference,
         subaccount,
-        channels: currency === 'KES' ? ['card', 'mobile_money'] : ['card'],
+        channels,
         metadata: {
           // Threaded into charge.success webhook → handle_success
           checkout_id: updated.id || checkout.id,
+          // Subscription flag echoed back so the webhook can route
+          // recurring vs one-time correctly even if Polar's
+          // checkout.product.is_recurring lookup races with the
+          // Paystack callback ordering.
+          is_recurring: isRecurring ? 'true' : 'false',
           ...((updated as any).user_metadata?.cart_item_ids
             ? {
                 cart_item_ids: (updated as any).user_metadata.cart_item_ids,
