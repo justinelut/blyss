@@ -202,6 +202,20 @@ export const CheckoutFormProvider = ({
       // returns a charge.success webhook to our backend which
       // creates the Order. Nothing for the SDK form-provider to
       // do here — the standard confirm path runs cleanly.
+      //
+      // Critical: route to the Paystack branch BEFORE the Stripe
+      // elements check below. Without this, paystack flows always
+      // hit "Stripe elements not provided" and never reach
+      // PaystackCheckoutForm.confirmPaystack which opens the popup.
+      if (checkout.payment_processor === 'paystack') {
+        setLoadingLabel(t('checkout.loading.processingOrder'))
+        try {
+          const confirmed = await _confirm(data)
+          return confirmed
+        } finally {
+          setLoading(false)
+        }
+      }
 
       // Handle Stripe payments
       if (!stripe || !elements) {
