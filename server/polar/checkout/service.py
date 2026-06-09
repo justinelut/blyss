@@ -2441,6 +2441,18 @@ class CheckoutService:
             is_tax_applicable = checkout.product.is_tax_applicable
             tax_code = checkout.product.tax_code
 
+        # Blyss runs buyer-side checkout entirely on Paystack (Kenya) and
+        # does NOT use Stripe Tax. The upstream Polar path calls
+        # tax_calculation_service.calculate(...) which hits the Stripe Tax
+        # API; with no live Stripe key that 401s and 500s the whole
+        # confirm/update endpoint (the browser then reports it as a CORS
+        # failure because the 500 carries no CORS headers). Zero the tax
+        # for Paystack checkouts so we never touch Stripe.
+        if checkout.payment_processor == PaymentProcessor.paystack:
+            checkout.tax_amount = 0
+            checkout.tax_processor_id = None
+            return checkout
+
         if not (checkout.is_payment_form_required and is_tax_applicable):
             checkout.tax_amount = 0
             checkout.tax_processor_id = None
