@@ -1301,6 +1301,20 @@ class CheckoutService:
                     # Tax stays zero for Paystack (Blyss doesn't use Stripe
                     # Tax); keep the call so tax_amount is normalised.
                     checkout = await self._update_checkout_tax(session, checkout)
+
+                # Surface the data the Paystack popup needs into the
+                # checkout's payment_processor_metadata, because the public
+                # checkout's `organization` schema (OrganizationPublicBase)
+                # intentionally does NOT expose subaccount_code. The
+                # frontend (paystackPop) reads these off the confirmed
+                # checkout to open the popup with the correct split
+                # settlement subaccount. public_key lets the popup init
+                # with only the publishable key (no secret, no /charge).
+                checkout.payment_processor_metadata = {
+                    **(checkout.payment_processor_metadata or {}),
+                    "public_key": settings.PAYSTACK_PUBLIC_KEY,
+                    "subaccount_code": checkout.organization.subaccount_code,
+                }
         else:
             raise NotImplementedError()
 

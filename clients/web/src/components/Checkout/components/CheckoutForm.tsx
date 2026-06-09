@@ -764,8 +764,14 @@ const StripeCheckoutForm = (props: CheckoutFormProps) => {
   const {
     payment_processor_metadata: { publishable_key },
   } = checkout
+  // Only initialise Stripe.js when we actually have a publishable key.
+  // Blyss runs on Paystack and never sets a Stripe key, so
+  // loadStripe('') throws "Please call Stripe() with your publishable
+  // key. You used an empty string." Passing null to <Elements> is
+  // valid (it just doesn't load Stripe) and silences that console
+  // error on every Paystack checkout.
   const stripePromise = useMemo(
-    () => loadStripe(publishable_key),
+    () => (publishable_key ? loadStripe(publishable_key) : null),
     [publishable_key],
   )
 
@@ -934,7 +940,21 @@ const PaystackCheckoutForm = (props: CheckoutFormProps) => {
         throw new Error('paystack_public_key_missing')
       }
 
+      // Resolve the creator's Paystack subaccount for split settlement.
+      // The public checkout's `organization` schema does NOT expose
+      // subaccount_code, so the backend confirm() stamps it (and the
+      // public_key) into payment_processor_metadata. Read it there first,
+      // then fall back to any org field for safety.
+      const ppMeta =
+        ((updated as any)?.payment_processor_metadata as
+          | Record<string, any>
+          | undefined) ||
+        ((checkout as any)?.payment_processor_metadata as
+          | Record<string, any>
+          | undefined) ||
+        {}
       const subaccount =
+        (ppMeta.subaccount_code as string | undefined) ||
         ((updated.organization as any)?.subaccount_code as string | undefined) ||
         ((checkout.organization as any)?.subaccount_code as string | undefined)
 
