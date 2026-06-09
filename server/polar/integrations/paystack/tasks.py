@@ -5,6 +5,7 @@ from typing import cast
 import structlog
 from dramatiq import Retry
 
+from polar.checkout.repository import CheckoutRepository
 from polar.checkout.service import checkout as checkout_service
 from polar.external_event.service import external_event as external_event_service
 from polar.integrations.paystack.service import (
@@ -21,6 +22,23 @@ from polar.order.service import order as order_service
 from polar.worker import AsyncSessionMaker, TaskPriority, actor, can_retry
 
 log: Logger = structlog.get_logger()
+
+
+async def _get_checkout_by_id(session, checkout_id: uuid.UUID):
+    """Fetch a checkout by id for webhook processing.
+
+    Unscoped (no auth_subject) with eager relationships loaded — the
+    webhook runs as the system, not a user. CheckoutService.get() requires
+    an AuthSubject and applies member-only scoping, and the service has no
+    plain `get` method, so calling checkout_service.get(session, id) raised
+    AttributeError("'CheckoutService' object has no attribute 'get'") and
+    crashed every charge.success after payment, leaving the checkout stuck
+    on 'confirmed' (the buyer saw 'processing your order' forever).
+    """
+    repository = CheckoutRepository.from_session(session)
+    return await repository.get_by_id(
+        checkout_id, options=repository.get_eager_options()
+    )
 
 
 async def _handle_verification_failure(
@@ -50,7 +68,7 @@ async def _handle_verification_failure(
                 checkout_id = uuid.UUID(checkout_id_str)
 
                 # Retrieve checkout
-                checkout = await checkout_service.get(session, checkout_id)
+                checkout = await _get_checkout_by_id(session, checkout_id)
                 if checkout:
                     # Use the existing handle_failure method to return checkout to open status
                     await checkout_service.handle_failure(
@@ -248,7 +266,7 @@ async def charge_success(event_id: uuid.UUID) -> None:
                 checkout_id = uuid.UUID(checkout_id_str)
 
                 # Retrieve checkout
-                checkout = await checkout_service.get(session, checkout_id)
+                checkout = await _get_checkout_by_id(session, checkout_id)
                 if not checkout:
                     log.error(
                         "paystack.webhook.charge.success.checkout_not_found",
@@ -435,7 +453,7 @@ async def charge_failed(event_id: uuid.UUID) -> None:
                 checkout_id = uuid.UUID(checkout_id_str)
 
                 # Retrieve checkout
-                checkout = await checkout_service.get(session, checkout_id)
+                checkout = await _get_checkout_by_id(session, checkout_id)
                 if not checkout:
                     log.error(
                         "paystack.webhook.charge.failed.checkout_not_found",
