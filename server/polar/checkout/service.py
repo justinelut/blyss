@@ -1283,44 +1283,24 @@ class CheckoutService:
             ) as (customer, generate_customer_session):
                 checkout.customer = customer
 
+                # Mode A (Paystack Inline JS popup): we do NOT initialize a
+                # transaction server-side here. The frontend opens Paystack's
+                # popup (paystackPop) with the confirmed checkout's email +
+                # amount + subaccount, and the popup performs the actual
+                # charge. The charge.success webhook then creates the Order.
+                #
+                # The old code called paystack.initialize_transaction() at
+                # this point (the server-to-server /transaction/initialize
+                # flow). That path returns 'No active channel to process
+                # transaction' for M-Pesa/card popups and, worse, it isn't
+                # even used — the frontend ignores the authorization_url and
+                # opens its own popup. Confirming a Paystack checkout just
+                # needs to validate payouts are live (above), attach the
+                # customer, and flip status to confirmed below.
                 if checkout.is_payment_required:
-                    try:
-                        # Calculate tax amounts before payment initialization
-                        checkout = await self._update_checkout_tax(session, checkout)
-
-                        # Prepare transaction metadata
-                        transaction_metadata = {
-                            "organization_id": str(checkout.organization_id),
-                            "checkout_id": str(checkout.id),
-                            "customer_id": str(customer.id),
-                            "product_id": str(checkout.product_id)
-                            if checkout.product_id
-                            else None,
-                            "product_price_id": str(checkout.product_price_id)
-                            if checkout.product_price_id
-                            else None,
-                        }
-
-                        # Initialize Paystack transaction
-                        transaction_data = await paystack_service.initialize_transaction(
-                            email=customer.email,
-                            amount=checkout.total_amount,  # Amount in kobo (KES cents)
-                            currency=checkout.currency,
-                            reference=f"checkout_{checkout.id}_{generate_token()}",
-                            subaccount=checkout.organization.subaccount_code,
-                            metadata=transaction_metadata,
-                        )
-
-                        # Store transaction reference and authorization URL
-                        checkout.payment_processor_metadata = {
-                            **checkout.payment_processor_metadata,
-                            "transaction_reference": transaction_data["reference"],
-                            "authorization_url": transaction_data["authorization_url"],
-                            "access_code": transaction_data.get("access_code"),
-                        }
-
-                    except PaystackError as e:
-                        raise PaymentError(checkout, "paystack_error", str(e)) from e
+                    # Tax stays zero for Paystack (Blyss doesn't use Stripe
+                    # Tax); keep the call so tax_amount is normalised.
+                    checkout = await self._update_checkout_tax(session, checkout)
         else:
             raise NotImplementedError()
 

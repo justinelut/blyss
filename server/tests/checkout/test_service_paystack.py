@@ -231,39 +231,16 @@ class TestPaystackCheckoutFlow:
                 session, auth_subject, checkout_paystack_active, checkout_confirm
             )
 
-            # Assertions
+            # Assertions — Mode A: confirm just locks the checkout and
+            # attaches the customer. It does NOT call Paystack's
+            # server-side initialize_transaction; the frontend opens the
+            # Paystack popup (paystackPop) which performs the charge, and
+            # the charge.success webhook creates the Order.
             assert result.status == CheckoutStatus.confirmed
             assert result.customer == customer_for_checkout
 
-            # Verify Paystack service was called correctly
-            paystack_service_mock.initialize_transaction.assert_called_once()
-            call_args = paystack_service_mock.initialize_transaction.call_args
-
-            assert call_args.kwargs["email"] == "customer@example.com"
-            assert call_args.kwargs["amount"] == 10000
-            assert call_args.kwargs["currency"] == "KES"
-            assert call_args.kwargs["subaccount"] == "ACCT_test123"
-            assert "reference" in call_args.kwargs
-            assert "metadata" in call_args.kwargs
-
-            # Verify metadata includes required fields
-            metadata = call_args.kwargs["metadata"]
-            assert str(checkout_paystack_active.organization_id) in str(
-                metadata["organization_id"]
-            )
-            assert str(checkout_paystack_active.id) in str(metadata["checkout_id"])
-            assert str(customer_for_checkout.id) in str(metadata["customer_id"])
-
-            # Verify payment processor metadata is stored
-            assert (
-                result.payment_processor_metadata["transaction_reference"]
-                == transaction_reference
-            )
-            assert (
-                result.payment_processor_metadata["authorization_url"]
-                == authorization_url
-            )
-            assert result.payment_processor_metadata["access_code"] == access_code
+            # The legacy server-to-server initialization must NOT happen.
+            paystack_service_mock.initialize_transaction.assert_not_called()
 
         async def test_successful_paystack_checkout_with_tax(
             self,
@@ -338,17 +315,15 @@ class TestPaystackCheckoutFlow:
             # Assertions
             assert result.status == CheckoutStatus.confirmed
 
-            # Verify tax calculation was performed before payment
-            # initialization. _confirm_inner runs the tax pass more than
-            # once (early validation + the Paystack payment branch), so we
-            # assert it was called with the checkout rather than exactly once.
+            # Tax is still normalised on confirm (Blyss zeroes Stripe Tax
+            # for Paystack; the call runs so tax_amount is consistent).
             checkout_service._update_checkout_tax.assert_called_with(
                 session, checkout_paystack_active
             )
 
-            # Verify total amount includes tax
-            call_args = paystack_service_mock.initialize_transaction.call_args
-            assert call_args.kwargs["amount"] == 11600  # Total with tax
+            # Mode A: no server-side transaction init. The popup charges
+            # the buyer (amount + tax) client-side.
+            paystack_service_mock.initialize_transaction.assert_not_called()
 
         async def test_successful_free_checkout_paystack(
             self,
@@ -559,9 +534,20 @@ class TestPaystackCheckoutFlow:
             assert "unavailable" in error.error.lower()
 
     class TestPaymentVerificationFailure:
-        """Test payment verification failure scenarios."""
+        """Mode A: confirm never calls Paystack server-side.
 
-        async def test_paystack_api_error_during_initialization(
+        The legacy Mode B tests here asserted that errors from
+        paystack.initialize_transaction (the /transaction/initialize
+        server-to-server call) surfaced as PaymentError at confirm time.
+        That path was removed: in Mode A the frontend opens the Paystack
+        popup (paystackPop) which performs the charge, and the
+        charge.success webhook creates the Order. So there is no
+        server-side initialization to fail at confirm. The only
+        confirm-time payment gate left is the inactive-subaccount check,
+        covered by TestInactiveSubaccount above.
+        """
+
+        async def test_confirm_does_not_call_server_side_initialization(
             self,
             session: AsyncSession,
             checkout_paystack_active: Checkout,
@@ -569,27 +555,21 @@ class TestPaystackCheckoutFlow:
             paystack_service_mock: MagicMock,
             organization_service_mock: MagicMock,
         ) -> None:
-            """
-            Test Paystack API error during transaction initialization.
-
-            Requirements: 6.9
-            """
-            # Setup mocks
-            organization_service_mock.is_organization_ready_for_payment = AsyncMock(
-                return_value=True
+            """Confirming a Paystack checkout must not hit Paystack's
+            server-side initialize_transaction — the popup charges the
+            buyer instead."""
+            organization_service_mock.is_organization_ready_for_payment = (
+                AsyncMock(return_value=True)
             )
-
-            # Mock Paystack service to raise error
+            # If anything tries the server-side path, make it loud.
             paystack_service_mock.initialize_transaction = AsyncMock(
-                side_effect=PaystackTransactionError(
-                    "Transaction initialization failed"
+                side_effect=AssertionError(
+                    "initialize_transaction must not be called in Mode A"
                 )
             )
 
-            # Create checkout service
             checkout_service = CheckoutService(cart_service=MagicMock())
 
-            # Mock customer creation
             def mock_create_or_update_customer(session, auth_subject, checkout):
                 class MockCustomerContext:
                     async def __aenter__(self):
@@ -600,13 +580,14 @@ class TestPaystackCheckoutFlow:
 
                 return MockCustomerContext()
 
-            checkout_service._create_or_update_customer = mock_create_or_update_customer
+            checkout_service._create_or_update_customer = (
+                mock_create_or_update_customer
+            )
             checkout_service._update_checkout_tax = AsyncMock(
                 return_value=checkout_paystack_active
             )
             checkout_service._after_checkout_updated = AsyncMock()
 
-            # Create checkout confirm data
             checkout_confirm = CheckoutConfirm(
                 customer_billing_address=AddressInput.model_validate(
                     {"country": "KE"}
@@ -617,149 +598,13 @@ class TestPaystackCheckoutFlow:
                 subject=Anonymous(), scopes=set(), session=None
             )
 
-            # Confirm checkout should raise PaymentError
-            with pytest.raises(PaymentError) as exc_info:
-                await checkout_service._confirm_inner(
-                    session, auth_subject, checkout_paystack_active, checkout_confirm
-                )
-
-            # Verify error details
-            error = exc_info.value
-            assert error.checkout == checkout_paystack_active
-            assert "paystack_error" in error.error_type
-            assert "Transaction initialization failed" in error.error
-
-        async def test_paystack_validation_error(
-            self,
-            session: AsyncSession,
-            checkout_paystack_active: Checkout,
-            customer_for_checkout: Customer,
-            paystack_service_mock: MagicMock,
-            organization_service_mock: MagicMock,
-        ) -> None:
-            """
-            Test Paystack validation error during transaction initialization.
-
-            Requirements: 6.9
-            """
-            # Setup mocks
-            organization_service_mock.is_organization_ready_for_payment = AsyncMock(
-                return_value=True
+            result = await checkout_service._confirm_inner(
+                session, auth_subject, checkout_paystack_active, checkout_confirm
             )
 
-            # Mock Paystack service to raise validation error
-            paystack_service_mock.initialize_transaction = AsyncMock(
-                side_effect=PaystackValidationError("Invalid email format")
-            )
+            assert result.status == CheckoutStatus.confirmed
+            paystack_service_mock.initialize_transaction.assert_not_called()
 
-            # Create checkout service
-            checkout_service = CheckoutService(cart_service=MagicMock())
-
-            # Mock customer creation
-            def mock_create_or_update_customer(session, auth_subject, checkout):
-                class MockCustomerContext:
-                    async def __aenter__(self):
-                        return customer_for_checkout, False
-
-                    async def __aexit__(self, exc_type, exc_val, exc_tb):
-                        pass
-
-                return MockCustomerContext()
-
-            checkout_service._create_or_update_customer = mock_create_or_update_customer
-            checkout_service._update_checkout_tax = AsyncMock(
-                return_value=checkout_paystack_active
-            )
-            checkout_service._after_checkout_updated = AsyncMock()
-
-            # Create checkout confirm data
-            checkout_confirm = CheckoutConfirm(
-                customer_billing_address=AddressInput.model_validate(
-                    {"country": "KE"}
-                ),
-                confirmation_token_id="ctoken_test",
-            )
-            auth_subject = AuthSubject(
-                subject=Anonymous(), scopes=set(), session=None
-            )
-
-            # Confirm checkout should raise PaymentError
-            with pytest.raises(PaymentError) as exc_info:
-                await checkout_service._confirm_inner(
-                    session, auth_subject, checkout_paystack_active, checkout_confirm
-                )
-
-            # Verify error details
-            error = exc_info.value
-            assert error.checkout == checkout_paystack_active
-            assert "paystack_error" in error.error_type
-            assert "Invalid email format" in error.error
-
-        async def test_generic_paystack_error(
-            self,
-            session: AsyncSession,
-            checkout_paystack_active: Checkout,
-            customer_for_checkout: Customer,
-            paystack_service_mock: MagicMock,
-            organization_service_mock: MagicMock,
-        ) -> None:
-            """
-            Test generic Paystack error during transaction initialization.
-
-            Requirements: 6.9
-            """
-            # Setup mocks
-            organization_service_mock.is_organization_ready_for_payment = AsyncMock(
-                return_value=True
-            )
-
-            # Mock Paystack service to raise generic error
-            paystack_service_mock.initialize_transaction = AsyncMock(
-                side_effect=PaystackError("Network timeout")
-            )
-
-            # Create checkout service
-            checkout_service = CheckoutService(cart_service=MagicMock())
-
-            # Mock customer creation
-            def mock_create_or_update_customer(session, auth_subject, checkout):
-                class MockCustomerContext:
-                    async def __aenter__(self):
-                        return customer_for_checkout, False
-
-                    async def __aexit__(self, exc_type, exc_val, exc_tb):
-                        pass
-
-                return MockCustomerContext()
-
-            checkout_service._create_or_update_customer = mock_create_or_update_customer
-            checkout_service._update_checkout_tax = AsyncMock(
-                return_value=checkout_paystack_active
-            )
-            checkout_service._after_checkout_updated = AsyncMock()
-
-            # Create checkout confirm data
-            checkout_confirm = CheckoutConfirm(
-                customer_billing_address=AddressInput.model_validate(
-                    {"country": "KE"}
-                ),
-                confirmation_token_id="ctoken_test",
-            )
-            auth_subject = AuthSubject(
-                subject=Anonymous(), scopes=set(), session=None
-            )
-
-            # Confirm checkout should raise PaymentError
-            with pytest.raises(PaymentError) as exc_info:
-                await checkout_service._confirm_inner(
-                    session, auth_subject, checkout_paystack_active, checkout_confirm
-                )
-
-            # Verify error details
-            error = exc_info.value
-            assert error.checkout == checkout_paystack_active
-            assert "paystack_error" in error.error_type
-            assert "Network timeout" in error.error
 
     class TestMockPaystackService:
         """Test mocking of PaystackService methods."""

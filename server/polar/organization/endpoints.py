@@ -536,15 +536,24 @@ async def get_payment_status(
     ),
 ) -> OrganizationPaymentStatus:
     """Get payment status and onboarding steps for an organization."""
-    # Handle authentication based on account_verification_only flag
-    if is_anonymous(auth_subject) and not account_verification_only:
-        raise Unauthorized()
-    elif is_anonymous(auth_subject):
+    # Handle authentication based on account_verification_only flag.
+    #
+    # account_verification_only is the buyer-side checkout probe: the
+    # checkout form calls it to see whether the creator can accept
+    # payments. It carries only public readiness info (no financials),
+    # so it must work for ANYONE — anonymous visitors AND logged-in
+    # buyers who are not members of this creator's org. Previously a
+    # logged-in non-member fell into the scoped `else` branch, where
+    # organization_service.get() returns None (members only) → 404.
+    # Always use the public path for this flag.
+    if account_verification_only:
         organization = await organization_service.get_anonymous(
             session,
             id,
             options=(joinedload(Organization.account).joinedload(Account.admin),),
         )
+    elif is_anonymous(auth_subject):
+        raise Unauthorized()
     else:
         # For authenticated users, check proper scopes (need at least one of these)
         required_scopes = {
