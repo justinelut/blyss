@@ -426,6 +426,25 @@ class OrganizationDetailView:
                         ):
                             text("Block Organization")
 
+                    # Reset Paystack payout state — used when switching
+                    # Paystack environments (live <-> test). Clears the
+                    # subaccount + M-Pesa fields so the creator can re-verify
+                    # in the current environment.
+                    with tag.div(classes="w-full"):
+                        with button(
+                            variant="error",
+                            size="sm",
+                            outline=True,
+                            hx_get=str(
+                                request.url_for(
+                                    "organizations:reset_paystack_dialog",
+                                    organization_id=self.org.id,
+                                )
+                            ),
+                            hx_target="#modal",
+                        ):
+                            text("Reset payout state")
+
             yield
 
     @contextlib.contextmanager
