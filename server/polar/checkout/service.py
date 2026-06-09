@@ -1108,8 +1108,16 @@ class CheckoutService:
                     }
                 )
 
+        # The confirmation token is a STRIPE concept (Stripe.js mints it
+        # client-side and we exchange it for a PaymentIntent). Paystack
+        # Mode A never produces one — the Paystack popup collects card /
+        # M-Pesa details itself and the charge is settled via the
+        # charge.success webhook. Only require the token for Stripe
+        # checkouts; requiring it for Paystack 422'd every confirm and
+        # stopped the payment popup from ever opening.
         if (
-            checkout.is_payment_form_required
+            checkout.payment_processor == PaymentProcessor.stripe
+            and checkout.is_payment_form_required
             and checkout_confirm.confirmation_token_id is None
         ):
             errors.append(
