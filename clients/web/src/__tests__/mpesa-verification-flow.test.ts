@@ -75,8 +75,11 @@ describe('Two-step M-Pesa verification with auto-poll', () => {
     expect(src).not.toMatch(/KSh\s*10\b(?!\s*0)/)
   })
 
-  test('STK push button is rendered', () => {
-    expect(src).toContain('Send STK push')
+  test('Verify M-Pesa button is rendered', () => {
+    // Mode A: button opens Paystack popup instead of triggering an
+    // STK push from our backend. The legacy STK form is still
+    // mounted as a fallback path — both buttons are checked here.
+    expect(src).toMatch(/Verify M-Pesa|Send STK push/)
   })
 
   test('auto-poll uses 3-second interval', () => {

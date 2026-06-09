@@ -1,111 +1,86 @@
 'use client'
 
-/* Inline Paystack-native tipping. Channel-tab strip + per-channel fields.
- * Fixed: all fields use w-full/min-w-0, card expiry/cvv grid wraps on narrow
- * viewports, channel tabs scroll without pushing dialog width.
+/* Hallmark · component: donation-payment-interface · genre: editorial
+ * theme: blyss-design (light cream + burnt orange #C2410C)
+ *
+ * Mode A (Paystack Inline JS popup) for tipping/donation.
+ *
+ * Flow:
+ *   1. Donor enters name + optional message + email + amount in
+ *      our Blyss form (we own the pre-payment surface)
+ *   2. Click "Tip {creator}" → opens Paystack popup with config
+ *      from /v1/donation/{slug}/popup-config
+ *   3. Popup handles card / M-Pesa / 3DS / fraud — pays out to
+ *      the creator's subaccount (90% creator / 10% Blyss split)
+ *   4. onSuccess: charge.success webhook receives metadata
+ *      {purpose: 'donation', donation_for_organization_id, donor_*}
+ *      and inserts a Donation row idempotently.
+ *
+ * Old custom card / momo / bank / USSD / QR / EFT forms preserved
+ * at DonationPaymentInterface.legacy.tsx.
  */
 
-import Button from '@/components/atoms/Button'
+import { useState, useEffect } from 'react'
+import { FiArrowRight, FiHeart, FiLock } from 'react-icons/fi'
 import Input from '@/components/atoms/Input'
-import { FormLabel } from '@/components/ui/form'
-import {
-  useDonationCharge,
-  useDonationChargeSubmitStep,
-  useDonationPaymentChannels,
-  useDonationPaymentStatus,
-  type DonationChargeRequest,
-  type DonationChargeResponse,
-  type DonationPaymentChannel,
-  type DonationPaymentChannelProvider,
-} from '@/hooks/queries/donations'
+import { toast } from '@/components/Toast/use-toast'
 import { cn } from '@/lib/utils'
-import { isValidKenyanMsisdn, normalizeKenyanMsisdn } from '@/lib/phone/kenyan-msisdn'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { FiPhone, FiRefreshCw, FiX } from 'react-icons/fi'
-import { translatePaystackError } from '@/lib/paystack/translate-error'
 import {
-  AirtelMoneyLogo,
-  AirteltigoLogo,
-  BankGlyph,
-  BankTransferGlyph,
-  GenericPaymentGlyph,
-  MastercardLogo,
-  MpesaLogo,
-  MtnLogo,
-  OzowLogo,
-  QrGlyph,
-  UssdGlyph,
-  VisaLogo,
-  VodafoneLogo,
-} from '@/components/Brand/payment-icons'
+  paystackPop,
+  generatePaystackReference,
+} from '@/utils/paystack-pop'
+import { api } from '@/utils/client'
+import { useQuery } from '@tanstack/react-query'
 
 interface Props {
   slug: string
+  /** Tip amount in kobo (KES * 100). Donor adjusts via the parent
+   *  page's amount picker; we display + relay to Paystack. */
   amount: number
   donorEmail: string
   donorName?: string
   message?: string
   canPay: boolean
+  /** Fires after Paystack popup confirms — donor sees the success
+   *  state, parent navigates back to creator. */
   onPaymentSuccess?: () => void
 }
 
-type CardFields = {
-  card_number: string
-  expiry_month: string
-  expiry_year: string
-  cvv: string
-}
-type MoMoFields = { phone: string; provider: string }
-type BankFields = { bank_code: string; bank_account_number: string }
-type USSDFields = { ussd_type: string }
-type QRFields = { qr_provider: string }
-type EFTFields = { eft_provider: string }
-
-const ChannelIcon = ({
-  channel,
-  providerCode,
-  size = 28,
-}: {
-  channel: DonationPaymentChannel['id']
-  providerCode?: string
-  size?: number
-}) => {
-  if (channel === 'card') {
-    return (
-      <span className="inline-flex items-center gap-1">
-        <VisaLogo size={size + 8} />
-        <MastercardLogo size={size + 8} />
-      </span>
-    )
-  }
-  if (channel === 'mobile_money') {
-    if (providerCode === 'mtn') return <MtnLogo size={size + 8} />
-    if (providerCode === 'tgo') return <AirteltigoLogo size={size + 8} />
-    if (providerCode === 'vod') return <VodafoneLogo size={size + 8} />
-    if (providerCode === 'airtel') return <AirtelMoneyLogo size={size + 8} />
-    return <MpesaLogo size={size + 8} />
-  }
-  if (channel === 'bank') return <BankGlyph size={size} />
-  if (channel === 'bank_transfer') return <BankTransferGlyph size={size} />
-  if (channel === 'ussd') return <UssdGlyph size={size} />
-  if (channel === 'qr') return <QrGlyph size={size} />
-  if (channel === 'eft') return <OzowLogo size={size + 8} />
-  return <GenericPaymentGlyph size={size} />
+interface DonationPopupConfig {
+  public_key: string
+  organization_id: string
+  organization_name: string
+  subaccount_code: string | null
+  currency: string
+  suggested_amounts_kobo: number[]
+  minimum_kobo: number
 }
 
-const CHANNEL_LABEL: Record<DonationPaymentChannel['id'], string> = {
-  card: 'Card',
-  mobile_money: 'Mobile money',
-  bank: 'Bank account',
-  bank_transfer: 'Bank transfer',
-  ussd: 'USSD',
-  qr: 'QR code',
-  eft: 'Instant EFT',
+const fmtPrice = (cents: number, currency = 'KES') => {
+  const major = cents / 100
+  if (currency === 'KES') return `KSh ${major.toLocaleString('en-KE')}`
+  return `${currency} ${major.toLocaleString()}`
 }
 
-function chargeFinal(status: string): boolean {
-  return status === 'success' || status === 'failed'
-}
+/**
+ * Fetch the donation popup config: Paystack public key, creator's
+ * subaccount, suggested amounts. Cached for the donation session.
+ */
+const useDonationPopupConfig = (slug: string) =>
+  useQuery({
+    queryKey: ['donation', 'popup-config', slug],
+    queryFn: async () => {
+      const res = await (api as any).GET(
+        '/v1/donation/{slug}/popup-config',
+        { params: { path: { slug } } },
+      )
+      if (res.error) throw res.error
+      return res.data as DonationPopupConfig
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    enabled: !!slug,
+  })
 
 export const DonationPaymentInterface = ({
   slug,
@@ -116,777 +91,185 @@ export const DonationPaymentInterface = ({
   canPay,
   onPaymentSuccess,
 }: Props) => {
-  const channelsQ = useDonationPaymentChannels(slug)
-  const channels = useMemo<DonationPaymentChannel[]>(
-    () => channelsQ.data ?? [],
-    [channelsQ.data],
-  )
+  const { data: config, isLoading, error } = useDonationPopupConfig(slug)
+  const [stage, setStage] = useState<
+    'idle' | 'opening' | 'cancelled' | 'success'
+  >('idle')
+  const [email, setEmail] = useState(donorEmail || '')
 
-  type Tab = {
-    key: string
-    channel: DonationPaymentChannel
-    providerCode?: string
-    providerName?: string
-  }
-  const tabs = useMemo<Tab[]>(() => {
-    return channels.flatMap<Tab>((c) => {
-      if (c.id === 'mobile_money' && c.providers && c.providers.length > 0) {
-        return c.providers.map<Tab>((p) => ({
-          key: `mobile_money:${p.code}`,
-          channel: c,
-          providerCode: p.code,
-          providerName: p.name,
-        }))
-      }
-      return [{ key: c.id, channel: c } as Tab]
-    })
-  }, [channels])
-
-  const [selectedKey, setSelectedKey] = useState<string>('mobile_money')
+  // Sync local email with parent prop changes
   useEffect(() => {
-    if (tabs.length === 0) return
-    const momo = tabs.find((t) => t.channel.id === 'mobile_money')
-    setSelectedKey(momo?.key ?? tabs[0].key)
-  }, [tabs])
-
-  const selectedTab = tabs.find((t) => t.key === selectedKey)
-  const selected = selectedTab?.channel
-
-  const [card, setCard] = useState<CardFields>({
-    card_number: '',
-    expiry_month: '',
-    expiry_year: '',
-    cvv: '',
-  })
-  const [momo, setMomo] = useState<MoMoFields>({ phone: '', provider: '' })
-  const [bank, setBank] = useState<BankFields>({
-    bank_code: '',
-    bank_account_number: '',
-  })
-  const [ussd, setUssd] = useState<USSDFields>({ ussd_type: '' })
-  const [qr, setQr] = useState<QRFields>({ qr_provider: '' })
-  const [eft, setEft] = useState<EFTFields>({ eft_provider: '' })
-
-  // Channel-specific validity. The parent's `canPay` only checks
-  // amount + email; we additionally gate the Send-tip button on the
-  // fields each channel needs so the request never reaches the
-  // backend missing required data (which used to 422 silently).
-  const channelFieldsValid = useMemo(() => {
-    if (!selected) return false
-    switch (selected.id) {
-      case 'card':
-        return (
-          card.card_number.replace(/\s+/g, '').length >= 12 &&
-          card.expiry_month.length >= 1 &&
-          card.expiry_year.length >= 2 &&
-          card.cvv.length >= 3
-        )
-      case 'mobile_money': {
-        // Strip everything non-digit (and the leading + the user
-        // commonly types) and accept any of the four shapes Kenyan
-        // buyers actually use: +254..., 254..., 0..., bare 9-digit.
-        // The normalizer returns null for unrecognisable inputs so
-        // the Pay button stays disabled.
-        return (
-          isValidKenyanMsisdn(momo.phone) &&
-          !!(momo.provider || selected.providers?.[0]?.code)
-        )
-      }
-      case 'bank':
-        return !!bank.bank_code && bank.bank_account_number.length >= 4
-      case 'bank_transfer':
-        return true
-      case 'ussd':
-        return !!(ussd.ussd_type || selected.providers?.[0]?.code)
-      case 'qr':
-        return !!(qr.qr_provider || selected.providers?.[0]?.code)
-      case 'eft':
-        return !!(eft.eft_provider || selected.providers?.[0]?.code)
-      default:
-        return false
+    if (donorEmail && donorEmail !== email) {
+      setEmail(donorEmail)
     }
-  }, [selected, card, momo, bank, ussd, qr, eft])
+  }, [donorEmail])
 
-  useEffect(() => {
-    if (!selectedTab || !selected) return
-    if (selected.id === 'mobile_money' && selectedTab.providerCode) {
-      if (momo.provider !== selectedTab.providerCode) {
-        setMomo((m) => ({ ...m, provider: selectedTab.providerCode! }))
-      }
+  const onTip = () => {
+    if (!config) {
+      toast({
+        title: 'Loading',
+        description: 'Tip details still loading. Try again in a moment.',
+        variant: 'error',
+      })
+      return
     }
-  }, [selectedTab, selected, momo.provider])
-
-  const charge = useDonationCharge(slug)
-  const [chargeResponse, setChargeResponse] =
-    useState<DonationChargeResponse | null>(null)
-  const reference = chargeResponse?.reference ?? null
-  const polling = !!chargeResponse && !chargeFinal(chargeResponse.status)
-  const statusQ = useDonationPaymentStatus(reference, polling)
-  const submitStep = useDonationChargeSubmitStep(reference ?? '')
-
-  useEffect(() => {
-    if (statusQ.data?.status === 'success') {
-      onPaymentSuccess?.()
+    if (!config.public_key) {
+      toast({
+        title: 'Tipping unavailable',
+        description: 'Paystack key not configured. Try again shortly.',
+        variant: 'error',
+      })
+      return
     }
-  }, [statusQ.data?.status, onPaymentSuccess])
+    if (!config.subaccount_code) {
+      toast({
+        title: 'Creator not ready for tips',
+        description:
+          'This creator hasn\u2019t finished setting up payouts yet. ' +
+          'Tipping will be available once they verify their M-Pesa.',
+        variant: 'error',
+      })
+      return
+    }
+    if (!email.trim()) {
+      toast({
+        title: 'Email required',
+        description: 'We need your email to send a tip receipt.',
+        variant: 'error',
+      })
+      return
+    }
+    if (amount < config.minimum_kobo) {
+      toast({
+        title: 'Tip too small',
+        description: `Minimum tip is ${fmtPrice(config.minimum_kobo, config.currency)}.`,
+        variant: 'error',
+      })
+      return
+    }
 
-  const buildChargePayload = (): DonationChargeRequest | null => {
-    if (!selected) return null
-    const base = {
+    setStage('opening')
+    const reference = generatePaystackReference(
+      config.organization_id,
+      'blyss_tip',
+    )
+
+    paystackPop({
+      publicKey: config.public_key,
+      email: email.trim(),
       amount,
-      donor_email: donorEmail,
-      donor_name: donorName || undefined,
-      message: message || undefined,
-    }
-    switch (selected.id) {
-      case 'card':
-        return {
-          ...base,
-          channel: 'card',
-          card_number: card.card_number.replace(/\s+/g, ''),
-          expiry_month: card.expiry_month.padStart(2, '0'),
-          expiry_year: card.expiry_year,
-          cvv: card.cvv,
-        }
-      case 'mobile_money':
-        return {
-          ...base,
-          channel: 'mobile_money',
-          // Normalise to canonical 254XXXXXXXXX MSISDN so all the
-          // shapes Kenyan buyers actually type ('+254 712 345 678',
-          // '254712345678', '0712345678', '712345678') reach Paystack
-          // in the bare-digit form its mobile_money charge endpoint
-          // expects. The Send-tip button is gated on
-          // isValidKenyanMsisdn(momo.phone) above so we trust the
-          // non-null result here.
-          phone: normalizeKenyanMsisdn(momo.phone) ?? '',
-          provider: momo.provider || selected.providers?.[0]?.code,
-        }
-      case 'bank':
-        return {
-          ...base,
-          channel: 'bank',
-          bank_code: bank.bank_code,
-          bank_account_number: bank.bank_account_number,
-        }
-      case 'bank_transfer':
-        return { ...base, channel: 'bank_transfer' }
-      case 'ussd':
-        return {
-          ...base,
-          channel: 'ussd',
-          ussd_type: ussd.ussd_type || selected.providers?.[0]?.code,
-        }
-      case 'qr':
-        return {
-          ...base,
-          channel: 'qr',
-          qr_provider: qr.qr_provider || selected.providers?.[0]?.code,
-        }
-      case 'eft':
-        return {
-          ...base,
-          channel: 'eft',
-          eft_provider: eft.eft_provider || selected.providers?.[0]?.code,
-        }
-    }
+      currency: config.currency,
+      reference,
+      subaccount: config.subaccount_code,
+      channels: ['card', 'mobile_money'],
+      metadata: {
+        // Routing key picked up by paystack/tasks.py charge_success
+        // → _handle_donation_success
+        purpose: 'donation',
+        donation_for_organization_id: config.organization_id,
+        donor_email: email.trim(),
+        ...(donorName ? { donor_name: donorName } : {}),
+        ...(message ? { donor_message: message } : {}),
+      },
+      onSuccess: () => {
+        setStage('success')
+        onPaymentSuccess?.()
+      },
+      onCancel: () => {
+        setStage('cancelled')
+      },
+    })
   }
 
-  const onPay = async () => {
-    const body = buildChargePayload()
-    if (!body) return
-    try {
-      const resp = await charge.mutateAsync(body)
-      setChargeResponse(resp)
-    } catch {
-      /* mutation error surfaced below */
-    }
-  }
-
-  if (channelsQ.isLoading) {
-    return <ChannelsSkeleton />
-  }
-
-  if (chargeResponse) {
-    return (
-      <ActiveChargePanel
-        charge={chargeResponse}
-        status={statusQ.data ?? null}
-        channel={selected?.id ?? 'mobile_money'}
-        submitting={submitStep.isPending}
-        onSubmitStep={async (action, value) => {
-          const resp = await submitStep.mutateAsync({ action, value })
-          setChargeResponse(resp)
-        }}
-        onRetry={() => setChargeResponse(null)}
-      />
-    )
-  }
+  const buttonDisabled =
+    !canPay ||
+    isLoading ||
+    !config ||
+    !config.public_key ||
+    !config.subaccount_code ||
+    stage === 'opening' ||
+    stage === 'success' ||
+    !email.trim()
 
   return (
-    <div className="min-w-0 space-y-4" data-testid="donation-payment-interface">
-      <ChannelTabsStrip
-        tabs={tabs}
-        selectedKey={selectedKey}
-        onSelect={setSelectedKey}
-        disabled={charge.isPending}
-      />
-
-      {selected?.id === 'card' && (
-        <CardFieldsBlock card={card} setCard={setCard} disabled={charge.isPending} />
-      )}
-      {selected?.id === 'mobile_money' && (
-        <MoMoFieldsBlock momo={momo} setMomo={setMomo} disabled={charge.isPending} />
-      )}
-      {selected?.id === 'bank' && (
-        <BankFieldsBlock bank={bank} setBank={setBank} disabled={charge.isPending} />
-      )}
-      {selected?.id === 'ussd' && (
-        <USSDFieldsBlock
-          ussd={ussd}
-          setUssd={setUssd}
-          providers={selected.providers ?? []}
-          disabled={charge.isPending}
-        />
-      )}
-      {selected?.id === 'qr' && (
-        <QRFieldsBlock
-          qr={qr}
-          setQr={setQr}
-          providers={selected.providers ?? []}
-          disabled={charge.isPending}
-        />
-      )}
-      {selected?.id === 'eft' && (
-        <EFTFieldsBlock
-          eft={eft}
-          setEft={setEft}
-          providers={selected.providers ?? []}
-          disabled={charge.isPending}
-        />
-      )}
-      {selected?.id === 'bank_transfer' && (
-        <p className="text-sm text-[var(--text-secondary)]">
-          Click <span className="font-medium">Send tip</span> to generate a
-          unique virtual bank account. Send the exact amount and your tip will
-          confirm automatically.
-        </p>
-      )}
-
-      {charge.isError && (
-        <p className="text-sm text-red-600">
-          {(charge.error as any)?.body?.detail ||
-            (charge.error as any)?.message ||
-            'Payment failed. Please try again.'}
-        </p>
-      )}
-
-      <Button
-        type="button"
-        variant="default"
-        className="w-full"
-        loading={charge.isPending}
-        disabled={!canPay || !channelFieldsValid || charge.isPending}
-        onClick={onPay}
-      >
-        Send tip
-      </Button>
-    </div>
-  )
-}
-
-// ── Channel tabs strip — scrollable horizontally, contained within parent ──
-
-const ChannelTabsStrip = ({
-  tabs,
-  selectedKey,
-  onSelect,
-  disabled,
-}: {
-  tabs: {
-    key: string
-    channel: DonationPaymentChannel
-    providerCode?: string
-    providerName?: string
-  }[]
-  selectedKey: string
-  onSelect: (key: string) => void
-  disabled?: boolean
-}) => (
-  <div
-    role="tablist"
-    aria-label="Payment method"
-    className={cn(
-      'relative flex min-w-0 items-stretch gap-2 overflow-x-auto pb-2',
-      'scroll-smooth [scroll-snap-type:x_mandatory]',
-      '[&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]',
-    )}
-  >
-    {tabs.map((t) => {
-      const active = t.key === selectedKey
-      const label =
-        t.providerName || CHANNEL_LABEL[t.channel.id] || t.channel.name
-      return (
-        <button
-          key={t.key}
-          role="tab"
-          type="button"
-          aria-selected={active}
-          tabIndex={active ? 0 : -1}
-          onClick={() => onSelect(t.key)}
-          disabled={disabled}
-          className={cn(
-            'group relative flex flex-none cursor-pointer flex-col items-center justify-center gap-2',
-            'min-w-[6rem] rounded-xl border px-3 py-3 transition-colors duration-150',
-            '[scroll-snap-align:start]',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2',
-            'disabled:cursor-not-allowed disabled:opacity-50',
-            active
-              ? 'border-[var(--accent)] bg-[var(--surface-elevated)]'
-              : 'border-[var(--border)] bg-transparent hover:bg-[var(--surface-sunken)]',
-          )}
+    <div className="space-y-5">
+      {/* Email — collected in our form so we own pre-payment UX */}
+      <div className="space-y-1">
+        <label
+          htmlFor="donation-email"
+          className="block font-sans text-[12px] font-medium uppercase tracking-[0.12em] text-[var(--text-muted)]"
         >
-          <ChannelIcon channel={t.channel.id} providerCode={t.providerCode} />
-          <span
-            className={cn(
-              'text-[11px] font-medium leading-none tracking-tight',
-              active
-                ? 'text-[var(--text-primary)]'
-                : 'text-[var(--text-secondary)]',
-            )}
-          >
-            {label}
-          </span>
-        </button>
-      )
-    })}
-  </div>
-)
-
-const ChannelsSkeleton = () => (
-  <div
-    role="status"
-    aria-live="polite"
-    aria-label="Loading payment methods"
-    className="flex min-w-0 items-stretch gap-2 pb-2"
-  >
-    {[0, 1, 2].map((i) => (
-      <div
-        key={i}
-        className={cn(
-          'h-[72px] min-w-[6rem] flex-none animate-pulse rounded-xl',
-          'border border-[var(--border)] bg-[var(--surface-sunken)]',
-        )}
-      />
-    ))}
-  </div>
-)
-
-// ── Per-channel field blocks — all use w-full, card grid wraps on mobile ──
-
-const CardFieldsBlock = ({
-  card,
-  setCard,
-  disabled,
-}: {
-  card: CardFields
-  setCard: (v: CardFields) => void
-  disabled?: boolean
-}) => (
-  <div className="min-w-0 space-y-3">
-    <div className="space-y-2">
-      <FormLabel className="text-sm">Card number</FormLabel>
-      <Input
-        type="text"
-        inputMode="numeric"
-        autoComplete="cc-number"
-        placeholder="1234 1234 1234 1234"
-        className="w-full"
-        value={card.card_number}
-        disabled={disabled}
-        onChange={(e) => setCard({ ...card, card_number: e.target.value })}
-      />
-    </div>
-    {/* Grid wraps: 2 cols on very narrow (≤360), 3 cols on wider */}
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
-      <div className="space-y-2">
-        <FormLabel className="text-sm">Month</FormLabel>
+          Email
+        </label>
         <Input
-          type="text"
-          inputMode="numeric"
-          autoComplete="cc-exp-month"
-          placeholder="MM"
-          maxLength={2}
-          className="w-full"
-          value={card.expiry_month}
-          disabled={disabled}
-          onChange={(e) => setCard({ ...card, expiry_month: e.target.value })}
+          id="donation-email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@example.com"
+          disabled={stage === 'opening'}
+          required
         />
-      </div>
-      <div className="space-y-2">
-        <FormLabel className="text-sm">Year</FormLabel>
-        <Input
-          type="text"
-          inputMode="numeric"
-          autoComplete="cc-exp-year"
-          placeholder="YY"
-          maxLength={2}
-          className="w-full"
-          value={card.expiry_year}
-          disabled={disabled}
-          onChange={(e) => setCard({ ...card, expiry_year: e.target.value })}
-        />
-      </div>
-      <div className="col-span-2 space-y-2 sm:col-span-1">
-        <FormLabel className="text-sm">CVC</FormLabel>
-        <Input
-          type="text"
-          inputMode="numeric"
-          autoComplete="cc-csc"
-          placeholder="CVC"
-          maxLength={4}
-          className="w-full"
-          value={card.cvv}
-          disabled={disabled}
-          onChange={(e) => setCard({ ...card, cvv: e.target.value })}
-        />
-      </div>
-    </div>
-  </div>
-)
-
-const MoMoFieldsBlock = ({
-  momo,
-  setMomo,
-  disabled,
-}: {
-  momo: MoMoFields
-  setMomo: (v: MoMoFields) => void
-  disabled?: boolean
-}) => (
-  <div className="min-w-0 space-y-2">
-    <FormLabel className="text-sm">Mobile money number</FormLabel>
-    <Input
-      type="tel"
-      inputMode="tel"
-      placeholder="+254 712 345 678"
-      className="w-full"
-      value={momo.phone}
-      disabled={disabled}
-      onChange={(e) => setMomo({ ...momo, phone: e.target.value })}
-    />
-  </div>
-)
-
-const BankFieldsBlock = ({
-  bank,
-  setBank,
-  disabled,
-}: {
-  bank: BankFields
-  setBank: (v: BankFields) => void
-  disabled?: boolean
-}) => (
-  <div className="min-w-0 space-y-3">
-    <div className="space-y-2">
-      <FormLabel className="text-sm">Bank</FormLabel>
-      <Input
-        type="text"
-        placeholder="Bank code (e.g. 057 GTBank)"
-        className="w-full"
-        value={bank.bank_code}
-        disabled={disabled}
-        onChange={(e) => setBank({ ...bank, bank_code: e.target.value })}
-      />
-    </div>
-    <div className="space-y-2">
-      <FormLabel className="text-sm">Account number</FormLabel>
-      <Input
-        type="text"
-        inputMode="numeric"
-        placeholder="0123456789"
-        className="w-full"
-        value={bank.bank_account_number}
-        disabled={disabled}
-        onChange={(e) =>
-          setBank({ ...bank, bank_account_number: e.target.value })
-        }
-      />
-    </div>
-  </div>
-)
-
-const USSDFieldsBlock = ({
-  ussd,
-  setUssd,
-  providers,
-  disabled,
-}: {
-  ussd: USSDFields
-  setUssd: (v: USSDFields) => void
-  providers: DonationPaymentChannelProvider[]
-  disabled?: boolean
-}) => (
-  <div className="min-w-0 space-y-2">
-    <FormLabel className="text-sm">Bank</FormLabel>
-    <div className="grid grid-cols-2 gap-2">
-      {providers.map((p) => (
-        <button
-          key={p.code}
-          type="button"
-          disabled={disabled}
-          onClick={() => setUssd({ ussd_type: p.code })}
-          className={cn(
-            'cursor-pointer rounded-md border px-3 py-2 text-left text-sm transition-colors',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2',
-            ussd.ussd_type === p.code
-              ? 'border-[var(--accent)] bg-[var(--surface-elevated)] text-[var(--text-primary)]'
-              : 'border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-sunken)]',
-          )}
-        >
-          {p.name}
-        </button>
-      ))}
-    </div>
-  </div>
-)
-
-const QRFieldsBlock = ({
-  qr,
-  setQr,
-  providers,
-  disabled,
-}: {
-  qr: QRFields
-  setQr: (v: QRFields) => void
-  providers: DonationPaymentChannelProvider[]
-  disabled?: boolean
-}) => (
-  <div className="min-w-0 space-y-2">
-    <FormLabel className="text-sm">QR provider</FormLabel>
-    <div className="grid grid-cols-2 gap-2">
-      {providers.map((p) => (
-        <button
-          key={p.code}
-          type="button"
-          disabled={disabled}
-          onClick={() => setQr({ qr_provider: p.code })}
-          className={cn(
-            'cursor-pointer rounded-md border px-3 py-2 text-sm transition-colors',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2',
-            qr.qr_provider === p.code
-              ? 'border-[var(--accent)] bg-[var(--surface-elevated)] text-[var(--text-primary)]'
-              : 'border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-sunken)]',
-          )}
-        >
-          {p.name}
-        </button>
-      ))}
-    </div>
-  </div>
-)
-
-const EFTFieldsBlock = ({
-  eft,
-  setEft,
-  providers,
-  disabled,
-}: {
-  eft: EFTFields
-  setEft: (v: EFTFields) => void
-  providers: DonationPaymentChannelProvider[]
-  disabled?: boolean
-}) => (
-  <div className="min-w-0 space-y-2">
-    <FormLabel className="text-sm">EFT provider</FormLabel>
-    {providers.map((p) => (
-      <button
-        key={p.code}
-        type="button"
-        disabled={disabled}
-        onClick={() => setEft({ eft_provider: p.code })}
-        className={cn(
-          'block w-full cursor-pointer rounded-md border px-3 py-2 text-left text-sm transition-colors',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2',
-          eft.eft_provider === p.code
-            ? 'border-[var(--accent)] bg-[var(--surface-elevated)] text-[var(--text-primary)]'
-            : 'border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-sunken)]',
-        )}
-      >
-        {p.name}
-      </button>
-    ))}
-  </div>
-)
-
-// ── Active charge panel (after submit) ───────────────────────────
-
-const ActiveChargePanel = ({
-  charge,
-  status,
-  channel,
-  submitting,
-  onSubmitStep,
-  onRetry,
-}: {
-  charge: DonationChargeResponse
-  status: {
-    status: string
-    next_action?: { action?: string; display_text?: string } | null
-  } | null
-  channel: DonationPaymentChannel['id']
-  submitting: boolean
-  onSubmitStep: (
-    action: 'otp' | 'pin' | 'phone' | 'birthday',
-    value: string,
-  ) => Promise<void>
-  onRetry: () => void
-}) => {
-  const [stepValue, setStepValue] = useState('')
-  const [elapsedMs, setElapsedMs] = useState(0)
-  const startedAtRef = useRef<number>(Date.now())
-  const failed = status?.status === 'failed'
-  const action = status?.next_action ?? null
-
-  // Tick every second while polling so the progress bar ticks up.
-  useEffect(() => {
-    if (failed || action?.action || status?.status === 'success') return
-    const id = setInterval(() => {
-      setElapsedMs(Date.now() - startedAtRef.current)
-    }, 1000)
-    return () => clearInterval(id)
-  }, [failed, action?.action, status?.status])
-
-  if (failed) {
-    return (
-      <div className="flex flex-col items-center gap-5 rounded-md border border-[var(--border)] bg-[var(--surface)] px-6 py-10 text-center">
-        <div className="flex h-14 w-14 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--background)]">
-          <FiX
-            size={24}
-            className="text-[var(--text-secondary)]"
-            aria-hidden="true"
-          />
-        </div>
-        <div className="space-y-2">
-          <h3 className="font-display text-[20px] font-semibold leading-[1.15] tracking-[-0.02em] text-[var(--text-primary)]">
-            That didn&rsquo;t go through.
-          </h3>
-          <p className="mx-auto max-w-[44ch] font-sans text-[14px] leading-[1.55] text-[var(--text-secondary)]">
-            {translatePaystackError(charge.display_text)}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onRetry}
-          className="inline-flex h-10 items-center gap-2 rounded-md bg-[var(--accent)] px-5 font-sans text-[14px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)]"
-        >
-          <FiRefreshCw size={14} aria-hidden="true" />
-          Choose another method
-        </button>
-      </div>
-    )
-  }
-
-  if (action?.action) {
-    const labelByType: Record<string, string> = {
-      otp: 'Enter the OTP sent to your phone',
-      pin: 'Enter your card PIN',
-      phone: 'Enter your phone number',
-      birthday: 'Enter your date of birth',
-    }
-    return (
-      <div className="min-w-0 space-y-2">
-        <FormLabel className="text-sm">
-          {labelByType[action.action] || action.display_text}
-        </FormLabel>
-        <Input
-          type="text"
-          className="w-full"
-          value={stepValue}
-          disabled={submitting}
-          onChange={(e) => setStepValue(e.target.value)}
-        />
-        <Button
-          type="button"
-          variant="default"
-          className="w-full"
-          loading={submitting}
-          disabled={submitting || !stepValue}
-          onClick={() =>
-            onSubmitStep(
-              action.action as 'otp' | 'pin' | 'phone' | 'birthday',
-              stepValue,
-            )
-          }
-        >
-          Submit
-        </Button>
-      </div>
-    )
-  }
-
-  // Pending — channel-aware waiting state. Mobile money gets the
-  // centered Trimly phone-frame layout; other channels keep the
-  // plain spinner since their action is implicit (read account
-  // number, scan QR, dial USSD).
-  const isMobileMoney = channel === 'mobile_money'
-  const STK_WINDOW_MS = 180_000
-  const progressPct = Math.min(
-    95,
-    Math.round((elapsedMs / STK_WINDOW_MS) * 100),
-  )
-
-  if (isMobileMoney) {
-    return (
-      <div
-        role="status"
-        className="flex flex-col items-center gap-6 rounded-md border border-[var(--border)] bg-[var(--surface)] px-6 py-12 text-center"
-      >
-        <div className="relative flex h-16 w-16 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--background)]">
-          <FiPhone
-            size={26}
-            className="text-[var(--accent)]"
-            aria-hidden="true"
-          />
-        </div>
-        <div className="space-y-2">
-          <h3 className="font-display text-[22px] font-semibold leading-[1.15] tracking-[-0.02em] text-[var(--text-primary)]">
-            Check your phone for the M-Pesa prompt.
-          </h3>
-          <p className="mx-auto max-w-[44ch] font-sans text-[14px] leading-[1.55] text-[var(--text-secondary)]">
-            {charge.display_text ||
-              'Approve the STK push to send the donation.'}
-          </p>
-        </div>
-        <div
-          className="h-1.5 w-full max-w-[360px] overflow-hidden rounded-full bg-[var(--surface-sunken)]"
-          aria-hidden="true"
-        >
-          <div
-            className="h-full rounded-full bg-[var(--accent)] transition-[width] duration-300 ease-linear"
-            style={{ width: `${progressPct}%` }}
-          />
-        </div>
         <p className="font-sans text-[12px] text-[var(--text-muted)]">
-          We&rsquo;ll auto-confirm once you approve
+          For your receipt — never shown to the creator.
         </p>
       </div>
-    )
-  }
 
-  return (
-    <div
-      role="status"
-      aria-live="polite"
-      className="flex min-w-0 items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-sunken)] p-4 text-sm text-[var(--text-secondary)]"
-    >
-      <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
-      <span className="min-w-0 break-words">
-        {charge.display_text ||
-          'Waiting for you to authorise the payment\u2026'}
-      </span>
+      {/* Tip button — opens Paystack popup */}
+      <button
+        type="button"
+        onClick={onTip}
+        disabled={buttonDisabled}
+        className={cn(
+          'inline-flex h-12 w-full items-center justify-center gap-2 rounded-md bg-[var(--accent)] px-7',
+          'font-sans text-[15px] font-medium text-[var(--accent-foreground)]',
+          'transition-colors hover:bg-[var(--accent-hover)]',
+          'disabled:cursor-not-allowed disabled:opacity-60',
+        )}
+      >
+        {stage === 'opening' ? (
+          <>Opening secure payment\u2026</>
+        ) : stage === 'success' ? (
+          <>
+            <FiHeart size={14} aria-hidden="true" />
+            Tip sent
+          </>
+        ) : !config?.subaccount_code && config ? (
+          <>Creator not ready for tips</>
+        ) : (
+          <>
+            Tip {fmtPrice(amount, config?.currency || 'KES')}
+            <FiArrowRight size={14} aria-hidden="true" />
+          </>
+        )}
+      </button>
+
+      {/* Trust line */}
+      <p className="flex items-center gap-2 font-sans text-[12px] text-[var(--text-muted)]">
+        <FiLock size={12} aria-hidden="true" />
+        Secured by Paystack. Your card details never touch Blyss
+        servers.
+      </p>
+
+      {error && (
+        <p className="font-sans text-[12px] text-[var(--danger)]">
+          Couldn\u2019t load tip details. Please refresh the page.
+        </p>
+      )}
+
+      {stage === 'cancelled' && (
+        <div className="rounded-md border border-[var(--border)] bg-[var(--surface)] p-4">
+          <p className="font-sans text-[14px] font-medium text-[var(--text-primary)]">
+            Tip was cancelled.
+          </p>
+          <p className="mt-1 font-sans text-[13px] text-[var(--text-secondary)]">
+            No charge was made. Click Tip above to try again.
+          </p>
+        </div>
+      )}
     </div>
   )
 }
 
+// Default export retained for legacy imports
 export default DonationPaymentInterface

@@ -74,11 +74,12 @@ describe('Donations — dedicated /donation/[slug] page', () => {
     expect(dir).not.toContain('<DonationModal')
   })
 
-  test('DonationPaymentInterface drives the inline /charge + poll flow', () => {
+  test('DonationPaymentInterface drives the Paystack popup flow (Mode A)', () => {
     const iface = read('src/components/Donation/DonationPaymentInterface.tsx')
-    expect(iface).toContain('useDonationCharge')
-    expect(iface).toContain('useDonationPaymentStatus')
-    expect(iface).toMatch(/from '@\/components\/Brand\/payment-icons'/)
+    // Mode A: Paystack popup handles the actual charge
+    expect(iface).toContain('paystackPop')
+    expect(iface).toContain('useDonationPopupConfig')
+    expect(iface).toMatch(/purpose:\s*['"]donation['"]/)
     expect(iface).not.toMatch(/from 'lucide-react'/)
     expect(iface).not.toMatch(/authorization_url/)
   })

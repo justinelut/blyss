@@ -27,6 +27,7 @@ from .schemas import (
     DonationInitiateResponse,
     DonationPaymentChannel,
     DonationPaymentStatus,
+    DonationPopupConfig,
     DonationPublic,
 )
 from .service import (
@@ -132,6 +133,70 @@ async def donation_payment_channels(
         )
         for c in channels
     ]
+
+
+@router.get(
+    "/{slug}/popup-config",
+    response_model=DonationPopupConfig,
+    summary="Get Donation Paystack Popup Config",
+    responses={
+        200: {"description": "Config for opening the Paystack popup."},
+        404: {"description": "Creator not found or blocked."},
+    },
+)
+async def donation_popup_config(
+    slug: Annotated[str, Path(description="The creator slug.")],
+    session: AsyncSession = Depends(get_db_session),
+) -> DonationPopupConfig:
+    """Return the config the donation page needs to open Paystack's
+    Inline JS popup for tipping this creator.
+
+    Public endpoint (donation/tipping is open to anyone — no auth).
+
+    The popup config bundles:
+      - Paystack public key (runtime_settings overlay → env)
+      - Creator's organization_id (echoed into popup metadata as
+        donation_for_organization_id, picked up by the
+        charge.success webhook to record the Donation row)
+      - Creator's subaccount_code (so the tip lands in their
+        Paystack subaccount, with the platform percentage_charge
+        split applied)
+      - Currency + suggested amounts + minimum
+
+    Frontend should hide the Pay button when subaccount_code is
+    null — the creator hasn't finished M-Pesa verification yet so
+    Paystack would reject the charge.
+    """
+    org_repository = OrganizationRepository.from_session(session)
+    organization = await org_repository.get_by_slug(slug)
+    if organization is None or organization.blocked_at is not None:
+        raise ResourceNotFound()
+
+    # Resolve public key — runtime_settings overlay first.
+    public_key = ""
+    try:
+        override = await runtime_settings.get(
+            session, "PAYSTACK_PUBLIC_KEY"
+        )
+        if override:
+            public_key = override
+    except Exception:  # noqa: BLE001
+        pass
+    if not public_key:
+        public_key = settings.PAYSTACK_PUBLIC_KEY or ""
+
+    return DonationPopupConfig(
+        public_key=public_key,
+        organization_id=str(organization.id),
+        organization_name=organization.name,
+        subaccount_code=(
+            organization.subaccount_code
+            if organization.subaccount_code
+            and not organization.subaccount_code.startswith("ACCT_test_")
+            else None
+        ),
+        currency="KES",
+    )
 
 
 @router.post(

@@ -160,3 +160,55 @@ class DonationPaymentStatus(Schema):
     status: Literal["pending", "success", "failed", "requires_action"]
     message: str | None = None
     next_action: dict[str, Any] | None = None
+
+
+
+class DonationPopupConfig(Schema):
+    """Frontend config for opening a Paystack Inline JS popup that
+    tips a specific creator.
+
+    The donation page renders the donor name + message + amount form
+    in our Blyss design. When the donor clicks Pay, the page opens
+    Paystack's popup with this config. Paystack handles every
+    payment channel (card, M-Pesa STK, bank, USSD), 3DS, and
+    fraud checks. On success, our webhook lands at charge.success
+    and finalizes the Donation row via metadata.purpose='donation'.
+    """
+
+    public_key: str = Field(
+        description=(
+            "Paystack PUBLIC key — safe to ship to the browser."
+        )
+    )
+    organization_id: str = Field(
+        description="Creator's organization id (UUID as string).",
+    )
+    organization_name: str = Field(
+        description="Creator's display name (used in popup label).",
+    )
+    subaccount_code: str | None = Field(
+        default=None,
+        description=(
+            "Paystack subaccount that receives the tip. None if the "
+            "creator hasn't completed M-Pesa verification — frontend "
+            "should hide the Pay button when missing."
+        ),
+    )
+    currency: str = Field(
+        default="KES",
+        description="ISO 4217 currency for the donation.",
+    )
+    suggested_amounts_kobo: list[int] = Field(
+        default_factory=lambda: [10000, 25000, 50000, 100000, 250000],
+        description=(
+            "Suggested tip amounts in lowest currency unit. Kenyan "
+            "defaults: KSh 100 / 250 / 500 / 1,000 / 2,500."
+        ),
+    )
+    minimum_kobo: int = Field(
+        default=2000,
+        description=(
+            "Minimum donation in lowest currency unit. KSh 20 by "
+            "default — enough to cover Paystack's KE M-Pesa fee."
+        ),
+    )

@@ -23,6 +23,11 @@ import { useAuth } from '@/hooks'
 import { api } from '@/utils/client'
 import { schemas, unwrap } from '@/lib/api'
 import { translatePaystackError } from '@/lib/paystack/translate-error'
+import { usePaystackPublicKey } from '@/hooks/queries/paystackConfig'
+import {
+  paystackPop,
+  generatePaystackReference,
+} from '@/utils/paystack-pop'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
@@ -104,6 +109,12 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
   const [isResetting, setIsResetting] = useState(false)
   const [resetDialogOpen, setResetDialogOpen] = useState(false)
   const router = useRouter()
+
+  // Paystack public key for the verification popup. Cached for the
+  // session via react-query.
+  const { data: paystackConfig, isLoading: isPaystackKeyLoading } =
+    usePaystackPublicKey()
+  const paystackPublicKey = paystackConfig?.public_key
 
   // Verification charge amount — fetched from the backend so the
   // dashboard copy always matches what the creator is actually
@@ -245,6 +256,126 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
     } finally {
       setIsFinalizing(false)
     }
+  }
+
+  /**
+   * Mode A verification: opens Paystack popup, lets the creator
+   * authorize the KSh 100 charge from THEIR M-Pesa number directly
+   * inside Paystack's UI. The phone number Paystack actually
+   * charges flows to our webhook (charge.success) on
+   * data.authorization.mobile_number — the backend extracts it and
+   * provisions the subaccount automatically.
+   *
+   * We poll the org status every 2s after popup confirms so the UI
+   * shows the new subaccount as soon as the webhook task lands.
+   */
+  async function onVerifyViaPaystackPopup() {
+    if (!currentUser) return
+    if (!paystackPublicKey) {
+      setErrorMsg(
+        'Payment system loading. Please wait a moment and try again.',
+      )
+      return
+    }
+    setErrorMsg(null)
+    setStage('sending')
+
+    try {
+      // Fetch the verification amount from runtime_settings (already
+      // fetched into verificationAmountKes; convert to kobo for
+      // Paystack).
+      const amountKobo = verificationAmountKes * 100
+      const popupReference = generatePaystackReference(
+        organization.id,
+        'blyss_mpesa_verify',
+      )
+
+      paystackPop({
+        publicKey: paystackPublicKey,
+        email: currentUser.email,
+        amount: amountKobo,
+        currency: 'KES',
+        reference: popupReference,
+        // No subaccount for verification — the charge goes 100% to
+        // Blyss main account (covers Paystack/M-Pesa fees, doesn't
+        // refund). Subaccount is what we CREATE from the verification.
+        channels: ['mobile_money'],
+        metadata: {
+          // Webhook routing key
+          purpose: 'mpesa_verification',
+          mpesa_verification_organization_id: organization.id,
+          // Fallback for older code paths that look up by organization_id
+          organization_id: organization.id,
+        },
+        onSuccess: () => {
+          // Charge confirmed by Paystack popup. Webhook will fire
+          // charge.success → _handle_mpesa_verification_success →
+          // subaccount created. Poll the org status until we see it.
+          setReference(popupReference)
+          setStage('waiting')
+          setDisplayText(
+            'M-Pesa charged. Setting up your payouts — usually 5–15 seconds.',
+          )
+          startedAtRef.current = Date.now()
+          beginPollingForSubaccount()
+        },
+        onCancel: () => {
+          setStage('idle')
+          setErrorMsg(
+            'Verification cancelled. Click Verify M-Pesa to try again.',
+          )
+        },
+      })
+    } catch (error: any) {
+      setStage('failed')
+      setErrorMsg(
+        error?.message || 'Could not open Paystack secure payment.',
+      )
+    }
+  }
+
+  /**
+   * Poll /v1/organizations/{id} every 2s after popup success until
+   * subaccount_status flips to 'active' (webhook handler created
+   * the subaccount). Times out after ~60s; UI surfaces a 'taking
+   * longer than usual' state without failing the verification.
+   */
+  function beginPollingForSubaccount() {
+    let attempts = 0
+    const maxAttempts = 30 // 30 * 2s = 60s
+    const poll = async () => {
+      attempts++
+      try {
+        const res = await unwrap(
+          (api as any).GET('/v1/organizations/{id}', {
+            params: { path: { id: organization.id } },
+          }),
+        )
+        const fresh = res as any
+        if (
+          fresh?.subaccount_status === 'active' &&
+          fresh?.subaccount_code &&
+          !String(fresh.subaccount_code).startsWith('ACCT_test_')
+        ) {
+          setStage('succeeded')
+          // Server-side state changed — refresh server components so
+          // the parent page picks up the new subaccount details.
+          router.refresh()
+          return
+        }
+      } catch {
+        // Ignore transient errors and keep polling
+      }
+      if (attempts >= maxAttempts) {
+        setStage('failed')
+        setErrorMsg(
+          'Setup is taking longer than expected. Refresh the page in a minute — your payment was received.',
+        )
+        return
+      }
+      setTimeout(poll, 2000)
+    }
+    setTimeout(poll, 2000)
   }
 
   async function onSendStk(data: MPesaConfigurationForm) {
@@ -551,41 +682,25 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
         </div>
       </div>
 
-      {/* M-Pesa input + send STK */}
+      {/* M-Pesa verification — popup-driven, no phone field */}
       {payoutMethod === 'mpesa' && (
         <div className="space-y-4">
-          <div>
-            <label
-              htmlFor="mpesa-number"
-              className="block font-sans text-[12px] font-medium uppercase tracking-[0.12em] text-[var(--text-muted)]"
-            >
-              M-Pesa number
-            </label>
-            <input
-              id="mpesa-number"
-              type="tel"
-              inputMode="tel"
-              placeholder="0712 345 678"
-              autoComplete="tel"
-              {...register('mpesa_number', {
-                required: 'M-Pesa number is required',
-                validate: (v) => {
-                  const cleaned = normalisePhone(v)
-                  return /^\+254[17]\d{8}$/.test(cleaned)
-                    ? true
-                    : 'Use a Kenyan M-Pesa number (starts with 07 or 01).'
-                },
-              })}
-              className="mt-2 h-12 w-full rounded-md border border-[var(--border)] bg-[var(--surface-elevated)] px-4 font-sans text-[15px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
-            />
-            {formState.errors.mpesa_number && (
-              <p className="mt-2 font-sans text-[13px] text-[var(--error,#dc2626)]">
-                {formState.errors.mpesa_number.message as string}
-              </p>
-            )}
-            <p className="mt-2 font-sans text-[13px] text-[var(--text-secondary)]">
-              We&rsquo;ll push an STK prompt — approve it with your M-Pesa
-              PIN. Window is about three minutes.
+          <div className="rounded-md border border-[var(--border)] bg-[var(--surface)] p-5">
+            <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+              How verification works
+            </p>
+            <p className="mt-3 font-sans text-[14px] leading-[1.6] text-[var(--text-secondary)]">
+              Click <span className="font-medium text-[var(--text-primary)]">Verify M-Pesa</span> below.
+              Paystack&rsquo;s secure popup will open and ask for the
+              M-Pesa number to charge KSh {verificationAmountKes.toLocaleString('en-KE')}{' '}
+              from. Approve the STK push with your M-Pesa PIN, and we
+              automatically link that number to your Blyss payouts. We
+              never see your PIN.
+            </p>
+            <p className="mt-2 font-sans text-[12px] text-[var(--text-muted)]">
+              The KSh {verificationAmountKes.toLocaleString('en-KE')}{' '}
+              verification charge stays with Blyss and can&rsquo;t be
+              refunded — it covers Paystack and M-Pesa transaction fees.
             </p>
           </div>
 
@@ -600,19 +715,20 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
 
           <div>
             <button
-              type="submit"
+              type="button"
+              onClick={onVerifyViaPaystackPopup}
               disabled={
                 stage === 'sending' ||
-                !mpesaNumber ||
-                !formState.isValid
+                isPaystackKeyLoading ||
+                !paystackPublicKey
               }
               className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-[var(--accent)] px-6 font-sans text-[15px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {stage === 'sending' ? (
-                <>Sending prompt…</>
+                <>Opening secure payment\u2026</>
               ) : (
                 <>
-                  Send STK push & verify
+                  Verify M-Pesa
                   <FiArrowRight size={16} aria-hidden="true" />
                 </>
               )}
