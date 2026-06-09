@@ -79,6 +79,9 @@ class OrganizationData(Schema):
     created_at: datetime | None = None
     details_submitted_at: datetime | None = None
     blocked_at: datetime | None = None
+    creator_country: str | None = None
+    """ISO alpha-2 country detected at signup (cf-ipcountry). Drives the
+    country gate in the analyzer prompt."""
 
 
 class ProductData(Schema):
@@ -280,6 +283,10 @@ class DataSnapshot(Schema):
     website: WebsiteData | None = None
     prior_feedback: PriorFeedbackData = Field(default_factory=PriorFeedbackData)
     collected_at: datetime
+    allowed_countries: list[str] = Field(default_factory=list)
+    """Live creator-country allowlist (lowercase ISO alpha-2) resolved from
+    runtime_settings at collection time. The analyzer hard-denies any
+    organization whose creator_country is not in this list."""
 
 
 # --- AI Analyzer output schemas ---

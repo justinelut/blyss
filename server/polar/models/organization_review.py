@@ -42,6 +42,13 @@ class OrganizationReview(RecordModel):
     )
     reason: Mapped[str] = mapped_column(Text, nullable=False)
 
+    # Why a FAIL was issued, so the dashboard can route the creator to the
+    # right surface: "country" → creator-waitlist form (region not enabled
+    # yet); "policy"/None → standard "Payment Access Denied" + appeal flow.
+    denial_kind: Mapped[str | None] = mapped_column(
+        String, nullable=True, default=None
+    )
+
     timed_out: Mapped[bool] = mapped_column(nullable=False, default=False)
     model_used: Mapped[str] = mapped_column(String, nullable=False)
 

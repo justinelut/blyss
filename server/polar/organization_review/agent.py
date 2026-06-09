@@ -7,6 +7,7 @@ from uuid import UUID
 import structlog
 
 from polar.models.organization import Organization
+from polar.organization.country_gate import get_allowed_creator_countries
 from polar.organization.repository import OrganizationRepository
 from polar.postgres import AsyncSession
 from polar.worker import AsyncReadSessionMaker
@@ -235,6 +236,14 @@ async def _collect_data(
     # Organization data — pure transformation, no I/O
     org_data = collect_organization_data(organization)
 
+    # Resolve the live creator-country allowlist so the analyzer prompt
+    # can hard-gate approval. Its own short-lived session — cheap single
+    # runtime_settings read.
+    async with AsyncReadSessionMaker() as _allowlist_session:
+        allowed_countries = sorted(
+            await get_allowed_creator_countries(_allowlist_session)
+        )
+
     # Run all collectors in parallel.
     # Each DB-bound collector creates its own session so queries
     # can execute concurrently across separate connections.
@@ -280,4 +289,5 @@ async def _collect_data(
         website=website_data,
         prior_feedback=prior_feedback_data,
         collected_at=datetime.now(UTC),
+        allowed_countries=allowed_countries,
     )

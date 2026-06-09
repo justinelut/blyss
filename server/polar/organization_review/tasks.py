@@ -41,6 +41,25 @@ _VERDICT_MAP: dict[ReviewVerdict, str] = {
     ReviewVerdict.DENY: OrganizationReview.Verdict.FAIL,
 }
 
+# Token the analyzer prepends to recommended_action when it denies purely
+# because the creator's country isn't enabled yet (see the Country Gate
+# section of SYSTEM_PROMPT). Used to flag the denial so the dashboard shows
+# a waitlist form instead of the standard appeal flow.
+COUNTRY_DENIAL_TOKEN = "COUNTRY_NOT_ENABLED"
+
+
+def _resolve_denial_kind(report: object) -> str | None:
+    """Classify a denial as 'country' (region not enabled) or 'policy'.
+
+    The analyzer signals a country denial by prefixing the
+    COUNTRY_NOT_ENABLED token onto recommended_action. Everything else
+    that denies is treated as a policy/risk denial.
+    """
+    action = getattr(report, "recommended_action", "") or ""
+    if COUNTRY_DENIAL_TOKEN in action.upper():
+        return "country"
+    return "policy"
+
 
 @actor(
     actor_name="organization_review.run_agent",
@@ -175,6 +194,11 @@ async def run_review_agent(
                     risk_score=report.overall_risk_score,
                     violated_sections=report.violated_sections,
                     reason=report.merchant_summary,
+                    denial_kind=(
+                        _resolve_denial_kind(report)
+                        if report.verdict == ReviewVerdict.DENY
+                        else None
+                    ),
                     timed_out=result.timed_out,
                     organization_details_snapshot={
                         "name": organization.name,

@@ -14,6 +14,7 @@ from pydantic_ai.providers.openai import OpenAIProvider
 from pydantic_ai.providers.openrouter import OpenRouterProvider
 
 from polar.config import settings
+from polar.kit.countries import country_name
 
 from .known_domains import known_domains_for_prompt, match_known_domain
 from .policy import fetch_policy_content
@@ -87,6 +88,28 @@ norm. Mismatches between currency hints in the website and the platform are \
 NOT a risk signal.
 - New creators with no payment history are NOT risky by default. Most Blyss \
 creators ARE new — that's the platform's purpose.
+
+## Country Gate (HARD POLICY — overrides everything below)
+
+Blyss is rolling out to creators country-by-country. The "## Geography" \
+section of the application data shows the creator's detected country and \
+the live "Allowed Countries Policy" list.
+
+- If the creator's detected country is present AND is NOT in the Allowed \
+Countries Policy list, you MUST return DENY. This overrides every other \
+dimension — even a perfectly legitimate, policy-compliant creator is \
+denied if their country isn't enabled yet. In that case set \
+`recommended_action` to begin with the exact token `COUNTRY_NOT_ENABLED` \
+so downstream tooling can route them to the creator waitlist instead of \
+the standard appeal flow. Keep `merchant_summary` generic and friendly — \
+e.g. "We're not onboarding creators in your region just yet." Do NOT name \
+which countries are allowed and do NOT imply the platform is limited to \
+one country; buyers are global and only creator onboarding is staged.
+- If the creator's detected country IS in the allowed list, the country \
+gate passes — proceed with the normal review dimensions below.
+- If the creator's country is UNKNOWN (no header was captured), do NOT \
+auto-deny on country. Treat it as a soft signal and continue the normal \
+review; a human can resolve country manually if everything else passes.
 
 ## What IS prohibited (clearly deny)
 
@@ -866,6 +889,24 @@ class ReviewAnalyzer:
         if org.socials:
             socials_str = ", ".join(f"{s['platform']}: {s['url']}" for s in org.socials)
             parts.append(f"Social Links: {socials_str}")
+
+        # Geography / Country Gate — feeds the hard country gate in the
+        # system prompt. creator_country is detected silently at signup
+        # (cf-ipcountry); allowed_countries is the live backoffice allowlist.
+        parts.append("\n## Geography")
+        if org.creator_country:
+            name = country_name(org.creator_country) or org.creator_country.upper()
+            parts.append(f"Creator Country (detected at signup): {org.creator_country} ({name})")
+        else:
+            parts.append(
+                "Creator Country (detected at signup): UNKNOWN "
+                "(no country header was present)"
+            )
+        if snapshot.allowed_countries:
+            allowed_str = ", ".join(snapshot.allowed_countries)
+            parts.append(f"Allowed Countries Policy: {allowed_str}")
+        else:
+            parts.append("Allowed Countries Policy: ke")
 
         # Products
         parts.append("\n## Products on Blyss")

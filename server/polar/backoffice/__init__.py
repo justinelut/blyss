@@ -9,6 +9,7 @@ from .accounts.endpoints import router as accounts_router
 from .benefits.endpoints import router as benefits_router
 from .customers.endpoints import router as customers_router
 from .creator_categories.endpoints import router as creator_categories_router
+from .creator_waitlist.endpoints import router as creator_waitlist_router
 from .product_categories.endpoints import router as product_categories_router
 from .loops.endpoints import router as loops_router
 from .dependencies import get_admin
@@ -73,6 +74,9 @@ app.include_router(webhooks_router, prefix="/webhooks")
 app.include_router(runtime_settings_router, prefix="/runtime-settings")
 app.include_router(
     creator_categories_router, prefix="/creator-categories"
+)
+app.include_router(
+    creator_waitlist_router, prefix="/creator-waitlist"
 )
 app.include_router(
     product_categories_router, prefix="/product-categories"

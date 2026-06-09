@@ -3,7 +3,7 @@ from __future__ import annotations
 import builtins
 from typing import cast
 
-from fastapi import Depends, Query, Response, status
+from fastapi import Depends, Query, Request, Response, status
 from sqlalchemy.orm import joinedload
 
 from polar.account.schemas import Account as AccountSchema
@@ -38,6 +38,11 @@ from polar.user_organization.service import (
 )
 
 from . import auth, sorting
+from polar.creator_waitlist.schemas import (
+    CreatorWaitlistCreate,
+    CreatorWaitlistEntryResponse,
+)
+from polar.creator_waitlist.service import creator_waitlist_service
 from .schemas import (
     CreatorStorefrontSchema,
     CreatorSummarySchema,
@@ -351,6 +356,28 @@ async def get(
     return organization
 
 
+def _detect_request_country(request: Request) -> str | None:
+    """Resolve the visitor's country from edge/proxy headers.
+
+    Precedence mirrors the frontend geo middleware:
+      1. cf-ipcountry      — Cloudflare (Blyss is behind CF in prod)
+      2. x-vercel-ip-country
+      3. x-blyss-country   — set by our Next.js middleware/proxy
+
+    Returns a lowercase ISO alpha-2 code or None. The value is never
+    taken from the request body — only from trusted edge headers — so
+    a creator can't spoof their country by editing the create payload.
+    """
+    for header in ("cf-ipcountry", "x-vercel-ip-country", "x-blyss-country"):
+        value = request.headers.get(header)
+        if value and value.strip():
+            code = value.strip().lower()
+            # Cloudflare emits 'xx' / 't1' for unknown / Tor — treat as missing.
+            if code not in {"xx", "t1"} and len(code) == 2:
+                return code
+    return None
+
+
 @router.post(
     "/",
     response_model=OrganizationSchema,
@@ -362,10 +389,17 @@ async def get(
 async def create(
     organization_create: OrganizationCreate,
     auth_subject: auth.OrganizationsCreate,
+    request: Request,
     session: AsyncSession = Depends(get_db_session),
 ) -> Organization:
     """Create an organization."""
-    return await organization_service.create(session, organization_create, auth_subject)
+    creator_country = _detect_request_country(request)
+    return await organization_service.create(
+        session,
+        organization_create,
+        auth_subject,
+        creator_country=creator_country,
+    )
 
 
 @router.patch(
@@ -785,6 +819,7 @@ async def validate_with_ai(
     return OrganizationReviewStatus(
         verdict=review.verdict,  # type: ignore[arg-type]
         reason=review.reason,
+        denial_kind=review.denial_kind,
         appeal_submitted_at=review.appeal_submitted_at,
         appeal_reason=review.appeal_reason,
         appeal_decision=review.appeal_decision,
@@ -836,6 +871,43 @@ async def submit_appeal(
                 }
             ]
         )
+
+
+@router.post(
+    "/{id}/waitlist",
+    response_model=CreatorWaitlistEntryResponse,
+    summary="Join Creator Waitlist",
+    responses={
+        200: {"description": "Added to the creator waitlist."},
+        404: OrganizationNotFound,
+    },
+    tags=[APITag.private],
+)
+async def join_creator_waitlist(
+    id: OrganizationID,
+    waitlist_request: CreatorWaitlistCreate,
+    auth_subject: auth.OrganizationsWrite,
+    session: AsyncSession = Depends(get_db_session),
+) -> CreatorWaitlistEntryResponse:
+    """Join the creator waitlist after a country-based review denial.
+
+    The country is taken from the organization's stored creator_country
+    (detected at signup) — never from the request — so demand figures
+    stay trustworthy. Idempotent per (email, country).
+    """
+    organization = await organization_service.get(session, auth_subject, id)
+    if organization is None:
+        raise ResourceNotFound()
+
+    user_id = auth_subject.subject.id if is_user(auth_subject) else None
+    await creator_waitlist_service.join(
+        session,
+        email=waitlist_request.email,
+        organization=organization,
+        user_id=user_id,
+    )
+    await session.commit()
+    return CreatorWaitlistEntryResponse(joined=True)
 
 
 @router.post(
@@ -892,6 +964,7 @@ async def get_review_status(
     return OrganizationReviewStatus(
         verdict=review.verdict,  # type: ignore[arg-type]
         reason=review.reason,
+        denial_kind=review.denial_kind,
         appeal_submitted_at=review.appeal_submitted_at,
         appeal_reason=review.appeal_reason,
         appeal_decision=review.appeal_decision,

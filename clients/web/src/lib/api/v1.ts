@@ -900,6 +900,28 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/v1/organizations/{id}/waitlist': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Join Creator Waitlist
+     * @description Join the creator waitlist after a country-based review denial.
+     *
+     *     **Scopes**: `organizations:write`
+     */
+    post: operations['organizations:join_creator_waitlist']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/v1/organizations/{id}/ai-onboarding-complete': {
     parameters: {
       query?: never
@@ -22573,6 +22595,11 @@ export interface components {
        */
       reason?: string | null
       /**
+       * Denial Kind
+       * @description Why a FAIL was issued: 'country' (region not enabled — waitlist) or 'policy' (appeal). Null when not denied.
+       */
+      denial_kind?: string | null
+      /**
        * Appeal Submitted At
        * @description When appeal was submitted
        */
@@ -22589,6 +22616,19 @@ export interface components {
        * @description When appeal was reviewed
        */
       appeal_reviewed_at?: string | null
+    }
+    /** CreatorWaitlistCreate */
+    CreatorWaitlistCreate: {
+      /**
+       * Email
+       * Format: email
+       */
+      email: string
+    }
+    /** CreatorWaitlistEntryResponse */
+    CreatorWaitlistEntryResponse: {
+      /** Joined */
+      joined: boolean
     }
     /** OrganizationSocialLink */
     OrganizationSocialLink: {
@@ -30200,6 +30240,50 @@ export interface operations {
           [name: string]: unknown
         }
         content?: never
+      }
+      /** @description Organization not found. */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ResourceNotFound']
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HTTPValidationError']
+        }
+      }
+    }
+  }
+  'organizations:join_creator_waitlist': {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreatorWaitlistCreate']
+      }
+    }
+    responses: {
+      /** @description Added to the creator waitlist. */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CreatorWaitlistEntryResponse']
+        }
       }
       /** @description Organization not found. */
       404: {

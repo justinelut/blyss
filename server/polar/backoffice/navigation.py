@@ -48,6 +48,11 @@ NAVIGATION = [
         active_route_name_prefix="creator_categories:",
     ),
     navigation.NavigationItem(
+        "Creator waitlist",
+        "creator_waitlist:list",
+        active_route_name_prefix="creator_waitlist:",
+    ),
+    navigation.NavigationItem(
         "Product categories",
         "product_categories:list",
         active_route_name_prefix="product_categories:",

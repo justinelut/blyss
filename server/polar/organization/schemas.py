@@ -137,6 +137,15 @@ class OrganizationDetails(Schema):
     previous_annual_revenue: int = Field(
         0, ge=0, description="Revenue from last year if applicable."
     )
+    creator_country: str | None = Field(
+        None,
+        description=(
+            "ISO 3166-1 alpha-2 country code detected at signup from the "
+            "request's cf-ipcountry header. Server-set and authoritative — "
+            "any client-supplied value is overwritten. Drives the AI "
+            "review country gate."
+        ),
+    )
 
 
 class OrganizationSocialPlatforms(StrEnum):
@@ -513,6 +522,14 @@ class OrganizationReviewStatus(Schema):
         default=None, description="AI validation verdict"
     )
     reason: str | None = Field(default=None, description="Reason for the verdict")
+    denial_kind: str | None = Field(
+        default=None,
+        description=(
+            "Why a FAIL was issued: 'country' (creator's region not enabled "
+            "yet — dashboard shows a waitlist form) or 'policy' (standard "
+            "denial with appeal). Null when not denied."
+        ),
+    )
     appeal_submitted_at: datetime | None = Field(
         default=None, description="When appeal was submitted"
     )

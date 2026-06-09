@@ -23,4 +23,5 @@ def collect_organization_data(organization: Organization) -> OrganizationData:
         created_at=organization.created_at,
         details_submitted_at=organization.details_submitted_at,
         blocked_at=organization.blocked_at,
+        creator_country=details.get("creator_country"),
     )

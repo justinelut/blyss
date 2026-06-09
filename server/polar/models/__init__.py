@@ -12,6 +12,7 @@ from .checkout_link import CheckoutLink
 from .checkout_link_product import CheckoutLinkProduct
 from .checkout_product import CheckoutProduct
 from .creator_category import CreatorCategory
+from .creator_waitlist_entry import CreatorWaitlistEntry
 from .custom_field import CustomField
 from .customer import Customer
 from .customer_meter import CustomerMeter
@@ -111,6 +112,7 @@ __all__ = [
     "CheckoutLinkProduct",
     "CheckoutProduct",
     "CreatorCategory",
+    "CreatorWaitlistEntry",
     "CustomField",
     "Customer",
     "CustomerMeter",

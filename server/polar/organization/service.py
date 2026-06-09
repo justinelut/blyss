@@ -222,6 +222,7 @@ class OrganizationService:
         session: AsyncSession,
         create_schema: OrganizationCreate,
         auth_subject: AuthSubject[User],
+        creator_country: str | None = None,
     ) -> Organization:
         repository = OrganizationRepository.from_session(session)
         if await repository.slug_exists(create_schema.slug):
@@ -240,6 +241,20 @@ class OrganizationService:
         feature_settings = create_data.get("feature_settings", {})
         feature_settings["member_model_enabled"] = True
         create_data["feature_settings"] = feature_settings
+
+        # Silently stamp the server-detected country onto details. Signup is
+        # open worldwide — we never block create — but we record the country
+        # (from cf-ipcountry, resolved in the endpoint) so the AI review can
+        # gate approval and the backoffice can see country-level demand. Any
+        # client-supplied creator_country is overwritten here; it is never
+        # trusted.
+        normalized_country = (
+            creator_country.strip().lower() if creator_country else None
+        )
+        if normalized_country:
+            details = create_data.get("details") or {}
+            details["creator_country"] = normalized_country
+            create_data["details"] = details
 
         organization = await repository.create(
             Organization(

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import AppealForm from './AppealForm'
+import CreatorWaitlistForm from './CreatorWaitlistForm'
 
 interface AIValidationResultProps {
   organization: schemas['Organization']
@@ -111,6 +112,13 @@ const AIValidationResult: React.FC<AIValidationResultProps> = ({
   const status = getValidationStatus()
   if (!status) return null
 
+  // A country denial (region not enabled yet) routes the creator to the
+  // waitlist instead of the standard "Payment Access Denied" + appeal
+  // flow. The backend flags this via denial_kind on the review status.
+  const isCountryDenial =
+    status.type === 'review_required' &&
+    reviewStatus.data?.denial_kind === 'country'
+
   return (
     <Card className="p-6">
       <div className="space-y-6">
@@ -118,34 +126,44 @@ const AIValidationResult: React.FC<AIValidationResultProps> = ({
         <div className="flex items-center space-x-4">
           <div className="shrink-0">{status.icon}</div>
           <div className="flex-1">
-            <h3 className={`text-lg font-medium`}>{status.title}</h3>
+            <h3 className={`text-lg font-medium`}>
+              {isCountryDenial ? 'Creator onboarding coming soon' : status.title}
+            </h3>
             <p className="dark:text-polar-400 mt-1 text-sm text-gray-600">
-              {status.message}
+              {isCountryDenial
+                ? "We're rolling out creator accounts region by region and aren't open in yours just yet."
+                : status.message}
             </p>
           </div>
         </div>
 
         {/* Information Message */}
-        <Card className={`rounded-lg p-4`}>
-          <div className="flex items-start space-x-3">
-            <Info className={`dark:text-polar-400 h-5 w-5 text-gray-600`} />
-            <div className="flex-1">
-              <h4 className={`text-sm font-medium`}>What happens next?</h4>
-              <p className={`dark:text-polar-400 mt-1 text-sm text-gray-600`}>
-                {status.type === 'pass'
-                  ? 'Your organization details passed our automated compliance check. You can accept payments immediately, but a manual review will still occur before your first payout as part of our standard process.'
-                  : status.type === 'review_required'
-                    ? 'Payments are currently blocked for your organization due to our compliance review. You can submit an appeal below if you believe this decision is incorrect.'
-                    : 'Please wait while we validate your organization details.'}
-              </p>
+        {!isCountryDenial && (
+          <Card className={`rounded-lg p-4`}>
+            <div className="flex items-start space-x-3">
+              <Info className={`dark:text-polar-400 h-5 w-5 text-gray-600`} />
+              <div className="flex-1">
+                <h4 className={`text-sm font-medium`}>What happens next?</h4>
+                <p className={`dark:text-polar-400 mt-1 text-sm text-gray-600`}>
+                  {status.type === 'pass'
+                    ? 'Your organization details passed our automated compliance check. You can accept payments immediately, but a manual review will still occur before your first payout as part of our standard process.'
+                    : status.type === 'review_required'
+                      ? 'Payments are currently blocked for your organization due to our compliance review. You can submit an appeal below if you believe this decision is incorrect.'
+                      : 'Please wait while we validate your organization details.'}
+                </p>
+              </div>
             </div>
-          </div>
-        </Card>
+          </Card>
+        )}
 
-        {/* Appeal Form for FAIL/UNCERTAIN or Continue Button */}
+        {/* Appeal Form for FAIL/UNCERTAIN, Waitlist for country denial, or Continue Button */}
         {((reviewStatus.data && reviewStatus.data.verdict) || timedOut) && (
           <>
-            {status.type === 'review_required' ? (
+            {isCountryDenial ? (
+              <div className="pt-6">
+                <CreatorWaitlistForm organization={organization} />
+              </div>
+            ) : status.type === 'review_required' ? (
               <div className="pt-6">
                 <AppealForm
                   organization={organization}

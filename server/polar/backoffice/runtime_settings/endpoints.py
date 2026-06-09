@@ -6,6 +6,11 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from tagflow import classes, tag, text
 
 from polar.postgres import AsyncSession, get_db_session
+from polar.kit.countries import ISO_ALPHA2_COUNTRIES, is_valid_country_code
+from polar.organization.country_gate import (
+    ALLOWED_CREATOR_COUNTRIES_KEY,
+    get_allowed_creator_countries,
+)
 from polar.runtime_settings.model import RuntimeSettingStatus
 from polar.runtime_settings.registry import REGISTRY, REGISTRY_MAP, RegisteredKey
 from polar.runtime_settings.repository import RuntimeSettingsRepository
@@ -261,10 +266,18 @@ async def list_page(
 async def edit_modal(
     request: Request,
     key: str,
+    session: AsyncSession = Depends(get_db_session),
 ) -> None:
     reg = REGISTRY_MAP.get(key)
     if not reg:
         raise HTTPException(status_code=404, detail="Unknown key")
+
+    # Country allowlist gets a dedicated checkbox-grid picker instead of a
+    # single text input — admins tick which countries' creators may be
+    # approved. Stored as comma-separated lowercase ISO alpha-2 codes.
+    if key == ALLOWED_CREATOR_COUNTRIES_KEY:
+        await _render_country_picker(request, reg, session)
+        return
 
     with modal(f"Edit: {reg.label}", open=True):
         with tag.form(
@@ -300,6 +313,59 @@ async def edit_modal(
                     text("Save")
 
 
+async def _render_country_picker(
+    request: Request,
+    reg: object,
+    session: AsyncSession,
+) -> None:
+    """Render the ALLOWED_CREATOR_COUNTRIES checkbox grid."""
+    current = await get_allowed_creator_countries(session)
+
+    with modal(f"Edit: {reg.label}", open=True):  # type: ignore[attr-defined]
+        with tag.form(
+            method="POST",
+            hx_post=str(
+                request.url_for(
+                    "runtime_settings:save", key=ALLOWED_CREATOR_COUNTRIES_KEY
+                )
+            ),
+            hx_target="body",
+            classes="flex flex-col gap-4",
+        ):
+            with tag.p(classes="text-sm opacity-70"):
+                text(
+                    "Tick the countries whose creators may be approved. "
+                    "The AI review denies creators outside this list and "
+                    "shows them a waitlist. Buyers are never affected."
+                )
+            with tag.div(
+                classes=(
+                    "grid grid-cols-2 md:grid-cols-3 gap-1 max-h-96 "
+                    "overflow-y-auto border border-base-300 rounded-lg p-3"
+                )
+            ):
+                for code, name in ISO_ALPHA2_COUNTRIES:
+                    with tag.label(
+                        classes="flex items-center gap-2 cursor-pointer text-sm py-0.5"
+                    ):
+                        checked_attrs = {"checked": True} if code in current else {}
+                        with tag.input(
+                            type="checkbox",
+                            name="country",
+                            value=code,
+                            classes="checkbox checkbox-sm",
+                            **checked_attrs,
+                        ):
+                            pass
+                        text(f"{name} ({code})")
+            with tag.div(classes="modal-action"):
+                with tag.form(method="dialog"):
+                    with button(ghost=True):
+                        text("Cancel")
+                with button(variant="primary", type="submit"):
+                    text("Save countries")
+
+
 @router.post("/{key}", name="runtime_settings:save")
 async def save(
     request: Request,
@@ -312,6 +378,50 @@ async def save(
         raise HTTPException(status_code=404, detail="Unknown key")
 
     form_data = await request.form()
+
+    # Country allowlist: collect ticked checkboxes into a CSV of valid
+    # lowercase ISO codes instead of reading a single 'value' field.
+    if key == ALLOWED_CREATOR_COUNTRIES_KEY:
+        selected = [
+            str(c).strip().lower()
+            for c in form_data.getlist("country")
+            if str(c).strip()
+        ]
+        valid = sorted({c for c in selected if is_valid_country_code(c)})
+        if not valid:
+            await add_toast(
+                request,
+                "Select at least one country. The allowlist can't be empty.",
+                "error",
+            )
+            return HXRedirectResponse(
+                request, str(request.url_for("runtime_settings:list"))
+            )
+        value: str = ",".join(valid)
+        user_id = admin.user.id  # type: ignore[attr-defined]
+        try:
+            await runtime_settings.set(session, key, value, user_id)
+            await session.commit()
+        except RuntimeSettingsDisabled:
+            await session.rollback()
+            await add_toast(
+                request,
+                "Runtime settings storage is disabled: "
+                "POLAR_RUNTIME_SETTINGS_KEY is not set on the server.",
+                "error",
+            )
+            return HXRedirectResponse(
+                request, str(request.url_for("runtime_settings:list"))
+            )
+        await add_toast(
+            request,
+            f"Allowed creator countries saved: {value}",
+            "success",
+        )
+        return HXRedirectResponse(
+            request, str(request.url_for("runtime_settings:list"))
+        )
+
     value = form_data.get("value", "")
     if not value or not str(value).strip():
         await add_toast(request, "Value cannot be empty.", "error")

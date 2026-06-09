@@ -152,6 +152,22 @@ REGISTRY: list[RegisteredKey] = [
             "z-ai/glm-4.5-air:free"
         ),
     ),
+    RegisteredKey(
+        key="ALLOWED_CREATOR_COUNTRIES",
+        category="other",
+        label="Allowed Creator Countries",
+        description=(
+            "Comma-separated lowercase ISO 3166-1 alpha-2 codes for the "
+            "countries where creators may be approved to sell. The AI "
+            "review hard-denies any creator whose detected country is "
+            "NOT in this list and the dashboard shows them a waitlist "
+            "form. Buyers are unaffected — the marketplace stays global. "
+            "Edit via the country picker. Default: ke (Kenya only)."
+        ),
+        sensitive=False,
+        requires_verification=False,
+        default_value="ke",
+    ),
 ]
 
 REGISTRY_MAP: dict[str, RegisteredKey] = {r.key: r for r in REGISTRY}
