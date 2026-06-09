@@ -184,8 +184,58 @@ async def charge_success(event_id: uuid.UUID) -> None:
                     )
                     return
 
-                # Extract checkout ID from metadata
+                # Extract metadata from the verified transaction.
+                # Paystack echoes back whatever we set on /charge or
+                # what Inline JS passed via PaystackPop.newTransaction's
+                # `metadata` field.
                 metadata = verified_transaction.get("metadata", {})
+
+                # Route by purpose. Three flows share this single
+                # webhook task — we dispatch on `metadata.purpose`
+                # (set by the frontend when opening the Paystack pop)
+                # OR fall back to legacy heuristics
+                # (metadata.checkout_id present → checkout flow).
+                purpose = metadata.get("purpose")
+
+                if purpose == "donation" or metadata.get(
+                    "donation_for_organization_id"
+                ):
+                    # New: donation/tipping finalization. Donor email
+                    # + name + message arrive via metadata; the
+                    # transaction.amount is the tip in kobo. The
+                    # creator's organization_id is in
+                    # `metadata.donation_for_organization_id`.
+                    await _handle_donation_success(
+                        session,
+                        event_id=event_id,
+                        verified_transaction=verified_transaction,
+                        metadata=metadata,
+                    )
+                    return
+
+                if purpose == "mpesa_verification" or metadata.get(
+                    "mpesa_verification_organization_id"
+                ):
+                    # New: M-Pesa subaccount verification. The creator
+                    # paid KSh 100 via the Paystack pop on their own
+                    # M-Pesa number — extract the phone from the
+                    # charge.success payload (Paystack returns it on
+                    # data.authorization.mobile_number /
+                    # data.customer.phone) and provision the
+                    # subaccount with that phone. Means we never have
+                    # to ask the creator to type their phone in our
+                    # form, AND we never call /charge ourselves.
+                    await _handle_mpesa_verification_success(
+                        session,
+                        event_id=event_id,
+                        verified_transaction=verified_transaction,
+                        metadata=metadata,
+                    )
+                    return
+
+                # Default: legacy checkout flow (P1 wiring).
+                # `metadata.checkout_id` was set by the prior /charge
+                # API path AND by the new Mode A inline-js popup.
                 checkout_id_str = metadata.get("checkout_id")
 
                 if not checkout_id_str:
@@ -507,3 +557,272 @@ async def create_organization_subaccount(organization_id: uuid.UUID) -> None:
             if can_retry():
                 raise Retry() from e
             raise
+
+
+
+# ── Donation finalization ────────────────────────────────────────────
+
+
+async def _handle_donation_success(
+    session,
+    *,
+    event_id: uuid.UUID,
+    verified_transaction: dict,
+    metadata: dict,
+) -> None:
+    """Record a successful donation tip from a Paystack popup charge.
+
+    The donor opened the donation popup (DonationPaymentInterface),
+    Paystack collected the actual payment (card or M-Pesa STK), the
+    charge.success webhook now lands here. We persist a Donation row
+    and surface it on the creator's dashboard.
+
+    Metadata expected (set by the popup config in the frontend):
+      - donation_for_organization_id: UUID of the creator's org
+      - donor_name: optional friendly name
+      - donor_message: optional message shown to the creator
+      - donor_email: same as transaction.email — kept for clarity
+
+    Idempotent: if the Donation row already exists for this Paystack
+    reference, no-op + return. Webhooks can fire twice (Paystack
+    retries) and we mustn't double-count.
+    """
+    from polar.donation.repository import DonationRepository
+    from polar.models.donation import Donation
+    from polar.organization.repository import OrganizationRepository
+
+    reference = verified_transaction.get("reference") or ""
+    org_id_str = metadata.get(
+        "donation_for_organization_id"
+    ) or metadata.get("organization_id")
+
+    if not org_id_str:
+        log.error(
+            "paystack.webhook.donation.missing_organization_id",
+            event_id=event_id,
+            reference=reference,
+        )
+        return
+
+    try:
+        org_id = uuid.UUID(str(org_id_str))
+    except (ValueError, TypeError):
+        log.error(
+            "paystack.webhook.donation.invalid_organization_id",
+            event_id=event_id,
+            reference=reference,
+            organization_id=org_id_str,
+        )
+        return
+
+    org_repo = OrganizationRepository.from_session(session)
+    organization = await org_repo.get_by_id(org_id)
+    if organization is None:
+        log.error(
+            "paystack.webhook.donation.organization_not_found",
+            event_id=event_id,
+            reference=reference,
+            organization_id=str(org_id),
+        )
+        return
+
+    donation_repo = DonationRepository.from_session(session)
+    # Idempotency: look up by paystack reference (stored in
+    # paystack_reference / external_reference depending on the
+    # Donation schema; we use the catch-all charge_id field).
+    existing = None
+    try:
+        existing = await donation_repo.get_by_external_reference(reference)
+    except AttributeError:
+        # Repository may not have that helper yet — fall back to a
+        # raw query below.
+        from sqlalchemy import select
+
+        result = await session.execute(
+            select(Donation).where(Donation.charge_id == reference)
+        )
+        existing = result.scalar_one_or_none()
+
+    if existing is not None:
+        log.info(
+            "paystack.webhook.donation.already_recorded",
+            event_id=event_id,
+            reference=reference,
+            donation_id=str(existing.id),
+        )
+        return
+
+    amount = int(verified_transaction.get("amount", 0))
+    currency = (verified_transaction.get("currency") or "KES").upper()
+    donor_email = (
+        metadata.get("donor_email")
+        or verified_transaction.get("customer", {}).get("email")
+        or ""
+    )
+    donor_name = metadata.get("donor_name") or None
+    donor_message = metadata.get("donor_message") or None
+
+    donation = Donation(
+        organization_id=organization.id,
+        amount=amount,
+        currency=currency,
+        email=donor_email,
+        name=donor_name,
+        message=donor_message,
+        charge_id=reference,
+    )
+    session.add(donation)
+    await session.flush()
+
+    log.info(
+        "paystack.webhook.donation.recorded",
+        event_id=event_id,
+        reference=reference,
+        donation_id=str(donation.id),
+        organization_id=str(organization.id),
+        amount=amount,
+    )
+
+
+# ── M-Pesa verification finalization ─────────────────────────────────
+
+
+def _extract_phone_from_payload(verified_transaction: dict) -> str | None:
+    """Try every known location Paystack exposes the phone number.
+
+    Different channels populate different fields:
+      - mobile_money charges → data.authorization.mobile_number
+      - bank_transfer        → data.authorization.account_number (not phone)
+      - data.customer.phone  → set when the customer profile has one
+      - data.metadata.phone  → if the popup metadata supplied it (rare;
+                               we don't use this path)
+    """
+    auth = verified_transaction.get("authorization") or {}
+    mobile = auth.get("mobile_number")
+    if mobile:
+        return mobile
+    customer = verified_transaction.get("customer") or {}
+    phone = customer.get("phone")
+    if phone:
+        return phone
+    metadata = verified_transaction.get("metadata") or {}
+    return metadata.get("phone")
+
+
+async def _handle_mpesa_verification_success(
+    session,
+    *,
+    event_id: uuid.UUID,
+    verified_transaction: dict,
+    metadata: dict,
+) -> None:
+    """Provision a Paystack subaccount from the M-Pesa verification charge.
+
+    Flow: creator hits "Verify M-Pesa" → frontend opens Paystack pop
+    with metadata.purpose='mpesa_verification' + organization_id.
+    Creator enters their M-Pesa number IN PAYSTACK'S POPUP, completes
+    the KSh 100 STK push. Paystack fires charge.success with the
+    actual phone number that was charged (proof of ownership).
+
+    We extract that phone here, create the subaccount with it, and
+    mark the org's M-Pesa as verified. We never call /charge ourselves.
+
+    Idempotent: if the org already has a real (non-test) subaccount
+    code, no-op. Webhook retries are safe.
+    """
+    from polar.organization.repository import OrganizationRepository
+
+    reference = verified_transaction.get("reference") or ""
+    org_id_str = metadata.get(
+        "mpesa_verification_organization_id"
+    ) or metadata.get("organization_id")
+
+    if not org_id_str:
+        log.error(
+            "paystack.webhook.mpesa_verification.missing_organization_id",
+            event_id=event_id,
+            reference=reference,
+        )
+        return
+
+    try:
+        org_id = uuid.UUID(str(org_id_str))
+    except (ValueError, TypeError):
+        log.error(
+            "paystack.webhook.mpesa_verification.invalid_organization_id",
+            event_id=event_id,
+            reference=reference,
+            organization_id=org_id_str,
+        )
+        return
+
+    org_repo = OrganizationRepository.from_session(session)
+    organization = await org_repo.get_by_id(org_id)
+    if organization is None:
+        log.error(
+            "paystack.webhook.mpesa_verification.organization_not_found",
+            event_id=event_id,
+            reference=reference,
+            organization_id=str(org_id),
+        )
+        return
+
+    # Idempotency check — already verified
+    if (
+        organization.subaccount_code
+        and not organization.subaccount_code.startswith("ACCT_test_")
+        and organization.mpesa_verified
+    ):
+        log.info(
+            "paystack.webhook.mpesa_verification.already_provisioned",
+            event_id=event_id,
+            reference=reference,
+            organization_id=str(org_id),
+            subaccount_code=organization.subaccount_code,
+        )
+        return
+
+    phone = _extract_phone_from_payload(verified_transaction)
+    if not phone:
+        log.error(
+            "paystack.webhook.mpesa_verification.no_phone_in_payload",
+            event_id=event_id,
+            reference=reference,
+            organization_id=str(org_id),
+        )
+        return
+
+    # Reuse the subaccount creation path that the legacy
+    # finalize-verification endpoint uses. The endpoint module's
+    # helper takes (organization, mpesa_number, session) and handles
+    # the Kenya-local-format conversion + immutable-account-number
+    # rules. We import it lazily to avoid module-load cycles.
+    from polar.integrations.paystack.endpoints import (
+        _create_or_reactivate_mpesa_subaccount,
+    )
+
+    try:
+        await _create_or_reactivate_mpesa_subaccount(
+            session=session,
+            organization=organization,
+            mpesa_number=phone,
+        )
+    except Exception as e:
+        log.error(
+            "paystack.webhook.mpesa_verification.provision_failed",
+            event_id=event_id,
+            reference=reference,
+            organization_id=str(org_id),
+            error=str(e),
+        )
+        if can_retry():
+            raise Retry() from e
+        return
+
+    log.info(
+        "paystack.webhook.mpesa_verification.provisioned",
+        event_id=event_id,
+        reference=reference,
+        organization_id=str(org_id),
+        phone=phone,
+    )

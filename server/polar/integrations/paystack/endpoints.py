@@ -321,6 +321,140 @@ def _to_kenya_local_msisdn(raw: str | None) -> str:
     return digits
 
 
+async def _create_or_reactivate_mpesa_subaccount(
+    session: AsyncSession,
+    organization,
+    mpesa_number: str,
+) -> None:
+    """Provision (or reactivate / replace) the Paystack subaccount for
+    an organization's M-Pesa number.
+
+    Used by:
+      1. The legacy POST .../mpesa/finalize-verification endpoint
+         (after the buyer-side /charge succeeds).
+      2. The Paystack webhook handler when a charge.success arrives
+         with metadata.purpose='mpesa_verification' (the new Mode A
+         flow — popup-based verification, no /charge call from us).
+
+    Both call sites need the same orchestration logic: detect synthetic
+    test codes, fetch existing subaccount state, decide
+    create-vs-reactivate-vs-replace based on whether the M-Pesa number
+    has changed (immutable account_number on Paystack's side).
+
+    Updates the organization in-place: subaccount_code, subaccount_status,
+    mpesa_number, mpesa_verified, payout_method.
+
+    Idempotent — calling twice with the same (organization, mpesa_number)
+    short-circuits on the same-number branch.
+    """
+    from polar.organization.repository import OrganizationRepository
+
+    repository = OrganizationRepository.from_session(session)
+
+    # Normalize the buyer-supplied phone to E.164 and to Paystack's
+    # required Kenya local format.
+    cleaned_e164 = mpesa_number.strip()
+    if cleaned_e164.startswith("254") and not cleaned_e164.startswith("+"):
+        cleaned_e164 = "+" + cleaned_e164
+    if cleaned_e164.startswith("0") and len(cleaned_e164) == 10:
+        cleaned_e164 = "+254" + cleaned_e164[1:]
+    mpesa_account_number = _to_kenya_local_msisdn(cleaned_e164)
+
+    # Drop synthetic test codes — they confuse the create/update branch.
+    existing_subaccount_code = organization.subaccount_code
+    if existing_subaccount_code and existing_subaccount_code.startswith(
+        "ACCT_test_"
+    ):
+        existing_subaccount_code = None
+
+    should_create_new = not existing_subaccount_code
+    old_subaccount_to_deactivate: str | None = None
+
+    if existing_subaccount_code:
+        existing_subaccount = await paystack.fetch_subaccount(
+            existing_subaccount_code, session=session
+        )
+        existing_account_number = (
+            existing_subaccount.get("account_number")
+            if existing_subaccount
+            else None
+        )
+        if existing_subaccount is None:
+            should_create_new = True
+        elif existing_account_number != mpesa_account_number:
+            should_create_new = True
+            old_subaccount_to_deactivate = existing_subaccount_code
+        else:
+            # Same number, existing subaccount good — reactivate if
+            # Paystack has it deactivated and bump our local status.
+            if existing_subaccount.get("active") is False:
+                try:
+                    await paystack.update_subaccount(
+                        subaccount_code=existing_subaccount_code,
+                        active=True,
+                        session=session,
+                    )
+                except Exception as e:  # noqa: BLE001
+                    log.warning(
+                        "paystack.mpesa.helper.reactivate_failed",
+                        organization_id=str(organization.id),
+                        error=str(e),
+                    )
+            await repository.update(
+                organization,
+                update_dict={
+                    "subaccount_status": "active",
+                    "mpesa_number": cleaned_e164,
+                    "mpesa_verified": True,
+                    "payout_method": PayoutMethod.MPESA,
+                },
+                flush=True,
+            )
+            return
+
+    if old_subaccount_to_deactivate:
+        try:
+            await paystack.update_subaccount(
+                subaccount_code=old_subaccount_to_deactivate,
+                active=False,
+                session=session,
+            )
+        except Exception as e:  # noqa: BLE001
+            log.warning(
+                "paystack.mpesa.helper.deactivate_old_failed",
+                organization_id=str(organization.id),
+                old_code=old_subaccount_to_deactivate,
+                error=str(e),
+            )
+
+    if should_create_new:
+        sub = await paystack.create_subaccount(
+            business_name=organization.name,
+            settlement_bank="MPESA",
+            account_number=mpesa_account_number,
+            percentage_charge=20.0,
+            description=f"Blyss creator payouts for {organization.name}",
+            primary_contact_email=organization.email or None,
+            primary_contact_name=organization.name,
+            primary_contact_phone=cleaned_e164,
+            session=session,
+        )
+        new_code = sub.get("subaccount_code") or sub.get("data", {}).get(
+            "subaccount_code"
+        )
+        await repository.update(
+            organization,
+            update_dict={
+                "subaccount_code": new_code,
+                "subaccount_status": "active",
+                "mpesa_number": cleaned_e164,
+                "mpesa_verified": True,
+                "payout_method": PayoutMethod.MPESA,
+            },
+            flush=True,
+        )
+
+
 async def _resolve_mpesa_verification_amount(session: AsyncSession) -> int:
     """Return the M-Pesa verification charge amount in kobo.
 
