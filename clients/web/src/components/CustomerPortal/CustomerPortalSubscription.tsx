@@ -127,6 +127,37 @@ const CustomerPortalSubscription = ({
             }
           />
         )}
+        {(subscription as any).payment_method && (
+          <DetailRow
+            label="Payment Method"
+            value={(() => {
+              const pm = (subscription as any).payment_method as {
+                type: string
+                brand?: string | null
+                last4?: string | null
+                exp_month?: number | null
+                exp_year?: number | null
+              }
+              const parts: string[] = []
+              if (pm.brand) parts.push(pm.brand)
+              if (pm.last4) parts.push(`•••• ${pm.last4}`)
+              if (
+                pm.type === 'card' &&
+                pm.exp_month &&
+                pm.exp_year
+              ) {
+                const mm = String(pm.exp_month).padStart(2, '0')
+                const yy = String(pm.exp_year).slice(-2)
+                parts.push(`${mm}/${yy}`)
+              }
+              return (
+                <span className="font-sans text-[14px] text-[var(--text-primary)]">
+                  {parts.join(' · ') || pm.type}
+                </span>
+              )
+            })()}
+          />
+        )}
       </div>
 
       {/* Cancel button - only shown for users with billing permissions */}

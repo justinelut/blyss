@@ -190,6 +190,43 @@ class Subscription(CustomFieldDataMixin, MetadataMixin, RecordModel):
     def payment_method(cls) -> Mapped["PaymentMethod | None"]:
         return relationship("PaymentMethod", lazy="raise")
 
+    @property
+    def payment_method_summary(self) -> dict | None:
+        """Friendly dict for the customer portal subscription detail.
+
+        Maps the saved PaymentMethod's method_metadata (Paystack shape:
+        last4 / card_type / channel / bank, or M-Pesa number) into the
+        portal-facing PaymentMethodSummary schema. Defensive: any access
+        error returns None rather than 500'ing the subscription response.
+        """
+        try:
+            pm = self.payment_method
+        except Exception:
+            return None
+        if pm is None:
+            return None
+        try:
+            md = pm.method_metadata or {}
+            channel = md.get("channel") or pm.type or "card"
+            card_type = md.get("card_type")
+            if channel == "mobile_money":
+                brand = "M-Pesa"
+            elif channel == "bank":
+                brand = md.get("bank") or "Bank"
+            elif card_type:
+                brand = str(card_type).title()
+            else:
+                brand = (pm.type or "Card").title()
+            return {
+                "type": channel,
+                "brand": brand,
+                "last4": md.get("last4"),
+                "exp_month": md.get("exp_month"),
+                "exp_year": md.get("exp_year"),
+            }
+        except Exception:
+            return None
+
     product_id: Mapped[UUID] = mapped_column(
         Uuid,
         ForeignKey("products.id", ondelete="cascade"),

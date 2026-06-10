@@ -80,6 +80,7 @@ class CustomerSubscriptionService(ResourceServiceReader[Subscription]):
                 ),
                 selectinload(Subscription.meters).joinedload(SubscriptionMeter.meter),
                 joinedload(Subscription.pending_update),
+                joinedload(Subscription.payment_method),
             )
         )
 
@@ -129,6 +130,7 @@ class CustomerSubscriptionService(ResourceServiceReader[Subscription]):
                 ),
                 selectinload(Subscription.meters).joinedload(SubscriptionMeter.meter),
                 joinedload(Subscription.pending_update),
+                joinedload(Subscription.payment_method),
             )
         )
 

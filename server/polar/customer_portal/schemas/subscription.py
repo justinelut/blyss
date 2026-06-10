@@ -74,6 +74,43 @@ class CustomerSubscription(SubscriptionBase):
         )
     )
 
+    payment_method: "PaymentMethodSummary | None" = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            # ORM source: Subscription.payment_method_summary property
+            # (returns a friendly dict). We use a property-named alias to
+            # avoid clashing with the SQLAlchemy `payment_method`
+            # relationship which yields the ORM PaymentMethod (rejected by
+            # the discriminated union without method_metadata mapping).
+            "payment_method_summary",
+            "payment_method",
+        ),
+        description=(
+            "Summary of the payment method used to renew this subscription "
+            "(card brand + last 4 digits, M-Pesa number, etc.). `null` when "
+            "no payment method is associated."
+        ),
+    )
+
+
+class PaymentMethodSummary(Schema):
+    """Friendly summary of a saved payment method for the buyer's portal.
+
+    Maps both Stripe (brand/last4) and Paystack (card_type/channel/last4/bank)
+    metadata into a single shape the UI can render without branching. For
+    M-Pesa charges the channel is "mobile_money" and last4 is the masked phone
+    tail; for cards it's the card's last 4 digits.
+    """
+
+    type: str = Field(description="Channel: 'card', 'mobile_money', 'bank', etc.")
+    brand: str | None = Field(
+        default=None,
+        description="Card brand (visa/mastercard) or 'M-Pesa', 'Bank', etc.",
+    )
+    last4: str | None = Field(default=None)
+    exp_month: int | None = Field(default=None)
+    exp_year: int | None = Field(default=None)
+
 
 class CustomerSubscriptionUpdateProduct(Schema):
     product_id: UUID4 = Field(description="Update subscription to another product.")
