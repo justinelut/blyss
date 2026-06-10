@@ -139,6 +139,44 @@ class TestDownloadblesBenefit:
         assert downloadable.file_id == uploaded_logo_png.id
 
     @pytest.mark.auth
+    async def test_grant_all_when_all_archived(
+        self,
+        session: AsyncSession,
+        redis: Redis,
+        save_fixture: SaveFixture,
+        customer: Customer,
+        organization: Organization,
+        product: Product,
+        uploaded_logo_jpg: FileRead,
+    ) -> None:
+        # A single-file benefit whose ONLY file is archived (often
+        # unintentional). The buyer must still receive the file rather than
+        # an empty benefit — otherwise the portal shows the benefit with
+        # nothing to download ("read-only / can't download").
+        _, granted = await TestDownloadable.create_benefit_and_grant(
+            session,
+            redis,
+            save_fixture,
+            customer=customer,
+            organization=organization,
+            product=product,
+            properties=BenefitDownloadablesCreateProperties(
+                archived={uploaded_logo_jpg.id: True},
+                files=[uploaded_logo_jpg.id],
+            ),
+        )
+        # Fallback grants the archived file rather than nothing.
+        assert granted.get("files", []) == [str(uploaded_logo_jpg.id)]
+
+        downloadables = await TestDownloadable.get_customer_downloadables(
+            session, customer
+        )
+        assert downloadables
+        assert len(downloadables) == 1
+        assert downloadables[0].file_id == uploaded_logo_jpg.id
+        assert downloadables[0].status == DownloadableStatus.granted
+
+    @pytest.mark.auth
     async def test_revoke_one(
         self,
         session: AsyncSession,

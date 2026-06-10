@@ -44,6 +44,27 @@ class BenefitDownloadablesService(
     ) -> BenefitGrantDownloadablesProperties:
         properties = self._get_properties(benefit)
         file_ids = get_active_file_ids(properties)
+
+        # Safety net: a paying customer must never receive an EMPTY
+        # downloadables benefit. If the creator archived every file (often
+        # unintentionally — e.g. a single-file benefit whose only file got
+        # toggled off), get_active_file_ids() returns [] and the buyer would
+        # get a benefit with nothing to download. In that case, fall back to
+        # granting ALL of the benefit's files. The customer portal already
+        # labels non-active files as "Legacy" but keeps them downloadable, so
+        # this only affects entitlement, not the active/legacy display. When
+        # there's a healthy mix of active + archived files, normal semantics
+        # apply (only active files are granted).
+        all_file_ids = list(properties.get("files", []) or [])
+        if not file_ids and all_file_ids:
+            log.warning(
+                "downloadables.grant.no_active_files_fallback",
+                benefit_id=benefit.id,
+                customer_id=customer.id,
+                total_files=len(all_file_ids),
+            )
+            file_ids = all_file_ids
+
         if not file_ids:
             return {}
 
