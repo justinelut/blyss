@@ -3,6 +3,7 @@
 import AccessRestricted from '@/components/Finance/AccessRestricted'
 import AccountBalance from '@/components/Payouts/AccountBalance'
 import { BlyssEarningsCard } from '@/components/Finance/BlyssEarningsCard'
+import { BlyssPayoutLedger } from '@/components/Finance/BlyssPayoutLedger'
 import DownloadInvoice, {
   InvoiceModal,
 } from '@/components/Payouts/DownloadInvoice'
@@ -93,6 +94,15 @@ export default function ClientPage({
   const isNotAdmin =
     accountError &&
     (accountError as ClientResponseError)?.response?.status === 403
+
+  // Paystack creators have no Polar Payout objects (Paystack auto-settles
+  // the 80% split T+2). Show an orders-based settlements ledger instead of
+  // the always-empty Polar payouts table.
+  const isPaystackOrg = Boolean(
+    (organization as { subaccount_status?: string }).subaccount_status ===
+      'active' &&
+      (organization as { subaccount_code?: string | null }).subaccount_code,
+  )
 
   const { data: payouts, isLoading } = usePayouts(account?.id, {
     ...getAPIParams(pagination, sorting),
@@ -279,30 +289,33 @@ export default function ClientPage({
         {/* Blyss earnings card — replaces the Polar/Stripe AccountBalance
             for creators using Paystack subaccounts. Paystack auto-settles
             T+2; there's nothing to "withdraw" manually. */}
-        {(organization as { subaccount_status?: string }).subaccount_status ===
-          'active' &&
-          (organization as { subaccount_code?: string | null })
-            .subaccount_code && (
-            <BlyssEarningsCard organization={organization} />
-          )}
-        {account && (
+        {isPaystackOrg && <BlyssEarningsCard organization={organization} />}
+        {account && !isPaystackOrg && (
           <AccountBalance account={account} organization={organization} />
         )}
-        <DataTable
-          columns={columns}
-          data={payouts?.items ?? []}
-          rowCount={payouts?.pagination.total_count ?? 0}
-          pageCount={payouts?.pagination.max_page ?? 0}
-          pagination={pagination}
-          onPaginationChange={setPagination}
-          sorting={sorting}
-          onSortingChange={setSorting}
-          isLoading={isLoading}
-          getSubRows={(row) =>
-            isPayout(row) ? row.fees_transactions : undefined
-          }
-          onRowClick={(row) => row.getToggleExpandedHandler()()}
-        />
+        {isPaystackOrg ? (
+          <BlyssPayoutLedger
+            organization={organization}
+            pagination={pagination}
+            sorting={sorting}
+          />
+        ) : (
+          <DataTable
+            columns={columns}
+            data={payouts?.items ?? []}
+            rowCount={payouts?.pagination.total_count ?? 0}
+            pageCount={payouts?.pagination.max_page ?? 0}
+            pagination={pagination}
+            onPaginationChange={setPagination}
+            sorting={sorting}
+            onSortingChange={setSorting}
+            isLoading={isLoading}
+            getSubRows={(row) =>
+              isPayout(row) ? row.fees_transactions : undefined
+            }
+            onRowClick={(row) => row.getToggleExpandedHandler()()}
+          />
+        )}
         {account && (
           <InvoiceModal organization={organization} account={account} />
         )}
