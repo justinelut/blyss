@@ -80,22 +80,21 @@ export const EditProductPage = ({
       })),
     },
   })
-  const { handleSubmit, setError, formState, reset } = form
+  const { handleSubmit, setError, formState } = form
 
   // The picker default has to wait for the by-product fetch — set
-  // it via reset() once the data lands so the <Select> renders
-  // pre-populated for edits.
+  // it directly with setValue once the data lands. (We previously used
+  // reset({...prev, category_id}, { keepValues: true }) but
+  // keepValues:true makes react-hook-form IGNORE the new values, so the
+  // assigned category never autoloaded into the Select.)
+  const { setValue } = form
   useEffect(() => {
     if (productCategoriesQ.data) {
-      reset(
-        (prev) => ({
-          ...(prev as ProductEditOrCreateForm),
-          category_id: currentCategoryId,
-        }),
-        { keepDirty: false, keepValues: true },
-      )
+      setValue('category_id' as any, currentCategoryId, {
+        shouldDirty: false,
+      })
     }
-  }, [currentCategoryId, productCategoriesQ.data, reset])
+  }, [currentCategoryId, productCategoriesQ.data, setValue])
 
   const originalBenefitIds = useMemo(
     () => product.benefits.map((b) => b.id),
