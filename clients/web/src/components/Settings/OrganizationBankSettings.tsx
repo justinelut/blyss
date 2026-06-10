@@ -70,6 +70,12 @@ const OrganizationBankSettings: React.FC<OrganizationBankSettingsProps> = ({
 
   const { handleSubmit, formState, control } = form
 
+  // This component renders INSIDE OrganizationMPesaSettings' <form>, so we
+  // must NOT nest another <form> (invalid HTML — the browser bubbles the
+  // submit to the outer form, which did a native GET and reloaded the page
+  // with the button appearing to "do nothing"). We trigger validation +
+  // submit manually via handleSubmit on a type="button" click instead.
+
   const currentBankCode = organization.bank_code
   const currentAccountNumber = organization.bank_account_number
   const subaccountStatus = organization.subaccount_status || 'pending'
@@ -134,7 +140,7 @@ const OrganizationBankSettings: React.FC<OrganizationBankSettingsProps> = ({
 
   return (
     <Form {...form}>
-      <form onSubmit={handleSubmit(onConfigureBank)}>
+      <div>
         <SettingsGroup>
           <SettingsGroupItem
             title="Bank account status"
@@ -270,7 +276,8 @@ const OrganizationBankSettings: React.FC<OrganizationBankSettingsProps> = ({
 
           <SettingsGroupActions>
             <Button
-              type="submit"
+              type="button"
+              onClick={() => handleSubmit(onConfigureBank)()}
               disabled={!formState.isValid || isConfiguring || banksLoading}
               loading={isConfiguring}
             >
@@ -282,7 +289,7 @@ const OrganizationBankSettings: React.FC<OrganizationBankSettingsProps> = ({
             </Button>
           </SettingsGroupActions>
         </SettingsGroup>
-      </form>
+      </div>
     </Form>
   )
 }

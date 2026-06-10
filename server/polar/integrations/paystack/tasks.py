@@ -816,7 +816,22 @@ async def _handle_mpesa_verification_success(
         )
         return
 
+    # Resolve the M-Pesa number to provision the subaccount with.
+    # Priority:
+    #   1. The number Paystack actually charged (proof of ownership) —
+    #      data.authorization.mobile_number / data.customer.phone. This is
+    #      the strongest signal but isn't always populated (notably in test
+    #      mode, and some live channels).
+    #   2. The number the creator entered in the dashboard form, passed
+    #      through the popup metadata as `mpesa_number`. Since the KSh-1
+    #      charge succeeded, we trust this as the payout number.
     phone = _extract_phone_from_payload(verified_transaction)
+    phone_source = "payload"
+    if not phone:
+        meta_number = (metadata or {}).get("mpesa_number")
+        if meta_number and str(meta_number).strip():
+            phone = str(meta_number).strip()
+            phone_source = "metadata"
     if not phone:
         log.error(
             "paystack.webhook.mpesa_verification.no_phone_in_payload",
@@ -825,6 +840,13 @@ async def _handle_mpesa_verification_success(
             organization_id=str(org_id),
         )
         return
+    log.info(
+        "paystack.webhook.mpesa_verification.phone_resolved",
+        event_id=event_id,
+        reference=reference,
+        organization_id=str(org_id),
+        phone_source=phone_source,
+    )
 
     # Reuse the subaccount creation path that the legacy
     # finalize-verification endpoint uses. The endpoint module's

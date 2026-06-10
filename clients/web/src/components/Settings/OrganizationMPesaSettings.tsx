@@ -306,6 +306,12 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
           mpesa_verification_organization_id: organization.id,
           // Fallback for older code paths that look up by organization_id
           organization_id: organization.id,
+          // The payout number the creator entered above. The webhook
+          // provisions the subaccount with THIS number, so payout setup
+          // never depends on Paystack echoing the charged number back
+          // (it doesn't in test mode, and not always in live). As long as
+          // the KSh-1 charge succeeds, we link this number.
+          mpesa_number: normalisePhone(mpesaNumber || ''),
         },
         onSuccess: () => {
           // Charge confirmed by Paystack popup. Webhook will fire
@@ -700,7 +706,7 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
         </div>
       </div>
 
-      {/* M-Pesa verification — popup-driven, no phone field */}
+      {/* M-Pesa verification — popup-driven, with an explicit number field */}
       {payoutMethod === 'mpesa' && (
         <div className="space-y-4">
           <div className="rounded-md border border-[var(--border)] bg-[var(--surface)] p-5">
@@ -708,21 +714,51 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
               How verification works
             </p>
             <p className="mt-3 font-sans text-[14px] leading-[1.6] text-[var(--text-secondary)]">
-              Click{' '}
+              Enter the M-Pesa number you want to be paid on, then click{' '}
               <span className="font-medium text-[var(--text-primary)]">
                 Verify M-Pesa
-              </span>{' '}
-              below. Paystack&rsquo;s secure popup will open and ask
-              for the M-Pesa number to charge KSh{' '}
-              {verificationAmountKes.toLocaleString('en-KE')} from.
-              Approve the STK push with your M-Pesa PIN, and we
-              automatically link that number to your Blyss payouts.
+              </span>
+              . Paystack&rsquo;s secure popup opens to charge KSh{' '}
+              {verificationAmountKes.toLocaleString('en-KE')} from that
+              number — approve the STK push with your M-Pesa PIN. Once the
+              charge succeeds we link this number to your Blyss payouts.
               We never see your PIN.
             </p>
             <p className="mt-2 font-sans text-[12px] text-[var(--text-muted)]">
               The KSh {verificationAmountKes.toLocaleString('en-KE')}{' '}
               verification charge stays with Blyss and can&rsquo;t be
               refunded — it covers Paystack and M-Pesa transaction fees.
+            </p>
+          </div>
+
+          {/* M-Pesa number — the payout number. Passed to the popup and
+              used by the webhook to provision the subaccount, so payout
+              setup never depends on Paystack echoing the phone back. */}
+          <div className="flex flex-col gap-2">
+            <label
+              htmlFor="mpesa_number"
+              className="font-sans text-[13px] font-medium text-[var(--text-primary)]"
+            >
+              M-Pesa number
+            </label>
+            <input
+              id="mpesa_number"
+              type="tel"
+              inputMode="numeric"
+              autoComplete="tel"
+              placeholder="0712 345 678"
+              {...register('mpesa_number', {
+                required: true,
+                validate: (v) =>
+                  /^\+254\d{9}$/.test(normalisePhone(v || '')) ||
+                  'Enter a valid Kenyan M-Pesa number',
+              })}
+              className="h-12 w-full max-w-sm rounded-md border border-[var(--border)] bg-[var(--background)] px-4 font-sans text-[15px] text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
+            />
+            <p className="font-sans text-[12px] text-[var(--text-muted)]">
+              Use the number you&rsquo;ll receive payouts on. We&rsquo;ll
+              charge it KSh {verificationAmountKes.toLocaleString('en-KE')} to
+              confirm it&rsquo;s yours.
             </p>
           </div>
 
@@ -742,7 +778,8 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
               disabled={
                 stage === 'sending' ||
                 isPaystackKeyLoading ||
-                !paystackPublicKey
+                !paystackPublicKey ||
+                !/^\+254\d{9}$/.test(normalisePhone(mpesaNumber || ''))
               }
               className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-[var(--accent)] px-6 font-sans text-[15px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-60"
             >
