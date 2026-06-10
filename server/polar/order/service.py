@@ -579,7 +579,22 @@ class OrderService:
 
                 cart_repository = CartRepository.from_session(session)
 
-                cart_item_ids = checkout.user_metadata["cart_item_ids"]
+                # cart_item_ids is stored as a COMMA-SEPARATED STRING (webhook
+                # payload validation rejects non-scalar metadata), so it must
+                # be split before iterating. Iterating the raw string yields
+                # single characters — every uuid.UUID(char) then raised and was
+                # silently skipped, so NO cart line items were created and the
+                # order kept only checkout.product (the first product). That's
+                # why a 2-product cart purchase recorded/delivered just one.
+                raw_cart_item_ids = checkout.user_metadata["cart_item_ids"]
+                if isinstance(raw_cart_item_ids, str):
+                    cart_item_ids = [
+                        s for s in raw_cart_item_ids.split(",") if s
+                    ]
+                elif isinstance(raw_cart_item_ids, (list, tuple)):
+                    cart_item_ids = [str(s) for s in raw_cart_item_ids if s]
+                else:
+                    cart_item_ids = []
                 for cart_item_id_str in cart_item_ids:
                     try:
                         cart_item_id = uuid.UUID(cart_item_id_str)
