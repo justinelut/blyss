@@ -1745,8 +1745,20 @@ class SubscriptionService:
 
         tax_amount = 0
 
+        # Blyss uses Paystack, not Stripe — and Stripe Tax requires a valid
+        # Stripe API key. The tax_calculation_service hits Stripe, which 401s
+        # in production (no live Stripe key) and 500s the entire charge
+        # preview. Skip Stripe Tax for Paystack-using orgs; KE doesn't apply
+        # tax on digital goods at our scale anyway, so 0 is correct.
+        from polar.organization.service import organization as _org_service
+
+        org_uses_paystack = _org_service.uses_paystack(
+            subscription.product.organization
+        )
+
         if (
-            taxable_amount > 0
+            not org_uses_paystack
+            and taxable_amount > 0
             and subscription.product.is_tax_applicable
             and subscription.customer.billing_address is not None
         ):
