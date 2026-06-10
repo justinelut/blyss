@@ -39,10 +39,10 @@ export const useCreateProductCheckout = () =>
   useMutation({
     mutationFn: (productId: string) =>
       unwrap(
-        api.POST('/v1/checkouts/', {
-          body: { product_id: productId } as any,
+        (api as any).POST('/v1/cart/checkout/product', {
+          body: { product_id: productId },
         }),
-      ) as Promise<{ client_secret: string }>,
+      ) as Promise<{ client_secret: string; url: string }>,
     onError: (error: any) => {
       const message =
         error?.error?.detail ||

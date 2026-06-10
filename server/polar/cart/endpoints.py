@@ -1,4 +1,5 @@
 from uuid import UUID
+from uuid import UUID
 
 from fastapi import Depends
 from pydantic import Field
@@ -202,6 +203,65 @@ async def checkout_cart(
         auth_subject=auth_subject,
         ip_geolocation_client=ip_geolocation_client,
         organization_id=organization_id,
+    )
+
+    return CartCheckoutResponse(
+        client_secret=checkout.client_secret,
+        url=f"/checkout/{checkout.client_secret}",
+    )
+
+
+class ProductCheckoutRequest(Schema):
+    product_id: UUID = Field(description="Product ID to create a checkout for")
+
+
+@router.post(
+    "/checkout/product",
+    summary="Create Checkout for a Single Product",
+    response_model=CartCheckoutResponse,
+    status_code=201,
+    tags=[APITag.public],
+)
+async def checkout_product(
+    body: ProductCheckoutRequest,
+    auth_subject: CartWrite,
+    ip_geolocation_client: ip_geolocation.IPGeolocationClient,
+    session: AsyncSession = Depends(get_db_session),
+) -> CartCheckoutResponse:
+    """Create a hosted checkout session for a single product (including
+    subscriptions). Used by the PDP 'Subscribe' and free-product buy
+    actions where the product never enters the one-time-product cart.
+
+    This is the buyer-facing equivalent of POST /v1/checkouts/ (which
+    requires Organization/checkouts_write scope). Authenticated via the
+    buyer's web session (CartWrite).
+    """
+    from polar.checkout.schemas import CheckoutProductCreate
+    from polar.checkout.service import checkout as checkout_service
+
+    # Build an org-scoped auth_subject so the checkout service can resolve
+    # the product. The product itself determines the organization.
+    from polar.product.repository import ProductRepository
+
+    product_repo = ProductRepository.from_session(session)
+    product = await product_repo.get_by_id(body.product_id)
+    if product is None:
+        from polar.exceptions import ResourceNotFound
+
+        raise ResourceNotFound()
+
+    from polar.auth.models import AuthSubject as _AuthSubject
+    from polar.auth.scope import Scope
+
+    creator_auth = _AuthSubject(
+        subject=product.organization,
+        scopes={Scope.web_read, Scope.web_write, Scope.checkouts_write},
+        session=None,
+    )
+
+    create_payload = CheckoutProductCreate(product_id=body.product_id)
+    checkout = await checkout_service.create(
+        session, create_payload, creator_auth, ip_geolocation_client
     )
 
     return CartCheckoutResponse(
