@@ -2,6 +2,7 @@
 
 import AccessRestricted from '@/components/Finance/AccessRestricted'
 import { BlyssEarningsCard } from '@/components/Finance/BlyssEarningsCard'
+import { BlyssIncomeLedger } from '@/components/Finance/BlyssIncomeLedger'
 import AccountBalance from '@/components/Payouts/AccountBalance'
 import AccountBanner from '@/components/Transactions/AccountBanner'
 import TransactionsList from '@/components/Transactions/TransactionsList'
@@ -67,6 +68,15 @@ export default function ClientPage({
     accountError &&
     (accountError as ClientResponseError)?.response?.status === 403
 
+  // Paystack creators have no Polar Account / Transaction ledger — those are
+  // Stripe-era. Show an orders-based income table instead of the empty
+  // TransactionsList.
+  const isPaystackOrg = Boolean(
+    (organization as { subaccount_status?: string }).subaccount_status ===
+      'active' &&
+      (organization as { subaccount_code?: string | null }).subaccount_code,
+  )
+
   const balancesHook = useSearchTransactions({
     account_id: account?.id,
     type: 'balance',
@@ -91,11 +101,8 @@ export default function ClientPage({
       {/* Blyss earnings card — shown to creators with an active
           Paystack subaccount. Replaces the legacy AccountBalance +
           Withdraw flow which is Polar/Stripe-only. */}
-      {(organization as { subaccount_status?: string }).subaccount_status ===
-        'active' &&
-        (organization as { subaccount_code?: string | null })
-          .subaccount_code && <BlyssEarningsCard organization={organization} />}
-      {account && (
+      {isPaystackOrg && <BlyssEarningsCard organization={organization} />}
+      {account && !isPaystackOrg && (
         <AccountBalance
           account={account}
           organization={organization}
@@ -104,16 +111,24 @@ export default function ClientPage({
           }
         />
       )}
-      <TransactionsList
-        transactions={balances}
-        rowCount={rowCount}
-        pageCount={pageCount}
-        pagination={pagination}
-        onPaginationChange={setPagination}
-        sorting={sorting}
-        onSortingChange={setSorting}
-        isLoading={accountIsLoading || balancesHook.isLoading}
-      />
+      {isPaystackOrg ? (
+        <BlyssIncomeLedger
+          organization={organization}
+          pagination={pagination}
+          sorting={sorting}
+        />
+      ) : (
+        <TransactionsList
+          transactions={balances}
+          rowCount={rowCount}
+          pageCount={pageCount}
+          pagination={pagination}
+          onPaginationChange={setPagination}
+          sorting={sorting}
+          onSortingChange={setSorting}
+          isLoading={accountIsLoading || balancesHook.isLoading}
+        />
+      )}
     </div>
   )
 }

@@ -264,15 +264,27 @@ export interface TipsSummary {
 }
 
 /** Tips received by a creator org — for the dashboard Tips page. */
-export const useReceivedTips = (organizationId?: string) =>
+export const useReceivedTips = (
+  organizationId?: string,
+  parameters?: { page?: number; limit?: number },
+) =>
   useQuery({
-    queryKey: ['donations', 'received', { organizationId }],
+    queryKey: ['donations', 'received', { organizationId, ...parameters }],
     queryFn: () =>
       unwrap(
         (api as any).GET('/v1/donation/received', {
-          params: { query: { organization_id: organizationId } },
+          params: {
+            query: {
+              organization_id: organizationId,
+              ...(parameters?.page ? { page: parameters.page } : {}),
+              ...(parameters?.limit ? { limit: parameters.limit } : {}),
+            },
+          },
         }),
-      ) as Promise<{ items: ReceivedTip[]; pagination: { total_count: number } }>,
+      ) as Promise<{
+        items: ReceivedTip[]
+        pagination: { total_count: number; max_page: number }
+      }>,
     enabled: !!organizationId,
   })
 

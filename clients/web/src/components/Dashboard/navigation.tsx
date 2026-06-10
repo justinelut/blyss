@@ -9,6 +9,7 @@ import ShoppingBagOutlined from '@mui/icons-material/ShoppingBagOutlined'
 import SpaceDashboardOutlined from '@mui/icons-material/SpaceDashboardOutlined'
 import TrendingUp from '@mui/icons-material/TrendingUp'
 import TuneOutlined from '@mui/icons-material/TuneOutlined'
+import VolunteerActivismOutlined from '@mui/icons-material/VolunteerActivismOutlined'
 import DiscountOutlined from '@mui/icons-material/DiscountOutlined'
 import DiamondOutlined from '@mui/icons-material/DiamondOutlined'
 import { schemas } from '@/lib/api'
@@ -250,7 +251,7 @@ export const generalRoutesList = (org?: schemas['Organization']): Route[] => [
   {
     id: 'org-tips',
     title: 'Tips',
-    icon: <AttachMoneyOutlined fontSize="inherit" />,
+    icon: <VolunteerActivismOutlined fontSize="inherit" />,
     link: `/dashboard/${org?.slug ?? '[organization]'}/tips`,
     checkIsActive: (currentRoute: string): boolean => {
       return currentRoute.startsWith(`/dashboard/${org?.slug ?? '[organization]'}/tips`)

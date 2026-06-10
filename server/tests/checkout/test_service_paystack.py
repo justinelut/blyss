@@ -741,3 +741,93 @@ class TestPaystackCheckoutFlow:
             paystack_service_mock.verify_transaction.assert_called_once_with(
                 "test_ref_123"
             )
+
+
+class TestCustomerIdentityBinding:
+    """A logged-in buyer's order must bind to their Blyss account email.
+
+    The customer portal maps a signed-in user to a customer purely by
+    account email. If checkout bound the order to whatever email the buyer
+    typed into the Paystack popup, the order (and its benefit grants) landed
+    on a separate customer the portal could never see — so the buyer saw
+    only some of their orders and none of their benefits.
+    """
+
+    async def test_logged_in_user_binds_to_account_email(
+        self,
+        session: AsyncSession,
+        save_fixture,
+        organization_with_active_subaccount: Organization,
+    ) -> None:
+        from polar.auth.models import AuthSubject
+        from polar.models.user import User
+
+        account_email = "buyer.account@example.com"
+        user = User(
+            id=__import__("uuid").uuid4(),
+            email=account_email,
+            email_verified=True,
+            oauth_accounts=[],
+        )
+        await save_fixture(user)
+
+        # Checkout carries a DIFFERENT email (typed into the popup).
+        checkout = Checkout(
+            organization=organization_with_active_subaccount,
+            payment_processor=PaymentProcessor.paystack,
+            status=CheckoutStatus.open,
+            client_secret="polar_c_bind_test",
+            customer=None,
+            customer_email="typed-into-popup@example.com",
+            currency="KES",
+            amount=10000,
+            tax_amount=0,
+            discount=None,
+            payment_processor_metadata={},
+            customer_metadata={},
+        )
+        await save_fixture(checkout)
+
+        checkout_service = CheckoutService(cart_service=MagicMock())
+        auth_subject: AuthSubject[User] = AuthSubject(
+            subject=user, scopes=set(), session=None
+        )
+
+        async with checkout_service._create_or_update_customer(
+            session, auth_subject, checkout
+        ) as (customer, _generate_session):
+            # Bound to the account email, NOT the popup email.
+            assert customer.email == account_email
+            assert customer.email != checkout.customer_email
+
+    async def test_anonymous_buyer_uses_checkout_email(
+        self,
+        session: AsyncSession,
+        save_fixture,
+        organization_with_active_subaccount: Organization,
+    ) -> None:
+        from polar.auth.models import Anonymous, AuthSubject
+
+        checkout = Checkout(
+            organization=organization_with_active_subaccount,
+            payment_processor=PaymentProcessor.paystack,
+            status=CheckoutStatus.open,
+            client_secret="polar_c_anon_test",
+            customer=None,
+            customer_email="guest@example.com",
+            currency="KES",
+            amount=10000,
+            tax_amount=0,
+            discount=None,
+            payment_processor_metadata={},
+            customer_metadata={},
+        )
+        await save_fixture(checkout)
+
+        checkout_service = CheckoutService(cart_service=MagicMock())
+        auth_subject = AuthSubject(subject=Anonymous(), scopes=set(), session=None)
+
+        async with checkout_service._create_or_update_customer(
+            session, auth_subject, checkout
+        ) as (customer, _generate_session):
+            assert customer.email == "guest@example.com"

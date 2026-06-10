@@ -2812,15 +2812,33 @@ class CheckoutService:
         if customer is not None and customer.is_deleted:
             raise CheckoutCustomerDeleted(checkout)
 
+        # When a logged-in Blyss user checks out, bind the resulting
+        # customer to THEIR account email rather than whatever address they
+        # typed into the payment popup. The customer portal maps a signed-in
+        # user to a customer purely by account email
+        # (authenticate_as_user -> get_by_email_and_organization), so an order
+        # created against a different email (e.g. a buyer typing
+        # "me+test@x.com" in the Paystack popup) lands on a separate customer
+        # row the portal can never see — the buyer then sees only some of
+        # their orders and none of the benefits granted to the other identity.
+        # Anchoring on the account email keeps every purchase on one customer.
+        from polar.auth.models import is_user as _is_user
+
+        binding_email = checkout.customer_email
+        if _is_user(auth_subject):
+            account_email = getattr(auth_subject.subject, "email", None)
+            if account_email:
+                binding_email = account_email
+
         if customer is None:
-            assert checkout.customer_email is not None
+            assert binding_email is not None
             customer = await repository.get_by_email_and_organization(
-                checkout.customer_email, checkout.organization.id
+                binding_email, checkout.organization.id
             )
             if customer is None:
                 customer = Customer(
                     external_id=checkout.external_customer_id,
-                    email=checkout.customer_email,
+                    email=binding_email,
                     email_verified=False,
                     stripe_customer_id=None,
                     organization=checkout.organization,

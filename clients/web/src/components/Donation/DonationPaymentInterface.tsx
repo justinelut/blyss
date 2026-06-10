@@ -20,9 +20,8 @@
  * at DonationPaymentInterface.legacy.tsx.
  */
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { FiArrowRight, FiHeart, FiLock } from 'react-icons/fi'
-import Input from '@/components/atoms/Input'
 import { toast } from '@/components/Toast/use-toast'
 import { cn } from '@/lib/utils'
 import {
@@ -95,14 +94,9 @@ export const DonationPaymentInterface = ({
   const [stage, setStage] = useState<
     'idle' | 'opening' | 'cancelled' | 'success'
   >('idle')
-  const [email, setEmail] = useState(donorEmail || '')
-
-  // Sync local email with parent prop changes
-  useEffect(() => {
-    if (donorEmail && donorEmail !== email) {
-      setEmail(donorEmail)
-    }
-  }, [donorEmail])
+  // Email is owned by the parent form (donor_email). We read it from the
+  // donorEmail prop rather than keeping a duplicate local field.
+  const email = donorEmail || ''
 
   const onTip = () => {
     if (!config) {
@@ -193,28 +187,9 @@ export const DonationPaymentInterface = ({
 
   return (
     <div className="space-y-5">
-      {/* Email — collected in our form so we own pre-payment UX */}
-      <div className="space-y-1">
-        <label
-          htmlFor="donation-email"
-          className="block font-sans text-[12px] font-medium uppercase tracking-[0.12em] text-[var(--text-muted)]"
-        >
-          Email
-        </label>
-        <Input
-          id="donation-email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@example.com"
-          disabled={stage === 'opening'}
-          required
-        />
-        <p className="font-sans text-[12px] text-[var(--text-muted)]">
-          For your receipt — never shown to the creator.
-        </p>
-      </div>
-
+      {/* Tip button — opens Paystack popup. Email is collected once in the
+          parent form (donor_email) and relayed here via the donorEmail prop;
+          we intentionally do NOT render a second email field. */}
       {/* Tip button — opens Paystack popup */}
       <button
         type="button"
