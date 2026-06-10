@@ -122,7 +122,7 @@ export function CreatorStorefrontPage({
     )
 
   const tabs: StorefrontTab[] = [
-    { id: 'work', label: 'All work', count: work.length },
+    { id: 'work', label: 'All work', count: products.length },
     {
       id: 'subscriptions',
       label: 'Subscriptions',
@@ -191,7 +191,7 @@ export function CreatorStorefrontPage({
         aria-labelledby={`storefront-tab-${tab}`}
       >
         {tab === 'work' && (
-          <AllWorkTab products={work} creatorName={creator.name} />
+          <AllWorkTab products={products} creatorName={creator.name} />
         )}
         {tab === 'subscriptions' && (
           <SubscriptionsTab

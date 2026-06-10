@@ -49,6 +49,15 @@ const formatPrice = (product: Product, preferredCurrency?: string): string => {
   return `${currency} ${major.toLocaleString()}`
 }
 
+/** Cadence suffix for recurring products, e.g. "/ month" or "/ 3 months". */
+const recurringCadence = (product: Product): string => {
+  if (!product.is_recurring) return ''
+  const interval = (product as any).recurring_interval ?? 'month'
+  const count = (product as any).recurring_interval_count ?? 1
+  const unit = interval === 'year' ? 'year' : 'month'
+  return count === 1 ? ` / ${unit}` : ` / ${count} ${unit}s`
+}
+
 /**
  * Tonal placeholder palette for cards without uploaded media. Stays inside the
  * Blyss palette tokens — variations come from background tone + accent tint.
@@ -167,6 +176,13 @@ export const MarketplaceProductCard = ({
 
       {/* Product info */}
       <div className="mt-4 flex flex-col gap-1">
+        {/* Subscription marker — editorial eyebrow, not a neon pill overlay
+            (anti-slop). Lets buyers tell a recurring tier from a one-off. */}
+        {product.is_recurring && (
+          <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
+            Subscription
+          </p>
+        )}
         <h3
           className={cn(
             typography.h4,
@@ -210,6 +226,11 @@ export const MarketplaceProductCard = ({
           )}
         >
           {formatPrice(product, displayCurrency)}
+          {product.is_recurring && (
+            <span className="ml-1 font-sans text-[13px] font-normal text-[var(--text-muted)]">
+              {recurringCadence(product)}
+            </span>
+          )}
         </p>
       </div>
     </Link>

@@ -3,6 +3,7 @@
 import { schemas } from '@/lib/api'
 import { typography } from '@/design'
 import { cn } from '@/lib/utils'
+import { OptimizedImage } from '@/components/Image/OptimizedImage'
 import { FiCheck } from 'react-icons/fi'
 
 type Product = schemas['Product']
@@ -140,11 +141,46 @@ export const SubscriptionsTab = ({
               key={tier.id}
               aria-label={`${tier.name} subscription tier`}
               className={cn(
-                'flex flex-col rounded-md bg-[var(--surface-sunken)] p-8',
+                'flex flex-col overflow-hidden rounded-md bg-[var(--surface-sunken)]',
                 isFeatured &&
-                  'border-l-4 border-[var(--accent)] pl-7 md:relative md:-translate-y-1',
+                  'border-l-4 border-[var(--accent)] md:relative md:-translate-y-1',
               )}
             >
+              {/* Featured image — 16:9 cover. Anchors the tier visually so
+                  subscriptions don't read as bare price lists. Editorial
+                  placeholder (initial) when the creator hasn't uploaded one. */}
+              {(() => {
+                const cover = (tier.medias ?? []).find(
+                  (m: any) => m.public_url,
+                ) as any
+                return cover ? (
+                  <div className="relative aspect-[16/9] w-full overflow-hidden bg-[var(--surface)]">
+                    <OptimizedImage
+                      src={cover.public_url}
+                      alt={`${tier.name} cover`}
+                      fill
+                      sizes="(max-width: 768px) 100vw, 420px"
+                      className="object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div
+                    aria-hidden
+                    className="flex aspect-[16/9] w-full items-end bg-[var(--surface)] p-6"
+                  >
+                    <span className="font-display text-[44px] font-light leading-none text-[var(--text-muted)]">
+                      {(tier.name?.[0] ?? '·').toUpperCase()}
+                    </span>
+                  </div>
+                )
+              })()}
+
+              <div
+                className={cn(
+                  'flex flex-1 flex-col p-8',
+                  isFeatured && 'pl-7',
+                )}
+              >
               {/* Tier name + featured eyebrow */}
               <header className="flex items-center justify-between gap-4">
                 <h3
@@ -215,6 +251,7 @@ export const SubscriptionsTab = ({
               >
                 Subscribe — {amount}
               </a>
+              </div>
             </article>
           )
         })}

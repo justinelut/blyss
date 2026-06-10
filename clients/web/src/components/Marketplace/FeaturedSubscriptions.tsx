@@ -33,6 +33,15 @@ const formatMonthlyPrice = (product: Product, preferredCurrency: string): string
   return `${currency} ${major.toLocaleString()}`
 }
 
+/** Cadence suffix from the product's recurring interval ("/ month", "/ year",
+ *  "/ 3 months"). Avoids hardcoding "/ month" for yearly tiers. */
+const cadenceLabel = (product: Product): string => {
+  const interval = (product as any).recurring_interval ?? 'month'
+  const count = (product as any).recurring_interval_count ?? 1
+  const unit = interval === 'year' ? 'year' : 'month'
+  return count === 1 ? `/ ${unit}` : `/ ${count} ${unit}s`
+}
+
 /**
  * FeaturedSubscriptions — 6 subscription-product cards.
  *
@@ -65,6 +74,9 @@ export const FeaturedSubscriptions = ({ subscriptions }: FeaturedSubscriptionsPr
         {subscriptions.slice(0, 6).map((product) => {
           const creator = (product as any).organization
           const firstBenefit = (product as any).benefits?.[0]
+          const cover = (product.medias ?? []).find(
+            (m: any) => m.public_url,
+          ) as any
 
           const isSeed =
             typeof product.id === 'string' && product.id.startsWith('seed_')
@@ -73,8 +85,22 @@ export const FeaturedSubscriptions = ({ subscriptions }: FeaturedSubscriptionsPr
               key={product.id}
               href={isSeed ? '/marketplace?type=subscription' : `/product/${product.id}`}
               prefetch
-              className="group block rounded-md bg-[var(--surface-elevated)] p-6 transition-colors hover:bg-[var(--background)]"
+              className="group block overflow-hidden rounded-md bg-[var(--surface-elevated)] transition-colors hover:bg-[var(--background)]"
             >
+              {/* Featured image — 16:9 cover so subscriptions show the
+                  creator's artwork, not just an avatar. */}
+              {cover && (
+                <div className="relative aspect-[16/9] w-full overflow-hidden bg-[var(--surface-sunken)]">
+                  <OptimizedImage
+                    src={cover.public_url}
+                    alt={`${product.name} cover`}
+                    fill
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    className="object-cover"
+                  />
+                </div>
+              )}
+              <div className="p-6">
               <div className="flex items-start gap-3">
                 {creator?.avatar_url && (
                   <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-[var(--surface-sunken)]">
@@ -107,7 +133,7 @@ export const FeaturedSubscriptions = ({ subscriptions }: FeaturedSubscriptionsPr
               <p className="mt-5 font-display text-[24px] font-semibold tabular-nums text-[var(--text-primary)]">
                 {formatMonthlyPrice(product, displayCurrency)}
                 <span className="font-sans text-[14px] font-normal text-[var(--text-muted)]">
-                  {' '}/ month
+                  {' '}{cadenceLabel(product)}
                 </span>
               </p>
 
@@ -116,6 +142,7 @@ export const FeaturedSubscriptions = ({ subscriptions }: FeaturedSubscriptionsPr
                   {firstBenefit.description}
                 </p>
               )}
+              </div>
             </Link>
           )
         })}
