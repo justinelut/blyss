@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import StrEnum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
 from alembic_utils.pg_function import PGFunction
@@ -233,33 +233,17 @@ class Order(CustomFieldDataMixin, MetadataMixin, RecordModel):
     @property
     def legacy_product_price(self) -> "ProductPrice | None":
         """
-        Dummy method to keep API backward compatibility
-        by fetching a product price at all costs.
+        Deprecated back-compat alias for `items`.
 
-        Defensive: returns None on ANY exception accessing relationships
-        OR on the polymorphic discriminator columns (`type`, `amount_type`)
-        that pydantic later reads for discriminated-union resolution. A
-        MissingGreenlet on a deprecated alias should not 500 the entire
-        orders list — `items` carries the same data.
+        Pydantic's response serializer crashed with MissingGreenlet on
+        ProductPriceFixed.type during discriminated-union resolution
+        (sync context, no greenlet). The error 500'd the entire orders
+        list because of one deprecated alias.
+
+        Resolution: always return None. The supported `items` field
+        carries the same data and is what the docs/clients should use.
         """
-        try:
-            if self.product is None:
-                return None
-            for item in self.items:
-                price = item.product_price
-                if price:
-                    # Pydantic discriminates the union via getattr(price,
-                    # "type", ...); if the columns are expired/lazy and we
-                    # let pydantic touch them, we get MissingGreenlet inside
-                    # the response serializer (after this property returns)
-                    # which 500s the request. Touching them here forces any
-                    # lazy-load failure to land inside this try/except.
-                    _ = price.type
-                    _ = price.amount_type
-                    return price
-            return None
-        except Exception:
-            return None
+        return None
 
     @property
     def legacy_product_price_id(self) -> UUID | None:
