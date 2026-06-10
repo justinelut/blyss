@@ -16,6 +16,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { schemas } from '@/lib/api'
 import { useAddToCart } from '@/hooks/queries/cart'
+import { useCreateProductCheckout } from '@/hooks/queries/checkouts'
 import { useIsInWishlist, useAddToWishlist, useRemoveFromWishlist } from '@/hooks/queries/wishlist'
 import { useAuth } from '@/hooks'
 import { Modal } from '@/components/Modal'
@@ -47,6 +48,8 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
   const router = useRouter()
   const { authenticated } = useAuth()
   const { mutate: addToCart, status: cartStatus } = useAddToCart()
+  const { mutate: createCheckout, isPending: isCreatingCheckout } =
+    useCreateProductCheckout()
   const { data: wishlistCheck } = useIsInWishlist(product.id, authenticated)
   const { mutate: addWishlist } = useAddToWishlist()
   const { mutate: removeWishlist } = useRemoveFromWishlist()
@@ -68,16 +71,21 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
       setAuthModalOpen(true)
       return
     }
-    if (product.is_recurring) {
-      router.push(`/checkout?product_id=${product.id}`)
+    // Subscriptions (and free products) never go through the one-time cart.
+    // Create a real checkout session and navigate to the hosted checkout.
+    // Previously this pushed /checkout?product_id=... which the broker
+    // bounced back to the PDP — an infinite loop that never created a
+    // checkout, so subscribing was impossible.
+    const price = product.prices?.[0]
+    const amount = (price as any)?.price_amount ?? 0
+    if (product.is_recurring || amount === 0) {
+      createCheckout(product.id, {
+        onSuccess: ({ client_secret }) => {
+          router.push(`/checkout/${client_secret}`)
+        },
+      })
     } else {
-      const price = product.prices?.[0]
-      const amount = (price as any)?.price_amount ?? 0
-      if (amount === 0) {
-        router.push(`/checkout?product_id=${product.id}`)
-      } else {
-        addToCart({ productId: product.id, quantity: 1 })
-      }
+      addToCart({ productId: product.id, quantity: 1 })
     }
   }
 
@@ -116,7 +124,7 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
             onWishlistToggle={handleWishlist}
             onShare={handleShare}
             isInWishlist={isInWishlist}
-            isBuyLoading={cartStatus === 'pending'}
+            isBuyLoading={cartStatus === 'pending' || isCreatingCheckout}
             onTip={org?.slug ? () => router.push(`/${country}/donation/${org.slug}`) : undefined}
           />
 

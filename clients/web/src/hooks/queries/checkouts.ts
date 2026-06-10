@@ -1,6 +1,7 @@
 import { api } from '@/utils/client'
 import { operations, unwrap } from '@/lib/api'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { toast } from '@/components/Toast/use-toast'
 import { defaultRetry } from './retry'
 
 export const useCheckouts = (
@@ -23,3 +24,36 @@ export const useCheckouts = (
     retry: defaultRetry,
   })
 }
+
+/**
+ * Create a hosted checkout session for a SINGLE product and return its
+ * client_secret. Used for the PDP "Subscribe" / free-product flow, where
+ * the item never goes through the (one-time, multi-product) cart.
+ *
+ * Subscriptions previously routed to `/checkout?product_id=...`, but the
+ * /checkout broker bounced product_id straight back to the PDP — an
+ * infinite loop that never created a checkout. This creates the real
+ * session so the buyer lands on /checkout/{client_secret}.
+ */
+export const useCreateProductCheckout = () =>
+  useMutation({
+    mutationFn: (productId: string) =>
+      unwrap(
+        api.POST('/v1/checkouts/', {
+          body: { product_id: productId } as any,
+        }),
+      ) as Promise<{ client_secret: string }>,
+    onError: (error: any) => {
+      const message =
+        error?.error?.detail ||
+        error?.body?.detail ||
+        error?.message ||
+        'Could not start checkout'
+      toast({
+        title: 'Checkout failed',
+        description:
+          typeof message === 'string' ? message : 'Could not start checkout',
+        variant: 'error',
+      })
+    },
+  })
