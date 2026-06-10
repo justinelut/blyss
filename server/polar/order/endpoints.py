@@ -4,6 +4,7 @@ from fastapi import Depends, Query, Response
 from fastapi.responses import StreamingResponse
 from pydantic import UUID4
 
+from polar.auth.models import is_organization, is_user
 from polar.customer.schemas.customer import CustomerID, ExternalCustomerID
 from polar.exceptions import ResourceNotFound
 from polar.kit.csv import IterableCSVWriter
@@ -25,7 +26,13 @@ from polar.routing import APIRouter
 
 from . import auth, sorting
 from .schemas import Order as OrderSchema
-from .schemas import OrderID, OrderInvoice, OrderNotFound, OrderUpdate
+from .schemas import (
+    OrderEarningsSummary,
+    OrderID,
+    OrderInvoice,
+    OrderNotFound,
+    OrderUpdate,
+)
 from .service import MissingInvoiceBillingDetails, NotPaidOrder
 from .service import order as order_service
 
@@ -96,6 +103,55 @@ async def list(
         count,
         pagination,
     )
+
+
+@router.get(
+    "/earnings-summary",
+    summary="Get Earnings Summary",
+    response_model=OrderEarningsSummary,
+)
+async def earnings_summary(
+    auth_subject: auth.OrdersRead,
+    organization_id: OrganizationID = Query(
+        ..., description="The organization to summarize earnings for."
+    ),
+    session: AsyncReadSession = Depends(get_db_read_session),
+) -> OrderEarningsSummary:
+    """Lifetime creator earnings for an organization.
+
+    Powers the dashboard income page: total take-home (after the
+    marketplace fee + refunds), gross, fees, and order count.
+    """
+    from polar.models import UserOrganization
+    from polar.organization.repository import OrganizationRepository
+    from polar.order.repository import OrderRepository
+    from sqlalchemy import select as _select
+
+    # Authorize: the subject must belong to / be the organization.
+    org_repo = OrganizationRepository.from_session(session)
+    organization = await org_repo.get_by_id(organization_id)
+    if organization is None:
+        raise ResourceNotFound()
+    if is_user(auth_subject):
+        membership = await session.execute(
+            _select(UserOrganization.user_id).where(
+                UserOrganization.user_id == auth_subject.subject.id,
+                UserOrganization.organization_id == organization_id,
+                UserOrganization.is_deleted.is_(False),
+            )
+        )
+        if membership.first() is None:
+            raise ResourceNotFound()
+    elif is_organization(auth_subject):
+        if auth_subject.subject.id != organization_id:
+            raise ResourceNotFound()
+
+    order_repository = OrderRepository.from_session(session)
+    summary = await order_repository.get_earnings_summary(organization_id)
+    currency = (
+        getattr(organization, "default_presentment_currency", None) or "kes"
+    )
+    return OrderEarningsSummary(currency=currency, **summary)
 
 
 @router.get(

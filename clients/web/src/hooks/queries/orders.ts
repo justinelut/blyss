@@ -35,3 +35,30 @@ export const useOrders = (
     retry: defaultRetry,
     enabled: !!organizationId,
   })
+
+export interface OrderEarningsSummary {
+  gross_amount: number
+  platform_fee_amount: number
+  refunded_amount: number
+  net_amount: number
+  orders_count: number
+  currency: string
+}
+
+/**
+ * Lifetime creator earnings for an organization — total take-home (after
+ * the marketplace fee + refunds), gross, fees, and order count. Powers the
+ * income page so creators see what they've actually earned.
+ */
+export const useEarningsSummary = (organizationId?: string) =>
+  useQuery({
+    queryKey: ['orders', 'earnings-summary', { organizationId }],
+    queryFn: () =>
+      unwrap(
+        (api as any).GET('/v1/orders/earnings-summary', {
+          params: { query: { organization_id: organizationId } },
+        }),
+      ) as Promise<OrderEarningsSummary>,
+    retry: defaultRetry,
+    enabled: !!organizationId,
+  })

@@ -260,3 +260,24 @@ class OrderInvoice(Schema):
     """Order's invoice data."""
 
     url: str = Field(..., description="The URL to the invoice.")
+
+
+class OrderEarningsSummary(Schema):
+    """Lifetime creator earnings for an organization's paid orders.
+
+    Amounts are in the smallest currency unit. `net_amount` is the
+    creator's take-home (gross minus the marketplace fee and refunds).
+    """
+
+    gross_amount: int = Field(
+        description="Sum of order net amounts (post-discount, pre-fee)."
+    )
+    platform_fee_amount: int = Field(
+        description="Total Blyss marketplace fee across orders."
+    )
+    refunded_amount: int = Field(description="Total refunded across orders.")
+    net_amount: int = Field(
+        description="Creator take-home: gross - platform fee - refunds."
+    )
+    orders_count: int = Field(description="Number of paid orders.")
+    currency: str = Field(description="Currency of the amounts.")

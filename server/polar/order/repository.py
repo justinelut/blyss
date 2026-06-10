@@ -89,6 +89,52 @@ class OrderRepository(
         )
         return await self.get_one_or_none(statement)
 
+    async def get_earnings_summary(
+        self, organization_id: UUID
+    ) -> dict[str, int]:
+        """Aggregate creator earnings for an organization's paid orders.
+
+        Returns lifetime totals in the smallest currency unit:
+          - gross:       sum of order net_amount (after discounts, pre-fee)
+          - platform_fee: sum of Blyss's marketplace fee
+          - refunded:    sum of refunded_amount
+          - net:         creator's take-home = gross - platform_fee - refunded
+          - orders:      count of paid orders
+
+        Powers the income page so creators see what they've actually
+        earned, not just the explanatory settlement copy.
+        """
+        from sqlalchemy import func
+
+        stmt = (
+            select(
+                func.coalesce(func.sum(Order.net_amount), 0),
+                func.coalesce(func.sum(Order.platform_fee_amount), 0),
+                func.coalesce(func.sum(Order.refunded_amount), 0),
+                func.count(Order.id),
+            )
+            .join(Customer, Order.customer_id == Customer.id)
+            .where(
+                Customer.organization_id == organization_id,
+                Order.deleted_at.is_(None),
+                Order.status.in_(
+                    [OrderStatus.paid, OrderStatus.partially_refunded]
+                ),
+            )
+        )
+        result = await self.session.execute(stmt)
+        gross, platform_fee, refunded, count = result.one()
+        gross = int(gross or 0)
+        platform_fee = int(platform_fee or 0)
+        refunded = int(refunded or 0)
+        return {
+            "gross_amount": gross,
+            "platform_fee_amount": platform_fee,
+            "refunded_amount": refunded,
+            "net_amount": gross - platform_fee - refunded,
+            "orders_count": int(count or 0),
+        }
+
     async def get_due_dunning_orders(self, *, options: Options = ()) -> Sequence[Order]:
         """Get orders that are due for dunning retry based on next_payment_attempt_at."""
 
