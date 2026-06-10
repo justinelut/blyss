@@ -470,18 +470,61 @@ class OrderService:
             session, checkout, OrderBillingReasonInternal.purchase, payment
         )
 
-        # For seat-based orders, benefits are granted when seats are claimed
-        # For non-seat orders, grant benefits immediately
-        prices = checkout.prices[product.id]
-        has_seat_price = any(is_seat_price(price) for price in prices)
-        if not has_seat_price:
-            enqueue_job(
-                "benefit.enqueue_benefits_grants",
-                task="grant",
-                customer_id=order.customer.id,
-                product_id=product.id,
-                order_id=order.id,
-            )
+        # Grant benefits. For a CART checkout the order carries one line
+        # item per cart product, so we must grant benefits for EVERY
+        # product in the cart — not just checkout.product (the first/
+        # display product). Previously only checkout.product got grants,
+        # so a 2-product cart delivered downloads/benefits for just one.
+        cart_item_ids: list[str] = []
+        if checkout.user_metadata and "cart_item_ids" in checkout.user_metadata:
+            raw = checkout.user_metadata["cart_item_ids"]
+            if isinstance(raw, str):
+                cart_item_ids = [s for s in raw.split(",") if s]
+            elif isinstance(raw, (list, tuple)):
+                cart_item_ids = [str(s) for s in raw if s]
+
+        if cart_item_ids:
+            from polar.cart.repository import CartRepository
+
+            cart_repository = CartRepository.from_session(session)
+            granted_product_ids: set[uuid.UUID] = set()
+            for cart_item_id_str in cart_item_ids:
+                try:
+                    cart_item_id = uuid.UUID(cart_item_id_str)
+                except (ValueError, TypeError):
+                    continue
+                cart_item = await cart_repository.get_by_id(cart_item_id)
+                if cart_item is None:
+                    continue
+                cart_product = cart_item.product
+                # Skip duplicates + recurring (carts are one-time products);
+                # seat-priced products grant on seat claim, not here.
+                if cart_product.id in granted_product_ids:
+                    continue
+                cart_prices = cart_product.prices or []
+                if any(is_seat_price(pr) for pr in cart_prices):
+                    continue
+                granted_product_ids.add(cart_product.id)
+                enqueue_job(
+                    "benefit.enqueue_benefits_grants",
+                    task="grant",
+                    customer_id=order.customer.id,
+                    product_id=cart_product.id,
+                    order_id=order.id,
+                )
+        else:
+            # Single-product checkout — unchanged behavior.
+            product = checkout.product
+            prices = checkout.prices[product.id]
+            has_seat_price = any(is_seat_price(price) for price in prices)
+            if not has_seat_price:
+                enqueue_job(
+                    "benefit.enqueue_benefits_grants",
+                    task="grant",
+                    customer_id=order.customer.id,
+                    product_id=product.id,
+                    order_id=order.id,
+                )
 
         # Trigger notifications
         organization = checkout.organization

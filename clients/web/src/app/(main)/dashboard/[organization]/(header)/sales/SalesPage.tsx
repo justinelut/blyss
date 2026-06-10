@@ -190,9 +190,27 @@ const ClientPage: React.FC<ClientPageProps> = ({
       ),
       cell: ({
         row: {
-          original: { product, description },
+          original: { product, description, items },
         },
       }) => {
+        // Multi-product (cart) orders carry one line item per product.
+        // The legacy `product` field is just the first/display product,
+        // so showing it alone made a 2-product order look like one. Prefer
+        // the line items and list every product purchased.
+        const lineItems = (items ?? []).filter(
+          (it: any) => !!it?.label,
+        )
+        if (lineItems.length > 1) {
+          return (
+            <div className="flex flex-col gap-0.5">
+              {lineItems.map((it: any) => (
+                <span key={it.id} className="text-sm">
+                  {it.label}
+                </span>
+              ))}
+            </div>
+          )
+        }
         if (!product) {
           return <span>{description}</span>
         }
