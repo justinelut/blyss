@@ -149,7 +149,7 @@ async def charge_success(event_id: uuid.UUID) -> None:
                 # Verify transaction with Paystack API
                 try:
                     verified_transaction = await paystack.verify_transaction(
-                        transaction_reference
+                        transaction_reference, session=session
                     )
                 except PaystackTransactionError as e:
                     log.error(
