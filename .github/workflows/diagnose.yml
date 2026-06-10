@@ -106,6 +106,12 @@ jobs:
             sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select pb.product_id, p.name, pb.benefit_id, b.type from product_benefits pb join products p on pb.product_id=p.id join benefits b on pb.benefit_id=b.id where p.organization_id='c2606553-9be0-4d3d-ba9a-02db9953da3b' limit 30;\"" 2>&1 | head -35
             echo "-- downloadable files in blyss-studio org --"
             sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select id, name, is_uploaded, created_at from files where organization_id='c2606553-9be0-4d3d-ba9a-02db9953da3b' order by created_at desc limit 15;\"" 2>&1 | head -20
+            echo "-- downloadables benefit PROPERTIES (is files[] populated?) --"
+            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select id, description, properties from benefits where type='downloadables' and organization_id='c2606553-9be0-4d3d-ba9a-02db9953da3b' order by created_at desc limit 6;\"" 2>&1 | head -25
+            echo "-- benefit_grants properties (did grant create file refs?) --"
+            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select bg.id, bg.benefit_id, bg.properties, bg.is_granted from benefit_grants bg join benefits b on bg.benefit_id=b.id where b.type='downloadables' order by bg.created_at desc limit 6;\"" 2>&1 | head -20
+            echo "-- downloadables table rows (per-customer file grants) --"
+            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select id, file_id, customer_id, benefit_id, status from downloadables order by created_at desc limit 10;\"" 2>&1 | head -15
             echo "-- worker logs for benefit grant tasks --"
             sudo kubectl -n $NS logs deployment/blyss-worker --tail=2000 2>&1 | grep -E "benefit\.enqueue|benefit\.grant|benefit_grant\.|benefit\.create_for_order" | tail -30 || echo "(no worker benefit logs)"
             echo "-- S3/download env probe --"
