@@ -254,10 +254,18 @@ const CustomerPortalOrder = ({
           />
         )}
 
+        {/* Benefits filter: a benefit_grant is keyed by order_id OR
+            subscription_id, not both. The backend AND-combines query
+            filters, so passing both would require grants where both
+            columns match — virtually never true. For subscription orders
+            (renewals), the grant lives on the subscription; for one-time
+            orders, on the order. Pass only the relevant one. */}
         <CustomerPortalGrants
           api={api}
-          subscriptionId={order.subscription_id ?? undefined}
-          orderId={order.id}
+          subscriptionId={
+            order.subscription_id ? order.subscription_id : undefined
+          }
+          orderId={order.subscription_id ? undefined : order.id}
         />
       </div>
 
