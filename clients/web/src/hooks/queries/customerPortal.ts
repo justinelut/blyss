@@ -94,6 +94,24 @@ export const useCustomerPortalSessionAuthenticate = (api: Client) =>
         }),
   })
 
+/**
+ * Mint a portal session for the already-logged-in Blyss user — skips the
+ * email-code 'request portal access' step. Returns a token (same shape as
+ * authenticate) when the user's account email matches a customer of the
+ * org; 404s otherwise (no purchase relationship yet) so the caller can
+ * fall back to the email flow.
+ */
+export const useCustomerPortalSessionFromUser = (
+  api: Client,
+  organizationId: string,
+) =>
+  useMutation({
+    mutationFn: () =>
+      (api as any).POST('/v1/customer-portal/customer-session/from-user', {
+        body: { organization_id: organizationId },
+      }),
+  })
+
 export const useCustomerPortalSession = (api: Client) =>
   useQuery({
     queryKey: ['customer_portal_session'],

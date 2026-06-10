@@ -1,7 +1,9 @@
 from fastapi import Depends, Response
 from fastapi.responses import JSONResponse
 
+from polar.auth.dependencies import WebUserWrite
 from polar.auth.models import is_customer, is_member
+from polar.exceptions import ResourceNotFound
 from polar.kit.db.postgres import AsyncSession
 from polar.models import CustomerSession, MemberSession
 from polar.openapi import APITag
@@ -17,6 +19,7 @@ from ..schemas.customer_session import (
     CustomerSessionCodeAuthenticateResponse,
     CustomerSessionCodeInvalidOrExpiredResponse,
     CustomerSessionCodeRequest,
+    CustomerSessionFromUserRequest,
     PortalAuthenticatedUser,
 )
 from ..service.customer_session import (
@@ -89,6 +92,37 @@ async def authenticate(
     token, _ = await customer_session_service.authenticate(
         session, authenticated_request.code
     )
+    return CustomerSessionCodeAuthenticateResponse(token=token)
+
+
+@router.post(
+    "/from-user",
+    name="customer_portal.customer_session.from_user",
+    tags=[APITag.private],
+    responses={
+        404: {
+            "description": "No customer record for this user in the organization."
+        },
+    },
+)
+async def from_user(
+    body: CustomerSessionFromUserRequest,
+    auth_subject: WebUserWrite,
+    session: AsyncSession = Depends(get_db_session),
+) -> CustomerSessionCodeAuthenticateResponse:
+    """Mint a portal session for the already-logged-in Blyss user.
+
+    Avoids the email-code 'request portal access' step entirely when the
+    user is authenticated and their account email matches a customer of
+    the organization. Returns the same token shape as /authenticate.
+    """
+    user = auth_subject.subject
+    result = await customer_session_service.authenticate_as_user(
+        session, user.email, body.organization_id
+    )
+    if result is None:
+        raise ResourceNotFound()
+    token, _ = result
     return CustomerSessionCodeAuthenticateResponse(token=token)
 
 

@@ -25,6 +25,12 @@ class CustomerSessionCodeAuthenticateRequest(Schema):
     code: str
 
 
+class CustomerSessionFromUserRequest(Schema):
+    """Mint a portal session for the logged-in Blyss user (no email code)."""
+
+    organization_id: UUID4
+
+
 class CustomerSessionCodeAuthenticateResponse(Schema):
     token: str
 

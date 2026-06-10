@@ -1,6 +1,10 @@
 'use client'
 
-import { useCustomerPortalSessionRequest } from '@/hooks/queries'
+import {
+  useCustomerPortalSessionRequest,
+  useCustomerPortalSessionFromUser,
+} from '@/hooks/queries'
+import { useAuth } from '@/hooks'
 import { setValidationErrors } from '@/utils/api/errors'
 import Button from '@/components/atoms/Button'
 import Input from '@/components/atoms/Input'
@@ -21,7 +25,7 @@ import {
   RadioGroup,
   RadioGroupItem,
 } from '@/components/ui/radio-group'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 
 interface CustomerSelectionOption {
@@ -49,10 +53,48 @@ const ClientPage = ({
   })
   const { control, handleSubmit, setError, getValues } = form
   const sessionRequest = useCustomerPortalSessionRequest(api, organization.id)
+  const sessionFromUser = useCustomerPortalSessionFromUser(api, organization.id)
+  const { authenticated } = useAuth()
 
   const [customers, setCustomers] = useState<CustomerSelectionOption[]>([])
   const [showCustomerPicker, setShowCustomerPicker] = useState(false)
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('')
+  // While we try to auto-authenticate a logged-in user, show a spinner
+  // instead of flashing the email form (the whole point: a logged-in user
+  // shouldn't be asked to 'request portal access').
+  const [autoAuthPending, setAutoAuthPending] = useState<boolean>(
+    () => false,
+  )
+
+  // If the user is already logged in to Blyss, skip the email-code flow:
+  // mint a portal session directly from their account and drop them into
+  // the portal. Falls back to the email form only if they have no customer
+  // record with this creator.
+  useEffect(() => {
+    if (!authenticated) return
+    let cancelled = false
+    setAutoAuthPending(true)
+    ;(async () => {
+      try {
+        const res = await sessionFromUser.mutateAsync()
+        const token = (res as any)?.data?.token as string | undefined
+        if (!cancelled && token) {
+          router.replace(
+            `/${organization.slug}/portal/?customer_session_token=${token}`,
+          )
+          return
+        }
+      } catch {
+        // No customer record for this user / org — fall through to the
+        // email request form below.
+      }
+      if (!cancelled) setAutoAuthPending(false)
+    })()
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authenticated])
 
   const onSubmit = useCallback(
     async ({ email }: { email: string }, customerId?: string) => {
@@ -144,6 +186,22 @@ const ClientPage = ({
               Continue
             </Button>
           </div>
+        </div>
+      </ShadowBox>
+    )
+  }
+
+  // Logged-in user: while we auto-mint their portal session, show a
+  // spinner rather than the email form. (If auto-auth fails — no customer
+  // record — autoAuthPending flips false and the form below renders.)
+  if (authenticated && autoAuthPending) {
+    return (
+      <ShadowBox className="flex w-full max-w-7xl flex-col items-center gap-6 md:px-32 md:py-24">
+        <div className="flex w-full flex-col items-center gap-4 md:max-w-sm">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--accent)]" />
+          <p className="dark:text-polar-400 text-center text-gray-500">
+            Signing you in to your purchases…
+          </p>
         </div>
       </ShadowBox>
     )

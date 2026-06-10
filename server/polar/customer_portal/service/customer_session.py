@@ -187,6 +187,56 @@ class CustomerSessionService:
         )
         return customer_session_code, code
 
+    async def authenticate_as_user(
+        self,
+        session: AsyncSession,
+        user_email: str,
+        organization_id: uuid.UUID,
+    ) -> tuple[str, "CustomerSession | MemberSession"] | None:
+        """Mint a portal session for a logged-in Blyss user — no email code.
+
+        When a buyer is already authenticated on Blyss (they have a user
+        session), asking them to 'request portal access' by email + OTP is
+        pointless friction. If their account email matches a customer of
+        this organization, we issue the portal session directly.
+
+        Returns (token, session) on success, or None when this user has no
+        customer record for the org (caller falls back to the email-code
+        flow). Mirrors authenticate()'s member-vs-customer session choice.
+        """
+        organization_repository = OrganizationRepository.from_session(session)
+        organization = await organization_repository.get_by_id(organization_id)
+        if organization is None:
+            raise OrganizationDoesNotExist(organization_id)
+
+        customer_repository = CustomerRepository.from_session(session)
+        customer = await customer_repository.get_by_email_and_organization(
+            user_email, organization_id
+        )
+        if customer is None:
+            # No purchase relationship with this creator yet.
+            return None
+
+        if organization.feature_settings.get("member_model_enabled", False):
+            member_repository = MemberRepository.from_session(session)
+            member = await member_repository.get_by_customer_and_email(
+                session, customer, customer.email
+            )
+            if member is None:
+                member = await member_service.create_owner_member(
+                    session, customer, organization
+                )
+                if member is None:
+                    return None
+                member.customer = customer
+            return await member_session_service.create_member_session(
+                session, member
+            )
+
+        return await customer_session_service.create_customer_session(
+            session, customer
+        )
+
     async def send(
         self,
         session: AsyncSession,
