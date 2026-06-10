@@ -115,17 +115,7 @@ jobs:
             DL_NAME=$(sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -tAc \"select f.name from downloadables d join files f on d.file_id=f.id where d.status='granted' order by d.created_at desc limit 1;\"" 2>&1 | tr -d '\r' | head -1)
             DL_MIME=$(sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -tAc \"select f.mime_type from downloadables d join files f on d.file_id=f.id where d.status='granted' order by d.created_at desc limit 1;\"" 2>&1 | tr -d '\r' | head -1)
             echo "  granted downloadable path=$DL_PATH name=$DL_NAME mime=$DL_MIME"
-            sudo kubectl -n $NS exec $POD -- python3 -c "
-from polar.file.s3 import S3_SERVICES
-from polar.models.file import FileServiceTypes
-svc = S3_SERVICES[FileServiceTypes.downloadable]
-try:
-    url, exp = svc.generate_presigned_download_url(path='$DL_PATH', filename='$DL_NAME', mime_type='$DL_MIME')
-    print('  presign OK, host+path:', url.split('?')[0][:140])
-    print('  expires:', exp)
-except Exception as e:
-    print('  presign FAILED:', type(e).__name__, str(e)[:200])
-" 2>&1 | head -12 || echo "(probe failed)"
+            sudo kubectl -n $NS exec $POD -- python3 -c "from polar.file.s3 import S3_SERVICES; from polar.models.file import FileServiceTypes; u=S3_SERVICES[FileServiceTypes.downloadable].generate_presigned_download_url(path='$DL_PATH', filename='$DL_NAME', mime_type='$DL_MIME'); print('  presign host+path:', u[0].split('?')[0][:150]); print('  expires:', u[1])" 2>&1 | head -12 || echo "(probe failed)"
             echo "-- payment_channels.py KES providers (deployed code) --"
             sudo kubectl -n $NS exec $POD -- python3 -c 'from polar.checkout.payment_channels import get_channels_for_currency; ch=get_channels_for_currency("KES"); momo=next((c for c in ch if c.id=="mobile_money"), None); print("  momo providers:", momo.providers if momo else None)' 2>&1 | head -3 || true
             echo "-- blyss-studio org row: subaccount + mpesa fields --"
