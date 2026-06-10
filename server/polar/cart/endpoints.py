@@ -238,16 +238,21 @@ async def checkout_product(
     """
     from polar.checkout.schemas import CheckoutProductCreate
     from polar.checkout.service import checkout as checkout_service
+    from polar.models import Product
+    from polar.organization.repository import OrganizationRepository
+    from sqlalchemy import select
+    from sqlalchemy.orm import joinedload
 
-    # Build an org-scoped auth_subject so the checkout service can resolve
-    # the product. The product itself determines the organization.
-    from polar.product.repository import ProductRepository
-
-    product_repo = ProductRepository.from_session(session)
-    product = await product_repo.get_by_id(body.product_id)
+    # Look up product with its organization eagerly loaded (avoid lazy-raise).
+    stmt = (
+        select(Product)
+        .where(Product.id == body.product_id, Product.deleted_at.is_(None))
+        .options(joinedload(Product.organization))
+    )
+    result = await session.execute(stmt)
+    product = result.unique().scalar_one_or_none()
     if product is None:
         from polar.exceptions import ResourceNotFound
-
         raise ResourceNotFound()
 
     from polar.auth.models import AuthSubject as _AuthSubject
