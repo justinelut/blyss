@@ -886,3 +886,80 @@ async def _handle_mpesa_verification_success(
         organization_id=str(org_id),
         phone=phone,
     )
+
+
+@actor(
+    actor_name="paystack.webhook.refund.processed",
+    priority=TaskPriority.LOW,
+    max_retries=3,
+)
+async def refund_processed(event_id: uuid.UUID) -> None:
+    """Reconcile an order when Paystack confirms a refund.
+
+    Paystack fires `refund.processed` (and `refund.failed`) after a refund
+    is created. We mark the order refunded/partially_refunded based on the
+    cumulative refunded amount. The refund may have been initiated from our
+    dashboard (which already optimistically updated the order) or directly
+    in Paystack's dashboard — this handler makes the order consistent
+    either way. Idempotent: re-applying the same refunded total is a no-op.
+    """
+    async with AsyncSessionMaker() as session:
+        async with external_event_service.handle_paystack(session, event_id) as event:
+            event_data = cast(PaystackEvent, event).paystack_data
+            data = event_data.get("data", {})
+            # Paystack nests the original transaction under data.transaction.
+            transaction = data.get("transaction") or {}
+            transaction_reference = (
+                transaction.get("reference")
+                or data.get("transaction_reference")
+                or transaction.get("reference")
+            )
+            if not transaction_reference:
+                log.error(
+                    "paystack.webhook.refund.processed.missing_reference",
+                    event_id=event_id,
+                )
+                return
+
+            from sqlalchemy import select
+
+            from polar.models import Order
+            from polar.models.order import OrderStatus
+
+            # The order stores the original transaction reference in
+            # stripe_invoice_id (back-compat column).
+            result = await session.execute(
+                select(Order).where(
+                    Order.stripe_invoice_id == transaction_reference
+                )
+            )
+            order = result.scalar_one_or_none()
+            if order is None:
+                log.warning(
+                    "paystack.webhook.refund.processed.order_not_found",
+                    event_id=event_id,
+                    reference=transaction_reference,
+                )
+                return
+
+            refunded_amount = int(data.get("amount", 0) or 0)
+            # Use the larger of our optimistic value and Paystack's, so a
+            # dashboard-initiated refund (already applied) isn't reduced.
+            new_refunded = max(order.refunded_amount or 0, refunded_amount)
+            order.refunded_amount = new_refunded
+            order.status = (
+                OrderStatus.refunded
+                if new_refunded >= order.total_amount
+                else OrderStatus.partially_refunded
+            )
+            session.add(order)
+            await session.flush()
+
+            log.info(
+                "paystack.webhook.refund.processed.reconciled",
+                event_id=event_id,
+                reference=transaction_reference,
+                order_id=str(order.id),
+                refunded_amount=new_refunded,
+                status=order.status,
+            )

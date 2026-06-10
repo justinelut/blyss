@@ -1,4 +1,4 @@
-import { useCreateRefund } from '@/hooks/queries'
+import { useCreateRefund, useCreatePaystackRefund } from '@/hooks/queries'
 import { enums, schemas } from '@/lib/api'
 import { formatCurrency } from '@/lib/currency'
 import Button from '@/components/atoms/Button'
@@ -43,6 +43,13 @@ export const RefundModal = ({ order, hide }: RefundModalProps) => {
   })
 
   const createRefund = useCreateRefund()
+  const createPaystackRefund = useCreatePaystackRefund()
+  // Blyss orders settle via Paystack (platform_fee_amount > 0 is the same
+  // heuristic the orders list uses to label the processor). Route those to
+  // the Paystack refund path; anything else uses the legacy Stripe path.
+  const isPaystackOrder =
+    !!(order as any).platform_fee_amount &&
+    (order as any).platform_fee_amount > 0
 
   const handleRefundOrder = async (refund: schemas['RefundCreate']) => {
     if (!order || !canRefund) {
@@ -51,6 +58,41 @@ export const RefundModal = ({ order, hide }: RefundModalProps) => {
         description: `Order cannot be refunded`,
       })
 
+      return
+    }
+
+    if (isPaystackOrder) {
+      try {
+        const result: any = await createPaystackRefund.mutateAsync({
+          orderId: order.id,
+          amount: refund.amount,
+          reason:
+            typeof refund.reason === 'string' ? refund.reason : undefined,
+        })
+        if (result?.error) {
+          toast({
+            title: 'Refund Failed',
+            description: `Error creating refund: ${
+              result.error.detail || 'Please try again.'
+            }`,
+          })
+          return
+        }
+        toast({
+          title: 'Refund Created',
+          description: `Refund for ${formatCurrency('compact')(
+            refund.amount,
+            order.currency,
+          )} created successfully`,
+        })
+        hide()
+      } catch (e: any) {
+        toast({
+          title: 'Refund Failed',
+          description:
+            e?.body?.detail || e?.message || 'Error creating refund',
+        })
+      }
       return
     }
 

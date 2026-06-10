@@ -357,6 +357,79 @@ class PaystackService:
                 f"Network error communicating with Paystack: {e}"
             )
 
+    async def create_refund(
+        self,
+        *,
+        transaction_reference: str,
+        amount: int | None = None,
+        merchant_note: str | None = None,
+        session: object | None = None,
+    ) -> dict[str, Any]:
+        """Create a refund for a Paystack transaction.
+
+        Args:
+            transaction_reference: the original charge reference.
+            amount: amount in the smallest unit to refund. Omit for a full
+                refund.
+            merchant_note: optional reason recorded on Paystack.
+            session: DB session so the runtime-overlaid secret key is used.
+
+        Returns the Paystack refund `data` object. Raises the typed
+        Paystack errors on failure.
+        """
+        payload: dict[str, Any] = {"transaction": transaction_reference}
+        if amount is not None:
+            payload["amount"] = amount
+        if merchant_note:
+            payload["merchant_note"] = merchant_note
+
+        log.info(
+            "paystack.refund.create",
+            transaction_reference=transaction_reference,
+            amount=amount,
+        )
+
+        secret_key = await self._resolve_secret_key(session)
+        try:
+            response = await self._client.post(
+                "/refund",
+                json=payload,
+                headers=self._auth_headers(secret_key),
+            )
+            if response.status_code == 401:
+                raise PaystackAuthenticationError(
+                    "Paystack API authentication failed"
+                )
+            if response.status_code >= 500:
+                raise PaystackNetworkError(
+                    f"Paystack API server error: {response.status_code}"
+                )
+            response_data = response.json()
+            if not response_data.get("status"):
+                error_message = response_data.get("message", "Refund failed")
+                log.error(
+                    "paystack.refund.failed",
+                    error_message=error_message,
+                    transaction_reference=transaction_reference,
+                )
+                raise PaystackTransactionError(
+                    error_message, transaction_reference
+                )
+            log.info(
+                "paystack.refund.success",
+                transaction_reference=transaction_reference,
+            )
+            return response_data.get("data", {})
+        except httpx.HTTPError as e:
+            log.error(
+                "paystack.api.error",
+                error_type="network",
+                error_message=str(e),
+            )
+            raise PaystackNetworkError(
+                f"Network error communicating with Paystack: {e}"
+            )
+
     def _mask_payload_for_logging(self, payload: dict[str, Any]) -> dict[str, Any]:
         """Return a copy of the charge payload safe for logging.
 

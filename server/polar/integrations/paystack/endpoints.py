@@ -19,6 +19,7 @@ from polar.models.organization import PayoutMethod
 from polar.organization.repository import OrganizationRepository
 from polar.organization.schemas import Organization as OrganizationSchema
 from polar.organization.service import organization as organization_service
+from polar.order.schemas import Order as OrderSchema
 from polar.postgres import AsyncSession, get_db_session
 from polar.routing import APIRouter
 from polar.runtime_settings.service import runtime_settings
@@ -1304,3 +1305,138 @@ async def retry_subaccount_creation(
         raise HTTPException(
             status_code=422, detail=f"Failed to retry subaccount creation: {str(e)}"
         ) from e
+
+
+class PaystackRefundRequest(BaseModel):
+    """Body for refunding a Paystack order."""
+
+    amount: int | None = Field(
+        default=None,
+        description=(
+            "Amount to refund in the smallest currency unit. Omit for a "
+            "full refund of the remaining refundable amount."
+        ),
+    )
+    reason: str | None = Field(
+        default=None, description="Optional reason recorded on Paystack."
+    )
+
+
+@router.post(
+    "/orders/{order_id}/refund",
+    summary="Refund a Paystack order",
+    response_model=OrderSchema,
+)
+async def refund_order(
+    order_id: UUID,
+    body: PaystackRefundRequest,
+    auth_subject: WebUserWrite,
+    session: AsyncSession = Depends(get_db_session),
+) -> Any:
+    """Refund (fully or partially) a Paystack-paid order.
+
+    Calls Paystack's refund API for the order's original transaction, then
+    updates the order's refunded_amount + status. The refund.processed
+    webhook later reconciles the final state. Blocked when the org has
+    refunds_blocked set.
+    """
+    from sqlalchemy import select as _select
+
+    from polar.models import Customer, Order, UserOrganization
+    from polar.models.order import OrderStatus
+    from polar.order.repository import OrderRepository
+
+    order_repository = OrderRepository.from_session(session)
+    order = await order_repository.get_by_id(
+        order_id, options=order_repository.get_eager_options()
+    )
+    if order is None:
+        raise ResourceNotFound()
+
+    # Resolve org via the order's customer + authorize membership.
+    customer_result = await session.execute(
+        _select(Customer.organization_id).where(Customer.id == order.customer_id)
+    )
+    org_id = customer_result.scalar_one_or_none()
+    if org_id is None:
+        raise ResourceNotFound()
+    membership = await session.execute(
+        _select(UserOrganization.user_id).where(
+            UserOrganization.user_id == auth_subject.subject.id,
+            UserOrganization.organization_id == org_id,
+            UserOrganization.is_deleted.is_(False),
+        )
+    )
+    if membership.first() is None:
+        raise ResourceNotFound()
+
+    org_repository = OrganizationRepository.from_session(session)
+    organization = await org_repository.get_by_id(org_id)
+    if organization is not None and getattr(
+        organization, "refunds_blocked", False
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail="Refunds are blocked for this organization.",
+        )
+
+    # The original Paystack transaction reference is stored on the order
+    # (stripe_invoice_id is the back-compat column the webhook writes it to).
+    transaction_reference = order.stripe_invoice_id
+    if not transaction_reference:
+        raise HTTPException(
+            status_code=422,
+            detail="No Paystack transaction reference on this order.",
+        )
+
+    # Determine refundable amount (total minus already refunded).
+    already_refunded = order.refunded_amount or 0
+    max_refundable = order.total_amount - already_refunded
+    if max_refundable <= 0:
+        raise HTTPException(
+            status_code=403, detail="Order is already fully refunded."
+        )
+    refund_amount = body.amount if body.amount is not None else max_refundable
+    if refund_amount <= 0 or refund_amount > max_refundable:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Refund amount must be between 1 and {max_refundable}.",
+        )
+
+    try:
+        await paystack.create_refund(
+            transaction_reference=transaction_reference,
+            amount=refund_amount,
+            merchant_note=body.reason,
+            session=session,
+        )
+    except Exception as e:  # noqa: BLE001
+        log.error(
+            "paystack.refund.order_failed",
+            order_id=str(order_id),
+            error=str(e),
+        )
+        raise HTTPException(
+            status_code=422, detail=f"Refund failed: {str(e)}"
+        ) from e
+
+    # Optimistically update the order; the refund.processed webhook will
+    # confirm/finalize.
+    new_refunded = already_refunded + refund_amount
+    order.refunded_amount = new_refunded
+    order.status = (
+        OrderStatus.refunded
+        if new_refunded >= order.total_amount
+        else OrderStatus.partially_refunded
+    )
+    session.add(order)
+    await session.flush()
+
+    log.info(
+        "paystack.refund.order_updated",
+        order_id=str(order_id),
+        refunded_amount=new_refunded,
+        status=order.status,
+    )
+
+    return OrderSchema.model_validate(order)
