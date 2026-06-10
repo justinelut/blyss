@@ -75,3 +75,58 @@ async def test_cart_checkout_creates_one_order_item_per_product(
     # skipped, order kept only checkout.product); now every cart product
     # yields an item.
     assert len(order.items) == 2
+
+
+async def test_cart_order_serializes_through_schema(
+    save_fixture: SaveFixture,
+    session,
+    organization: Organization,
+    product_one_time: Product,
+    customer: Customer,
+) -> None:
+    """A cart-created order must serialize through the Order schema without
+    triggering a MissingGreenlet on legacy_product_price. Listing orders via
+    GET /v1/orders/ does this serialization for every order in the response,
+    so a single un-serializable order 500s the entire list.
+    """
+    from polar.kit.pagination import PaginationParams
+    from polar.order.schemas import Order as OrderSchema
+    from polar.auth.models import AuthSubject
+    from polar.models import User
+
+    product_b = await create_product(
+        save_fixture,
+        organization=organization,
+        recurring_interval=None,
+        name="Second Product For Serialization",
+        prices=[(1500, "usd")],
+    )
+    item_a = await _make_cart_item(save_fixture, product_one_time)
+    item_b = await _make_cart_item(save_fixture, product_b)
+
+    checkout = await create_checkout(
+        save_fixture,
+        products=[product_one_time],
+        status=CheckoutStatus.confirmed,
+        customer=customer,
+        user_metadata={"cart_item_ids": f"{item_a.id},{item_b.id}"},
+    )
+
+    await order_service.create_from_checkout_one_time(session, checkout)
+
+    # Now list orders and serialize — this is what /v1/orders/ does.
+    user = User(email="lister@example.com", email_verified=True, oauth_accounts=[])
+    await save_fixture(user)
+    auth_subject: AuthSubject[User] = AuthSubject(
+        subject=user, scopes=set(), session=None
+    )
+
+    results, _count = await order_service.list(
+        session,
+        auth_subject,
+        pagination=PaginationParams(1, 10),
+    )
+
+    # Serialize every result the way FastAPI does — this is where prod 500s.
+    for o in results:
+        OrderSchema.model_validate(o)

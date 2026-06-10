@@ -235,13 +235,31 @@ class Order(CustomFieldDataMixin, MetadataMixin, RecordModel):
         """
         Dummy method to keep API backward compatibility
         by fetching a product price at all costs.
+
+        Defensive: returns None on ANY exception accessing relationships
+        OR on the polymorphic discriminator columns (`type`, `amount_type`)
+        that pydantic later reads for discriminated-union resolution. A
+        MissingGreenlet on a deprecated alias should not 500 the entire
+        orders list — `items` carries the same data.
         """
-        if self.product is None:
+        try:
+            if self.product is None:
+                return None
+            for item in self.items:
+                price = item.product_price
+                if price:
+                    # Pydantic discriminates the union via getattr(price,
+                    # "type", ...); if the columns are expired/lazy and we
+                    # let pydantic touch them, we get MissingGreenlet inside
+                    # the response serializer (after this property returns)
+                    # which 500s the request. Touching them here forces any
+                    # lazy-load failure to land inside this try/except.
+                    _ = price.type
+                    _ = price.amount_type
+                    return price
             return None
-        for item in self.items:
-            if item.product_price:
-                return item.product_price
-        return None
+        except Exception:
+            return None
 
     @property
     def legacy_product_price_id(self) -> UUID | None:
