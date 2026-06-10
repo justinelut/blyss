@@ -378,9 +378,14 @@ const OrganizationMPesaSettings: React.FC<OrganizationMPesaSettingsProps> = ({
           !String(fresh.subaccount_code).startsWith('ACCT_test_')
         ) {
           setStage('succeeded')
-          // Server-side state changed — refresh server components so
-          // the parent page picks up the new subaccount details.
-          router.refresh()
+          // Hard reload so the parent dashboard re-renders with the now-
+          // active subaccount. router.refresh() alone re-runs server
+          // components but leaves this client component stuck on the
+          // 'succeeded' card ('refreshing now' that never completed) —
+          // the STK path already used a full reload, so match it.
+          if (typeof window !== 'undefined') {
+            window.setTimeout(() => window.location.reload(), 1500)
+          }
           return
         }
       } catch {
