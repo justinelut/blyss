@@ -99,7 +99,13 @@ jobs:
             echo "-- benefits attached to recent orders' products --"
             sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select pb.product_id, b.id as benefit_id, b.type, b.description from product_benefits pb join benefits b on pb.benefit_id=b.id where pb.product_id in (select o.product_id from orders o where o.created_at > now() - interval '24 hours');\"" 2>&1 | head -20
             echo "-- benefit_grants for recent orders --"
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select bg.id, bg.benefit_id, bg.customer_id, bg.order_id, bg.is_granted, bg.granted_at, b.type from benefit_grants bg join benefits b on bg.benefit_id=b.id where bg.order_id in (select o.id from orders o where o.created_at > now() - interval '24 hours') order by bg.granted_at desc nulls last limit 15;\"" 2>&1 | head -25
+            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select bg.id, bg.benefit_id, bg.customer_id, bg.order_id, bg.granted_at, bg.revoked_at, b.type from benefit_grants bg join benefits b on bg.benefit_id=b.id where bg.order_id in (select o.id from orders o where o.created_at > now() - interval '24 hours') order by bg.granted_at desc nulls last limit 15;\"" 2>&1 | head -25
+            echo "-- ALL benefits in blyss-studio org --"
+            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select b.id, b.type, b.description, b.selectable, b.deleted_at from benefits b where b.organization_id='c2606553-9be0-4d3d-ba9a-02db9953da3b' order by b.created_at desc limit 20;\"" 2>&1 | head -25
+            echo "-- ALL product_benefits links in blyss-studio org --"
+            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select pb.product_id, p.name, pb.benefit_id, b.type from product_benefits pb join products p on pb.product_id=p.id join benefits b on pb.benefit_id=b.id where p.organization_id='c2606553-9be0-4d3d-ba9a-02db9953da3b' limit 30;\"" 2>&1 | head -35
+            echo "-- downloadable files in blyss-studio org --"
+            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select id, name, is_uploaded, created_at from files where organization_id='c2606553-9be0-4d3d-ba9a-02db9953da3b' order by created_at desc limit 15;\"" 2>&1 | head -20
             echo "-- worker logs for benefit grant tasks --"
             sudo kubectl -n $NS logs deployment/blyss-worker --tail=2000 2>&1 | grep -E "benefit\.enqueue|benefit\.grant|benefit_grant\.|benefit\.create_for_order" | tail -30 || echo "(no worker benefit logs)"
             echo "-- payment_channels.py KES providers (deployed code) --"
