@@ -245,3 +245,45 @@ export const useCreatorDonations = (organizationId: string) =>
     },
     enabled: !!organizationId,
   })
+
+
+export interface ReceivedTip {
+  id: string
+  amount: number
+  currency: string
+  donor_name: string
+  donor_email: string
+  message: string | null
+  created_at: string
+}
+
+export interface TipsSummary {
+  total_amount: number
+  count: number
+  currency: string
+}
+
+/** Tips received by a creator org — for the dashboard Tips page. */
+export const useReceivedTips = (organizationId?: string) =>
+  useQuery({
+    queryKey: ['donations', 'received', { organizationId }],
+    queryFn: () =>
+      unwrap(
+        (api as any).GET('/v1/donation/received', {
+          params: { query: { organization_id: organizationId } },
+        }),
+      ) as Promise<{ items: ReceivedTip[]; pagination: { total_count: number } }>,
+    enabled: !!organizationId,
+  })
+
+export const useTipsSummary = (organizationId?: string) =>
+  useQuery({
+    queryKey: ['donations', 'received', 'summary', { organizationId }],
+    queryFn: () =>
+      unwrap(
+        (api as any).GET('/v1/donation/received/summary', {
+          params: { query: { organization_id: organizationId } },
+        }),
+      ) as Promise<TipsSummary>,
+    enabled: !!organizationId,
+  })

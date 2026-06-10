@@ -1,7 +1,7 @@
 import hashlib
 import hmac
 import json
-from typing import Annotated
+from typing import Annotated, Any
 from uuid import UUID
 
 import structlog
@@ -25,11 +25,14 @@ from .schemas import (
     DonationChargeStepSubmitRequest,
     DonationCreate,
     DonationInitiateResponse,
+    DonationListItem,
     DonationPaymentChannel,
     DonationPaymentStatus,
     DonationPopupConfig,
     DonationPublic,
+    DonationsSummary,
 )
+from .repository import DonationRepository
 from .service import (
     DonationError,
     InvalidDonationAmountError,
@@ -39,6 +42,87 @@ from .service import (
 log = structlog.get_logger()
 
 router = APIRouter(prefix="/donation", tags=["donation", APITag.public])
+
+
+async def _authorize_org_member(
+    session: AsyncSession, auth_subject: Any, organization_id: UUID
+) -> None:
+    """Raise ResourceNotFound unless the web user is a member of the org."""
+    from polar.auth.models import is_user
+    from polar.models.user_organization import UserOrganization
+    from sqlalchemy import select as _select
+
+    if not is_user(auth_subject):
+        raise ResourceNotFound()
+    membership = await session.execute(
+        _select(UserOrganization.user_id).where(
+            UserOrganization.user_id == auth_subject.subject.id,
+            UserOrganization.organization_id == organization_id,
+            UserOrganization.is_deleted.is_(False),
+        )
+    )
+    if membership.first() is None:
+        raise ResourceNotFound()
+
+
+@router.get(
+    "/received",
+    response_model=ListResource[DonationListItem],
+    summary="List Tips Received",
+    tags=[APITag.private],
+)
+async def list_received(
+    auth_subject: WebUserRead,
+    pagination: PaginationParamsQuery,
+    organization_id: UUID,
+    session: AsyncSession = Depends(get_db_session),
+) -> ListResource[DonationListItem]:
+    """List tips received by an organization (creator dashboard)."""
+    await _authorize_org_member(session, auth_subject, organization_id)
+    repo = DonationRepository.from_session(session)
+    donations, count = await repo.get_creator_donations(
+        organization_id, pagination
+    )
+    items = [
+        DonationListItem(
+            id=d.id,
+            amount=d.amount,
+            currency=d.currency,
+            donor_name=d.donor_name,
+            donor_email=d.donor_email,
+            message=d.message,
+            created_at=d.created_at.isoformat(),
+        )
+        for d in donations
+    ]
+    return ListResource.from_paginated_results(items, count, pagination)
+
+
+@router.get(
+    "/received/summary",
+    response_model=DonationsSummary,
+    summary="Tips Received Summary",
+    tags=[APITag.private],
+)
+async def received_summary(
+    auth_subject: WebUserRead,
+    organization_id: UUID,
+    session: AsyncSession = Depends(get_db_session),
+) -> DonationsSummary:
+    """Aggregate tips (total + count) for an organization."""
+    await _authorize_org_member(session, auth_subject, organization_id)
+    org_repository = OrganizationRepository.from_session(session)
+    organization = await org_repository.get_by_id(organization_id)
+    if organization is None:
+        raise ResourceNotFound()
+    repo = DonationRepository.from_session(session)
+    total, count = await repo.get_summary(organization_id)
+    currency = (
+        getattr(organization, "default_presentment_currency", None) or "kes"
+    )
+    return DonationsSummary(
+        total_amount=total, count=count, currency=currency
+    )
 
 
 @router.post(

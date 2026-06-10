@@ -33,3 +33,15 @@ class DonationRepository(
         return await self.paginate(
             statement, limit=pagination.limit, page=pagination.page
         )
+
+    async def get_summary(self, organization_id: UUID) -> tuple[int, int]:
+        """Return (total_amount, count) of tips for an organization."""
+        from sqlalchemy import func
+
+        stmt = select(
+            func.coalesce(func.sum(Donation.amount), 0),
+            func.count(Donation.id),
+        ).where(Donation.organization_id == organization_id)
+        result = await self.session.execute(stmt)
+        total, count = result.one()
+        return int(total or 0), int(count or 0)

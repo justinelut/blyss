@@ -247,6 +247,16 @@ export const generalRoutesList = (org?: schemas['Organization']): Route[] => [
       },
     ],
   },
+  {
+    id: 'org-tips',
+    title: 'Tips',
+    icon: <AttachMoneyOutlined fontSize="inherit" />,
+    link: `/dashboard/${org?.slug ?? '[organization]'}/tips`,
+    checkIsActive: (currentRoute: string): boolean => {
+      return currentRoute.startsWith(`/dashboard/${org?.slug ?? '[organization]'}/tips`)
+    },
+    if: true,
+  },
 ]
 
 const dashboardRoutesList = (org?: schemas['Organization']): Route[] => [

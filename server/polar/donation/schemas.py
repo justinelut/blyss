@@ -212,3 +212,23 @@ class DonationPopupConfig(Schema):
             "default — enough to cover Paystack's KE M-Pesa fee."
         ),
     )
+
+
+class DonationListItem(Schema):
+    """A tip received by a creator, for the dashboard Tips list."""
+
+    id: UUID
+    amount: int = Field(description="Tip amount in the smallest currency unit.")
+    currency: str
+    donor_name: str
+    donor_email: str
+    message: str | None
+    created_at: str = Field(description="ISO timestamp of the tip.")
+
+
+class DonationsSummary(Schema):
+    """Aggregate tips received by a creator."""
+
+    total_amount: int = Field(description="Sum of all tips, smallest unit.")
+    count: int = Field(description="Number of tips received.")
+    currency: str

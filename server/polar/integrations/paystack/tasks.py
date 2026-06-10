@@ -20,7 +20,7 @@ from polar.models.checkout import CheckoutStatus
 from polar.models.external_event import PaystackEvent
 from polar.order.repository import OrderRepository
 from polar.order.service import order as order_service
-from polar.worker import AsyncSessionMaker, TaskPriority, actor, can_retry
+from polar.worker import AsyncSessionMaker, TaskPriority, actor, can_retry, enqueue_job
 
 log: Logger = structlog.get_logger()
 
@@ -661,21 +661,9 @@ async def _handle_donation_success(
         return
 
     donation_repo = DonationRepository.from_session(session)
-    # Idempotency: look up by paystack reference (stored in
-    # paystack_reference / external_reference depending on the
-    # Donation schema; we use the catch-all charge_id field).
-    existing = None
-    try:
-        existing = await donation_repo.get_by_external_reference(reference)
-    except AttributeError:
-        # Repository may not have that helper yet — fall back to a
-        # raw query below.
-        from sqlalchemy import select
-
-        result = await session.execute(
-            select(Donation).where(Donation.charge_id == reference)
-        )
-        existing = result.scalar_one_or_none()
+    # Idempotency: Paystack retries webhooks, so skip if we already
+    # recorded this reference.
+    existing = await donation_repo.get_by_payment_reference(reference)
 
     if existing is not None:
         log.info(
@@ -693,20 +681,36 @@ async def _handle_donation_success(
         or verified_transaction.get("customer", {}).get("email")
         or ""
     )
-    donor_name = metadata.get("donor_name") or None
+    donor_name = metadata.get("donor_name") or "Anonymous"
     donor_message = metadata.get("donor_message") or None
 
     donation = Donation(
         organization_id=organization.id,
         amount=amount,
         currency=currency,
-        email=donor_email,
-        name=donor_name,
+        donor_email=donor_email,
+        donor_name=donor_name,
         message=donor_message,
-        charge_id=reference,
+        payment_reference=reference,
+        payment_status="succeeded",
     )
     session.add(donation)
     await session.flush()
+
+    # Notify the creator + thank the donor (best-effort; never block the
+    # webhook on email delivery).
+    try:
+        enqueue_job(
+            "donation.notify",
+            donation_id=donation.id,
+        )
+    except Exception as e:  # noqa: BLE001
+        log.warning(
+            "paystack.webhook.donation.notify_enqueue_failed",
+            event_id=event_id,
+            reference=reference,
+            error=str(e),
+        )
 
     log.info(
         "paystack.webhook.donation.recorded",
