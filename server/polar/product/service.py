@@ -4,6 +4,7 @@ from collections import defaultdict
 from collections.abc import Sequence
 from typing import Literal
 
+import structlog
 from sqlalchemy import select
 from sqlalchemy.orm import contains_eager, selectinload
 
@@ -56,6 +57,9 @@ from .schemas import (
     ProductUpdate,
 )
 from .sorting import ProductSortProperty
+
+
+log = structlog.get_logger()
 
 
 class ProductService:
@@ -468,6 +472,14 @@ class ProductService:
         benefits: Sequence[uuid.UUID],
         auth_subject: AuthSubject[User | Organization],
     ) -> tuple[Product, set[Benefit], set[Benefit]]:
+        log.info(
+            "product.update_benefits.start",
+            product_id=str(product.id),
+            product_name=product.name,
+            organization_id=str(product.organization_id),
+            requested_benefit_ids=[str(b) for b in benefits],
+            previous_count=len(product.benefits),
+        )
         previous_benefits = set(product.benefits)
         new_benefits: set[Benefit] = set()
 
@@ -537,6 +549,13 @@ class ProductService:
 
         await self._after_product_updated(session, product)
 
+        log.info(
+            "product.update_benefits.ok",
+            product_id=str(product.id),
+            added=[str(b.id) for b in added_benefits],
+            deleted=[str(b.id) for b in deleted_benefits],
+            new_count=len(new_benefits),
+        )
         return product, added_benefits, deleted_benefits
 
     async def get_validated_prices(

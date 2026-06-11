@@ -2,6 +2,7 @@ import { getQueryClient } from '@/utils/api/query'
 import { api } from '@/utils/client'
 import { operations, schemas, unwrap } from '@/lib/api'
 import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query'
+import { toast } from '@/components/Toast/use-toast'
 import { defaultRetry } from './retry'
 
 export const useProducts = (
@@ -137,8 +138,28 @@ export const useUpdateProductBenefits = (
     },
     onSuccess: async (result, variables) => {
       if (result.error) {
+        // Surface failure to the user — silent failures here meant the
+        // creator believed they'd attached benefits when in fact the
+        // request was rejected (validation, auth, runtime error). The
+        // product itself saves first; the benefit step happens after.
+        const detail = (result.error as any)?.detail
+        const message =
+          typeof detail === 'string'
+            ? detail
+            : Array.isArray(detail)
+              ? (detail[0]?.msg ?? 'Could not save product benefits')
+              : 'Could not save product benefits'
+        toast({
+          title: 'Saving benefits failed',
+          description: message,
+          variant: 'error',
+        })
         return
       }
+      toast({
+        title: 'Benefits saved',
+        description: 'Product benefits updated successfully.',
+      })
       const queryClient = getQueryClient()
       queryClient.invalidateQueries({
         queryKey: ['products', { organizationId: organization.id }],
