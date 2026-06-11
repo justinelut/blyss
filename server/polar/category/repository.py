@@ -37,12 +37,18 @@ class CategoryRepository(
                 # serialization in the endpoint raises MissingGreenlet on
                 # lazy='raise' columns and the response is empty/500. Mirrors
                 # the eager loads on /v1/products/public.
+                #
+                # NOTE: Product.medias is an AssociationProxy (not a real
+                # relationship), so you cannot pass it to selectinload — it
+                # raises ArgumentError('expected ORM mapped attribute for
+                # loader strategy argument'), which 500'd this entire
+                # endpoint. The proxy resolves through product_medias, which
+                # IS eager-loaded below — that's enough for serialization.
                 joinedload(Product.organization),
                 selectinload(Product.product_medias),
                 selectinload(Product.attached_custom_fields),
                 selectinload(Product.all_prices),
                 selectinload(Product.product_benefits),
-                selectinload(Product.medias),
             )
             .order_by(Product.created_at.desc())
         )
