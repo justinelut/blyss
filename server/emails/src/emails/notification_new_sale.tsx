@@ -16,8 +16,16 @@ export function NotificationNewSale({
   product_image_url,
   order_date,
   order_url,
+  line_items,
 }: schemas['MaintainerNewProductSaleNotificationPayload']) {
   const displayName = customer_name || customer_email || 'A customer'
+
+  // Multi-product (cart) orders carry one entry per product purchased.
+  // For single-product orders line_items is empty (or has 1 entry) — we
+  // fall back to the legacy single-row render so back-compat with old
+  // notifications stays clean.
+  const items = line_items && line_items.length > 0 ? line_items : null
+  const isMulti = !!items && items.length > 1
 
   const formattedDate = order_date
     ? new Date(order_date).toLocaleDateString('en-US', {
@@ -35,7 +43,9 @@ export function NotificationNewSale({
   return (
     <WrapperBlyss>
       <Preview>
-        {displayName} placed an order for {product_name}
+        {isMulti
+          ? `${displayName} placed an order for ${items!.length} products`
+          : `${displayName} placed an order for ${items ? items[0].label : product_name}`}
       </Preview>
       <Section>
         <Text className="m-0 text-lg text-gray-900">
@@ -58,26 +68,57 @@ export function NotificationNewSale({
         </Text>
         <table className="w-full">
           <tbody>
-            <tr>
-              {product_image_url && (
-                <td className="w-[72px] pr-3 align-top">
-                  <Img
-                    src={product_image_url}
-                    width={64}
-                    height={64}
-                    className="rounded-lg border border-gray-200"
-                  />
+            {isMulti ? (
+              items!.map((item, idx) => (
+                <tr key={idx} className="border-b border-gray-100 last:border-0">
+                  <td className="py-2 align-middle">
+                    <Text className="m-0 text-sm font-medium text-gray-900">
+                      {item.label}
+                    </Text>
+                  </td>
+                  <td className="py-2 text-right align-middle">
+                    <Text className="m-0 text-sm text-gray-500">
+                      {item.amount.toLocaleString()}
+                    </Text>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                {product_image_url && (
+                  <td className="w-[72px] pr-3 align-top">
+                    <Img
+                      src={product_image_url}
+                      width={64}
+                      height={64}
+                      className="rounded-lg border border-gray-200"
+                    />
+                  </td>
+                )}
+                <td className="align-middle">
+                  <Text className="m-0 text-sm font-medium text-gray-900">
+                    {items ? items[0].label : product_name}
+                  </Text>
+                  <Text className="m-0 text-sm text-gray-500">
+                    {formatted_price_amount}
+                  </Text>
                 </td>
-              )}
-              <td className="align-middle">
-                <Text className="m-0 text-sm font-medium text-gray-900">
-                  {product_name}
-                </Text>
-                <Text className="m-0 text-sm text-gray-500">
-                  {formatted_price_amount}
-                </Text>
-              </td>
-            </tr>
+              </tr>
+            )}
+            {isMulti && (
+              <tr>
+                <td className="pt-3 align-middle">
+                  <Text className="m-0 text-sm font-semibold text-gray-900">
+                    Total
+                  </Text>
+                </td>
+                <td className="pt-3 text-right align-middle">
+                  <Text className="m-0 text-sm font-semibold text-gray-900">
+                    {formatted_price_amount}
+                  </Text>
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </Section>

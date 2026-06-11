@@ -68,6 +68,7 @@ from polar.models.subscription import SubscriptionStatus
 from polar.models.transaction import TransactionType
 from polar.models.webhook_endpoint import WebhookEventType
 from polar.notifications.notification import (
+    MaintainerNewProductSaleLineItem,
     MaintainerNewProductSaleNotificationPayload,
     NotificationType,
 )
@@ -1576,6 +1577,30 @@ class OrderService:
             except Exception:
                 pass
 
+            # Build line_items for multi-product (cart) orders so the
+            # creator email lists EVERY product purchased — not just
+            # checkout.product (the display product). For single-product
+            # orders this collapses to the same single line, which the
+            # email template handles via len(line_items) > 1 check.
+            line_items: list[MaintainerNewProductSaleLineItem] = []
+            try:
+                for item in (order.items or []):
+                    label = getattr(item, "label", None) or ""
+                    if not label:
+                        continue
+                    line_items.append(
+                        MaintainerNewProductSaleLineItem(
+                            label=label,
+                            amount=item.amount,
+                            image_url=None,
+                        )
+                    )
+            except Exception:
+                # Defensive: if items aren't loaded for any reason, leave
+                # line_items empty and fall back to the legacy single-
+                # product email rendering.
+                line_items = []
+
             billing_address = order.billing_address
             customer = order.customer
 
@@ -1607,6 +1632,7 @@ class OrderService:
                         organization_slug=organization.slug,
                         billing_reason=order.billing_reason,
                         currency=order.currency,
+                        line_items=line_items,
                     ),
                 ),
             )

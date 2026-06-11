@@ -95,6 +95,20 @@ class MaintainerNewPaidSubscriptionNotification(NotificationBase):
     payload: MaintainerNewPaidSubscriptionNotificationPayload
 
 
+class MaintainerNewProductSaleLineItem(NotificationPayloadBase):
+    """One line item in the creator's new-sale notification.
+
+    Multi-product (cart) orders carry a list of these so the creator email
+    lists every product purchased — not just the display product. The
+    buyer's order confirmation email already iterates order.items; the
+    creator notification was the asymmetric case.
+    """
+
+    label: str
+    amount: int
+    image_url: str | None = None
+
+
 class MaintainerNewProductSaleNotificationPayload(NotificationPayloadBase):
     product_name: str
     product_price_amount: int
@@ -111,6 +125,9 @@ class MaintainerNewProductSaleNotificationPayload(NotificationPayloadBase):
     organization_slug: str | None = None
     billing_reason: OrderBillingReasonInternal | None = None
     currency: str = "usd"
+    # Multi-product line items. Empty list means single-product order;
+    # the email falls back to product_name + product_image_url.
+    line_items: list[MaintainerNewProductSaleLineItem] = []
 
     @computed_field
     def formatted_price_amount(self) -> str:

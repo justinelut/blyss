@@ -835,6 +835,15 @@ export interface components {
        * @default usd
        */
       currency: string
+      /**
+       * Line Items
+       * @default []
+       */
+      line_items: {
+        label: string
+        amount: number
+        image_url?: string | null
+      }[]
       /** Formatted Price Amount */
       readonly formatted_price_amount: string
     }
@@ -904,6 +913,15 @@ export interface components {
        * @default usd
        */
       currency: string
+      /**
+       * Line Items
+       * @default []
+       */
+      line_items: {
+        label: string
+        amount: number
+        image_url?: string | null
+      }[]
       /** Formatted Price Amount */
       readonly formatted_price_amount: string
       /**
