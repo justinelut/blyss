@@ -19,6 +19,13 @@ export interface ProductInfoColumnProps {
   isInWishlist?: boolean
   isBuyLoading?: boolean
   onTip?: () => void
+  /** When true, the signed-in user already has an active subscription to
+   *  this product. Replaces the Subscribe CTA with a "Manage in portal"
+   *  link instead of letting the buyer crash into
+   *  AlreadyActiveSubscriptionError at confirm time. */
+  hasActiveSubscription?: boolean
+  /** Deep-link to the customer portal when the user is already subscribed. */
+  portalUrl?: string | null
 }
 
 const formatPrice = (product: Product, preferredCurrency?: string): string => {
@@ -67,6 +74,8 @@ export const ProductInfoColumn = ({
   isInWishlist = false,
   isBuyLoading = false,
   onTip,
+  hasActiveSubscription = false,
+  portalUrl,
 }: ProductInfoColumnProps) => {
   const displayCurrency = useDisplayCurrency()
   const org = (product as any).organization as
@@ -167,22 +176,51 @@ export const ProductInfoColumn = ({
         </p>
       )}
 
-      {/* Buy CTA — full-width, generous padding */}
+      {/* Buy CTA — full-width, generous padding. Suppressed when the buyer
+          already has an active subscription to a recurring product (we hide
+          the orange Subscribe button and surface a 'Manage in portal' link
+          instead, so they don't click through and crash into
+          AlreadyActiveSubscriptionError at confirm time). */}
       <div className="flex flex-col gap-3 pt-2">
-        <button
-          type="button"
-          onClick={onBuy}
-          disabled={isBuyLoading || product.is_archived}
-          aria-busy={isBuyLoading}
-          className={cn(
-            'inline-flex h-[56px] w-full items-center justify-center rounded-lg',
-            'bg-[var(--accent)] px-7 font-sans text-[15px] font-medium text-[var(--accent-foreground)]',
-            'transition-colors duration-200 hover:bg-[var(--accent-hover)]',
-            'disabled:cursor-not-allowed disabled:opacity-50',
-          )}
-        >
-          {isBuyLoading ? 'Adding…' : getBuyLabel(product, displayCurrency)}
-        </button>
+        {hasActiveSubscription ? (
+          <div className="flex flex-col gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-sunken)] p-5">
+            <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
+              You're subscribed
+            </p>
+            <p className="max-w-[44ch] font-sans text-[14px] leading-[1.55] text-[var(--text-secondary)]">
+              You already have an active subscription to {product.name}. Manage
+              it — or cancel — from your portal.
+            </p>
+            {portalUrl && (
+              <Link
+                href={portalUrl}
+                className={cn(
+                  'mt-1 inline-flex h-[48px] items-center justify-center self-start rounded-lg',
+                  'border border-[var(--border-strong)] bg-transparent px-6',
+                  'font-sans text-[14px] font-medium text-[var(--text-primary)]',
+                  'transition-colors hover:bg-[var(--surface)]',
+                )}
+              >
+                Manage in portal
+              </Link>
+            )}
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={onBuy}
+            disabled={isBuyLoading || product.is_archived}
+            aria-busy={isBuyLoading}
+            className={cn(
+              'inline-flex h-[56px] w-full items-center justify-center rounded-lg',
+              'bg-[var(--accent)] px-7 font-sans text-[15px] font-medium text-[var(--accent-foreground)]',
+              'transition-colors duration-200 hover:bg-[var(--accent-hover)]',
+              'disabled:cursor-not-allowed disabled:opacity-50',
+            )}
+          >
+            {isBuyLoading ? 'Adding…' : getBuyLabel(product, displayCurrency)}
+          </button>
+        )}
 
         {/* Payment note */}
         <p className="flex items-center gap-2 font-sans text-[13px] text-[var(--text-muted)]">

@@ -3,13 +3,16 @@ from collections.abc import AsyncGenerator
 import structlog
 from fastapi import Depends, Query, Response
 from fastapi.responses import StreamingResponse
+from pydantic import UUID4, Field
+from sqlalchemy import select
 
+from polar.auth.dependencies import WebUserOrAnonymous
 from polar.customer.schemas.customer import CustomerID, ExternalCustomerID
 from polar.exceptions import ResourceNotFound
 from polar.kit.csv import IterableCSVWriter
 from polar.kit.metadata import MetadataQuery, get_metadata_query_openapi_schema
 from polar.kit.pagination import ListResource, PaginationParams, PaginationParamsQuery
-from polar.kit.schemas import MultipleQueryFilter
+from polar.kit.schemas import MultipleQueryFilter, Schema
 from polar.locker import Locker, get_locker
 from polar.models import Subscription
 from polar.openapi import APITag
@@ -394,3 +397,68 @@ async def revoke(
     )
     async with subscription_service.lock(locker, subscription):
         return await subscription_service.revoke(session, subscription)
+
+
+# Buyer-side: does the signed-in user have an active subscription to a
+# given product? Used by the PDP to hide the Subscribe CTA + show
+# "Manage in portal" instead, so buyers don't click Subscribe and crash
+# into AlreadyActiveSubscriptionError at confirm time.
+class HasActiveSubscriptionResponse(Schema):
+    has_active: bool = Field(
+        description="True if the signed-in user is already subscribed to the product."
+    )
+    subscription_id: UUID4 | None = Field(
+        default=None,
+        description="The active subscription's id, if any.",
+    )
+    organization_slug: str | None = Field(
+        default=None,
+        description="The product's organization slug, for portal deep-links.",
+    )
+
+
+@router.get(
+    "/me/active-for-product",
+    summary="Active Subscription Check (buyer)",
+    response_model=HasActiveSubscriptionResponse,
+    tags=[APITag.private],
+)
+async def me_active_for_product(
+    auth_subject: WebUserOrAnonymous,
+    product_id: UUID4,
+    session: AsyncSession = Depends(get_db_session),
+) -> HasActiveSubscriptionResponse:
+    """Returns whether the current user already has an active subscription to
+    the given product. Anonymous → has_active=False. Cross-references the
+    signed-in user's email with subscription customers (Blyss binds checkout
+    customers to the user's account email by design)."""
+    from polar.auth.models import is_user
+    from polar.models import Customer, Organization, Product, Subscription
+
+    if not is_user(auth_subject):
+        return HasActiveSubscriptionResponse(has_active=False)
+
+    user = auth_subject.subject
+    stmt = (
+        select(Subscription, Organization.slug)
+        .join(Customer, Customer.id == Subscription.customer_id)
+        .join(Product, Product.id == Subscription.product_id)
+        .join(Organization, Organization.id == Product.organization_id)
+        .where(
+            Customer.email == user.email,
+            Subscription.product_id == product_id,
+            Subscription.status.in_(("active", "trialing")),
+            Subscription.ended_at.is_(None),
+        )
+        .limit(1)
+    )
+    result = await session.execute(stmt)
+    row = result.first()
+    if row is None:
+        return HasActiveSubscriptionResponse(has_active=False)
+    sub, org_slug = row
+    return HasActiveSubscriptionResponse(
+        has_active=True,
+        subscription_id=sub.id,
+        organization_slug=org_slug,
+    )

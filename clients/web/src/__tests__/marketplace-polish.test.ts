@@ -17,8 +17,12 @@ const read = (rel: string) => readFileSync(join(process.cwd(), rel), 'utf8')
 
 describe('Marketplace polish', () => {
   test('Shell clears the fixed header exactly once (main pt-20)', () => {
-    const shell = read('src/components/Marketplace/MarketplaceShell.tsx')
-    expect(shell).toMatch(/<main[^>]*pt-20/)
+    // The pt-20 lives in MarketplaceChrome (the client component that
+    // re-evaluates skipChrome on Next.js client-side navigation), not the
+    // server-side MarketplaceShell wrapper. Same intent — keep one main
+    // with pt-20 to clear the fixed header.
+    const chrome = read('src/components/Marketplace/MarketplaceChrome.tsx')
+    expect(chrome).toMatch(/<main[^>]*pt-20/)
   })
 
   test('Hero does not double the header clearance', () => {

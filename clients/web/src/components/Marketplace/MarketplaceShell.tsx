@@ -1,9 +1,7 @@
 import { headers } from 'next/headers'
 import { PropsWithChildren } from 'react'
-import { MarketplaceHeader } from './MarketplaceHeader'
-import { MarketplaceFooter } from './MarketplaceFooter'
+import { MarketplaceChrome } from './MarketplaceChrome'
 import { CurrencyProvider } from './CurrencyProvider'
-import { MarketplaceMobileNav } from './MarketplaceMobileNav'
 import { Toaster } from '@/components/Toast/Toaster'
 import { getServerGeo } from '@/lib/geo/server'
 
@@ -67,31 +65,19 @@ export async function MarketplaceShell({ children }: PropsWithChildren) {
   // visitors.
   const { country, currency } = await getServerGeo()
 
-  if (skipChrome) {
-    return (
-      <CurrencyProvider initialCountry={country} initialCurrency={currency}>
-        {children}
-        {/* Toaster mounts so chrome-less surfaces (login, portal,
-            creator storefronts) can still surface toast notifications
-            (wishlist save, M-Pesa errors, etc.). */}
-        <Toaster />
-      </CurrencyProvider>
-    )
-  }
-
+  // Hand off the chrome decision to a client component so it re-evaluates
+  // on Next.js client-side navigation (usePathname). The server-side
+  // skipChrome is passed as the initial value so SSR matches and there's
+  // no flicker on first paint. Previously this whole component was a
+  // server component reading x-blyss-pathname; that header is set on
+  // the request and doesn't update during client-side nav, so the chrome
+  // visibility froze on the path the layout was first rendered for —
+  // hence header sticking when navigating from / to /creators/{slug}.
   return (
     <CurrencyProvider initialCountry={country} initialCurrency={currency}>
-      <div className="flex min-h-screen flex-col bg-[var(--background)] text-[var(--text-primary)]">
-        <MarketplaceHeader />
-        {/* pb-20 lg:pb-0 reserves space on mobile so the fixed
-            MarketplaceMobileNav doesn't cover scrollable content. */}
-        <main className="flex-1 pt-20 pb-20 lg:pb-0">{children}</main>
-        <MarketplaceFooter />
-      </div>
-      <MarketplaceMobileNav />
-      {/* Marketplace-surface toast viewport. Singleton store under the hood
-          (use-toast.ts) so any client component can call toast() and have
-          it render here — wishlist-save confirmations, error toasts, etc. */}
+      <MarketplaceChrome initialSkipChrome={skipChrome}>
+        {children}
+      </MarketplaceChrome>
       <Toaster />
     </CurrencyProvider>
   )

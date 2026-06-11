@@ -159,3 +159,32 @@ export const useUncancelSubscription = (id: string) =>
       })
     },
   })
+
+
+/**
+ * Returns whether the signed-in user already has an active subscription
+ * to a given product. Used by the PDP / SubscriptionsTab to hide the
+ * Subscribe CTA and surface a "Manage in portal" affordance instead, so
+ * the buyer never crashes into the AlreadyActiveSubscriptionError at
+ * confirm time. Anonymous → has_active=false.
+ */
+export const useActiveSubscriptionForProduct = (
+  productId: string | undefined,
+  enabled = true,
+) =>
+  useQuery({
+    queryKey: ['subscriptions', 'me', 'active-for-product', productId],
+    queryFn: () =>
+      unwrap(
+        (api as any).GET('/v1/subscriptions/me/active-for-product', {
+          params: { query: { product_id: productId } },
+        }),
+      ) as Promise<{
+        has_active: boolean
+        subscription_id: string | null
+        organization_slug: string | null
+      }>,
+    enabled: enabled && !!productId,
+    retry: defaultRetry,
+    staleTime: 30 * 1000,
+  })

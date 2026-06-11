@@ -3,8 +3,7 @@
 import { schemas } from '@/lib/api'
 import { typography } from '@/design'
 import { cn } from '@/lib/utils'
-import { OptimizedImage } from '@/components/Image/OptimizedImage'
-import { FiCheck } from 'react-icons/fi'
+import { TierCard } from './TierCard'
 
 type Product = schemas['Product']
 type ProductPrice = Product['prices'][number]
@@ -137,122 +136,14 @@ export const SubscriptionsTab = ({
           const bullets = getTierBullets(tier, 3)
 
           return (
-            <article
+            <TierCard
               key={tier.id}
-              aria-label={`${tier.name} subscription tier`}
-              className={cn(
-                'flex flex-col overflow-hidden rounded-md bg-[var(--surface-sunken)]',
-                isFeatured &&
-                  'border-l-4 border-[var(--accent)] md:relative md:-translate-y-1',
-              )}
-            >
-              {/* Featured image — 16:9 cover. Anchors the tier visually so
-                  subscriptions don't read as bare price lists. Editorial
-                  placeholder (initial) when the creator hasn't uploaded one. */}
-              {(() => {
-                const cover = (tier.medias ?? []).find(
-                  (m: any) => m.public_url,
-                ) as any
-                return cover ? (
-                  <div className="relative aspect-[16/9] w-full overflow-hidden bg-[var(--surface)]">
-                    <OptimizedImage
-                      src={cover.public_url}
-                      alt={`${tier.name} cover`}
-                      fill
-                      sizes="(max-width: 768px) 100vw, 420px"
-                      className="object-cover"
-                    />
-                  </div>
-                ) : (
-                  <div
-                    aria-hidden
-                    className="flex aspect-[16/9] w-full items-end bg-[var(--surface)] p-6"
-                  >
-                    <span className="font-display text-[44px] font-light leading-none text-[var(--text-muted)]">
-                      {(tier.name?.[0] ?? '·').toUpperCase()}
-                    </span>
-                  </div>
-                )
-              })()}
-
-              <div
-                className={cn(
-                  'flex flex-1 flex-col p-8',
-                  isFeatured && 'pl-7',
-                )}
-              >
-              {/* Tier name + featured eyebrow */}
-              <header className="flex items-center justify-between gap-4">
-                <h3
-                  className={cn(
-                    'font-display text-[20px] font-semibold text-[var(--text-primary)]',
-                  )}
-                >
-                  {tier.name}
-                </h3>
-                {isFeatured && (
-                  <span className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
-                    Most chosen
-                  </span>
-                )}
-              </header>
-
-              {/* Price */}
-              <div className="mt-5 flex items-baseline gap-1.5">
-                <span
-                  className={cn(
-                    'font-display text-[36px] font-semibold tabular-nums text-[var(--text-primary)]',
-                  )}
-                >
-                  {amount}
-                </span>
-                <span className="font-sans text-[14px] text-[var(--text-muted)]">
-                  {cadence}
-                </span>
-              </div>
-
-              {/* Tier description tagline (single sentence above bullets) */}
-              {tier.description && bullets.length === 0 && (
-                <p className="mt-5 font-sans text-[14px] leading-[1.55] text-[var(--text-secondary)]">
-                  {tier.description}
-                </p>
-              )}
-
-              {/* Bullet list of benefits */}
-              {bullets.length > 0 && (
-                <ul className="mt-7 flex flex-1 flex-col gap-3">
-                  {bullets.map((bullet, idx) => (
-                    <li
-                      key={idx}
-                      className="flex items-start gap-3 font-sans text-[14px] leading-[1.55] text-[var(--text-secondary)]"
-                    >
-                      <FiCheck
-                        size={16}
-                        className="mt-1 shrink-0 text-[var(--accent)]"
-                        aria-hidden="true"
-                      />
-                      <span>{bullet}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-
-              {/* Subscribe CTA — links to PDP where the recurring purchase
-                  flow takes over (subscriptions never go through cart per
-                  §6.5 buy flow rules). */}
-              <a
-                href={`/product/${tier.id}`}
-                className={cn(
-                  'mt-10 inline-flex h-11 items-center justify-center rounded-md px-5 font-sans text-[14px] font-medium transition-colors',
-                  isFeatured
-                    ? 'bg-[var(--accent)] text-[var(--accent-foreground)] hover:bg-[var(--accent-hover)]'
-                    : 'border border-[var(--border-strong)] bg-transparent text-[var(--text-primary)] hover:bg-[var(--surface)]',
-                )}
-              >
-                Subscribe — {amount}
-              </a>
-              </div>
-            </article>
+              tier={tier}
+              isFeatured={isFeatured}
+              amount={amount}
+              cadence={cadence}
+              bullets={bullets}
+            />
           )
         })}
       </div>

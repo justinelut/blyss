@@ -17,6 +17,7 @@ import { useRouter } from 'next/navigation'
 import { schemas } from '@/lib/api'
 import { useAddToCart } from '@/hooks/queries/cart'
 import { useCreateProductCheckout } from '@/hooks/queries/checkouts'
+import { useActiveSubscriptionForProduct } from '@/hooks/queries/subscriptions'
 import { useIsInWishlist, useAddToWishlist, useRemoveFromWishlist } from '@/hooks/queries/wishlist'
 import { useAuth } from '@/hooks'
 import { Modal } from '@/components/Modal'
@@ -54,6 +55,14 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
   const { mutate: addWishlist } = useAddToWishlist()
   const { mutate: removeWishlist } = useRemoveFromWishlist()
   const isInWishlist = !!(wishlistCheck as any)?.is_in_wishlist
+  // For recurring products: check if the signed-in user already has an
+  // active subscription. If so, suppress the orange Subscribe CTA and
+  // surface a 'Manage in portal' link instead — prevents the buyer from
+  // crashing into AlreadyActiveSubscriptionError at confirm time.
+  const { data: activeSub } = useActiveSubscriptionForProduct(
+    product.id,
+    !!product.is_recurring && authenticated,
+  )
   const org = (product as any).organization as
     | { name?: string; slug?: string; avatar_url?: string | null; bio?: string | null }
     | undefined
@@ -126,6 +135,12 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
             isInWishlist={isInWishlist}
             isBuyLoading={cartStatus === 'pending' || isCreatingCheckout}
             onTip={org?.slug ? () => router.push(`/${country}/donation/${org.slug}`) : undefined}
+            hasActiveSubscription={!!activeSub?.has_active}
+            portalUrl={
+              activeSub?.has_active && activeSub.organization_slug
+                ? `/${activeSub.organization_slug}/portal/overview`
+                : null
+            }
           />
 
           {org && (
