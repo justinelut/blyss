@@ -147,6 +147,10 @@ jobs:
             sudo kubectl -n $NS logs deployment/blyss-api --tail=10000 2>&1 | grep -E '"(PATCH|POST) /v1/products/' | tail -20 || echo "(none)"
             echo "-- API errors mentioning /appeal --"
             sudo kubectl -n $NS logs deployment/blyss-api --tail=400 2>&1 | grep -iE "appeal|submit_appeal" -A 20 | tail -60
+            echo "-- recent /v1/reviews/ POST tracebacks --"
+            sudo kubectl -n $NS logs deployment/blyss-api --tail=4000 2>&1 | grep -E '/v1/reviews/|review|Member|polar_mst_|allowed_subjects' -A 30 | tail -120
+            echo "-- last review-related exception traceback (broad capture) --"
+            sudo kubectl -n $NS logs deployment/blyss-api --tail=6000 2>&1 | grep -B 2 -A 40 -E 'POST /v1/reviews|reviews\.endpoints|ReviewWriter|_resolve_user_id|reviews/.*500' | tail -200
             echo "-- python discovery in API pod --"
             sudo kubectl -n $NS exec $POD -- sh -c 'echo "  which python="; which python; echo "  which python3="; which python3; echo "  /app contents="; ls /app | head -20; echo "  pyproject?"; ls /app/pyproject.toml /app/uv.lock 2>&1 | head; echo "  venv probe="; ls /app/.venv/bin/python 2>&1; ls /opt/venv/bin/python 2>&1; echo "  PYTHONPATH=$PYTHONPATH"; python -c "import sqlalchemy; print(\"  sqlalchemy:\", sqlalchemy.__version__)" 2>&1 || true' 2>&1 | head -25
             echo "-- email integration env probe --"
