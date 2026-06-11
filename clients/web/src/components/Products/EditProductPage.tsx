@@ -15,10 +15,11 @@ import { isValidationError, schemas } from '@/lib/api'
 import Button from '@/components/atoms/Button'
 import { Form } from '@/components/ui/form'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { DashboardBody } from '../Layout/DashboardLayout'
 import { getStatusRedirect } from '../Toast/utils'
+import { toast } from '@/components/Toast/use-toast'
 import { Benefits } from './Benefits/Benefits'
 import ProductForm from './ProductForm/ProductForm'
 
@@ -82,19 +83,30 @@ export const EditProductPage = ({
   })
   const { handleSubmit, setError, formState } = form
 
-  // The picker default has to wait for the by-product fetch — set
-  // it directly with setValue once the data lands. (We previously used
-  // reset({...prev, category_id}, { keepValues: true }) but
-  // keepValues:true makes react-hook-form IGNORE the new values, so the
-  // assigned category never autoloaded into the Select.)
-  const { setValue } = form
+  // The picker default has to wait for the by-product fetch. We use
+  // form.reset() (without keepValues) once the categories query lands so
+  // the Select's controlled `field.value` actually rerenders to the
+  // assigned category. setValue alone wasn't reliably propagating to
+  // FormField/Controller in production — this is the bulletproof RHF
+  // pattern for "default value depends on async-loaded data".
+  const { setValue, reset, getValues } = form
+  const categoryAppliedRef = useRef(false)
   useEffect(() => {
-    if (productCategoriesQ.data) {
-      setValue('category_id' as any, currentCategoryId, {
-        shouldDirty: false,
-      })
+    if (
+      productCategoriesQ.data !== undefined &&
+      !categoryAppliedRef.current
+    ) {
+      categoryAppliedRef.current = true
+      // Re-set the entire form with the loaded category_id merged in.
+      // keepValues:false (default) — RHF updates field values to these.
+      // keepDirty:false because this is the loaded baseline, not a user
+      // edit, so the form shouldn't show "unsaved changes" because of it.
+      reset({
+        ...(getValues() as any),
+        category_id: currentCategoryId,
+      } as any)
     }
-  }, [currentCategoryId, productCategoriesQ.data, setValue])
+  }, [currentCategoryId, productCategoriesQ.data, reset, getValues])
 
   const originalBenefitIds = useMemo(
     () => product.benefits.map((b) => b.id),
@@ -174,6 +186,12 @@ export const EditProductPage = ({
           }
         } catch (err) {
           console.warn('product.update.sync_category.failed', err)
+          toast({
+            title: 'Category change failed',
+            description:
+              'Product was updated but the category change did not save. Please try again.',
+            variant: 'error',
+          })
         }
       }
 

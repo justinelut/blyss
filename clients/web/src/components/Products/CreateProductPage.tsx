@@ -15,6 +15,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { DashboardBody } from '../Layout/DashboardLayout'
 import { getStatusRedirect } from '../Toast/utils'
+import { toast } from '@/components/Toast/use-toast'
 import { Benefits } from './Benefits/Benefits'
 import ProductForm from './ProductForm/ProductForm'
 
@@ -158,7 +159,17 @@ export const CreateProductPage = ({
               category_id,
             })
           } catch (err) {
+            // Don't block redirect (the product itself was created), but
+            // tell the user the category didn't stick — silent failure
+            // here is what made products end up uncategorised when the
+            // creator thought they'd set it.
             console.warn('product.create.assign_category.failed', err)
+            toast({
+              title: 'Category assignment failed',
+              description:
+                'Product was created but we could not save its category. You can set it from the edit page.',
+              variant: 'error',
+            })
           }
         }
 
