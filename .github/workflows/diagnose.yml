@@ -108,6 +108,8 @@ jobs:
             sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select b.id, b.type, b.description, b.selectable, b.deleted_at from benefits b where b.organization_id='c2606553-9be0-4d3d-ba9a-02db9953da3b' order by b.created_at desc limit 20;\"" 2>&1 | head -25
             echo "-- ALL product_benefits links in blyss-studio org --"
             sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select pb.product_id, p.name, pb.benefit_id, b.type from product_benefits pb join products p on pb.product_id=p.id join benefits b on pb.benefit_id=b.id where p.organization_id='c2606553-9be0-4d3d-ba9a-02db9953da3b' limit 30;\"" 2>&1 | head -35
+            echo "-- ALL products in blyss-studio + their benefit counts --"
+            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select p.id, p.name, p.is_archived, (select count(*) from product_benefits pb where pb.product_id = p.id) as benefit_count from products p where p.organization_id='c2606553-9be0-4d3d-ba9a-02db9953da3b' order by p.created_at desc;\"" 2>&1 | head -30
             echo "-- downloadable files in blyss-studio org --"
             sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select id, name, is_uploaded, created_at from files where organization_id='c2606553-9be0-4d3d-ba9a-02db9953da3b' order by created_at desc limit 15;\"" 2>&1 | head -20
             echo "-- downloadables benefit PROPERTIES (is files[] populated?) --"
