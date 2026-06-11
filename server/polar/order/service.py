@@ -475,30 +475,25 @@ class OrderService:
         # product in the cart — not just checkout.product (the first/
         # display product). Previously only checkout.product got grants,
         # so a 2-product cart delivered downloads/benefits for just one.
-        cart_item_ids: list[str] = []
-        if checkout.user_metadata and "cart_item_ids" in checkout.user_metadata:
-            raw = checkout.user_metadata["cart_item_ids"]
-            if isinstance(raw, str):
-                cart_item_ids = [s for s in raw.split(",") if s]
-            elif isinstance(raw, (list, tuple)):
-                cart_item_ids = [str(s) for s in raw if s]
+        # Grant benefits. For a CART checkout the order carries one line
+        # item per cart product, so we must grant benefits for EVERY
+        # product in the cart — not just checkout.product (the first/
+        # display product). Use checkout_products (persisted at checkout-
+        # create time) rather than re-loading cart items (which are
+        # ephemeral and may be deleted by the time the webhook fires).
+        checkout_prods = getattr(checkout, "checkout_products", None) or []
+        is_cart = bool(
+            checkout.user_metadata
+            and "cart_item_ids" in checkout.user_metadata
+            and len(checkout_prods) > 1
+        )
 
-        if cart_item_ids:
-            from polar.cart.repository import CartRepository
-
-            cart_repository = CartRepository.from_session(session)
+        if is_cart:
             granted_product_ids: set[uuid.UUID] = set()
-            for cart_item_id_str in cart_item_ids:
-                try:
-                    cart_item_id = uuid.UUID(cart_item_id_str)
-                except (ValueError, TypeError):
+            for cp in checkout_prods:
+                cart_product = cp.product
+                if cart_product is None:
                     continue
-                cart_item = await cart_repository.get_by_id(cart_item_id)
-                if cart_item is None:
-                    continue
-                cart_product = cart_item.product
-                # Skip duplicates + recurring (carts are one-time products);
-                # seat-priced products grant on seat claim, not here.
                 if cart_product.id in granted_product_ids:
                     continue
                 cart_prices = cart_product.prices or []
@@ -574,46 +569,24 @@ class OrderService:
         if has_product_checkout(checkout):
             # Check if this is a cart-based checkout
             if checkout.user_metadata and "cart_item_ids" in checkout.user_metadata:
-                # Cart-based checkout: create order items for each cart item
-                from polar.cart.repository import CartRepository
-
-                cart_repository = CartRepository.from_session(session)
-
-                # cart_item_ids is stored as a COMMA-SEPARATED STRING (webhook
-                # payload validation rejects non-scalar metadata), so it must
-                # be split before iterating. Iterating the raw string yields
-                # single characters — every uuid.UUID(char) then raised and was
-                # silently skipped, so NO cart line items were created and the
-                # order kept only checkout.product (the first product). That's
-                # why a 2-product cart purchase recorded/delivered just one.
-                raw_cart_item_ids = checkout.user_metadata["cart_item_ids"]
-                if isinstance(raw_cart_item_ids, str):
-                    cart_item_ids = [
-                        s for s in raw_cart_item_ids.split(",") if s
-                    ]
-                elif isinstance(raw_cart_item_ids, (list, tuple)):
-                    cart_item_ids = [str(s) for s in raw_cart_item_ids if s]
-                else:
-                    cart_item_ids = []
-                for cart_item_id_str in cart_item_ids:
-                    try:
-                        cart_item_id = uuid.UUID(cart_item_id_str)
-                        cart_item = await cart_repository.get_by_id(cart_item_id)
-                        if cart_item and cart_item.product.prices:
-                            product = cart_item.product
-                            price = product.prices[0]  # Use first available price
-                            if is_static_price(price):
-                                if is_fixed_price(price):
-                                    # Create order item with quantity from cart
-                                    item_amount = (
-                                        price.price_amount * cart_item.quantity
-                                    )
-                                    item = OrderItem.from_price(price, 0, item_amount)
-                                    item.quantity = cart_item.quantity
-                                    items.append(item)
-                    except (ValueError, TypeError):
-                        # Skip invalid cart item IDs
+                # Cart-based checkout: create one OrderItem per product in
+                # checkout_products. We CANNOT re-lookup the original cart
+                # items by ID because they're ephemeral — the frontend
+                # clears the cart after payment completes, and by the time
+                # the webhook fires _create_order_from_checkout the rows are
+                # gone. checkout_products was populated at checkout-create
+                # time (before the cart was cleared) and carries every product.
+                checkout_prods = getattr(checkout, "checkout_products", None) or []
+                for cp in checkout_prods:
+                    product = cp.product
+                    if product is None or not product.prices:
                         continue
+                    price = product.prices[0]
+                    if is_static_price(price):
+                        if is_fixed_price(price):
+                            item_amount = price.price_amount
+                            item = OrderItem.from_price(price, 0, item_amount)
+                            items.append(item)
             else:
                 # Regular single-product checkout
                 currency_prices = PriceSet.from_prices(

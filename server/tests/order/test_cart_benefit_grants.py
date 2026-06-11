@@ -53,6 +53,13 @@ async def test_cart_checkout_grants_benefits_for_every_product(
     checkout.user_metadata = {
         "cart_item_ids": f"{cart_item_a.id},{cart_item_b.id}"
     }
+    # checkout_products carries all products (populated at checkout-create
+    # time; persists even after cart items are deleted).
+    cp_a = MagicMock()
+    cp_a.product = product_a
+    cp_b = MagicMock()
+    cp_b.product = product_b
+    checkout.checkout_products = [cp_a, cp_b]
 
     order = MagicMock()
     order.id = uuid.uuid4()

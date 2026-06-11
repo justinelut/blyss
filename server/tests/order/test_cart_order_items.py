@@ -59,11 +59,11 @@ async def test_cart_checkout_creates_one_order_item_per_product(
     item_a = await _make_cart_item(save_fixture, product_one_time)
     item_b = await _make_cart_item(save_fixture, product_b)
 
-    # Cart checkout: product = first (display), metadata lists BOTH ids as a
-    # comma-separated string (exactly how checkout/service.py stores them).
+    # Cart checkout: checkout_products has ALL products from the cart.
+    # product = first (display), user_metadata has cart_item_ids for compat.
     checkout = await create_checkout(
         save_fixture,
-        products=[product_one_time],
+        products=[product_one_time, product_b],
         status=CheckoutStatus.confirmed,
         customer=customer,
         user_metadata={"cart_item_ids": f"{item_a.id},{item_b.id}"},
@@ -71,9 +71,7 @@ async def test_cart_checkout_creates_one_order_item_per_product(
 
     order = await order_service.create_from_checkout_one_time(session, checkout)
 
-    # Before the fix this was 1 (cart_item_ids string iterated as chars, all
-    # skipped, order kept only checkout.product); now every cart product
-    # yields an item.
+    # The order must have one item per product in checkout_products.
     assert len(order.items) == 2
 
 
@@ -106,7 +104,7 @@ async def test_cart_order_serializes_through_schema(
 
     checkout = await create_checkout(
         save_fixture,
-        products=[product_one_time],
+        products=[product_one_time, product_b],
         status=CheckoutStatus.confirmed,
         customer=customer,
         user_metadata={"cart_item_ids": f"{item_a.id},{item_b.id}"},

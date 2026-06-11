@@ -109,6 +109,7 @@ class CheckoutRepository(
             selectinload(Checkout.checkout_products).options(
                 joinedload(CheckoutProduct.product).options(
                     selectinload(Product.product_medias),
+                    selectinload(Product.prices),
                 )
             ),
             joinedload(Checkout.subscription),
