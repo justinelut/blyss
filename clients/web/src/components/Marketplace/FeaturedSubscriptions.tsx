@@ -70,78 +70,87 @@ export const FeaturedSubscriptions = ({ subscriptions }: FeaturedSubscriptionsPr
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
         {subscriptions.slice(0, 6).map((product) => {
           const creator = (product as any).organization
-          const firstBenefit = (product as any).benefits?.[0]
           const cover = (product.medias ?? []).find(
             (m: any) => m.public_url,
           ) as any
 
           const isSeed =
             typeof product.id === 'string' && product.id.startsWith('seed_')
+          // Editorial card — no chrome, no shadow, image-led. The cover
+          // sits on the section background; on hover the image scales 1.04
+          // and the title takes the accent color (Aimé Leon Dore /
+          // Are.na pattern). Per-§3.4 anti-slop: no drop-shadow boxes, no
+          // gradients, no badge pills.
           return (
             <Link
               key={product.id}
               href={isSeed ? '/marketplace?type=subscription' : `/product/${product.id}`}
               prefetch
-              className="group block overflow-hidden rounded-md bg-[var(--surface-elevated)] transition-colors hover:bg-[var(--background)]"
+              aria-label={`${product.name} — Subscription by ${creator?.name ?? 'Creator'}`}
+              className="group block"
             >
-              {/* Featured image — 16:9 cover so subscriptions show the
-                  creator's artwork, not just an avatar. */}
-              {cover && (
-                <div className="relative aspect-[16/9] w-full overflow-hidden bg-[var(--surface-sunken)]">
-                  <OptimizedImage
-                    src={cover.public_url}
-                    alt={`${product.name} cover`}
-                    fill
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                    className="object-cover"
-                  />
-                </div>
-              )}
-              <div className="p-6">
-              <div className="flex items-start gap-3">
-                {creator?.avatar_url && (
-                  <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-[var(--surface-sunken)]">
-                    <OptimizedImage
-                      src={creator.avatar_url}
-                      alt={`${creator.name} avatar`}
-                      fill
-                      sizes="40px"
-                      className="rounded-full"
+              {/* 16:9 cover. Editorial typographic placeholder when no
+                  cover is uploaded. Hover overlay is the warm Blyss
+                  multiply tint, never a black gradient. */}
+              <div className="relative w-full overflow-hidden rounded-md bg-[var(--surface-sunken)]">
+                {cover ? (
+                  <div className="relative aspect-[16/9] w-full overflow-hidden">
+                    <div className="absolute inset-0 transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-[1.04]">
+                      <OptimizedImage
+                        src={cover.public_url}
+                        alt={`${product.name} cover`}
+                        fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        className="object-cover"
+                      />
+                    </div>
+                    <div
+                      aria-hidden
+                      className="pointer-events-none absolute inset-0 mix-blend-multiply"
+                      style={{
+                        backgroundColor: 'rgba(26, 26, 23, 0.04)',
+                      }}
                     />
                   </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <h3
-                    className={cn(
-                      typography.h4,
-                      'truncate text-[var(--text-primary)] transition-colors group-hover:text-[var(--accent)]',
-                    )}
+                ) : (
+                  <div
+                    aria-hidden
+                    className="relative flex aspect-[16/9] w-full items-end p-6 md:p-8"
                   >
-                    {product.name}
-                  </h3>
-                  {creator?.name && (
-                    <p className="mt-0.5 font-sans text-[13px] text-[var(--text-muted)]">
-                      by {creator.name}
-                    </p>
-                  )}
-                </div>
+                    <span className="font-display text-[44px] font-light leading-none text-[var(--text-muted)] md:text-[56px]">
+                      {(product.name?.[0] ?? '·').toUpperCase()}
+                    </span>
+                  </div>
+                )}
               </div>
 
-              <p className="mt-5 font-display text-[24px] font-semibold tabular-nums text-[var(--text-primary)]">
-                {formatMonthlyPrice(product, displayCurrency)}
-                <span className="font-sans text-[14px] font-normal text-[var(--text-muted)]">
-                  {' '}{cadenceLabel(product)}
-                </span>
-              </p>
-
-              {firstBenefit?.description && (
-                <p className="mt-4 line-clamp-3 font-sans text-[14px] leading-[1.5] text-[var(--text-secondary)]">
-                  {firstBenefit.description}
+              {/* Info — outside the cover, no card chrome */}
+              <div className="mt-5 flex flex-col gap-2">
+                <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
+                  Subscription
                 </p>
-              )}
+                <h3
+                  className={cn(
+                    typography.h4,
+                    'line-clamp-2 text-[var(--text-primary)] transition-colors group-hover:text-[var(--accent)]',
+                  )}
+                >
+                  {product.name}
+                </h3>
+                {creator?.name && (
+                  <p className="font-sans text-[13px] text-[var(--text-muted)]">
+                    by {creator.name}
+                  </p>
+                )}
+                <p className="mt-1 flex items-baseline gap-1.5 font-display text-[20px] font-semibold tabular-nums text-[var(--text-primary)]">
+                  <span>{formatMonthlyPrice(product, displayCurrency)}</span>
+                  <span className="font-sans text-[13px] font-normal text-[var(--text-muted)]">
+                    {cadenceLabel(product)}
+                  </span>
+                </p>
               </div>
             </Link>
           )

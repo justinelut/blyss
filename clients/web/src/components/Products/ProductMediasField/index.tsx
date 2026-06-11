@@ -8,9 +8,11 @@ import { FileList } from './FileList'
 
 const DropzoneView = ({
   isDragActive,
+  isRecurring,
   children,
 }: {
   isDragActive: boolean
+  isRecurring?: boolean
   children: ReactNode
 }) => {
   return (
@@ -31,7 +33,10 @@ const DropzoneView = ({
             {isDragActive ? "Drop it like it's hot" : 'Add product media'}
           </p>
           <p className="mt-2 text-xs">
-            Up to 10MB each. 16:9 ratio recommended for optimal display.
+            Up to 10MB each.{' '}
+            {isRecurring
+              ? '16:9 wide (landscape) recommended — subscription cards across the site display landscape covers.'
+              : '4:5 portrait (taller than wide) recommended — product cards across the marketplace display portrait covers.'}
           </p>
         </div>
         {children}
@@ -44,12 +49,19 @@ interface ProductMediasFieldProps {
   organization: schemas['Organization']
   value: schemas['ProductMediaFileRead'][] | undefined
   onChange: (value: schemas['ProductMediaFileRead'][]) => void
+  /** Whether this is a recurring (subscription) product. Drives the cover
+   *  ratio guidance shown in the dropzone — 16:9 landscape for subs, 4:5
+   *  portrait for one-time products. Cards across the marketplace render
+   *  these ratios respectively, so guidance steers creators away from
+   *  awkwardly-cropped covers. */
+  isRecurring?: boolean
 }
 
 const ProductMediasField = ({
   organization,
   value,
   onChange,
+  isRecurring = false,
 }: ProductMediasFieldProps) => {
   const [filesRejected, setFilesRejected] = useState<FileRejection[]>([])
 
@@ -91,7 +103,10 @@ const ProductMediasField = ({
       <div className="grid grid-cols-2 gap-3 [&>div>*]:aspect-video">
         <FileList files={files} setFiles={setFiles} removeFile={removeFile} />
         <div {...getRootProps()}>
-          <DropzoneView isDragActive={isDragActive}>
+          <DropzoneView
+            isDragActive={isDragActive}
+            isRecurring={isRecurring}
+          >
             <input {...getInputProps()} />
           </DropzoneView>
         </div>

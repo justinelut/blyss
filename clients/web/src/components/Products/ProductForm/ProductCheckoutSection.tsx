@@ -29,7 +29,8 @@ export const ProductCheckoutSection = ({
   className?: string
   organization: schemas['Organization']
 }) => {
-  const { control } = useFormContext<ProductFormType>()
+  const { control, watch } = useFormContext<ProductFormType>()
+  const isRecurring = !!watch('is_recurring' as any)
 
   return (
     <div className={twMerge('flex flex-col gap-12 p-12', className)}>
@@ -82,6 +83,7 @@ export const ProductCheckoutSection = ({
                         organization={organization}
                         value={field.value}
                         onChange={field.onChange}
+                        isRecurring={isRecurring}
                       />
                     </FormControl>
                     <FormMessage />
