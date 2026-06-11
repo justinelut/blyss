@@ -7,7 +7,7 @@ import {
 import { useDeleteBenefit } from '@/hooks/queries'
 import { schemas } from '@/lib/api'
 import Button from '@/components/atoms/Button'
-import { Checkbox } from '@/components/ui/checkbox'
+import Switch from '@/components/atoms/Switch'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -120,7 +120,7 @@ export const BenefitRow = ({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Checkbox
+          <Switch
             checked={selected}
             onCheckedChange={(checked) => onToggle(benefit, checked === true)}
             disabled={!benefit.selectable}
