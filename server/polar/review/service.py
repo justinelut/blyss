@@ -82,17 +82,48 @@ class ReviewService:
         user_id: UUID,
         product_id: UUID,
     ) -> bool:
-        """Check if user has purchased product"""
-        statement = select(Order).where(
+        """Check if the user has paid for the product (verified-purchase
+        gate for reviews).
+
+        IMPLEMENTATION NOTE: orders belong to ``Customer`` rows, not to
+        ``User`` rows directly. A single User typically has multiple
+        Customer rows — one per organization they've bought from — all
+        sharing the User's email. We resolve the User's email and look
+        for ANY paid order owned by a Customer matching that email.
+
+        The previous implementation used:
             Order.customer_id.in_(
                 select(Order.customer_id).where(Order.customer_id.is_not(None))
-            ),
-            Order.product_id == product_id,
-            Order.status == OrderStatus.paid,
+            )
+        which is a no-op (matches every non-null customer_id), so any
+        logged-in user could review any product, AND fetching the result
+        with ``scalar_one_or_none()`` raised ``MultipleResultsFound`` the
+        moment a product had two or more paid orders — which is exactly
+        the production POST /v1/reviews/ 500 we kept hitting.
+        """
+        from polar.models.customer import Customer
+        from polar.models.user import User as UserModel
+
+        user_email = (
+            await session.execute(
+                select(UserModel.email).where(UserModel.id == user_id)
+            )
+        ).scalar()
+        if not user_email:
+            return False
+
+        statement = (
+            select(Order.id)
+            .join(Customer, Customer.id == Order.customer_id)
+            .where(
+                Customer.email == user_email,
+                Order.product_id == product_id,
+                Order.status == OrderStatus.paid,
+            )
+            .limit(1)
         )
         result = await session.execute(statement)
-        order = result.scalar_one_or_none()
-        return order is not None
+        return result.scalar() is not None
 
     async def create_review(
         self,
