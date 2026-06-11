@@ -80,10 +80,18 @@ async def _resolve_user_id(
         )
     from polar.models.user import User as UserModel
 
+    # NOTE: use .first() (not scalar_one_or_none) — historical data can
+    # contain two User rows with the same email (legacy local + Google
+    # OAuth accounts), and scalar_one_or_none raises MultipleResultsFound
+    # on those. We deterministically take the oldest (lowest id ordered
+    # by created_at) so a buyer always resolves to the same review-author.
     result = await session.execute(
-        select(UserModel.id).where(UserModel.email == email)
+        select(UserModel.id)
+        .where(UserModel.email == email)
+        .order_by(UserModel.created_at.asc())
+        .limit(1)
     )
-    user_id = result.scalar_one_or_none()
+    user_id = result.scalar()
     if user_id is None:
         raise HTTPException(
             status_code=403,
@@ -131,21 +139,37 @@ async def create_review(
 
         await session.flush()
 
-        # Fetch the resolved user for the response (avatar/name).
+        # Fetch only the scalar fields needed for the response. We deliberately
+        # do NOT select(UserModel) here because the User model has a
+        # `lazy="joined"` one-to-many on oauth_accounts — selecting the model
+        # row gives back a SQLAlchemy Result that needs `.unique()` before
+        # scalar_one() to dedupe the JOIN. Selecting columns directly avoids
+        # that footgun (and the consequent 500 on the review POST).
         from polar.models.user import User as UserModel
 
         user_row = (
             await session.execute(
-                select(UserModel).where(UserModel.id == user_id)
+                select(
+                    UserModel.username,
+                    UserModel.email,
+                    UserModel.avatar_url,
+                ).where(UserModel.id == user_id)
             )
-        ).scalar_one()
+        ).first()
+        if user_row is None:
+            # Defensive: should never happen because _resolve_user_id just
+            # found this user. But if it does, fall through with placeholder
+            # values rather than 500 — the review row IS already created.
+            username, email_value, avatar_url = None, "Reviewer", None
+        else:
+            username, email_value, avatar_url = user_row
 
         return ReviewPublic(
             id=review.id,
             product_id=review.product_id,
             user_id=review.user_id,
-            user_name=user_row.username or user_row.email,
-            user_avatar=user_row.avatar_url,
+            user_name=username or email_value,
+            user_avatar=avatar_url,
             rating=review.rating,
             review_text=review.review_text,
             is_verified_purchase=review.is_verified_purchase,

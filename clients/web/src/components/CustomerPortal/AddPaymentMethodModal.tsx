@@ -37,10 +37,15 @@ export const AddPaymentMethodModal = ({
   hide,
   themePreset,
 }: AddPaymentMethodModalProps) => {
-  const stripePromise = useMemo(
-    () => loadStripe(process.env.NEXT_PUBLIC_STRIPE_KEY || ''),
-    [],
-  )
+  // Only initialize Stripe if a publishable key is configured. Blyss runs
+  // Paystack-only orgs (KE) where the Stripe env var is unset; calling
+  // loadStripe('') triggers an IntegrationError that the customer portal
+  // cannot recover from. When the key is absent, we render a "card adds
+  // unavailable" state below.
+  const stripePromise = useMemo(() => {
+    const key = process.env.NEXT_PUBLIC_STRIPE_KEY
+    return key ? loadStripe(key) : null
+  }, [])
   const addPaymentMethod = useAddCustomerPaymentMethod(api)
   const confirmPaymentMethod = useConfirmCustomerPaymentMethod(api)
   const [error, setError] = useState<string | null>(null)
@@ -180,6 +185,22 @@ export const AddPaymentMethodModal = ({
       })()
     }
   }, [setupIntentParams, confirm, confirmed])
+
+  if (!stripePromise) {
+    // Stripe isn't configured for this deployment. Surface a friendly
+    // message rather than letting Stripe.js throw an IntegrationError
+    // that the user cannot dismiss.
+    return (
+      <div className="flex flex-col gap-3 p-8 text-[var(--text-secondary)]">
+        <p className="font-sans text-[14px]">
+          Adding a saved card is unavailable for this storefront.
+        </p>
+        <p className="font-sans text-[13px] text-[var(--text-muted)]">
+          Pay directly via M-Pesa or card during checkout instead.
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-6 p-8">

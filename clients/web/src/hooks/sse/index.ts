@@ -20,6 +20,13 @@ const emitter = new EventEmitter()
 
 const useSSE = (streamURL: string, token?: string): EventEmitter => {
   useEffect(() => {
+    // 401 is non-recoverable — there's nothing the client can do by
+    // retrying with the same (rejected) credentials, and event-source-plus
+    // will hammer the server forever otherwise (we shipped a customer
+    // portal page that fired thousands of /customers/stream 401s in a
+    // single visit). Abort on 401 and let the user re-auth via the page
+    // flow. Other status codes (5xx, network blips) keep retrying with
+    // the library's default backoff.
     const eventSource = new EventSourcePlus(streamURL, {
       credentials: 'include',
       headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
@@ -36,6 +43,16 @@ const useSSE = (streamURL: string, token?: string): EventEmitter => {
         }
 
         emitter.emit(data.key, data.payload)
+      },
+      onResponse: ({ response }) => {
+        if (response.status === 401 || response.status === 403) {
+          controller.abort()
+        }
+      },
+      onResponseError: ({ response }) => {
+        if (response && (response.status === 401 || response.status === 403)) {
+          controller.abort()
+        }
       },
     })
 

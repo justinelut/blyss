@@ -40,14 +40,21 @@ export const OrderPaymentRetryModal = ({
     (pm): pm is schemas['PaymentMethodCard'] => pm.type === 'card',
   )
 
-  const stripePromise = useMemo(
-    () => loadStripe(process.env.NEXT_PUBLIC_STRIPE_KEY || ''),
-    [],
-  )
+  // Mirror AddPaymentMethodModal: only init Stripe if NEXT_PUBLIC_STRIPE_KEY
+  // is set. Blyss runs Paystack-only deployments where the env var is
+  // empty; loading Stripe with '' triggers an unrecoverable
+  // IntegrationError ("Please call Stripe() with your publishable key").
+  // The "useNewCard" branch below already gates on `stripePromise`, so a
+  // null promise simply hides the new-card form.
+  const stripePromise = useMemo(() => {
+    const key = process.env.NEXT_PUBLIC_STRIPE_KEY
+    return key ? loadStripe(key) : null
+  }, [])
 
   // Resolve Stripe instance for saved payment methods that may require 3DS authentication
   const [stripe, setStripe] = useState<Stripe | null>(null)
   useEffect(() => {
+    if (!stripePromise) return
     stripePromise.then(setStripe)
   }, [stripePromise])
 
