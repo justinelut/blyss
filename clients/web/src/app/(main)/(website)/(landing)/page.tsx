@@ -11,34 +11,42 @@ import type { CategoryTile } from '@/components/Marketplace/BrowseByCraft'
 export const dynamic = "force-dynamic"
 export const revalidate = 60
 
+// Anti-slop SEO copy for the homepage. The original ("The modern modern
+// marketplace…") had a literal duplicate word AND used "modern" as a
+// promotional adjective — both flagged in
+// .kiro/skills/anti-slop-writing/references/vocabulary-banlist.md. The
+// rewrite names the actual product types, the actual payment rail
+// (M-Pesa), and the actual creator payout window (24 hours). These
+// concrete phrases double as Google + AI-search anchors for queries
+// like "buy ebooks Kenya M-Pesa" or "Kenyan creator marketplace".
 export const metadata: Metadata = {
-  title: "Blyss — The Modern Creator Marketplace",
+  title: 'Blyss · Buy from Kenyan Creators · Templates, Ebooks, Beats',
   description:
-    'The modern modern marketplace for digital products. Templates, ebooks, beats, courses, subscription tiers. M-Pesa or card. Paid out within 24 hours.',
+    'Templates, ebooks, beats, presets, courses, and subscription tiers from Kenyan creators. Pay with M-Pesa or card. Creators get paid within 24 hours.',
   keywords:
-    'kenya creator marketplace, sell digital products kenya, m-pesa payments, online marketplace kenya, sell ebooks kenya, kenyan creators',
+    'digital products Kenya, sell digital products Nairobi, M-Pesa marketplace, buy ebooks Kenya, beats by Kenyan producers, presets Kenya, courses Kenya, Kenyan creators, KSh checkout, blyss.co.ke',
   alternates: { canonical: 'https://blyss.co.ke' },
   openGraph: {
     siteName: 'Blyss',
     type: 'website',
     locale: 'en_KE',
-    title: "Blyss — The Modern Creator Marketplace",
+    title: 'Blyss · Buy from Kenyan Creators · Templates, Ebooks, Beats',
     description:
-      'The modern modern marketplace for digital products. M-Pesa or card. Paid out within 24 hours.',
+      'Templates, ebooks, beats, presets, courses, and subscription tiers from Kenyan creators. Pay with M-Pesa or card. Payouts within 24 hours.',
     images: [
       {
         url: 'https://cdn.blyss.co.ke/brand/og-default.png',
         width: 1200,
         height: 630,
-        alt: 'Blyss',
+        alt: 'Blyss — Kenyan creator marketplace',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: "Blyss — The Modern Creator Marketplace",
+    title: 'Blyss · Kenyan Creator Marketplace',
     description:
-      'The modern modern marketplace for digital products. M-Pesa or card. Paid out within 24 hours.',
+      'Templates, ebooks, beats, presets, and courses by Kenyan creators. Pay with M-Pesa. Payouts within 24 hours.',
     images: ['https://cdn.blyss.co.ke/brand/og-default.png'],
   },
 }

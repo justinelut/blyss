@@ -126,10 +126,14 @@ export async function generateMetadata({
   const { slug } = await params
   try {
     const creator = await fetchCreator(slug)
-    const title = `${creator.name} — Digital products on Blyss`
+    const title = `${creator.name} · Kenyan Creator on Blyss`
+    // Anti-slop fallback. Original used "the modern creator marketplace"
+    // which is exactly the kind of vague-AI prose we're trying to leave
+    // behind ("modern" is on the ban list). When the creator hasn't
+    // written a bio, name the platform, the country, the payment rail.
     const description =
       creator.bio?.trim() ||
-      `Digital products and subscriptions from ${creator.name}, on Blyss — the modern creator marketplace.`
+      `${creator.name} sells digital products on Blyss. Buy with M-Pesa or card. Instant delivery after payment.`
     const canonical = `${SITE_BASE}/creators/${creator.slug}`
     // Prefer the creator's banner (16:9, designed to be shareable) for
     // social previews; fall back to avatar then to the OG generator.

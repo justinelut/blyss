@@ -9,14 +9,16 @@ export const dynamic = "force-dynamic"
 export const revalidate = 60
 
 export const metadata: Metadata = {
-  title: 'Independent Creators · Blyss',
+  title: 'Kenyan Creators on Blyss · Designers, Writers, Musicians, Educators',
   description:
-    "Meet creators making things worth supporting. Designers, writers, musicians, educators, photographers — discover digital products and subscriptions from independent creators around the world.",
+    'Browse Kenyan creators selling digital products. Designers, writers, musicians, educators, photographers, and producers based in Nairobi, Mombasa, Kisumu, and beyond. Pay with M-Pesa or card.',
+  keywords:
+    'Kenyan creators, Nairobi designers, Kenyan musicians, Kenyan ebooks authors, sell digital products Kenya, creator economy Kenya, M-Pesa creator marketplace',
   alternates: { canonical: 'https://blyss.co.ke/creators' },
   openGraph: {
-    title: 'Independent Creators · Blyss',
+    title: 'Kenyan Creators on Blyss',
     description:
-      "Meet creators making things worth supporting. Discover digital products from independent creators.",
+      'Browse Kenyan creators selling digital products. Designers, writers, musicians, educators, photographers, and producers across Kenya.',
     siteName: 'Blyss',
     type: 'website',
     locale: 'en_KE',
@@ -25,15 +27,15 @@ export const metadata: Metadata = {
         url: 'https://cdn.blyss.co.ke/brand/og-default.png',
         width: 1200,
         height: 630,
-        alt: 'Blyss creators',
+        alt: 'Kenyan creators on Blyss',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Independent Creators · Blyss',
+    title: 'Kenyan Creators on Blyss',
     description:
-      "Meet creators making things worth supporting. Discover digital products from independent creators.",
+      'Designers, writers, musicians, educators, photographers, and producers from across Kenya.',
     images: ['https://cdn.blyss.co.ke/brand/og-default.png'],
   },
   robots: { index: true, follow: true },

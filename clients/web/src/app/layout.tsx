@@ -1,5 +1,7 @@
 import '../styles/globals.css'
 
+import { AnalyticsTag } from '@/components/Analytics/AnalyticsTag'
+import { StructuredData } from '@/components/SEO/StructuredData'
 import SandboxBanner from '@/components/Sandbox/SandboxBanner'
 import { getExperimentNames } from '@/experiments'
 import { getDistinctId } from '@/experiments/distinct-id'
@@ -22,28 +24,53 @@ import {
 } from './providers'
 
 export async function generateMetadata(): Promise<Metadata> {
+  // Anti-slop SEO copy. Avoids the LLM tells flagged in
+  // .kiro/skills/anti-slop-writing — no "seamless", "modern",
+  // "powerful", "flexible", "discover" as promo verb. Concrete:
+  // names the product types ("templates, ebooks, beats, presets,
+  // courses"), the payment rail ("M-Pesa or card"), the city
+  // ("Nairobi"), and the actual creator-payout window ("24 hours").
+  // These specifics double as AI-search anchors — Perplexity,
+  // Claude Search, and Google SGE pull literal phrases like
+  // "Kenyan creators" and "M-Pesa" from descriptions.
   const baseMetadata: Metadata = {
     title: {
-      template: '%s | Blyss',
-      default: 'Blyss - Digital Marketplace for Independent Creators',
+      template: '%s · Blyss',
+      default: 'Blyss — Kenyan Creator Marketplace · Pay with M-Pesa',
     },
     description:
-      'Discover and sell digital products on Blyss, the modern marketplace for digital products. Flexible pricing, seamless payments, and powerful tools for digital commerce.',
+      "Buy templates, ebooks, beats, presets, and courses from Kenyan creators. Pay with M-Pesa or card. Blyss pays creators within 24 hours. Made in Nairobi.",
+    keywords: [
+      'digital products Kenya',
+      'Kenyan creators',
+      'M-Pesa marketplace',
+      'buy templates Kenya',
+      'ebooks Kenya',
+      'beats Kenya',
+      'presets Kenya',
+      'sell digital products Nairobi',
+      'creator economy Kenya',
+      'KSh digital products',
+    ],
+    authors: [{ name: 'Blyss', url: 'https://blyss.co.ke' }],
+    publisher: 'Blyss',
     openGraph: {
       images: 'https://blyss.co.ke/og-image.png',
       type: 'website',
       siteName: 'Blyss',
-      title: 'Blyss - Digital Marketplace for Independent Creators',
+      title: 'Blyss — Kenyan Creator Marketplace · Pay with M-Pesa',
       description:
-        'Discover and sell digital products on Blyss, the modern marketplace for digital products. Flexible pricing, seamless payments, and powerful tools for digital commerce.',
-      locale: 'en_US',
+        "Buy templates, ebooks, beats, presets, and courses from Kenyan creators. Pay with M-Pesa or card. Blyss pays creators within 24 hours.",
+      locale: 'en_KE',
+      url: 'https://blyss.co.ke/',
     },
     twitter: {
       images: 'https://blyss.co.ke/og-image.png',
       card: 'summary_large_image',
-      title: 'Blyss - Digital Marketplace for Independent Creators',
+      site: '@blyssmarket',
+      title: 'Blyss — Kenyan Creator Marketplace · Pay with M-Pesa',
       description:
-        'Discover and sell digital products on Blyss, the modern marketplace for digital products. Flexible pricing, seamless payments, and powerful tools for digital commerce.',
+        "Templates, ebooks, beats, presets, courses by Kenyan creators. Pay with M-Pesa. Creators paid within 24 hours.",
     },
     metadataBase: new URL('https://blyss.co.ke/'),
     alternates: {
@@ -120,6 +147,11 @@ export default async function RootLayout({
         {/* Light is the default, dominant mode (plan/04-ui-direction.md §3.2).
             Dark is reserved for accent sections, opted into by wrapping the
             section in `.dark`. No theme class on <html> = light by default. */}
+        {/* JSON-LD — Organization + WebSite schemas for Google rich results
+            and AI search engines (Perplexity, Claude Search, ChatGPT Search,
+            Google SGE). Static, site-wide. Per-page schemas (Product,
+            BreadcrumbList) live on their respective routes. */}
+        <StructuredData />
       </head>
       <body
         style={{
@@ -143,6 +175,11 @@ export default async function RootLayout({
             </PolarPostHogProvider>
           </UserContextProvider>
         </ExperimentProvider>
+        {/* Google Analytics — server-rendered after the app tree so the
+            measurement-ID fetch can't block paint. Renders nothing when
+            unset or in sandbox. Configure via backoffice runtime_settings
+            (key: GA_MEASUREMENT_ID). */}
+        <AnalyticsTag />
       </body>
     </html>
   )

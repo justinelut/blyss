@@ -41,6 +41,9 @@ from polar.integrations.discord.endpoints import router as discord_router
 #     router as github_repository_benefit_router,
 # )
 from polar.integrations.google.endpoints import router as google_router
+from polar.integrations.google_analytics.endpoints import (
+    router as google_analytics_router,
+)
 from polar.integrations.paystack.endpoints import router as paystack_router
 from polar.integrations.loops.endpoints import router as loops_endpoints_router
 from polar.integrations.plain.endpoints import router as plain_router
@@ -153,6 +156,7 @@ router.include_router(files_router)
 router.include_router(metrics_router)
 # /integrations/google (kept — Google OAuth)
 router.include_router(google_router)
+router.include_router(google_analytics_router)
 # /integrations/paystack
 router.include_router(paystack_router)
 router.include_router(loops_endpoints_router)

@@ -29,8 +29,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   try {
     const p = await fetchProduct(id)
     const org = (p as any).organization
-    const title = `${p.name} by ${org?.name ?? 'Creator'} | Blyss`
-    const desc = p.description?.slice(0, 160) || `Buy ${p.name} on Blyss`
+    const creatorName = org?.name ?? 'Kenyan creator'
+    const title = `${p.name} by ${creatorName} · Blyss`
+    // Anti-slop fallback: when a creator hasn't filled in their product
+    // description, generate copy that names the product, the creator,
+    // and the payment rail rather than a generic "Buy X on Blyss".
+    // Concrete > vague for both Google and AI search.
+    const desc =
+      p.description?.slice(0, 160) ||
+      `${p.name} by ${creatorName} on Blyss. Buy with M-Pesa or card. Instant download after payment.`
     const img = p.medias?.[0]?.public_url ?? `${SITE}/api/og/product/${p.id}`
     return {
       title,

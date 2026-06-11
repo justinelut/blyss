@@ -168,6 +168,24 @@ REGISTRY: list[RegisteredKey] = [
         requires_verification=False,
         default_value="ke",
     ),
+    RegisteredKey(
+        key="GA_MEASUREMENT_ID",
+        category="other",
+        label="Google Analytics Measurement ID",
+        description=(
+            "Public GA4 measurement ID (format: G-XXXXXXXXXX) used to "
+            "load gtag.js on every public marketplace page. Public by "
+            "design — leaks nothing — so we keep it non-sensitive so "
+            "ops can read it back from the backoffice without a "
+            "decrypt round-trip. Leave blank to disable analytics "
+            "entirely (no script tag is injected). Find your ID in "
+            "Google Analytics → Admin → Data streams → your web "
+            "stream → Measurement ID."
+        ),
+        sensitive=False,
+        requires_verification=False,
+        default_value=None,
+    ),
 ]
 
 REGISTRY_MAP: dict[str, RegisteredKey] = {r.key: r for r in REGISTRY}
