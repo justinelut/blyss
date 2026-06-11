@@ -177,6 +177,12 @@ jobs:
             sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select count(*) as total, count(*) filter (where is_active) as active, count(*) filter (where is_active=false) as inactive from product_categories;\"" 2>&1 | head -8
             echo "-- product_categories: all rows --"
             sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select id, name, slug, is_active, display_order from product_categories order by display_order, name limit 30;\"" 2>&1 | head -40
+            echo "-- ebooks category id + assignments + products --"
+            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select pc.id, pc.slug, pc.name, (select count(*) from product_category_assignments pca where pca.category_id=pc.id) as assignments_count, (select count(*) from product_category_assignments pca join products p on p.id=pca.product_id where pca.category_id=pc.id and p.is_archived=false) as not_archived_count, (select count(*) from product_category_assignments pca join products p on p.id=pca.product_id where pca.category_id=pc.id and p.is_archived=false and p.deleted_at is null) as live_count from product_categories pc where pc.slug='ebooks';\"" 2>&1 | head -10
+            echo "-- ALL product_category_assignments for ebooks (with product status) --"
+            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select pca.id, p.id as product_id, p.name, p.is_archived, p.deleted_at, p.organization_id from product_category_assignments pca join products p on p.id=pca.product_id where pca.category_id=(select id from product_categories where slug='ebooks');\"" 2>&1 | head -25
+            echo "-- direct test of /v1/categories/ebooks/products via the API container --"
+            sudo kubectl -n $NS exec $POD -- python3 -c 'import urllib.request,json;r=urllib.request.urlopen("http://localhost:10000/v1/categories/ebooks/products?page=1&limit=24",timeout=10);d=json.loads(r.read());print("HTTP",r.status,"items=",len(d.get("items",[])),"total=",d.get("pagination",{}).get("total_count"))' 2>&1 | head -3
             echo
 
             echo "═══════════════════════════════════════"
