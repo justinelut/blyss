@@ -38,7 +38,10 @@ class InvoiceService:
         generator.generate()
         invoice_bytes = generator.output()
 
-        s3 = S3Service(settings.S3_CUSTOMER_INVOICES_BUCKET_NAME)
+        s3 = S3Service(
+            settings.S3_CUSTOMER_INVOICES_BUCKET_NAME,
+            public_endpoint_url=settings.S3_PUBLIC_ENDPOINT_URL,
+        )
         return s3.upload(
             bytes(invoice_bytes), order.invoice_filename, "application/pdf"
         )
@@ -46,7 +49,10 @@ class InvoiceService:
     async def get_order_invoice_url(self, order: Order) -> tuple[str, datetime]:
         invoice_path = order.invoice_path
         assert invoice_path is not None
-        s3 = S3Service(settings.S3_CUSTOMER_INVOICES_BUCKET_NAME)
+        s3 = S3Service(
+            settings.S3_CUSTOMER_INVOICES_BUCKET_NAME,
+            public_endpoint_url=settings.S3_PUBLIC_ENDPOINT_URL,
+        )
         return s3.generate_presigned_download_url(
             path=invoice_path,
             filename=order.invoice_filename,
@@ -163,7 +169,10 @@ class InvoiceService:
         generator = InvoiceGenerator(invoice, heading_title="Reverse Invoice")
         generator.generate()
         invoice_bytes = generator.output()
-        s3 = S3Service(settings.S3_PAYOUT_INVOICES_BUCKET_NAME)
+        s3 = S3Service(
+            settings.S3_PAYOUT_INVOICES_BUCKET_NAME,
+            public_endpoint_url=settings.S3_PUBLIC_ENDPOINT_URL,
+        )
         return s3.upload(
             bytes(invoice_bytes),
             f"{account.id}/Payout-{payout.invoice_number}.pdf",
@@ -174,7 +183,10 @@ class InvoiceService:
         invoice_path = payout.invoice_path
         assert invoice_path is not None
         filename = f"Payout-{payout.invoice_number}.pdf"
-        s3 = S3Service(settings.S3_PAYOUT_INVOICES_BUCKET_NAME)
+        s3 = S3Service(
+            settings.S3_PAYOUT_INVOICES_BUCKET_NAME,
+            public_endpoint_url=settings.S3_PUBLIC_ENDPOINT_URL,
+        )
         return s3.generate_presigned_download_url(
             path=invoice_path, filename=filename, mime_type="application/pdf"
         )
