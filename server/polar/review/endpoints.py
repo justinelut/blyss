@@ -8,7 +8,7 @@ from typing import Annotated
 
 from polar.auth.dependencies import Authenticator
 from polar.auth.dependencies import WebUserRead
-from polar.auth.models import AuthSubject, Customer, User
+from polar.auth.models import AuthSubject, Customer, Member, User
 from polar.auth.scope import Scope
 from polar.openapi import APITag
 from polar.postgres import AsyncSession, get_db_session
@@ -38,41 +38,50 @@ log = structlog.get_logger()
 router = APIRouter(prefix="/reviews", tags=["reviews", APITag.public])
 
 
-# Reviews are submitted from the customer portal (Customer auth via
-# customer-session-token) AND from the dashboard / public surface (User
-# auth via web cookie). Accept both — for a Customer subject we resolve
-# the underlying User by email match (Blyss binds checkout customers to
-# the buyer's User account email, so this is reliable for logged-in
-# buyers; if there's no User yet, the buyer is asked to create an
-# account before reviewing).
+# Reviews are submitted from the customer portal AND from the dashboard /
+# public surface. The customer portal can authenticate as a Customer
+# (polar_cst_*) OR a Member (polar_mst_*) depending on whether the org
+# has the member-model feature; the dashboard authenticates as User via
+# web cookie. Accept all three — for Customer/Member we resolve the
+# underlying User by email match (Blyss binds checkout customers to the
+# user's account email, so this is reliable for logged-in buyers).
 _ReviewWriter = Authenticator(
     required_scopes={
         Scope.web_write,
         Scope.customer_portal_write,
     },
-    allowed_subjects={User, Customer},
+    allowed_subjects={User, Customer, Member},
 )
-ReviewWriter = Annotated[AuthSubject[User | Customer], Depends(_ReviewWriter)]
+ReviewWriter = Annotated[
+    AuthSubject[User | Customer | Member], Depends(_ReviewWriter)
+]
 
 
 async def _resolve_user_id(
-    session: AsyncSession, auth_subject: AuthSubject[User | Customer]
+    session: AsyncSession,
+    auth_subject: AuthSubject[User | Customer | Member],
 ) -> UUID:
-    """Return the User.id for either a User or Customer auth subject.
+    """Return the User.id for User / Customer / Member auth subjects.
 
-    For User: trivial — auth_subject.subject.id.
-    For Customer: look up a User row by the customer's email (the buyer
-    must have a Blyss account; checkout binds customers to the user's
-    account email by design). Raises 403 if no matching user exists.
+    User: trivial — auth_subject.subject.id.
+    Customer / Member: look up a User row by the subject's email
+    (checkout binds customers to the user's account email by design).
+    Raises 403 if no matching user exists.
     """
     subject = auth_subject.subject
     if isinstance(subject, User):
         return subject.id
-    # Customer subject — resolve via email.
+    # Customer or Member subject — both expose .email.
+    email = getattr(subject, "email", None)
+    if not email:
+        raise HTTPException(
+            status_code=403,
+            detail="Could not resolve buyer identity for review.",
+        )
     from polar.models.user import User as UserModel
 
     result = await session.execute(
-        select(UserModel.id).where(UserModel.email == subject.email)
+        select(UserModel.id).where(UserModel.email == email)
     )
     user_id = result.scalar_one_or_none()
     if user_id is None:
