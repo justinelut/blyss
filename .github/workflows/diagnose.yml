@@ -94,6 +94,10 @@ jobs:
             sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select id, status, payment_processor, payment_processor_metadata->>'charge_reference' as charge_ref, payment_processor_metadata->>'charge_status' as charge_status, organization_id, created_at from checkouts where created_at > now() - interval '2 hours' order by created_at desc limit 10;\"" 2>&1 | head -25
             echo "-- recent orders (ALL, last 24h): order, customer email, product --"
             sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select o.id, o.status, c.email as customer_email, o.customer_id, p.name as product_name, o.created_at from orders o join customers c on o.customer_id=c.id join products p on o.product_id=p.id where o.created_at > now() - interval '24 hours' order by o.created_at desc limit 12;\"" 2>&1 | head -20
+            echo "-- latest checkout user_metadata (cart_item_ids?) --"
+            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select id, user_metadata, product_id, amount from checkouts where created_at > now() - interval '24 hours' order by created_at desc limit 5;\"" 2>&1 | head -20
+            echo "-- order_items for latest order --"
+            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select oi.id, oi.order_id, oi.label, oi.amount, oi.product_price_id from order_items oi where oi.order_id in (select o.id from orders o where o.created_at > now() - interval '24 hours' order by o.created_at desc limit 3) order by oi.order_id, oi.id;\"" 2>&1 | head -20
             echo "-- customers matching justinequartz (identity split check) --"
             sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select id, email, organization_id, created_at from customers where lower(email) like 'justinequartz%' order by created_at desc limit 10;\"" 2>&1 | head -15
             echo "-- benefits attached to recent orders' products --"
