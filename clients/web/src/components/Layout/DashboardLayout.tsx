@@ -1,7 +1,6 @@
 'use client'
 
 import { Logo } from '@/components/Brand/Logo'
-import { useAuth } from '@/hooks/auth'
 import { OrganizationContext } from '@/providers/maintainerOrganization'
 import { setLastVisitedOrg } from '@/utils/cookies'
 import { schemas } from '@/lib/api'
@@ -10,6 +9,7 @@ import {
   useSidebar,
 } from '@/components/atoms/Sidebar'
 import { Tabs, TabsList, TabsTrigger } from '@/components/atoms/Tabs'
+import StorefrontOutlined from '@mui/icons-material/StorefrontOutlined'
 import { motion } from 'motion/react'
 import Link from 'next/link'
 import {
@@ -23,7 +23,6 @@ import { DashboardProvider } from '../Dashboard/DashboardProvider'
 import { SubRouteWithActive } from '../Dashboard/navigation'
 import { useRoute } from '../Navigation/useRoute'
 import { DashboardSidebar } from './Dashboard/DashboardSidebar'
-import TopbarRight from './Public/TopbarRight'
 
 const DashboardLayout = (
   props: PropsWithChildren<{
@@ -77,11 +76,21 @@ const DashboardLayout = (
 export default DashboardLayout
 
 /**
- * Mobile-only topbar — Blyss logo + topbar-right + sidebar trigger.
- * Hidden on md+ where the inline DashboardSidebar provides the
+ * Mobile-only topbar — Blyss logo + storefront quick-link + sidebar
+ * trigger. Hidden on md+ where the inline DashboardSidebar provides the
  * navigation surface natively. The trigger uses shadcn's
  * `useSidebar()` openMobile state to toggle the Sheet drawer that
  * <Sidebar> renders for mobile.
+ *
+ * Why no account dropdown here:
+ * - Creators sign out / switch orgs from the SidebarFooter inside the
+ *   drawer (one tap on the trigger reveals it). Duplicating those
+ *   controls in the topbar created two competing entry points and
+ *   pushed the storefront jump-to off the screen on small phones.
+ * - Notifications also live in the sidebar header, surfaced by the
+ *   same drawer.
+ * Result: the topbar only carries the two highest-frequency mobile
+ * actions — open my storefront, open the nav drawer.
  */
 const MobileTopbar = ({
   type = 'organization',
@@ -92,7 +101,10 @@ const MobileTopbar = ({
   organization?: schemas['Organization']
   organizations: schemas['Organization'][]
 }) => {
-  const { currentUser } = useAuth()
+  const storefrontHref =
+    type === 'organization' && organization?.slug
+      ? `/creators/${organization.slug}`
+      : null
 
   return (
     <div className="dark:bg-polar-900 sticky top-0 z-30 flex w-full flex-row items-center justify-between bg-[var(--surface)] p-4 md:hidden">
@@ -104,8 +116,23 @@ const MobileTopbar = ({
         <Logo variant="icon" className="h-10 w-10" size="md" />
       </a>
 
-      <div className="flex flex-row items-center gap-x-6">
-        <TopbarRight authenticatedUser={currentUser} />
+      <div className="flex flex-row items-center gap-x-4">
+        {storefrontHref && (
+          <Link
+            href={storefrontHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Open my storefront in a new tab"
+            className={twMerge(
+              'flex h-10 w-10 items-center justify-center rounded-md',
+              'text-[var(--text-secondary)] transition-colors',
+              'hover:bg-[var(--surface-sunken)] hover:text-[var(--text-primary)]',
+              'dark:text-polar-300 dark:hover:bg-polar-800 dark:hover:text-white',
+            )}
+          >
+            <StorefrontOutlined fontSize="medium" />
+          </Link>
+        )}
         <SidebarTrigger />
       </div>
     </div>

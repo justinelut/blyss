@@ -6,6 +6,7 @@ import { isImpersonating } from '@/utils/impersonation'
 import ArrowOutwardOutlined from '@mui/icons-material/ArrowOutwardOutlined'
 import KeyboardArrowDown from '@mui/icons-material/KeyboardArrowDown'
 import Search from '@mui/icons-material/Search'
+import StorefrontOutlined from '@mui/icons-material/StorefrontOutlined'
 import SupportIcon from '@mui/icons-material/Support'
 import { schemas } from '@/lib/api'
 import Avatar from '@/components/atoms/Avatar'
@@ -153,6 +154,27 @@ export const DashboardSidebar = ({
         </motion.div>
       </SidebarContent>
       <SidebarFooter>
+        {/* Storefront jump-to — opens the public creator page in a new
+            tab. Most-used quick action while editing products
+            ('preview my store'). Lives above Support to be the first
+            thing the eye catches in the footer. */}
+        {type === 'organization' && organization?.slug && (
+          <Link
+            href={`/creators/${organization.slug}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={twMerge(
+              'flex cursor-pointer flex-row items-center rounded-lg border border-transparent px-2 text-sm transition-colors dark:border-transparent',
+              'dark:text-polar-500 dark:hover:text-polar-200 text-[var(--text-muted)] hover:text-black',
+              isCollapsed && '!dark:text-polar-600',
+            )}
+          >
+            <StorefrontOutlined fontSize="inherit" />
+            {!isCollapsed && (
+              <span className="ml-4 font-medium">Storefront</span>
+            )}
+          </Link>
+        )}
         <Link
           href="mailto:support@blyss.co.ke"
           className={twMerge(
