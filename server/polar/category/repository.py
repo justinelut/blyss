@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from sqlalchemy import func, select
+from sqlalchemy.orm import joinedload, selectinload
 
 from polar.kit.pagination import PaginationParams
 from polar.kit.repository import RepositoryBase, RepositoryIDMixin
@@ -30,6 +31,19 @@ class CategoryRepository(
             )
             .where(ProductCategoryAssignment.category_id == category_id)
             .where(Product.is_archived.is_(False))
+            .options(
+                # Eager-load every relationship the public Product schema
+                # accesses during validation. Without these, Product
+                # serialization in the endpoint raises MissingGreenlet on
+                # lazy='raise' columns and the response is empty/500. Mirrors
+                # the eager loads on /v1/products/public.
+                joinedload(Product.organization),
+                selectinload(Product.product_medias),
+                selectinload(Product.attached_custom_fields),
+                selectinload(Product.all_prices),
+                selectinload(Product.product_benefits),
+                selectinload(Product.medias),
+            )
             .order_by(Product.created_at.desc())
         )
 

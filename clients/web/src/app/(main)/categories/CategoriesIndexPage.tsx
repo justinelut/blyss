@@ -115,7 +115,7 @@ export const CategoriesIndexPage: React.FC<Props> = ({ categories }) => {
               }}
             >
               <Link
-                href={`/marketplace?category=${category.slug}`}
+                href={`/category/${category.slug}`}
                 className="group flex items-baseline gap-6 border-b border-[var(--border)] py-7 transition-colors hover:bg-[var(--surface-sunken)] md:gap-10"
               >
                 <span

@@ -2,9 +2,14 @@ from typing import Annotated
 from uuid import UUID
 
 import structlog
-from fastapi import Depends, Path
+from fastapi import Depends, HTTPException, Path
+from sqlalchemy import select
+from typing import Annotated
 
+from polar.auth.dependencies import Authenticator
 from polar.auth.dependencies import WebUserRead
+from polar.auth.models import AuthSubject, Customer, User
+from polar.auth.scope import Scope
 from polar.openapi import APITag
 from polar.postgres import AsyncSession, get_db_session
 from polar.routing import APIRouter
@@ -33,6 +38,54 @@ log = structlog.get_logger()
 router = APIRouter(prefix="/reviews", tags=["reviews", APITag.public])
 
 
+# Reviews are submitted from the customer portal (Customer auth via
+# customer-session-token) AND from the dashboard / public surface (User
+# auth via web cookie). Accept both — for a Customer subject we resolve
+# the underlying User by email match (Blyss binds checkout customers to
+# the buyer's User account email, so this is reliable for logged-in
+# buyers; if there's no User yet, the buyer is asked to create an
+# account before reviewing).
+_ReviewWriter = Authenticator(
+    required_scopes={
+        Scope.web_write,
+        Scope.customer_portal_write,
+    },
+    allowed_subjects={User, Customer},
+)
+ReviewWriter = Annotated[AuthSubject[User | Customer], Depends(_ReviewWriter)]
+
+
+async def _resolve_user_id(
+    session: AsyncSession, auth_subject: AuthSubject[User | Customer]
+) -> UUID:
+    """Return the User.id for either a User or Customer auth subject.
+
+    For User: trivial — auth_subject.subject.id.
+    For Customer: look up a User row by the customer's email (the buyer
+    must have a Blyss account; checkout binds customers to the user's
+    account email by design). Raises 403 if no matching user exists.
+    """
+    subject = auth_subject.subject
+    if isinstance(subject, User):
+        return subject.id
+    # Customer subject — resolve via email.
+    from polar.models.user import User as UserModel
+
+    result = await session.execute(
+        select(UserModel.id).where(UserModel.email == subject.email)
+    )
+    user_id = result.scalar_one_or_none()
+    if user_id is None:
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Reviews require a Blyss account. Sign up with the same email"
+                " you used at checkout to leave a review."
+            ),
+        )
+    return user_id
+
+
 @router.post(
     "/",
     response_model=ReviewPublic,
@@ -48,14 +101,19 @@ router = APIRouter(prefix="/reviews", tags=["reviews", APITag.public])
 )
 async def create_review(
     review_create: ReviewCreate,
-    auth_subject: WebUserRead,
+    auth_subject: ReviewWriter,
     session: AsyncSession = Depends(get_db_session),
 ) -> ReviewPublic:
-    """Create product review. Requires authentication and verified purchase."""
+    """Create product review. Requires authentication and verified purchase.
+    Accepts both Blyss user sessions (dashboard) AND customer-portal
+    sessions (the order detail page); customer auth is resolved to the
+    underlying user by email match.
+    """
+    user_id = await _resolve_user_id(session, auth_subject)
     try:
         review = await review_service.create_review(
             session,
-            auth_subject.subject.id,
+            user_id,
             review_create.product_id,
             review_create.order_id,
             review_create.rating,
@@ -64,14 +122,21 @@ async def create_review(
 
         await session.flush()
 
-        user = auth_subject.subject
+        # Fetch the resolved user for the response (avatar/name).
+        from polar.models.user import User as UserModel
+
+        user_row = (
+            await session.execute(
+                select(UserModel).where(UserModel.id == user_id)
+            )
+        ).scalar_one()
 
         return ReviewPublic(
             id=review.id,
             product_id=review.product_id,
             user_id=review.user_id,
-            user_name=user.username or user.email,
-            user_avatar=user.avatar_url,
+            user_name=user_row.username or user_row.email,
+            user_avatar=user_row.avatar_url,
             rating=review.rating,
             review_text=review.review_text,
             is_verified_purchase=review.is_verified_purchase,
