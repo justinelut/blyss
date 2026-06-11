@@ -19,6 +19,10 @@ from polar.kit.schemas import MultipleQueryFilter
 from polar.kit.sorting import Sorting, SortingGetter
 from polar.models import Product
 from polar.models.product import ProductVisibility
+from polar.models.product_category import (
+    ProductCategory,
+    ProductCategoryAssignment,
+)
 from polar.openapi import APITag
 from polar.organization.schemas import OrganizationID
 from polar.postgres import (
@@ -133,7 +137,23 @@ async def list_public_products(
         statement = statement.where(Product.name.ilike(f"%{search}%"))
 
     if category:
-        statement = statement.where(Product.user_metadata["category"].astext == category)
+        # Filter via the product_category_assignments join table on the
+        # category SLUG. Earlier we filtered Product.user_metadata['category']
+        # which was a leftover from a pre-categories model — categories are
+        # now first-class rows linked through product_category_assignments,
+        # and that metadata field is never written. The marketplace filter
+        # therefore returned zero results even when products were correctly
+        # assigned (8 ebooks → 0 visible when filtering 'ebooks').
+        statement = statement.where(
+            Product.id.in_(
+                select(ProductCategoryAssignment.product_id)
+                .join(
+                    ProductCategory,
+                    ProductCategoryAssignment.category_id == ProductCategory.id,
+                )
+                .where(ProductCategory.slug == category)
+            )
+        )
 
     if is_featured is not None:
         statement = statement.where(
