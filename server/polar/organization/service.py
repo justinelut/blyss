@@ -414,6 +414,7 @@ class OrganizationService:
             )
 
         previous_details = organization.details
+        previous_details_submitted_at = organization.details_submitted_at
         update_dict = update_schema.model_dump(
             by_alias=True,
             exclude_unset=True,
@@ -425,9 +426,40 @@ class OrganizationService:
             },
         )
 
-        # Only store details once to avoid API overrides later w/o review
-        if not previous_details and update_schema.details:
-            organization.details = update_schema.details.model_dump()
+        # Only store details once to avoid API overrides later w/o review.
+        #
+        # CRITICAL: gate on `details_submitted_at`, NOT on the `details`
+        # column itself. On organization create() the server stamps
+        # `details = {"creator_country": "ke"}` before the user has
+        # submitted anything (used by the AI country gate). The previous
+        # gate (`if not previous_details`) saw that fragment as truthy
+        # and silently skipped:
+        #   - persisting the user's actual submission
+        #   - setting `details_submitted_at`
+        #   - enqueueing organization_review.run_agent
+        # Net effect: every Kenyan creator's organization had a stale
+        # 1-key `details` row, no `details_submitted_at`, and no AI
+        # review — they had to be triggered manually from the backoffice.
+        # Bug confirmed against `current-digital-design-studios`
+        # (b244427c-cee6-458a-8341-98648acd25b3) — `has_details=t`,
+        # `details_submitted_at=NULL`, `review_rows=0`.
+        if previous_details_submitted_at is None and update_schema.details:
+            submitted = update_schema.details.model_dump()
+            # Preserve the server-stamped creator_country if present —
+            # it's authoritative (cf-ipcountry, never client-trusted)
+            # and the user's submitted details schema doesn't include it
+            # in any meaningful way. Merge user fields over server fields,
+            # then re-pin creator_country from the previous row.
+            if (
+                previous_details
+                and isinstance(previous_details, dict)
+                and previous_details.get("creator_country")
+            ):
+                submitted = {**previous_details, **submitted}
+                submitted["creator_country"] = previous_details[
+                    "creator_country"
+                ]
+            organization.details = submitted
             organization.details_submitted_at = datetime.now(UTC)
             enqueue_job(
                 "organization_review.run_agent",
