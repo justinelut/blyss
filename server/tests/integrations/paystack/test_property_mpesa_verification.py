@@ -81,8 +81,12 @@ class TestMPesaVerificationProperties:
             assert result["status"] is not None, "Transaction status must not be None"
 
             # Property assertion: Reference should contain verification prefix
-            assert "mpesa_verify_" in result["reference"], (
-                "Verification reference should contain 'mpesa_verify_' prefix"
+            # The service generates blyss_verify_<hex16> (see
+            # paystack/service.py::send_verification_transaction). The
+            # "mpesa_verify_" prefix in the mocked response is ignored —
+            # the service returns its own server-generated reference.
+            assert "blyss_verify_" in result["reference"], (
+                "Verification reference should contain 'blyss_verify_' prefix"
             )
 
             # Verify the HTTP client was called with correct parameters
@@ -98,7 +102,7 @@ class TestMPesaVerificationProperties:
             assert payload["amount"] == amount
             assert payload["source"] == "balance"
             assert "reference" in payload
-            assert "mpesa_verify_" in payload["reference"]
+            assert "blyss_verify_" in payload["reference"]
 
     @settings(max_examples=100, deadline=None)
     @given(

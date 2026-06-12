@@ -114,11 +114,18 @@ class TestMPesaVerificationTransaction:
                 amount=amount,
             )
 
-            # Verify result structure
-            assert result["status"] is True
+            # Verify result structure. The service returns the *transfer*
+            # status from Paystack's data block (queued/pending/failed),
+            # NOT the top-level HTTP success boolean — so the assertion
+            # is against "pending" (matching the mocked data.status).
+            assert result["status"] == "pending"
             assert "reference" in result
             assert "transfer_code" in result
-            assert result["reference"] == "mpesa_verify_test123"
+            # Service generates its own reference and ignores the inbound
+            # data.reference; verify the brand-prefixed format
+            # (blyss_verify_<hex>) so this stays in sync with the real
+            # reference returned to the caller.
+            assert result["reference"].startswith("blyss_verify_")
 
             # Verify API call parameters
             service._client.post.assert_called_once()
@@ -133,7 +140,7 @@ class TestMPesaVerificationTransaction:
             assert payload["amount"] == amount
             assert payload["source"] == "balance"
             assert "reference" in payload
-            assert "mpesa_verify_" in payload["reference"]
+            assert payload["reference"].startswith("blyss_verify_")
 
     @pytest.mark.asyncio
     async def test_default_verification_amount(self) -> None:
@@ -169,8 +176,9 @@ class TestMPesaVerificationTransaction:
                 mpesa_number=mpesa_number,
             )
 
-            # Verify result
-            assert result["status"] is True
+            # Verify result. Status is the Paystack transfer status from
+            # data.status — NOT the top-level HTTP success boolean.
+            assert result["status"] == "pending"
 
             # Verify default amount was used
             call_args = service._client.post.call_args
