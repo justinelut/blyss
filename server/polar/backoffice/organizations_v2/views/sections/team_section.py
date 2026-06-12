@@ -108,7 +108,33 @@ class TeamSection:
                                                 self.admin_user
                                                 and member.user_id == self.admin_user.id
                                             )
-                                            if not member_is_admin:
+                                            # The "Make Admin" action only applies to
+                                            # legacy upstream Stripe-Connect orgs — it
+                                            # delegates to account.change_admin which
+                                            # requires a Stripe account_id and a
+                                            # verified Stripe Connect identity. Blyss
+                                            # runs Paystack and never creates Stripe
+                                            # accounts, so the button 400s instantly
+                                            # ("Organization has no account") on every
+                                            # Kenyan org. Hide it unless a Stripe
+                                            # account exists; the existing "No Stripe
+                                            # account connected" hint below already
+                                            # explains the restriction to operators.
+                                            stripe_account_present = (
+                                                hasattr(self.org, "account")
+                                                and self.org.account is not None
+                                                and bool(
+                                                    getattr(
+                                                        self.org.account,
+                                                        "stripe_id",
+                                                        None,
+                                                    )
+                                                )
+                                            )
+                                            if (
+                                                not member_is_admin
+                                                and stripe_account_present
+                                            ):
                                                 with tag.li():
                                                     with tag.a(
                                                         hx_post=str(

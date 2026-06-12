@@ -2449,7 +2449,26 @@ async def make_admin(
         from polar.account.service import account as account_service
 
         if not organization.account:
-            raise HTTPException(status_code=400, detail="Organization has no account")
+            # Blyss runs Paystack — Stripe Connect Account rows are
+            # never created for Kenyan orgs. The legacy 'change_admin'
+            # path is Stripe-specific (delegates to Stripe Connect
+            # identity verification). Surface that to the operator
+            # instead of a generic "no account" error so they don't
+            # think the org is corrupted. Per-user admin roles inside
+            # an org are not modeled in Blyss yet — UserOrganization
+            # has no role column. Until that ships, every member is
+            # equivalent and there's nothing to promote.
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "This action requires a Stripe Connect account, "
+                    "which Blyss/Paystack organizations do not use. "
+                    "Per-user admin promotion inside an org is not "
+                    "currently modeled — every UserOrganization member "
+                    "has the same effective access. Use 'Remove Member' "
+                    "to manage team membership."
+                ),
+            )
 
         await account_service.change_admin(
             session, organization.account, user_id, organization_id
