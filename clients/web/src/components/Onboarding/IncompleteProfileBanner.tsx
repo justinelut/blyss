@@ -67,9 +67,13 @@ export const IncompleteProfileBanner = ({
             Finish your storefront
           </p>
           <p className="font-sans text-[14px] leading-[1.5] text-[var(--text-secondary)]">
-            Add a {formatList(gaps)} so your public creator page reads
-            like a real shop. Buyers don&rsquo;t trust unfinished
-            stores.
+            {/* Single template-literal so JSX can't eat the leading
+                space of the next text segment after {formatList(gaps)}.
+                The previous "Add a {formatList(gaps)} so your..."
+                spread the sentence across multiple JSX text nodes,
+                and certain wrap conditions rendered "bioso" with no
+                space between the last gap and "so". */}
+            {`Add a ${formatList(gaps)} so your public creator page reads like a real shop. Buyers don\u2019t trust unfinished stores.`}
           </p>
         </div>
       </div>
