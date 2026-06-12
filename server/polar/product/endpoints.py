@@ -111,6 +111,7 @@ async def list_public_products(
         ProductPriceCustom,
         ProductPriceFixed,
     )
+    from polar.organization.visibility import public_organization_filters
 
     repository = ProductRepository.from_session(session)
 
@@ -121,15 +122,13 @@ async def list_public_products(
             Product.is_archived.is_(False),
             Product.is_deleted.is_(False),
             Product.visibility == ProductVisibility.public,
-            # Active-subaccount gate. A creator whose Paystack subaccount is
-            # not 'active' (suspended / pending verification / closed) cannot
-            # legally receive a payout for a sale. Surfacing their products
-            # to buyers leads to the dreaded 'inactive_subaccount' error at
-            # checkout — a great way to lose a sale forever. Hide their
-            # products from public lists until the subaccount is reactivated.
-            # Creators still see their full catalogue in their dashboard
-            # with a banner explaining why public visibility is paused.
-            Organization.subaccount_status == "active",
+            # Centralized 'creator is publicly listable' gate — covers
+            # is_deleted, blocked_at, status='active' (post-AI-review),
+            # and subaccount_status='active' (Paystack subaccount can
+            # actually receive a payout). Pre-review creators no longer
+            # leak their products into the marketplace before the
+            # platform has formed an opinion.
+            *public_organization_filters(),
         )
     )
 
@@ -495,18 +494,24 @@ async def get_product_by_slug(
     if product is None:
         raise ResourceNotFound()
 
-    # Active-subaccount gate. A buyer landing on a product whose creator's
-    # subaccount is not 'active' would hit an 'inactive_subaccount' error
-    # at checkout — terrible UX. 404 hides the product from public surfaces
-    # until the creator reactivates payouts.
+    # Public-visibility gate. A buyer landing on a product whose creator
+    # is not yet publicly listable would either:
+    #   - hit an 'inactive_subaccount' error at checkout (subaccount
+    #     not yet verified by Paystack), or
+    #   - be sold a product from an org the platform hasn't AI-reviewed
+    #     yet (status != 'active'), risking a refund-and-apologise if
+    #     the org is later denied.
+    # 404 hides the product from public surfaces until BOTH the
+    # subaccount is active and the AI review has approved.
     #
-    # EXCEPTION: the owning creator can always preview their own product,
-    # even when their subaccount is inactive. Otherwise they'd publish a
-    # product, hit 404 on their own PDP, and think the platform is
-    # broken. Same goes for any user who's a member of the owning org.
-    if (
-        product.organization is not None
-        and getattr(product.organization, "subaccount_status", None) != "active"
+    # EXCEPTION: the owning creator (or any member of the owning org)
+    # can always preview their own product. Otherwise they'd publish
+    # a product, hit 404 on their own PDP, and think the platform is
+    # broken — the dashboard preview links target this same endpoint.
+    org = product.organization
+    if org is not None and (
+        getattr(org, "subaccount_status", None) != "active"
+        or str(getattr(org, "status", "")) != "active"
     ):
         from polar.auth.models import is_user
         from polar.models.user_organization import UserOrganization

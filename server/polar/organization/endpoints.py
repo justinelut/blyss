@@ -88,11 +88,9 @@ async def list_public_organizations(
     from sqlalchemy.orm import selectinload
 
     from polar.models import Organization
+    from polar.organization.visibility import public_organization_filters
 
-    statement = select(Organization).where(
-        Organization.is_deleted.is_(False),
-        Organization.blocked_at.is_(None),
-    )
+    statement = select(Organization).where(*public_organization_filters())
 
     # Skip is_featured filter for now since profile_settings might not be set
     # if is_featured is not None:

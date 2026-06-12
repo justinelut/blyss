@@ -410,6 +410,11 @@ class TestGetPaymentStatus:
     ) -> None:
         # Make this a new organization (not grandfathered)
         organization.created_at = datetime(2025, 8, 4, 12, 0, tzinfo=UTC)
+        # Test fixture defaults status to ACTIVE so the public-visibility
+        # gate doesn't 404 marketplace tests. These payment-status tests
+        # exercise the pre-activation flow, so explicitly reset to CREATED.
+        from polar.models.organization import OrganizationStatus
+        organization.status = OrganizationStatus.CREATED
         await save_fixture(organization)
 
         response = await client.get(
@@ -449,6 +454,11 @@ class TestGetPaymentStatus:
     ) -> None:
         # Make this a new organization (not grandfathered)
         organization.created_at = datetime(2025, 8, 4, 12, 0, tzinfo=UTC)
+        # Test fixture defaults status to ACTIVE so the public-visibility
+        # gate doesn't 404 marketplace tests. These payment-status tests
+        # exercise the pre-activation flow, so explicitly reset to CREATED.
+        from polar.models.organization import OrganizationStatus
+        organization.status = OrganizationStatus.CREATED
         await save_fixture(organization)
 
         response = await client.get(
@@ -481,6 +491,11 @@ class TestGetPaymentStatus:
     ) -> None:
         # Make this a new organization (not grandfathered)
         organization.created_at = datetime(2025, 8, 4, 12, 0, tzinfo=UTC)
+        # Test fixture defaults status to ACTIVE so the public-visibility
+        # gate doesn't 404 marketplace tests. These payment-status tests
+        # exercise the pre-activation flow, so explicitly reset to CREATED.
+        from polar.models.organization import OrganizationStatus
+        organization.status = OrganizationStatus.CREATED
         await save_fixture(organization)
 
         response = await client.get(
@@ -506,6 +521,11 @@ class TestGetPaymentStatus:
     ) -> None:
         # Make this a new organization (not grandfathered)
         organization.created_at = datetime(2025, 8, 4, 12, 0, tzinfo=UTC)
+        # Test fixture defaults status to ACTIVE so the public-visibility
+        # gate doesn't 404 marketplace tests. These payment-status tests
+        # exercise the pre-activation flow, so explicitly reset to CREATED.
+        from polar.models.organization import OrganizationStatus
+        organization.status = OrganizationStatus.CREATED
         await save_fixture(organization)
 
         # Mock the API key count

@@ -1518,13 +1518,11 @@ class OrganizationService:
         from sqlalchemy.orm import selectinload
 
         from polar.models import Product
+        from polar.organization.visibility import public_organization_filters
 
         statement = (
             select(Organization)
-            .where(
-                Organization.is_deleted.is_(False),
-                Organization.blocked_at.is_(None),
-            )
+            .where(*public_organization_filters())
             .options(selectinload(Organization.products))
         )
 
@@ -1559,13 +1557,13 @@ class OrganizationService:
 
         from polar.models import Product
         from polar.models.product_benefit import ProductBenefit
+        from polar.organization.visibility import public_organization_filters
 
         statement = (
             select(Organization)
             .where(
                 Organization.slug == slug,
-                Organization.is_deleted.is_(False),
-                Organization.blocked_at.is_(None),
+                *public_organization_filters(),
             )
             .options(
                 # Eagerly load the relationships the public Product schema

@@ -150,6 +150,16 @@ async def create_organization(
         from polar.models.organization import SubaccountStatus
         kwargs["subaccount_status"] = SubaccountStatus.ACTIVE
 
+    # Default test orgs to status='active' so the public-visibility gate
+    # in polar.organization.visibility.public_organization_filters() lets
+    # them surface in marketplace / category / creators / storefront
+    # endpoints. Tests that exercise the pre-review or denied paths can
+    # override by passing status=OrganizationStatus.CREATED / DENIED /
+    # INITIAL_REVIEW etc. explicitly.
+    if "status" not in kwargs:
+        from polar.models.organization import OrganizationStatus
+        kwargs["status"] = OrganizationStatus.ACTIVE
+
     organization = Organization(
         name=name,
         slug=name,
