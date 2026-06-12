@@ -64,9 +64,8 @@ class TeamSection:
                                         with tag.div(
                                             classes="text-sm text-base-content/60"
                                         ):
-                                            is_admin = (
-                                                self.admin_user
-                                                and member.user_id == self.admin_user.id
+                                            is_admin = bool(
+                                                getattr(member, "is_admin", False)
                                             )
                                             role_text = (
                                                 "Admin" if is_admin else "Member"
@@ -104,37 +103,17 @@ class TeamSection:
                                             classes="dropdown-content menu shadow bg-base-100 rounded-box w-52 z-10",
                                             **{"tabindex": "0"},
                                         ):
-                                            member_is_admin = (
-                                                self.admin_user
-                                                and member.user_id == self.admin_user.id
+                                            member_is_admin = bool(
+                                                getattr(member, "is_admin", False)
                                             )
-                                            # The "Make Admin" action only applies to
-                                            # legacy upstream Stripe-Connect orgs — it
-                                            # delegates to account.change_admin which
-                                            # requires a Stripe account_id and a
-                                            # verified Stripe Connect identity. Blyss
-                                            # runs Paystack and never creates Stripe
-                                            # accounts, so the button 400s instantly
-                                            # ("Organization has no account") on every
-                                            # Kenyan org. Hide it unless a Stripe
-                                            # account exists; the existing "No Stripe
-                                            # account connected" hint below already
-                                            # explains the restriction to operators.
-                                            stripe_account_present = (
-                                                hasattr(self.org, "account")
-                                                and self.org.account is not None
-                                                and bool(
-                                                    getattr(
-                                                        self.org.account,
-                                                        "stripe_id",
-                                                        None,
-                                                    )
-                                                )
-                                            )
-                                            if (
-                                                not member_is_admin
-                                                and stripe_account_present
-                                            ):
+                                            # Blyss-native admin role lives on
+                                            # UserOrganization.is_admin (no Stripe
+                                            # Connect involvement). Show "Make Admin"
+                                            # for non-admins and "Revoke Admin" for
+                                            # admins. The service refuses to revoke
+                                            # the last admin so the org always has
+                                            # an owner.
+                                            if not member_is_admin:
                                                 with tag.li():
                                                     with tag.a(
                                                         hx_post=str(
@@ -147,6 +126,19 @@ class TeamSection:
                                                         hx_confirm="Make this user an admin?",
                                                     ):
                                                         text("Make Admin")
+                                            else:
+                                                with tag.li():
+                                                    with tag.a(
+                                                        hx_post=str(
+                                                            request.url_for(
+                                                                "organizations:revoke_admin",
+                                                                organization_id=self.org.id,
+                                                                user_id=member.user_id,
+                                                            )
+                                                        ),
+                                                        hx_confirm="Revoke admin from this user?",
+                                                    ):
+                                                        text("Revoke Admin")
                                             with tag.li():
                                                 with tag.a(
                                                     hx_delete=str(

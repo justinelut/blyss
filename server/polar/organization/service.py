@@ -717,8 +717,26 @@ class OrganizationService:
     ) -> None:
         nested = await session.begin_nested()
         try:
+            # First-member auto-promote: if this organization has no
+            # other members yet, the user being added is the founder
+            # — promote them straight to admin so payout decisions /
+            # backoffice handoffs always have an owner without a
+            # separate setup step. Subsequent members default to
+            # is_admin=False; the backoffice "Make Admin" promotes
+            # them when needed.
+            existing_count_stmt = sql.select(sql.func.count()).where(
+                UserOrganization.organization_id == organization.id,
+                UserOrganization.is_deleted.is_(False),
+            )
+            existing_count = (
+                await session.execute(existing_count_stmt)
+            ).scalar_one()
+            should_be_admin = existing_count == 0
+
             relation = UserOrganization(
-                user_id=user.id, organization_id=organization.id
+                user_id=user.id,
+                organization_id=organization.id,
+                is_admin=should_be_admin,
             )
             session.add(relation)
             await session.flush()
@@ -726,6 +744,7 @@ class OrganizationService:
                 "organization.add_user.created",
                 user_id=user.id,
                 organization_id=organization.id,
+                is_admin=should_be_admin,
             )
         except IntegrityError:
             # TODO: Currently, we treat this as success since the connection

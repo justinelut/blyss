@@ -180,5 +180,89 @@ class UserOrganizationService:
 
         return stmt
 
+    async def set_admin(
+        self,
+        session: AsyncSession,
+        organization_id: UUID,
+        user_id: UUID,
+    ) -> UserOrganization:
+        """Promote a user to admin of an organization.
+
+        Blyss-native (Paystack) replacement for the legacy
+        account_service.change_admin path which only worked for
+        Stripe-Connect orgs and 400'd on every Kenyan org.
+
+        Behavior:
+        - Verifies the (user, org) UserOrganization row exists and
+          is not soft-deleted; raises ValueError otherwise.
+        - Sets is_admin=True on that row.
+        - Idempotent: re-promoting an already-admin user is a no-op
+          (the UPDATE matches but flips a value already TRUE).
+        - Multiple admins per org are allowed by design — handing off
+          shouldn't require a privileged-action dance.
+        """
+        membership_stmt = sql.select(UserOrganization).where(
+            UserOrganization.user_id == user_id,
+            UserOrganization.organization_id == organization_id,
+            UserOrganization.is_deleted.is_(False),
+        )
+        result = await session.execute(membership_stmt)
+        membership = result.scalar_one_or_none()
+        if membership is None:
+            raise ValueError(
+                f"user {user_id} is not a member of organization "
+                f"{organization_id}; promote rejected"
+            )
+
+        membership.is_admin = True
+        await session.flush()
+        return membership
+
+    async def revoke_admin(
+        self,
+        session: AsyncSession,
+        organization_id: UUID,
+        user_id: UUID,
+    ) -> UserOrganization:
+        """Revoke admin from a user within an organization.
+
+        Mirror of set_admin. Will refuse to revoke the LAST admin so
+        an org never ends up with zero owners — the operator must
+        promote a replacement first.
+        """
+        membership_stmt = sql.select(UserOrganization).where(
+            UserOrganization.user_id == user_id,
+            UserOrganization.organization_id == organization_id,
+            UserOrganization.is_deleted.is_(False),
+        )
+        result = await session.execute(membership_stmt)
+        membership = result.scalar_one_or_none()
+        if membership is None:
+            raise ValueError(
+                f"user {user_id} is not a member of organization "
+                f"{organization_id}; revoke rejected"
+            )
+        if not membership.is_admin:
+            return membership  # already not an admin — no-op
+
+        # Refuse to remove the last admin. Counting via a separate
+        # query keeps the predicate explicit and easy to read in logs.
+        admin_count_stmt = sql.select(sql.func.count()).where(
+            UserOrganization.organization_id == organization_id,
+            UserOrganization.is_deleted.is_(False),
+            UserOrganization.is_admin.is_(True),
+        )
+        admin_count = (await session.execute(admin_count_stmt)).scalar_one()
+        if admin_count <= 1:
+            raise ValueError(
+                f"cannot revoke admin from {user_id}: they are the "
+                f"last admin of organization {organization_id}. "
+                f"Promote a replacement first."
+            )
+
+        membership.is_admin = False
+        await session.flush()
+        return membership
+
 
 user_organization = UserOrganizationService()

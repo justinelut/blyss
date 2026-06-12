@@ -2444,37 +2444,87 @@ async def make_admin(
     if not organization:
         raise HTTPException(status_code=404, detail="Organization not found")
 
-    # Change the admin user
+    # Promote the user to admin of the organization. Blyss runs Paystack
+    # — we never go through Stripe Connect's account_service.change_admin
+    # (which required organization.account + Stripe identity verification
+    # and 400'd on every Kenyan org). Instead, the admin role is stored
+    # on UserOrganization.is_admin directly. The service method verifies
+    # membership and refuses to promote non-members.
     try:
-        from polar.account.service import account as account_service
-
-        if not organization.account:
-            # Blyss runs Paystack — Stripe Connect Account rows are
-            # never created for Kenyan orgs. The legacy 'change_admin'
-            # path is Stripe-specific (delegates to Stripe Connect
-            # identity verification). Surface that to the operator
-            # instead of a generic "no account" error so they don't
-            # think the org is corrupted. Per-user admin roles inside
-            # an org are not modeled in Blyss yet — UserOrganization
-            # has no role column. Until that ships, every member is
-            # equivalent and there's nothing to promote.
-            raise HTTPException(
-                status_code=400,
-                detail=(
-                    "This action requires a Stripe Connect account, "
-                    "which Blyss/Paystack organizations do not use. "
-                    "Per-user admin promotion inside an org is not "
-                    "currently modeled — every UserOrganization member "
-                    "has the same effective access. Use 'Remove Member' "
-                    "to manage team membership."
-                ),
-            )
-
-        await account_service.change_admin(
-            session, organization.account, user_id, organization_id
+        from polar.user_organization.service import (
+            user_organization as user_organization_service,
         )
+
+        await user_organization_service.set_admin(
+            session,
+            organization_id=organization.id,
+            user_id=user_id,
+        )
+    except ValueError as e:
+        # Service raises ValueError for the membership check (the only
+        # business-rule failure for promote). Surface it directly so
+        # the operator sees "user X is not a member of org Y" rather
+        # than a generic 400.
+        logger.warning(
+            "make_admin.rejected",
+            organization_id=str(organization.id),
+            user_id=str(user_id),
+            error=str(e),
+        )
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error("Failed to make user admin", error=str(e))
+        raise HTTPException(status_code=400, detail=str(e))
+
+    redirect_url = (
+        str(request.url_for("organizations:detail", organization_id=organization_id))
+        + "?section=team"
+    )
+    return HXRedirectResponse(request, redirect_url, 303)
+
+
+@router.post(
+    "/{organization_id}/revoke-admin/{user_id}",
+    name="organizations:revoke_admin",
+)
+async def revoke_admin(
+    request: Request,
+    organization_id: UUID4,
+    user_id: UUID4,
+    session: AsyncSession = Depends(get_db_session),
+) -> HXRedirectResponse:
+    """Revoke admin from a user within an organization.
+
+    Companion to make_admin. The service refuses to revoke the last
+    admin so an org always has at least one owner — promote a
+    replacement first.
+    """
+    repository = OrganizationRepository(session)
+
+    organization = await repository.get_by_id(organization_id, include_blocked=True)
+    if not organization:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    try:
+        from polar.user_organization.service import (
+            user_organization as user_organization_service,
+        )
+
+        await user_organization_service.revoke_admin(
+            session,
+            organization_id=organization.id,
+            user_id=user_id,
+        )
+    except ValueError as e:
+        logger.warning(
+            "revoke_admin.rejected",
+            organization_id=str(organization.id),
+            user_id=str(user_id),
+            error=str(e),
+        )
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error("Failed to revoke admin", error=str(e))
         raise HTTPException(status_code=400, detail=str(e))
 
     redirect_url = (
