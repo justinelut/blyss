@@ -1,6 +1,7 @@
 'use client'
 
 import Input from '@/components/atoms/Input'
+import { useDisplayCurrency } from '@/components/Marketplace/CurrencyProvider'
 import {
   Dialog,
   DialogContent,
@@ -17,7 +18,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Textarea } from '@/components/ui/textarea'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { DonationPaymentInterface } from './DonationPaymentInterface'
 
@@ -35,11 +36,25 @@ interface DonationFormData {
   message?: string
 }
 
-const MIN_KES = 50
-const MAX_KES = 50_000
+// Per-currency tip bounds, in MAJOR units (the input's natural scale).
+// Backend mirror: server/polar/donation/schemas.py::DONATION_BOUNDS
+// Add a row here when expanding regions; the input + validator + payment
+// interface all read from this map.
+const TIP_BOUNDS: Record<string, { min: number; max: number; symbol: string; labelCode: string }> = {
+  KES: { min: 50, max: 50_000, symbol: 'KSh', labelCode: 'KES' },
+  USD: { min: 1, max: 500, symbol: 'US$', labelCode: 'USD' },
+}
+
+const DEFAULT_TIP_BOUNDS = TIP_BOUNDS.KES
 
 /**
  * DonationModal — inline Paystack-native tipping.
+ *
+ * Currency-aware: reads the visitor's display currency (geo-derived) and
+ * uses the matching min/max bounds, currency symbol, and Paystack channel
+ * set. A US visitor sees `US$ 1 - US$ 500`, a KE visitor sees `KSh 50 -
+ * KSh 50,000`. The backend accepts the visitor currency and Paystack's
+ * server-side FX handles conversion to the creator's KES subaccount.
  *
  * Fixed: overflow-hidden on content, min-w-0 on form to prevent child elements
  * from pushing the dialog wider than viewport. Mobile-first responsive at
@@ -51,6 +66,10 @@ export const DonationModal = ({
   creatorSlug,
   creatorName,
 }: DonationModalProps) => {
+  const displayCurrency = useDisplayCurrency()
+  const currency = displayCurrency.toUpperCase()
+  const bounds = TIP_BOUNDS[currency] ?? DEFAULT_TIP_BOUNDS
+
   const form = useForm<DonationFormData>({
     mode: 'onChange',
     defaultValues: { amount: '', donor_name: '', donor_email: '', message: '' },
@@ -64,13 +83,24 @@ export const DonationModal = ({
   const donorName = watch('donor_name')
   const message = watch('message')
 
-  const amountKes = parseFloat(amountStr || '')
+  const amountMajor = parseFloat(amountStr || '')
   const amountValid =
-    !Number.isNaN(amountKes) && amountKes >= MIN_KES && amountKes <= MAX_KES
+    !Number.isNaN(amountMajor) &&
+    amountMajor >= bounds.min &&
+    amountMajor <= bounds.max
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(donorEmail || '')
   const canPay = amountValid && emailValid && !formState.errors.amount
 
-  const amountMinorUnits = amountValid ? Math.round(amountKes * 100) : 0
+  // Send minor units (kobo / cents) to the backend — Paystack works in
+  // minor units regardless of currency.
+  const amountMinorUnits = amountValid ? Math.round(amountMajor * 100) : 0
+
+  // Helpful upper bound formatted with thousands separators for the
+  // error message so "Maximum tip is US$ 500" reads cleanly.
+  const formattedMax = useMemo(
+    () => bounds.max.toLocaleString(),
+    [bounds.max],
+  )
 
   const handleClose = () => {
     if (autoCloseRef.current) clearTimeout(autoCloseRef.current)
@@ -152,9 +182,10 @@ export const DonationModal = ({
                     },
                     validate: (value) => {
                       const amount = parseFloat(value)
-                      if (amount < MIN_KES) return `Minimum tip is KES ${MIN_KES}`
-                      if (amount > MAX_KES)
-                        return `Maximum tip is KES ${MAX_KES.toLocaleString()}`
+                      if (amount < bounds.min)
+                        return `Minimum tip is ${bounds.symbol} ${bounds.min}`
+                      if (amount > bounds.max)
+                        return `Maximum tip is ${bounds.symbol} ${formattedMax}`
                       return true
                     },
                   }}
@@ -164,12 +195,14 @@ export const DonationModal = ({
                       <FormControl>
                         <div className="relative">
                           <span className="absolute top-1/2 left-3 -translate-y-1/2 text-sm text-[var(--text-muted)]">
-                            KES
+                            {bounds.labelCode}
                           </span>
                           <Input
                             type="text"
                             inputMode="decimal"
-                            placeholder="500"
+                            placeholder={
+                              currency === 'USD' ? '5' : '500'
+                            }
                             className="w-full pl-14 text-base sm:text-sm"
                             {...field}
                           />
@@ -260,6 +293,7 @@ export const DonationModal = ({
                 <DonationPaymentInterface
                   slug={creatorSlug}
                   amount={amountMinorUnits}
+                  currency={currency}
                   donorEmail={donorEmail}
                   donorName={donorName}
                   message={message}

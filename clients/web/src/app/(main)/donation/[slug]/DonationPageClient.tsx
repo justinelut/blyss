@@ -13,13 +13,14 @@
  * to single column with sticky bottom payment CTA.
  */
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion, useReducedMotion } from 'motion/react'
 import { useForm } from 'react-hook-form'
 import { OptimizedImage } from '@/components/Image/OptimizedImage'
 import { DonationPaymentInterface } from '@/components/Donation/DonationPaymentInterface'
+import { useDisplayCurrency } from '@/components/Marketplace/CurrencyProvider'
 import {
   Form,
   FormControl,
@@ -51,15 +52,39 @@ interface DonationFormData {
   message?: string
 }
 
-const MIN_KES = 50
-const MAX_KES = 50_000
+// Per-currency tip bounds + UI presets, in MAJOR units. Mirror of
+// server/polar/donation/schemas.py::DONATION_BOUNDS. Add a row when
+// expanding regions.
+const TIP_BOUNDS: Record<
+  string,
+  { min: number; max: number; symbol: string; labelCode: string; presets: readonly string[] }
+> = {
+  KES: {
+    min: 50,
+    max: 50_000,
+    symbol: 'KSh',
+    labelCode: 'KES',
+    presets: ['200', '500', '1000', '2500'],
+  },
+  USD: {
+    min: 1,
+    max: 500,
+    symbol: 'US$',
+    labelCode: 'USD',
+    presets: ['5', '10', '25', '50'],
+  },
+}
 
-const PRESET_AMOUNTS = ['200', '500', '1000', '2500'] as const
+const DEFAULT_TIP_BOUNDS = TIP_BOUNDS.KES
 
 export function DonationPageClient({ creator }: DonationPageClientProps) {
   const router = useRouter()
   const reduce = useReducedMotion()
   const ease = [0.32, 0.72, 0, 1] as const
+
+  const displayCurrency = useDisplayCurrency()
+  const currency = displayCurrency.toUpperCase()
+  const bounds = TIP_BOUNDS[currency] ?? DEFAULT_TIP_BOUNDS
 
   const form = useForm<DonationFormData>({
     mode: 'onChange',
@@ -74,12 +99,21 @@ export function DonationPageClient({ creator }: DonationPageClientProps) {
   const donorName = watch('donor_name')
   const message = watch('message')
 
-  const amountKes = parseFloat(amountStr || '')
+  const amountMajor = parseFloat(amountStr || '')
   const amountValid =
-    !Number.isNaN(amountKes) && amountKes >= MIN_KES && amountKes <= MAX_KES
+    !Number.isNaN(amountMajor) &&
+    amountMajor >= bounds.min &&
+    amountMajor <= bounds.max
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(donorEmail || '')
   const canPay = amountValid && emailValid && !formState.errors.amount
-  const amountMinorUnits = amountValid ? Math.round(amountKes * 100) : 0
+  const amountMinorUnits = amountValid ? Math.round(amountMajor * 100) : 0
+
+  // Memoize formatted bounds for the validator + helper text so every
+  // render gets stable strings.
+  const formattedMax = useMemo(
+    () => bounds.max.toLocaleString(),
+    [bounds.max],
+  )
 
   // Auto-redirect to creator page after success.
   useEffect(() => {
@@ -177,7 +211,7 @@ export function DonationPageClient({ creator }: DonationPageClientProps) {
               <div className="flex flex-col gap-3">
                 <Eyebrow>Amount</Eyebrow>
                 <div className="flex flex-wrap gap-2">
-                  {PRESET_AMOUNTS.map((preset) => {
+                  {bounds.presets.map((preset) => {
                     const active = amountStr === preset
                     return (
                       <button
@@ -192,7 +226,10 @@ export function DonationPageClient({ creator }: DonationPageClientProps) {
                             : 'border-[var(--border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:bg-[var(--surface-sunken)] hover:text-[var(--text-primary)]',
                         )}
                       >
-                        KSh {Number(preset).toLocaleString('en-KE')}
+                        {bounds.symbol}{' '}
+                        {currency === 'USD'
+                          ? Number(preset).toLocaleString('en-US')
+                          : Number(preset).toLocaleString('en-KE')}
                       </button>
                     )
                   })}
@@ -209,26 +246,27 @@ export function DonationPageClient({ creator }: DonationPageClientProps) {
                     },
                     validate: (value) => {
                       const amount = parseFloat(value)
-                      if (amount < MIN_KES) return `Minimum tip is KES ${MIN_KES}`
-                      if (amount > MAX_KES)
-                        return `Maximum tip is KES ${MAX_KES.toLocaleString()}`
+                      if (amount < bounds.min)
+                        return `Minimum tip is ${bounds.symbol} ${bounds.min}`
+                      if (amount > bounds.max)
+                        return `Maximum tip is ${bounds.symbol} ${formattedMax}`
                       return true
                     },
                   }}
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="font-sans text-[11px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
-                        Or enter a custom amount (KES)
+                        Or enter a custom amount ({bounds.labelCode})
                       </FormLabel>
                       <FormControl>
                         <div className="relative">
                           <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 font-sans text-sm tabular-nums text-[var(--text-muted)]">
-                            KSh
+                            {bounds.symbol}
                           </span>
                           <Input
                             type="text"
                             inputMode="decimal"
-                            placeholder="500"
+                            placeholder={currency === 'USD' ? '5' : '500'}
                             className="w-full pl-12 tabular-nums"
                             {...field}
                           />
@@ -325,6 +363,7 @@ export function DonationPageClient({ creator }: DonationPageClientProps) {
               <DonationPaymentInterface
                 slug={creator.slug}
                 amount={amountMinorUnits}
+                currency={currency}
                 donorEmail={donorEmail}
                 donorName={donorName}
                 message={message}

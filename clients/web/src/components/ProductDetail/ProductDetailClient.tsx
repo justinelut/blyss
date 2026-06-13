@@ -22,7 +22,8 @@ import { useIsInWishlist, useAddToWishlist, useRemoveFromWishlist } from '@/hook
 import { useAuth } from '@/hooks'
 import { Modal } from '@/components/Modal'
 import { AuthModal } from '@/components/Auth/AuthModal'
-import { useCurrencyControls } from '@/components/Marketplace/CurrencyProvider'
+import { useCurrencyControls, useDisplayCurrency } from '@/components/Marketplace/CurrencyProvider'
+import { findPriceForCurrency } from '@/lib/currency/marketplace'
 import {
   ProductImageGallery,
   ProductInfoColumn,
@@ -205,13 +206,24 @@ function MobileBuyBar({
   onBuy: () => void
   isBuyLoading: boolean
 }) {
+  // Pick the price in the visitor's display currency (geo-derived) so a
+  // /us visitor never sees a KES sticker on mobile while the desktop
+  // buy-box correctly shows USD. Falls back to the first price only when
+  // the product has nothing in the visitor's currency — and in that
+  // case the server-side endpoint should have 404'd the product
+  // already (region gate), so this is purely defensive.
+  const displayCurrency = useDisplayCurrency()
   const prices = (product.prices ?? []) as Array<{
     price_amount?: number
     price_currency?: string
   }>
-  const price = prices[0]
+  const price =
+    (findPriceForCurrency(product, displayCurrency) as
+      | { price_amount?: number; price_currency?: string }
+      | undefined) ??
+    prices[0]
   const amount = price?.price_amount ?? 0
-  const currency = (price?.price_currency ?? 'usd').toUpperCase()
+  const currency = (price?.price_currency ?? displayCurrency).toUpperCase()
   const major = amount / 100
   const priceLabel =
     amount === 0

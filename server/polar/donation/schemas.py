@@ -6,10 +6,23 @@ from pydantic import EmailStr, Field, model_validator
 
 from polar.kit.schemas import Schema
 
-# Donation amount bounds, in KES "cents" (Paystack works in the minor unit).
-# Brief: min KES 50, max KES 50,000 → 5_000 .. 5_000_000 minor units.
-MIN_DONATION_AMOUNT = 5_000
-MAX_DONATION_AMOUNT = 5_000_000
+# Per-currency donation bounds, expressed in Paystack's smallest unit.
+# Paystack uses kobo / cents — multiply major × 100. Bounds chosen so:
+#   - KES 50 .. KES 50,000 (covers M-Pesa STK + card cap for tipping)
+#   - USD 1 .. USD 500 (rough KES-equivalent ceiling at ~KES 65,000)
+# Add new currencies here when expanding regions; the rest of the
+# pipeline reads from this dict so a single edit lights up the new
+# currency end-to-end.
+DONATION_BOUNDS: dict[str, tuple[int, int]] = {
+    "KES": (5_000, 5_000_000),
+    "USD": (100, 50_000),
+}
+
+# Backwards-compat re-exports for older imports. Both default to KES
+# bounds so legacy callers keep working until they migrate to the
+# currency-aware path.
+MIN_DONATION_AMOUNT = DONATION_BOUNDS["KES"][0]
+MAX_DONATION_AMOUNT = DONATION_BOUNDS["KES"][1]
 
 
 class DonationCreate(Schema):
@@ -50,13 +63,31 @@ class DonationInitiateResponse(Schema):
 
 
 class DonationChargeRequest(Schema):
-    """Initiate an inline Paystack charge for a tip against a creator."""
+    """Initiate an inline Paystack charge for a tip against a creator.
+
+    Currency is visitor-derived (frontend reads display currency from
+    the geo context, sends it here). Paystack handles FX server-side
+    so a /us visitor can tip a Kenyan creator in USD and the creator's
+    KES subaccount still settles correctly.
+    """
 
     amount: int = Field(
         ...,
-        ge=MIN_DONATION_AMOUNT,
-        le=MAX_DONATION_AMOUNT,
-        description="Tip amount in KES minor units (KES 50 – KES 50,000).",
+        ge=1,
+        description=(
+            "Tip amount in the smallest unit of the chosen currency "
+            "(KES kobo or USD cents). Must fall within DONATION_BOUNDS "
+            "for the chosen currency — enforced by the validator below."
+        ),
+    )
+    currency: Literal["KES", "USD"] = Field(
+        default="KES",
+        description=(
+            "ISO 4217 code. Defaults to KES for backwards-compat with "
+            "old clients; modern frontend always sends the visitor's "
+            "display currency. New currencies require a row in "
+            "DONATION_BOUNDS plus a Paystack-supported subaccount."
+        ),
     )
     donor_name: str | None = Field(
         None, max_length=255, description="Optional donor display name."
@@ -89,6 +120,21 @@ class DonationChargeRequest(Schema):
     qr_provider: str | None = None
     # EFT
     eft_provider: str | None = None
+
+    @model_validator(mode="after")
+    def _validate_amount_for_currency(self) -> "DonationChargeRequest":
+        bounds = DONATION_BOUNDS.get(self.currency)
+        if bounds is None:
+            raise ValueError(
+                f"unsupported donation currency: {self.currency!r}"
+            )
+        lo, hi = bounds
+        if self.amount < lo or self.amount > hi:
+            raise ValueError(
+                f"amount {self.amount} out of range for {self.currency} "
+                f"(allowed {lo} - {hi} smallest units)"
+            )
+        return self
 
     @model_validator(mode="after")
     def _validate_channel_fields(self) -> "DonationChargeRequest":

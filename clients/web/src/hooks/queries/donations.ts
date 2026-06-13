@@ -45,6 +45,9 @@ export interface DonationPaymentChannel {
 
 export interface DonationChargeRequest {
   amount: number
+  /** ISO 4217 (KES / USD). Visitor-derived; backend validates bounds
+   *  per currency. Defaults to KES on backend if omitted. */
+  currency?: 'KES' | 'USD'
   donor_name?: string
   donor_email: string
   message?: string

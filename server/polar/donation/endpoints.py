@@ -5,7 +5,7 @@ from typing import Annotated, Any
 from uuid import UUID
 
 import structlog
-from fastapi import Depends, HTTPException, Path, Request
+from fastapi import Depends, HTTPException, Path, Query, Request
 from starlette.status import HTTP_202_ACCEPTED, HTTP_401_UNAUTHORIZED
 
 from polar.auth.dependencies import WebUserRead
@@ -193,20 +193,29 @@ def _charge_response_from_result(result: dict) -> DonationChargeResponse:
 )
 async def donation_payment_channels(
     slug: Annotated[str, Path(description="The creator slug.")],
+    currency: str = Query(
+        "KES",
+        description=(
+            "ISO 4217 code (KES / USD). Drives which Paystack channels "
+            "are returned — KES gets M-Pesa STK + card + ussd; USD gets "
+            "card only. Defaults to KES for back-compat with old clients."
+        ),
+    ),
     session: AsyncSession = Depends(get_db_session),
 ) -> list[DonationPaymentChannel]:
     """List Paystack payment channels available for tipping a creator.
 
-    Donations are always in KES, so this returns the KES channel set. The slug
-    is validated so the frontend gets a 404 for unknown creators rather than a
-    confusing empty channel list.
+    Channel availability is currency-driven (KES → M-Pesa STK + card +
+    ussd; USD → card only). Frontend reads visitor display currency
+    and passes it through. The slug is validated so unknown creators
+    return 404 rather than a confusing empty channel list.
     """
     org_repository = OrganizationRepository.from_session(session)
     organization = await org_repository.get_by_slug(slug)
     if organization is None or organization.blocked_at is not None:
         raise ResourceNotFound()
 
-    channels = get_channels_for_currency("KES")
+    channels = get_channels_for_currency(currency.upper())
     return [
         DonationPaymentChannel(
             id=c.id,
@@ -230,6 +239,15 @@ async def donation_payment_channels(
 )
 async def donation_popup_config(
     slug: Annotated[str, Path(description="The creator slug.")],
+    currency: str = Query(
+        "KES",
+        description=(
+            "ISO 4217 (KES / USD). Echoed into the Paystack popup so "
+            "the donor sees their visitor-derived currency. Paystack "
+            "handles FX server-side: a USD charge to a KES subaccount "
+            "settles as KES at Paystack's prevailing rate."
+        ),
+    ),
     session: AsyncSession = Depends(get_db_session),
 ) -> DonationPopupConfig:
     """Return the config the donation page needs to open Paystack's
@@ -301,7 +319,7 @@ async def donation_popup_config(
             and not organization.subaccount_code.startswith("ACCT_test_")
             else None
         ),
-        currency="KES",
+        currency=currency.upper(),
     )
 
 

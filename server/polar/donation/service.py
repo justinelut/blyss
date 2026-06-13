@@ -47,13 +47,20 @@ class DonationService:
         donor_name: str,
         donor_email: str,
         message: str | None = None,
+        currency: str = "KES",
     ) -> tuple[Donation, str]:
         """
         Create donation record and initiate Paystack payment.
         Returns (donation, payment_url)
+
+        currency: ISO 4217 code (KES / USD). Default KES for back-compat
+        with old callers; the modern inline-charge flow always passes
+        the visitor's display currency through.
         """
         if amount < 100 or amount > 1000000:
             raise InvalidDonationAmountError(amount)
+
+        currency = currency.upper()  # Paystack rejects lowercase
 
         repository = DonationRepository.from_session(session)
 
@@ -61,7 +68,7 @@ class DonationService:
 
         donation = Donation(
             amount=amount,
-            currency="KES",
+            currency=currency,
             donor_name=donor_name,
             donor_email=donor_email,
             message=message,
@@ -89,7 +96,7 @@ class DonationService:
         paystack_response = await paystack_service.initialize_transaction(
             email=donor_email,
             amount=amount,
-            currency="KES",
+            currency=currency,
             reference=payment_reference,
             subaccount=organization.subaccount_code,
             metadata={
@@ -171,8 +178,16 @@ class DonationService:
         so tipping still works for creators who haven't finished payout setup.
         """
         amount = charge.amount
-        if amount < MIN_DONATION_AMOUNT or amount > MAX_DONATION_AMOUNT:
+        # The schema validator already checked amount-vs-currency bounds
+        # using DONATION_BOUNDS. Defensive belt-and-braces in case a
+        # future change skips the validator path.
+        from polar.donation.schemas import DONATION_BOUNDS
+
+        bounds = DONATION_BOUNDS.get(charge.currency)
+        if bounds is None or amount < bounds[0] or amount > bounds[1]:
             raise InvalidDonationAmountError(amount)
+
+        currency = charge.currency.upper()  # Paystack rejects lowercase
 
         repository = DonationRepository.from_session(session)
         payment_reference = f"donation_{secrets.token_urlsafe(16)}"
@@ -183,7 +198,7 @@ class DonationService:
 
         donation = Donation(
             amount=amount,
-            currency="KES",
+            currency=currency,
             donor_name=donor_name,
             donor_email=charge.donor_email,
             message=charge.message,
@@ -196,7 +211,13 @@ class DonationService:
         payload: dict = {
             "email": charge.donor_email,
             "amount": amount,
-            "currency": "KES",
+            # Paystack returns the misleading 'Invalid provider' error when
+            # currency is lowercase. Always uppercase before sending.
+            # Paystack handles FX server-side: a USD charge to a KES
+            # subaccount settles as KES at Paystack's prevailing rate, so
+            # /us visitors can tip Kenyan creators without the platform
+            # touching FX itself.
+            "currency": currency,
             "reference": payment_reference,
             "metadata": {
                 "donation_id": str(donation.id),

@@ -33,9 +33,15 @@ import { useQuery } from '@tanstack/react-query'
 
 interface Props {
   slug: string
-  /** Tip amount in kobo (KES * 100). Donor adjusts via the parent
-   *  page's amount picker; we display + relay to Paystack. */
+  /** Tip amount in MINOR units (kobo / cents) of the chosen `currency`.
+   *  Donor adjusts via the parent page's amount picker; we display +
+   *  relay to Paystack. Currency-agnostic — Paystack works in minor
+   *  units regardless of currency. */
   amount: number
+  /** ISO 4217 (KES / USD). Visitor-derived in the parent. Drives the
+   *  popup-config fetch, the Paystack /charge currency, and the
+   *  display formatter. */
+  currency: string
   donorEmail: string
   donorName?: string
   message?: string
@@ -58,20 +64,28 @@ interface DonationPopupConfig {
 const fmtPrice = (cents: number, currency = 'KES') => {
   const major = cents / 100
   if (currency === 'KES') return `KSh ${major.toLocaleString('en-KE')}`
+  if (currency === 'USD')
+    return `US$ ${major.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`
   return `${currency} ${major.toLocaleString()}`
 }
 
 /**
  * Fetch the donation popup config: Paystack public key, creator's
- * subaccount, suggested amounts. Cached for the donation session.
+ * subaccount, suggested amounts. Cached per (slug, currency) — switching
+ * currencies refetches because the channel set differs.
  */
-const useDonationPopupConfig = (slug: string) =>
+const useDonationPopupConfig = (slug: string, currency: string) =>
   useQuery({
-    queryKey: ['donation', 'popup-config', slug],
+    queryKey: ['donation', 'popup-config', slug, currency],
     queryFn: async () => {
       const res = await (api as any).GET(
         '/v1/donation/{slug}/popup-config',
-        { params: { path: { slug } } },
+        {
+          params: { path: { slug }, query: { currency } },
+        },
       )
       if (res.error) throw res.error
       return res.data as DonationPopupConfig
@@ -84,13 +98,17 @@ const useDonationPopupConfig = (slug: string) =>
 export const DonationPaymentInterface = ({
   slug,
   amount,
+  currency,
   donorEmail,
   donorName,
   message,
   canPay,
   onPaymentSuccess,
 }: Props) => {
-  const { data: config, isLoading, error } = useDonationPopupConfig(slug)
+  const { data: config, isLoading, error } = useDonationPopupConfig(
+    slug,
+    currency,
+  )
   const [stage, setStage] = useState<
     'idle' | 'opening' | 'cancelled' | 'success'
   >('idle')
