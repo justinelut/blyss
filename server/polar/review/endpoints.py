@@ -145,12 +145,15 @@ async def create_review(
         # row gives back a SQLAlchemy Result that needs `.unique()` before
         # scalar_one() to dedupe the JOIN. Selecting columns directly avoids
         # that footgun (and the consequent 500 on the review POST).
+        # Note: the User model does NOT have a `username` column — only
+        # `email` + `avatar_url` for display purposes. We display the
+        # email's local part as the reviewer name (foo@bar.com -> "foo")
+        # so reviews never leak full email addresses publicly.
         from polar.models.user import User as UserModel
 
         user_row = (
             await session.execute(
                 select(
-                    UserModel.username,
                     UserModel.email,
                     UserModel.avatar_url,
                 ).where(UserModel.id == user_id)
@@ -160,15 +163,20 @@ async def create_review(
             # Defensive: should never happen because _resolve_user_id just
             # found this user. But if it does, fall through with placeholder
             # values rather than 500 — the review row IS already created.
-            username, email_value, avatar_url = None, "Reviewer", None
+            email_value, avatar_url = "Reviewer", None
         else:
-            username, email_value, avatar_url = user_row
+            email_value, avatar_url = user_row
+
+        # Public display name: local part of the email if present, falling
+        # back to the literal email (which would only happen for malformed
+        # rows). Never exposes the full address.
+        display_name = (email_value or "Reviewer").split("@", 1)[0] or "Reviewer"
 
         return ReviewPublic(
             id=review.id,
             product_id=review.product_id,
             user_id=review.user_id,
-            user_name=username or email_value,
+            user_name=display_name,
             user_avatar=avatar_url,
             rating=review.rating,
             review_text=review.review_text,
@@ -223,7 +231,7 @@ async def update_review(
             id=review.id,
             product_id=review.product_id,
             user_id=review.user_id,
-            user_name=user.username or user.email,
+            user_name=(user.email or "Reviewer").split("@", 1)[0] or "Reviewer",
             user_avatar=user.avatar_url,
             rating=review.rating,
             review_text=review.review_text,
@@ -298,7 +306,8 @@ async def get_product_reviews(
             id=review.id,
             product_id=review.product_id,
             user_id=review.user_id,
-            user_name=review.user.username or review.user.email,
+            user_name=(review.user.email or "Reviewer").split("@", 1)[0]
+            or "Reviewer",
             user_avatar=review.user.avatar_url,
             rating=review.rating,
             review_text=review.review_text,
@@ -398,7 +407,8 @@ async def get_organization_reviews(
             product_id=review.product_id,
             product_name=review.product.name,
             user_id=review.user_id,
-            user_name=review.user.username or review.user.email,
+            user_name=(review.user.email or "Reviewer").split("@", 1)[0]
+            or "Reviewer",
             user_avatar=review.user.avatar_url,
             rating=review.rating,
             review_text=review.review_text,

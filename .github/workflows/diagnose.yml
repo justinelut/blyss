@@ -164,6 +164,11 @@ jobs:
             sudo kubectl -n $NS logs deployment/blyss-worker --tail=300 2>&1 | grep -E "queue\.depth|actor_name.*organization_review|enqueue.*organization_review|MessageEnqueued|Failed to process" | tail -30
             echo "-- recent /v1/reviews/ POST tracebacks --"
             sudo kubectl -n $NS logs deployment/blyss-api --tail=4000 2>&1 | grep -E '/v1/reviews/|review|Member|polar_mst_|allowed_subjects' -A 30 | tail -120
+            echo "-- creator_waitlist backoffice errors --"
+            sudo kubectl -n $NS logs deployment/blyss-api --tail=6000 2>&1 | grep -E "creator_waitlist|/backoffice/creator-waitlist|/backoffice/creator_waitlist" -A 20 | tail -80
+            echo "-- table check: creator_waitlist_entries exists + sample --"
+            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select count(*) from creator_waitlist_entries;\"" 2>&1 | head -5
+            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select id, email, country_code, source, created_at from creator_waitlist_entries order by created_at desc limit 5;\"" 2>&1 | head -10
             echo "-- last review-related exception traceback (broad capture) --"
             sudo kubectl -n $NS logs deployment/blyss-api --tail=6000 2>&1 | grep -B 2 -A 40 -E 'POST /v1/reviews|reviews\.endpoints|ReviewWriter|_resolve_user_id|reviews/.*500' | tail -200
             echo "-- python discovery in API pod --"
