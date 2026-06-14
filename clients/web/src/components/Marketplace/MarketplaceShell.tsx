@@ -26,6 +26,7 @@ const NO_CHROME_PREFIXES = [
   // Auth surfaces (no chrome)
   '/login',
   '/signup',
+  '/start',
   '/verify-email',
   // Customer portal flow on (main)/[org]/portal/* — the auth steps
   // (start + authenticate) deserve a clean centered layout. Note this

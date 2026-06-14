@@ -1,5 +1,11 @@
 import { Metadata } from 'next'
+import { unwrap } from '@/lib/api'
+import { api } from '@/utils/client'
 import { StartLanding } from './StartLanding'
+import type { ProductCategory, CreatorCategory } from './StartLanding'
+
+export const dynamic = 'force-dynamic'
+export const revalidate = 60
 
 export const metadata: Metadata = {
   title: 'Start Selling Digital Products in Kenya · Blyss',
@@ -33,6 +39,68 @@ export const metadata: Metadata = {
   },
 }
 
-export default function Page() {
-  return <StartLanding />
+/**
+ * Fetch the live product-category list. We use this as the "What can I
+ * sell on Blyss?" answer so the page reflects what the marketplace
+ * actually accepts (Templates, Ebooks, Beats and Music, Presets,
+ * Courses, Photography, Software …) rather than 6 hardcoded examples
+ * that drift out of sync. Errors are swallowed — the start page must
+ * render even if the categories endpoint flaps; StartLanding falls
+ * back to a curated short list in that case.
+ */
+async function fetchProductCategories(): Promise<ProductCategory[]> {
+  try {
+    const result = await unwrap(api.GET('/v1/categories/', {}))
+    return ((result.items ?? []) as Array<{
+      id: string
+      name: string
+      slug: string
+      description: string | null
+      product_count: number
+      is_active: boolean
+    }>)
+      .filter((c) => c.is_active !== false)
+      .map((c) => ({
+        id: c.id,
+        name: c.name,
+        slug: c.slug,
+        description: c.description,
+        product_count: c.product_count,
+      }))
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Fetch the live creator-category list. Used to answer "Who else is
+ * already on Blyss?" — designers, photographers, musicians, writers
+ * etc. Same fail-soft behaviour as fetchProductCategories.
+ */
+async function fetchCreatorCategories(): Promise<CreatorCategory[]> {
+  try {
+    const result = (await unwrap(
+      (api as any).GET('/v1/creator-categories/', {}),
+    )) as Array<{ id: string; slug: string; name: string }>
+    return (result ?? []).map((c) => ({
+      id: c.id,
+      name: c.name,
+      slug: c.slug,
+    }))
+  } catch {
+    return []
+  }
+}
+
+export default async function Page() {
+  const [productCategories, creatorCategories] = await Promise.all([
+    fetchProductCategories(),
+    fetchCreatorCategories(),
+  ])
+  return (
+    <StartLanding
+      productCategories={productCategories}
+      creatorCategories={creatorCategories}
+    />
+  )
 }
