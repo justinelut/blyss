@@ -1,5 +1,6 @@
 from urllib.parse import urlencode
 
+import structlog
 from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
@@ -12,6 +13,8 @@ from polar.exceptions import (
     PolarRequestValidationError,
     ResourceNotModified,
 )
+
+log = structlog.get_logger()
 
 
 async def polar_exception_handler(request: Request, exc: PolarError) -> JSONResponse:
@@ -50,6 +53,42 @@ async def polar_not_modified_handler(
     return Response(status_code=exc.status_code)
 
 
+async def unhandled_exception_handler(
+    request: Request, exc: Exception
+) -> JSONResponse:
+    """Catch-all for anything that escaped the typed handlers above.
+
+    Why this exists: FastAPI's default 500 path goes through Starlette's
+    `ServerErrorMiddleware`, which wraps the WHOLE app — including the
+    CORSMiddleware. So unhandled exceptions return a "Internal Server
+    Error" plain-text body with NO CORS headers, and the browser can't
+    even read the response. The user sees a misleading
+    "blocked by CORS policy" error instead of the real 500.
+
+    Returning a JSONResponse from here keeps the response inside the
+    FastAPI exception chain, which IS wrapped by CORSMiddleware, so the
+    Access-Control-Allow-Origin header sticks. Sentry still receives the
+    full trace via its instrumentation hook — we don't swallow the
+    exception, just convert it to a JSON response.
+    """
+    log.exception(
+        "unhandled_exception",
+        path=request.url.path,
+        method=request.method,
+        exc_type=type(exc).__name__,
+        # Body kept short on purpose — never leak full traceback details
+        # to the client.
+        exc_message=str(exc)[:500],
+    )
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": "InternalServerError",
+            "detail": "An unexpected error occurred. Please try again.",
+        },
+    )
+
+
 def add_exception_handlers(app: FastAPI) -> None:
     app.add_exception_handler(
         PolarRedirectionError,
@@ -69,3 +108,8 @@ def add_exception_handlers(app: FastAPI) -> None:
         request_validation_exception_handler,  # type: ignore
     )
     app.add_exception_handler(PolarError, polar_exception_handler)  # type: ignore
+    # Catch-all — must be registered LAST so the more specific handlers
+    # above take precedence. Ensures unhandled exceptions return JSON
+    # inside the CORS layer instead of falling through to Starlette's
+    # default plain-text 500 (which strips CORS headers).
+    app.add_exception_handler(Exception, unhandled_exception_handler)  # type: ignore

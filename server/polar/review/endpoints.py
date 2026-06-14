@@ -182,7 +182,7 @@ async def create_review(
             review_text=review.review_text,
             is_verified_purchase=review.is_verified_purchase,
             created_at=review.created_at,
-            updated_at=review.updated_at,
+            updated_at=review.modified_at or review.created_at,
         )
 
     except (
@@ -237,7 +237,7 @@ async def update_review(
             review_text=review.review_text,
             is_verified_purchase=review.is_verified_purchase,
             created_at=review.created_at,
-            updated_at=review.updated_at,
+            updated_at=review.modified_at or review.created_at,
         )
 
     except (
@@ -313,7 +313,7 @@ async def get_product_reviews(
             review_text=review.review_text,
             is_verified_purchase=review.is_verified_purchase,
             created_at=review.created_at,
-            updated_at=review.updated_at,
+            updated_at=review.modified_at or review.created_at,
         )
         for review in reviews
     ]
@@ -414,7 +414,7 @@ async def get_organization_reviews(
             review_text=review.review_text,
             is_verified_purchase=review.is_verified_purchase,
             created_at=review.created_at,
-            updated_at=review.updated_at,
+            updated_at=review.modified_at or review.created_at,
         )
         for review in reviews
     ]
