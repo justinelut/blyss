@@ -2,6 +2,7 @@
 
 import { enums, schemas } from '@/lib/api'
 import { Combobox } from '@/components/atoms/Combobox'
+import { useMerchantSupportedCurrencies } from '@/hooks/queries/paystackConfig'
 import { useCallback, useMemo, useState } from 'react'
 
 interface CurrencySelectorProps {
@@ -11,6 +12,12 @@ interface CurrencySelectorProps {
   excludeCurrencies?: string[]
   placeholder?: string
   className?: string
+  /** Override the default merchant-currencies filter. Used in places
+   *  that legitimately need to show every currency (admin tooling,
+   *  legacy orgs that grandfathered prices in retired currencies).
+   *  When omitted, the picker filters to whatever the merchant's
+   *  Paystack account can actually charge today (default KES-only). */
+  allowAllCurrencies?: boolean
 }
 
 const formatter = new Intl.DisplayNames('en-US', { type: 'currency' })
@@ -44,14 +51,31 @@ export const CurrencySelector = ({
   excludeCurrencies,
   placeholder = 'Select currency',
   className,
+  allowAllCurrencies = false,
 }: CurrencySelectorProps) => {
   const [query, setQuery] = useState('')
+  const merchantSupported = useMerchantSupportedCurrencies()
 
   const baseCurrencies = useMemo(() => {
-    if (!excludeCurrencies || excludeCurrencies.length === 0)
-      return allCurrencies
-    return allCurrencies.filter((c) => !excludeCurrencies.includes(c.code))
-  }, [excludeCurrencies])
+    // Filter to currencies the merchant's Paystack account can actually
+    // charge. Without this, a creator could pick USD here and end up
+    // with a USD-priced product the merchant can never collect — the
+    // popup would later throw "Currency not supported by merchant" at
+    // a real buyer. allowAllCurrencies bypasses for admin surfaces.
+    let filtered = allCurrencies
+    if (!allowAllCurrencies) {
+      const supportedSet = new Set(merchantSupported.map((c) => c.toLowerCase()))
+      // Keep the currently-selected value visible even if it's no longer
+      // supported (so an org that grandfathered a price in a retired
+      // currency can still SEE what they have, even if they can't add
+      // more like it).
+      filtered = allCurrencies.filter(
+        (c) => supportedSet.has(c.code) || c.code === value,
+      )
+    }
+    if (!excludeCurrencies || excludeCurrencies.length === 0) return filtered
+    return filtered.filter((c) => !excludeCurrencies.includes(c.code))
+  }, [excludeCurrencies, merchantSupported, allowAllCurrencies, value])
 
   const filteredCurrencies = useMemo(() => {
     if (!query) return baseCurrencies

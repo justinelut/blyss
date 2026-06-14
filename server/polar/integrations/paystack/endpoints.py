@@ -590,12 +590,19 @@ class MPesaVerificationConfigResponse(BaseModel):
 
 
 class PaystackPublicConfigResponse(BaseModel):
-    """Frontend-safe Paystack config — public key only.
+    """Frontend-safe Paystack config — public key + supported currencies.
 
     The frontend needs the Paystack public key to initialize Paystack
     Inline JS in the buyer's browser. The public key is safe to ship
     to the client — it can only initialize transactions, never
     read/modify them server-side.
+
+    `supported_currencies` mirrors PAYSTACK_SUPPORTED_CURRENCIES on the
+    server. The product currency picker filters its options against
+    this list so creators can't add a price in a currency the
+    merchant's Paystack account can't actually charge (which would
+    otherwise crash the popup at buy-time with the misleading
+    "Currency not supported by merchant" string).
 
     Resolution order:
       1. POLAR_PAYSTACK_PUBLIC_KEY runtime_settings overlay (so test
@@ -605,6 +612,13 @@ class PaystackPublicConfigResponse(BaseModel):
 
     public_key: str = Field(
         description="Paystack public key (pk_live_... or pk_test_...).",
+    )
+    supported_currencies: list[str] = Field(
+        description=(
+            "Lowercase ISO-4217 currency codes the merchant's Paystack "
+            "account is allowed to charge today. Frontend pickers should "
+            "expose only these currencies."
+        ),
     )
 
 
@@ -667,7 +681,12 @@ async def paystack_public_config(
         # Never let the diagnostic break the config endpoint.
         pass
 
-    return PaystackPublicConfigResponse(public_key=public_key)
+    return PaystackPublicConfigResponse(
+        public_key=public_key,
+        supported_currencies=sorted(
+            {c.lower() for c in settings.PAYSTACK_SUPPORTED_CURRENCIES}
+        ),
+    )
 
 
 @router.get(
