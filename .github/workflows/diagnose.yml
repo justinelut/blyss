@@ -228,6 +228,27 @@ jobs:
             echo
 
             echo "═══════════════════════════════════════"
+            echo " CREATOR-NOT-PUBLIC DIAGNOSE (status / subaccount / details)"
+            echo "═══════════════════════════════════════"
+            echo "-- Every org, with the four gates that decide public visibility --"
+            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select o.slug, o.name, o.status, o.subaccount_status, o.details_submitted_at is not null as details_done, o.subaccount_code is not null as has_subaccount, o.default_presentment_currency as currency, (select count(*) from products p where p.organization_id=o.id and p.is_archived=false and p.deleted_at is null) as live_products from organizations o where o.is_deleted=false and o.blocked_at is null order by o.created_at desc limit 25;\"" 2>&1 | head -40
+            echo
+            echo "-- Direct call to /v1/organizations/creators (what the front pages actually see) --"
+            sudo kubectl -n $NS exec $POD -- python3 -c 'import urllib.request,json;r=urllib.request.urlopen("http://localhost:10000/v1/organizations/creators?limit=50",timeout=10);d=json.loads(r.read());items=d.get("items",[]);print("HTTP",r.status,"count=",len(items));[print("  ",i.get("slug"),"·",i.get("name"),"·",i.get("status",""),"·",len(i.get("products") or []),"products") for i in items[:25]]' 2>&1 | head -30
+            echo
+            echo "-- Same query, with the exact public_organization_filters() --"
+            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select o.slug, o.status, o.subaccount_status from organizations o where o.is_deleted=false and o.blocked_at is null and o.status='active' and o.subaccount_status='active' order by o.created_at desc;\"" 2>&1 | head -25
+            echo
+            echo "-- Orgs that look ready EXCEPT for status (i.e. AI review didn't run) --"
+            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select o.slug, o.status, o.subaccount_status, o.details_submitted_at, (select count(*) from organization_reviews r where r.organization_id=o.id) as reviews from organizations o where o.is_deleted=false and o.blocked_at is null and o.subaccount_status='active' and o.status<>'active' order by o.created_at desc limit 15;\"" 2>&1 | head -25
+            echo
+            echo "-- Orgs that look ready EXCEPT for subaccount (creator skipped M-Pesa) --"
+            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select o.slug, o.status, o.subaccount_status, o.subaccount_code, o.details_submitted_at is not null as details_done from organizations o where o.is_deleted=false and o.blocked_at is null and o.status='active' and o.subaccount_status<>'active' order by o.created_at desc limit 15;\"" 2>&1 | head -25
+            echo
+            echo "-- Most recently created org full row (so we can eyeball every gate at once) --"
+            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select id, slug, name, status, subaccount_status, subaccount_code, details_submitted_at, default_presentment_currency, account_id, created_at, modified_at from organizations where is_deleted=false order by created_at desc limit 3;\"" 2>&1 | head -20
+
+            echo "═══════════════════════════════════════"
             echo " API POD LOGS (current)"
             echo "═══════════════════════════════════════"
             sudo kubectl -n $NS logs deployment/blyss-api --tail=120 --all-containers=true 2>&1 || true
