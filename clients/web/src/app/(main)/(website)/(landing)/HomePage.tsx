@@ -14,6 +14,7 @@
 import { schemas } from '@/lib/api'
 import { JsonLd } from '@/design'
 import { Hero } from '@/components/Marketplace/Hero'
+import { ContinueShopping } from '@/components/Marketplace/ContinueShopping'
 import { TrendingProducts } from '@/components/Marketplace/TrendingProducts'
 import { BrowseByCraft, type CategoryTile } from '@/components/Marketplace/BrowseByCraft'
 import { FeaturedCreators } from '@/components/Marketplace/FeaturedCreators'
@@ -106,7 +107,11 @@ export default function HomePage({
       />
       {/* Long Document cadence (Hallmark macrostructure):
           editorial letter → product band → category band → creator band →
-          recurring band → process steps → closing dark band. */}
+          recurring band → process steps → closing dark band.
+          ContinueShopping sits above the editorial letter so visitors with
+          a pending cart or recently-viewed history land on intent first.
+          The component self-hides for first-time / no-history visitors. */}
+      <ContinueShopping />
       <NoteFromMakers />
       {products.length > 0 && <TrendingProducts products={products} />}
       {cats.length > 0 && <BrowseByCraft categories={cats} />}
