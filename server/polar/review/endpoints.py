@@ -210,29 +210,51 @@ async def create_review(
 async def update_review(
     id: Annotated[UUID, Path(description="The review ID.")],
     review_update: ReviewUpdate,
-    auth_subject: WebUserRead,
+    auth_subject: ReviewWriter,
     session: AsyncSession = Depends(get_db_session),
 ) -> ReviewPublic:
-    """Update existing review. Requires authentication and ownership."""
+    """Update existing review. Requires authentication and ownership.
+
+    Accepts the same auth subjects as create_review (User dashboard,
+    Customer portal session, Member portal session) so a buyer can
+    edit their review from the same surface they created it on. Without
+    this widening, customer-portal users could leave a review but had
+    to log into the dashboard to edit it.
+    """
+    user_id = await _resolve_user_id(session, auth_subject)
     try:
         review = await review_service.update_review(
             session,
             id,
-            auth_subject.subject.id,
+            user_id,
             review_update.rating,
             review_update.review_text,
         )
 
         await session.flush()
 
-        user = auth_subject.subject
+        # Pull display fields by id since auth_subject may be Customer /
+        # Member (no avatar_url on those types). For User the lookup
+        # round-trips but keeps the response consistent across all
+        # auth-subject paths.
+        from polar.models.user import User as UserModel
+
+        user_row = (
+            await session.execute(
+                select(UserModel.email, UserModel.avatar_url).where(
+                    UserModel.id == user_id
+                )
+            )
+        ).first()
+        email = (user_row[0] if user_row else None) or "Reviewer"
+        avatar_url = user_row[1] if user_row else None
 
         return ReviewPublic(
             id=review.id,
             product_id=review.product_id,
             user_id=review.user_id,
-            user_name=(user.email or "Reviewer").split("@", 1)[0] or "Reviewer",
-            user_avatar=user.avatar_url,
+            user_name=email.split("@", 1)[0] or "Reviewer",
+            user_avatar=avatar_url,
             rating=review.rating,
             review_text=review.review_text,
             is_verified_purchase=review.is_verified_purchase,
@@ -277,6 +299,74 @@ async def delete_review(
         UnauthorizedReviewAccessError,
     ):
         raise
+
+
+@router.get(
+    "/me/product/{product_id}",
+    response_model=ReviewPublic | None,
+    summary="Get My Review For Product",
+    responses={
+        200: {
+            "description": (
+                "The buyer's existing review for this product, or null when "
+                "they haven't reviewed it yet. Use the returned id to PUT an "
+                "update via /v1/reviews/{id} instead of creating a duplicate."
+            )
+        },
+        403: {"description": "Could not resolve buyer identity."},
+    },
+)
+async def get_my_review_for_product(
+    product_id: Annotated[UUID, Path(description="The product ID.")],
+    auth_subject: ReviewWriter,
+    session: AsyncSession = Depends(get_db_session),
+) -> ReviewPublic | None:
+    """Return the authenticated buyer's existing review for a product.
+
+    Frontend uses this to decide whether the LeaveReviewCard should
+    render in create-mode (POST /v1/reviews/) or edit-mode
+    (PUT /v1/reviews/{id} pre-populated with the existing rating /
+    text). Without this endpoint the dashboard had no way to ask
+    "did I already review this?" and the create flow would 409 on
+    the unique-constraint round-trip.
+
+    Returns null (200) when the buyer hasn't reviewed yet, so callers
+    don't have to differentiate 404 from a network error.
+    """
+    user_id = await _resolve_user_id(session, auth_subject)
+
+    from .repository import ReviewRepository
+
+    repository = ReviewRepository.from_session(session)
+    review = await repository.get_by_user_and_product(user_id, product_id)
+    if review is None:
+        return None
+
+    # Build display fields the same way the public list endpoints do.
+    from polar.models.user import User as UserModel
+
+    user_row = (
+        await session.execute(
+            select(UserModel.email, UserModel.avatar_url).where(
+                UserModel.id == user_id
+            )
+        )
+    ).first()
+    email = (user_row[0] if user_row else None) or "Reviewer"
+    avatar_url = user_row[1] if user_row else None
+
+    return ReviewPublic(
+        id=review.id,
+        product_id=review.product_id,
+        user_id=review.user_id,
+        user_name=email.split("@", 1)[0] or "Reviewer",
+        user_avatar=avatar_url,
+        rating=review.rating,
+        review_text=review.review_text,
+        is_verified_purchase=review.is_verified_purchase,
+        created_at=review.created_at,
+        updated_at=review.modified_at or review.created_at,
+    )
 
 
 @router.get(
