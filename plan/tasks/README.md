@@ -25,8 +25,9 @@
 | 9 | Testing | [phase-09-testing.md](./phase-09-testing.md) | §13 | 2-3 days (parallel with 5+6) |
 | 10 | Deployment infrastructure | [phase-10-deployment.md](./phase-10-deployment.md) | §11, §12 | 2-3 days |
 | 11 | Launch acceptance | [phase-11-launch.md](./phase-11-launch.md) | §14 | 1-2 days |
+| 12 | Storefront themes (v1 → v4) | [phase-12-storefront-themes.md](./phase-12-storefront-themes.md) | §19 | 1 week (v1) → 4-7 weeks (v3) |
 
-**Total realistic envelope:** 4-7 weeks of focused agent work.
+**Total realistic envelope:** 4-7 weeks of focused agent work for phases 1-11, plus 1 week (v1 themes) → 4-7 weeks (through v3 themes) layered on top whenever the marketplace is otherwise stable.
 
 ## Parallelism
 

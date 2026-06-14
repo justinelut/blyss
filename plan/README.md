@@ -27,6 +27,7 @@ The brief is split into focused files so an AI agent can load only the section r
 | [16-do-not-do.md](./16-do-not-do.md) | §15 Things to NOT Do | Project-level kill list of architectural, branding, scope, and process violations |
 | [17-references.md](./17-references.md) | Appendix A: Visual Bible | 7 tiers of reference sites with per-surface lessons; the anti-AI-slop reference set |
 | [18-skills-mcps.md](./18-skills-mcps.md) | Appendix B: Skills & MCPs | 14 tools to install before drafting any UI, with install order and invocation playbook |
+| [19-storefront-themes.md](./19-storefront-themes.md) | §19 Storefront themes | Three-layer creator theming spec (tokens / layouts / niche modules) and v1→v4 rollout — see [tasks/phase-12](./tasks/phase-12-storefront-themes.md) |
 
 ## How to use this brief
 
