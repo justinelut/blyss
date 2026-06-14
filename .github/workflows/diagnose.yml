@@ -273,7 +273,7 @@ jobs:
             echo
             echo "-- Settings.PAYSTACK_SUPPORTED_CURRENCIES seen by the running pod --"
             sudo kubectl -n $NS exec $POD -- sh -c 'echo "  raw env: $POLAR_PAYSTACK_SUPPORTED_CURRENCIES"' 2>&1 | head -2
-            sudo kubectl -n $NS exec $POD -- python3 -c 'from polar.config import settings; print("  parsed:", sorted(settings.PAYSTACK_SUPPORTED_CURRENCIES))' 2>&1 | head -3 || true
+            sudo kubectl -n $NS exec $POD -- sh -c 'cd /app/server 2>/dev/null && /app/.venv/bin/python -c "from polar.config import settings; print(\"  parsed:\", sorted(settings.PAYSTACK_SUPPORTED_CURRENCIES))" 2>&1 || /opt/venv/bin/python -c "from polar.config import settings; print(\"  parsed:\", sorted(settings.PAYSTACK_SUPPORTED_CURRENCIES))" 2>&1' 2>&1 | head -3 || true
 
             echo "═══════════════════════════════════════"
             echo " API POD LOGS (current)"
