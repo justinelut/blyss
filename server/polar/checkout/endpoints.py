@@ -332,6 +332,73 @@ async def client_update(
 
 
 @inner_router.post(
+    "/client/{client_secret}/abandon",
+    response_model=CheckoutPublic,
+    summary="Abandon Checkout (popup closed before payment)",
+    responses={
+        200: {
+            "description": (
+                "Checkout reset to open state so the buyer can retry. "
+                "No-ops on already-open / already-succeeded checkouts."
+            )
+        },
+        404: CheckoutNotFound,
+        410: CheckoutExpired,
+    },
+)
+async def client_abandon(
+    client_secret: CheckoutClientSecret,
+    session: AsyncSession = Depends(get_db_session),
+) -> Checkout:
+    """Reset a confirmed-but-uncharged checkout back to `open` state.
+
+    Why this exists: the Paystack popup flow opens AFTER the buyer has
+    already hit /confirm, which locks the checkout to `confirmed` and
+    redirects the page to /checkout/{secret}/confirmation. If the buyer
+    closes the popup without paying, the popup's onCancel hook fires
+    in the browser but the page has already moved on — leaving them
+    stuck on the "Processing your order" polling screen forever.
+
+    Frontend calls this from onCancel to flip status back to `open`,
+    then bounces the buyer to /checkout/{secret} where they can retry.
+
+    Idempotent: if the checkout is already open, succeeded, failed, or
+    expired we return as-is without touching it. Only `confirmed`
+    checkouts that haven't yet had a successful charge fire are
+    reverted. We also clear any stamped charge_reference so a retry
+    generates a fresh one.
+
+    Public — no auth needed beyond the unguessable client_secret. The
+    only state change is checkout.status, and reverting `confirmed` →
+    `open` cannot be exploited (it just unlocks the same checkout for
+    another payment attempt).
+    """
+    checkout = await checkout_service.get_by_client_secret(session, client_secret)
+
+    # No-op for any non-confirmed state. Idempotent — safe to call
+    # multiple times from a flaky onCancel handler.
+    if checkout.status != CheckoutStatus.confirmed:
+        return checkout
+
+    # Defensive: if a charge actually went through and the webhook is
+    # mid-flight (or the self-heal in client_get is about to land it),
+    # don't blow away the confirmed state. The reference is stamped on
+    # /confirm before the popup opens, so its presence alone doesn't
+    # imply payment — only a charge_status of 'success' does. If the
+    # status was anything other than success / pending the buyer
+    # genuinely abandoned and we can revert.
+    meta = checkout.payment_processor_metadata or {}
+    charge_status = meta.get("charge_status")
+    if charge_status == "success":
+        return checkout
+
+    # Reuse the existing handle_failure path so any side effects
+    # (Discount Redemption release, _after_checkout_updated hooks)
+    # fire identically to the post-failure recovery flow.
+    return await checkout_service.handle_failure(session, checkout)
+
+
+@inner_router.post(
     "/client/{client_secret}/confirm",
     response_model=CheckoutPublicConfirmed,
     summary="Confirm Checkout Session from Client",

@@ -34,6 +34,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { UseFormReturn, WatchObserver } from 'react-hook-form'
 import { hasProductCheckout, isLegacyRecurringProductPrice } from '../guards'
+import { getPublicServerURL } from '@/utils/api'
 import { useDebouncedCallback } from '../hooks/debounce'
 import { isDisplayedField, isRequiredField } from '../utils/address'
 import { convertLocaleToStripeElementLocale } from '../utils/locale'
@@ -1051,6 +1052,28 @@ const PaystackCheckoutForm = (props: CheckoutFormProps) => {
         },
         onCancel: () => {
           setPopupCancelled(true)
+          // The buyer closed the popup. By the time onCancel fires the
+          // page has already been navigated to /checkout/{secret}/confirmation
+          // by props.confirm()'s checkoutConfirmedRedirect, and the
+          // checkout row is locked at status='confirmed'. The polling
+          // confirmation page would otherwise wait forever for a charge
+          // that never lands. Reset the checkout server-side back to
+          // 'open' and bounce the buyer to /checkout/{secret} so they
+          // can retry. /checkout/{secret} sees status='open' and
+          // re-renders this same form.
+          //
+          // Plain fetch + window.location because the popup outlives the
+          // React component (paystackPop attaches a global modal); state
+          // updates and router pushes from inside React no longer affect
+          // the now-navigated page tree.
+          if (typeof window === 'undefined') return
+          const apiBase = getPublicServerURL()
+          fetch(
+            `${apiBase}/v1/checkouts/client/${checkout.client_secret}/abandon`,
+            { method: 'POST', credentials: 'include' },
+          ).finally(() => {
+            window.location.href = `/checkout/${checkout.client_secret}`
+          })
         },
       })
 
