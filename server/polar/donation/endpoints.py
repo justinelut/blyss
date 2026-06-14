@@ -32,6 +32,7 @@ from .schemas import (
     DonationPublic,
     DonationsSummary,
 )
+from .schemas import DONATION_BOUNDS, DONATION_PRESETS_KOBO
 from .repository import DonationRepository
 from .service import (
     DonationError,
@@ -309,6 +310,20 @@ async def donation_popup_config(
     except Exception:  # noqa: BLE001
         pass
 
+    # Resolve currency-correct minimum + suggested presets. The schema's
+    # static defaults are KES-shaped (KSh 50 floor + KSh 100..2,500 chips)
+    # so a USD popup must override both — without this a US visitor sees
+    # "$20 minimum" and chip values of $100..$2,500, both wrong. Falls
+    # back to KES values for any currency we haven't yet defined bounds
+    # for, matching the validate-amount path in initiate_donation_charge.
+    requested_currency = currency.upper()
+    bounds = DONATION_BOUNDS.get(requested_currency, DONATION_BOUNDS["KES"])
+    presets = list(
+        DONATION_PRESETS_KOBO.get(
+            requested_currency, DONATION_PRESETS_KOBO["KES"]
+        )
+    )
+
     return DonationPopupConfig(
         public_key=public_key,
         organization_id=str(organization.id),
@@ -319,7 +334,9 @@ async def donation_popup_config(
             and not organization.subaccount_code.startswith("ACCT_test_")
             else None
         ),
-        currency=currency.upper(),
+        currency=requested_currency,
+        suggested_amounts_kobo=presets,
+        minimum_kobo=bounds[0],
     )
 
 

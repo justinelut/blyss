@@ -18,6 +18,18 @@ DONATION_BOUNDS: dict[str, tuple[int, int]] = {
     "USD": (100, 50_000),
 }
 
+# Per-currency suggested tip presets, in Paystack's smallest unit.
+# These appear as the click-to-fill amount chips on the donation form.
+# Picked to be useful for casual tipping without exceeding DONATION_BOUNDS
+# for the currency. Add new currencies here in lock-step with
+# DONATION_BOUNDS above.
+#   - KES: KSh 100 / 250 / 500 / 1,000 / 2,500
+#   - USD: $1 / $2 / $5 / $10 / $25
+DONATION_PRESETS_KOBO: dict[str, list[int]] = {
+    "KES": [10_000, 25_000, 50_000, 100_000, 250_000],
+    "USD": [100, 200, 500, 1_000, 2_500],
+}
+
 # Backwards-compat re-exports for older imports. Both default to KES
 # bounds so legacy callers keep working until they migrate to the
 # currency-aware path.
@@ -245,17 +257,22 @@ class DonationPopupConfig(Schema):
         description="ISO 4217 currency for the donation.",
     )
     suggested_amounts_kobo: list[int] = Field(
-        default_factory=lambda: [10000, 25000, 50000, 100000, 250000],
+        default_factory=lambda: list(DONATION_PRESETS_KOBO["KES"]),
         description=(
-            "Suggested tip amounts in lowest currency unit. Kenyan "
-            "defaults: KSh 100 / 250 / 500 / 1,000 / 2,500."
+            "Suggested tip amounts in lowest currency unit. The set "
+            "is currency-dependent — the popup-config endpoint "
+            "selects from DONATION_PRESETS_KOBO based on the "
+            "requested ?currency param."
         ),
     )
     minimum_kobo: int = Field(
-        default=2000,
+        default=DONATION_BOUNDS["KES"][0],
         description=(
-            "Minimum donation in lowest currency unit. KSh 20 by "
-            "default — enough to cover Paystack's KE M-Pesa fee."
+            "Minimum donation in lowest currency unit. The actual "
+            "value is currency-dependent — popup-config returns "
+            "DONATION_BOUNDS[currency][0] (KSh 50 for KES, $1 for "
+            "USD). The schema default is the KES floor for "
+            "backwards compatibility with older clients."
         ),
     )
 
