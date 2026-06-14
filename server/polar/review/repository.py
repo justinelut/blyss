@@ -29,7 +29,16 @@ class ReviewRepository(
             .options(joinedload(ProductReview.user))
         )
         result = await self.session.execute(statement)
-        return list(result.scalars().all())
+        # User has lazy="joined" oauth_accounts (one-to-many). When the
+        # joinedload on ProductReview.user pulls that in too, the Result
+        # contains duplicate rows that .scalars().all() refuses to dedupe
+        # automatically — SQLAlchemy 2.x requires an explicit .unique()
+        # call for safety. Without it the endpoint 500s with
+        # InvalidRequestError ("The unique() method must be invoked on
+        # this Result..."), which historically masqueraded as a CORS
+        # error in the browser before the catch-all exception handler
+        # was added.
+        return list(result.unique().scalars().all())
 
     async def get_product_rating_summary(
         self,
@@ -210,4 +219,6 @@ class ReviewRepository(
             )
         )
         result = await self.session.execute(statement)
-        return list(result.scalars().all())
+        # Same .unique() requirement as get_product_reviews — joinedload
+        # on User pulls in its lazy="joined" oauth_accounts collection.
+        return list(result.unique().scalars().all())
