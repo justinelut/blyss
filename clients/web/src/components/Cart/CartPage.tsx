@@ -111,11 +111,26 @@ export const CartPage = () => {
     return <EmptyCart />
   }
 
-  const currency = (groups[0]?.items?.[0] as any)?.product?.prices?.[0]
-    ?.price_currency
-    ? ((groups[0].items[0] as any).product.prices[0].price_currency as string)
-        .toUpperCase()
-    : 'KES'
+  /**
+   * Resolve the currency to use for a group's totals row from the
+   * group's own first item's price, NOT from a globally-shared
+   * variable. The previous implementation read the currency once from
+   * groups[0].items[0] and reused it for every group's subtotal/total
+   * — so a USD product on Creator A and a KES product on Creator B
+   * both rendered "US$" in their totals row even though Creator B's
+   * line item correctly read "KSh". Confirmed live on /ke/cart with
+   * a USD product (current-digital-design-studios) above a KES
+   * product (blyss-studio).
+   */
+  const currencyForGroup = (group: (typeof groups)[number]): string => {
+    const first = group.items?.[0] as
+      | {
+          product?: { prices?: ReadonlyArray<{ price_currency?: string }> }
+        }
+      | undefined
+    const code = first?.product?.prices?.[0]?.price_currency
+    return code ? code.toUpperCase() : 'KES'
+  }
 
   return (
     <div className="mx-auto max-w-[960px] px-6 py-12 md:px-8 md:py-16">
@@ -139,7 +154,12 @@ export const CartPage = () => {
       {/* Per-creator sections — separated by surface-tone breaks (not
           shadow cards) per the Blyss design system. */}
       <div className="space-y-px overflow-hidden rounded-md border border-[var(--border)] bg-[var(--background)]">
-        {groups.map((group, idx) => (
+        {groups.map((group, idx) => {
+          // Resolve currency once per group so each section's totals
+          // match the line items in that section. See currencyForGroup
+          // comment above for context.
+          const groupCurrency = currencyForGroup(group)
+          return (
           <section
             key={group.organization.id}
             aria-label={`Cart with ${group.organization.name}`}
@@ -163,7 +183,7 @@ export const CartPage = () => {
                 </div>
               </div>
               <Link
-                href={`/${group.organization.slug}`}
+                href={`/creators/${group.organization.slug}`}
                 className="hidden items-center gap-1 font-sans text-[12px] font-medium text-[var(--text-muted)] underline-offset-4 transition-colors hover:text-[var(--accent)] hover:underline sm:inline-flex"
               >
                 View store
@@ -195,14 +215,14 @@ export const CartPage = () => {
                 <div className="flex items-center justify-between gap-12">
                   <dt className="text-[var(--text-secondary)]">Subtotal</dt>
                   <dd className="tabular-nums text-[var(--text-primary)]">
-                    {fmtPrice(group.subtotal, currency)}
+                    {fmtPrice(group.subtotal, groupCurrency)}
                   </dd>
                 </div>
                 {group.tax > 0 && (
                   <div className="flex items-center justify-between gap-12">
                     <dt className="text-[var(--text-secondary)]">Tax</dt>
                     <dd className="tabular-nums text-[var(--text-primary)]">
-                      {fmtPrice(group.tax, currency)}
+                      {fmtPrice(group.tax, groupCurrency)}
                     </dd>
                   </div>
                 )}
@@ -211,7 +231,7 @@ export const CartPage = () => {
                     Total
                   </dt>
                   <dd className="font-display text-[18px] font-semibold tabular-nums tracking-[-0.01em] text-[var(--text-primary)]">
-                    {fmtPrice(group.total, currency)}
+                    {fmtPrice(group.total, groupCurrency)}
                   </dd>
                 </div>
               </dl>
@@ -235,7 +255,8 @@ export const CartPage = () => {
               <div className="h-px bg-[var(--border)]" aria-hidden="true" />
             )}
           </section>
-        ))}
+          )
+        })}
       </div>
 
       {/* Footer note — discreet, editorial */}

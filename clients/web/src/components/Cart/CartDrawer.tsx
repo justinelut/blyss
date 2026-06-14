@@ -126,7 +126,23 @@ const MarketplaceCartDrawer = ({
             </div>
           ) : (
             <div className="divide-y divide-[var(--border)]">
-              {groups.map((group) => (
+              {groups.map((group) => {
+                // Resolve currency from this group's first item so the
+                // per-creator subtotal matches the line-item display.
+                // Without this, drawer subtotals fell back to KES even
+                // when the group's items were USD-priced — same bug
+                // /cart had on the totals row.
+                const first = group.items?.[0] as
+                  | {
+                      product?: {
+                        prices?: ReadonlyArray<{ price_currency?: string }>
+                      }
+                    }
+                  | undefined
+                const groupCurrency = (
+                  first?.product?.prices?.[0]?.price_currency ?? 'KES'
+                ).toUpperCase()
+                return (
                 <div key={group.organization.id} className="px-6 py-5">
                   <div className="mb-3 flex items-center justify-between">
                     <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
@@ -159,7 +175,7 @@ const MarketplaceCartDrawer = ({
                       Subtotal
                     </span>
                     <span className="font-display text-[15px] font-semibold tabular-nums text-[var(--text-primary)]">
-                      {fmtPrice(group.subtotal)}
+                      {fmtPrice(group.subtotal, groupCurrency)}
                     </span>
                   </div>
                   <button
@@ -173,7 +189,8 @@ const MarketplaceCartDrawer = ({
                       : `Pay ${group.organization.name}`}
                   </button>
                 </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>
