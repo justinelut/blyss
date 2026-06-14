@@ -703,7 +703,7 @@ class TestGetPaymentStatus:
         )
 
         assert payment_status.payment_ready is False
-        assert len(payment_status.steps) == 3
+        assert len(payment_status.steps) == 2
 
         # Check each step
         create_product_step = next(
@@ -711,10 +711,11 @@ class TestGetPaymentStatus:
         )
         assert create_product_step.completed is False
 
-        integrate_checkout_step = next(
-            s for s in payment_status.steps if s.id == "integrate_checkout"
+        # `integrate_checkout` step was deleted — Polar relic, irrelevant
+        # on a marketplace. Verify it's not in the response.
+        assert not any(
+            s.id == "integrate_checkout" for s in payment_status.steps
         )
-        assert integrate_checkout_step.completed is False
 
         setup_account_step = next(
             s for s in payment_status.steps if s.id == "setup_account"
@@ -744,44 +745,78 @@ class TestGetPaymentStatus:
         )
         assert create_product_step.completed is True
 
-        integrate_checkout_step = next(
-            s for s in payment_status.steps if s.id == "integrate_checkout"
+        # `integrate_checkout` step is no longer emitted on marketplace —
+        # creators don't integrate Polar's checkout SDK; Blyss IS the
+        # storefront. Confirm it's gone.
+        assert not any(
+            s.id == "integrate_checkout" for s in payment_status.steps
         )
-        assert integrate_checkout_step.completed is False
 
-    async def test_with_api_key_created(
+    async def test_setup_account_completes_when_subaccount_active(
         self,
         session: AsyncSession,
         save_fixture: SaveFixture,
         organization: Organization,
-        mocker: MockerFixture,
     ) -> None:
-        # Make this a new organization (not grandfathered)
+        """The `setup_account` step is gated on the creator having an
+        ACTIVE Paystack subaccount with a non-test code. This replaces
+        the legacy `integrate_checkout` step (Polar relic — see the
+        feat(onboarding) commit). API keys are no longer relevant to
+        readiness on a marketplace.
+        """
+        from polar.models.organization import SubaccountStatus
+
+        # New (not grandfathered) org with no products and no subaccount.
         organization.created_at = datetime(2025, 8, 4, 12, 0, tzinfo=UTC)
+        organization.subaccount_code = None
+        organization.subaccount_status = SubaccountStatus.PENDING
         await save_fixture(organization)
 
-        # Mock the API key count
-        mocker.patch(
-            "polar.organization_access_token.repository.OrganizationAccessTokenRepository.count_by_organization_id",
-            return_value=1,  # Has 1 API key
-        )
-
-        # Organization with an API key but no products or account setup
         payment_status = await organization_service.get_payment_status(
             session, organization
         )
-
-        assert payment_status.payment_ready is False
-
-        create_product_step = next(
-            s for s in payment_status.steps if s.id == "create_product"
+        setup_account_step = next(
+            s for s in payment_status.steps if s.id == "setup_account"
         )
-        assert create_product_step.completed is False
+        assert setup_account_step.completed is False
 
-        integrate_checkout_step = next(
-            s for s in payment_status.steps if s.id == "integrate_checkout"
+        # Activate subaccount → step flips to complete.
+        organization.subaccount_code = "ACCT_real_subaccount_123"
+        organization.subaccount_status = SubaccountStatus.ACTIVE
+        await save_fixture(organization)
+
+        payment_status = await organization_service.get_payment_status(
+            session, organization
         )
-        assert integrate_checkout_step.completed is True
+        setup_account_step = next(
+            s for s in payment_status.steps if s.id == "setup_account"
+        )
+        assert setup_account_step.completed is True
+
+    async def test_setup_account_ignores_test_subaccount_codes(
+        self,
+        session: AsyncSession,
+        save_fixture: SaveFixture,
+        organization: Organization,
+    ) -> None:
+        """A subaccount_code starting with 'ACCT_test_' is a sandbox
+        artifact — it does NOT mean the creator finished real M-Pesa
+        verification. The step must stay incomplete in that case so
+        the checklist keeps nudging the creator to finish setup."""
+        from polar.models.organization import SubaccountStatus
+
+        organization.created_at = datetime(2025, 8, 4, 12, 0, tzinfo=UTC)
+        organization.subaccount_code = "ACCT_test_sandbox_only"
+        organization.subaccount_status = SubaccountStatus.ACTIVE
+        await save_fixture(organization)
+
+        payment_status = await organization_service.get_payment_status(
+            session, organization
+        )
+        setup_account_step = next(
+            s for s in payment_status.steps if s.id == "setup_account"
+        )
+        assert setup_account_step.completed is False
 
     async def test_with_account_setup_complete(
         self,
@@ -790,6 +825,17 @@ class TestGetPaymentStatus:
         organization: Organization,
         user: User,
     ) -> None:
+        """Marketplace-mode `setup_account` completes when the creator's
+        Paystack subaccount is ACTIVE. The legacy Stripe-Connect-style
+        criteria (account_id, identity_verification_status,
+        is_details_submitted) used by upstream Polar are no longer the
+        gate — this test covers the new path. Account / identity fields
+        are still set here so the test continues to exercise the prior
+        fixture shape and would catch any accidental regression that
+        re-introduced the Stripe-Connect dependency.
+        """
+        from polar.models.organization import SubaccountStatus
+
         # Make this a new organization (not grandfathered)
         organization.created_at = datetime(2025, 8, 4, 12, 0, tzinfo=UTC)
 
@@ -812,6 +858,9 @@ class TestGetPaymentStatus:
         organization.account_id = account.id
         organization.details_submitted_at = datetime.now(UTC)
         organization.details = {"about": "Test"}  # type: ignore
+        # Marketplace gate: real (non-test) Paystack subaccount, ACTIVE.
+        organization.subaccount_code = "ACCT_real_subaccount_456"
+        organization.subaccount_status = SubaccountStatus.ACTIVE
         await save_fixture(organization)
 
         # Ensure relationships are loaded
@@ -822,7 +871,7 @@ class TestGetPaymentStatus:
             session, organization
         )
 
-        # Still not payment ready without products and API key
+        # Still not payment ready without products
         assert payment_status.payment_ready is False
 
         setup_account_step = next(
@@ -869,11 +918,16 @@ class TestGetPaymentStatus:
         mocker: MockerFixture,
         user: User,
     ) -> None:
+        from polar.models.organization import SubaccountStatus
+
         # Set up as new organization
         organization.created_at = datetime(2025, 8, 4, 12, 0, tzinfo=UTC)
         organization.status = OrganizationStatus.ACTIVE
         organization.details_submitted_at = datetime.now(UTC)
         organization.details = {"about": "Test"}  # type: ignore
+        # Marketplace setup_account gate: real ACTIVE subaccount.
+        organization.subaccount_code = "ACCT_real_subaccount_complete_test"
+        organization.subaccount_status = SubaccountStatus.ACTIVE
 
         # Set up user verification
         user.identity_verification_status = IdentityVerificationStatus.verified
@@ -899,12 +953,6 @@ class TestGetPaymentStatus:
         # Ensure relationships are loaded
         await session.refresh(organization, attribute_names=["account"])
         await session.refresh(organization.account, attribute_names=["admin"])
-
-        # Mock the API key count
-        mocker.patch(
-            "polar.organization_access_token.repository.OrganizationAccessTokenRepository.count_by_organization_id",
-            return_value=1,  # Has 1 API key
-        )
 
         payment_status = await organization_service.get_payment_status(
             session, organization

@@ -44,14 +44,16 @@ interface OnboardingChecklistProps {
 
 /** Map a step id to the dashboard URL the creator should jump to.
  *  Anything unrecognized falls through to /finance/account so the
- *  creator at least lands on a place they can act from. */
+ *  creator at least lands on a place they can act from.
+ *  `integrate_checkout` was dropped server-side (Polar relic — Blyss
+ *  is the storefront, creators don't integrate their own checkout)
+ *  so it's no longer routed here. */
 const stepHref = (orgSlug: string, stepId: string): string => {
   const base = `/dashboard/${orgSlug}`
   switch (stepId) {
     case 'add_product':
+    case 'create_product':
       return `${base}/products/new`
-    case 'integrate_checkout':
-      return `${base}/products/checkout-links`
     case 'setup_account':
     case 'mpesa_setup':
       return `${base}/finance/account`

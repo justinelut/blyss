@@ -14,7 +14,7 @@ from sqlalchemy.orm import joinedload
 from polar.account.repository import AccountRepository
 from polar.account.service import account as account_service
 from polar.auth.models import AuthSubject
-from polar.checkout_link.repository import CheckoutLinkRepository
+from polar.checkout_link.repository import CheckoutLinkRepository  # noqa: F401  # kept solely to preserve the import path; no longer used here after dropping INTEGRATE_CHECKOUT.
 from polar.config import Environment, settings
 from polar.customer.repository import CustomerRepository
 from polar.enums import InvoiceNumbering
@@ -44,7 +44,7 @@ from polar.models.organization_review import OrganizationReview
 from polar.models.transaction import TransactionType
 from polar.models.user import IdentityVerificationStatus
 from polar.models.webhook_endpoint import WebhookEventType
-from polar.organization_access_token.repository import OrganizationAccessTokenRepository
+from polar.organization_access_token.repository import OrganizationAccessTokenRepository  # noqa: F401  # kept solely to preserve the import path that test mocks reference; the repository is no longer used inside this module after dropping INTEGRATE_CHECKOUT.
 from polar.organization_review.repository import (
     OrganizationReviewRepository as AgentReviewRepository,
 )
@@ -73,10 +73,17 @@ _MIN_REVIEW_THRESHOLD = 10_000
 
 
 class PaymentStepID(StrEnum):
-    """Enum for payment onboarding step identifiers."""
+    """Enum for payment onboarding step identifiers.
+
+    Marketplace-mode steps only. The legacy `INTEGRATE_CHECKOUT` step
+    (gated on API-key or checkout-link presence) was inherited from
+    upstream Polar, which expects creators to embed Polar's checkout
+    in their own site. Blyss IS the storefront — creators don't
+    integrate anything — so that step was always confusing on the
+    onboarding checklist and has been dropped.
+    """
 
     CREATE_PRODUCT = "create_product"
-    INTEGRATE_CHECKOUT = "integrate_checkout"
     SETUP_ACCOUNT = "setup_account"
 
 
@@ -1061,36 +1068,36 @@ class OrganizationService:
                 )
             )
 
-            # Step 2: Integrate Checkout (API key OR checkout link)
-            token_repository = OrganizationAccessTokenRepository.from_session(session)
-            api_key_count = await token_repository.count_by_organization_id(
-                organization.id
-            )
+            # NOTE: the upstream Polar `INTEGRATE_CHECKOUT` step was deleted
+            # here. That step gated completion on the creator having
+            # generated an API key or a Checkout Link — both meaningful
+            # on Polar (where creators embed Polar's checkout into their
+            # own site) but meaningless on Blyss, where Blyss IS the
+            # storefront. Showing the step led creators down a rabbit
+            # hole of "do I need to create an API key?" and stalled
+            # otherwise-ready accounts.
 
-            checkout_link_repository = CheckoutLinkRepository.from_session(session)
-            checkout_link_count = (
-                await checkout_link_repository.count_by_organization_id(organization.id)
-            )
-
-            # Step is completed if user has either an API key OR a checkout link
-            integration_completed = api_key_count > 0 or checkout_link_count > 0
-            steps.append(
-                PaymentStep(
-                    id=PaymentStepID.INTEGRATE_CHECKOUT,
-                    title="Integrate Checkout",
-                    description="Set up your integration to start accepting payments",
-                    completed=integration_completed,
-                )
-            )
-
-        # Step 3: Finish account setup
-        account_setup_complete = self._is_account_setup_complete(organization)
+        # Step 2: Set up M-Pesa payouts. Marketplace-correct gate: the
+        # creator's Paystack subaccount has been created and activated
+        # (i.e. M-Pesa or bank verified, percentage_charge applied).
+        # Without an active subaccount we still let the creator sell —
+        # 100% of the order goes to Blyss's main account and is paid
+        # out manually — but the dashboard's onboarding card keeps
+        # nudging them to finish setup so auto-split kicks in.
         steps.append(
             PaymentStep(
                 id=PaymentStepID.SETUP_ACCOUNT,
-                title="Finish account setup",
-                description="Complete your account details and verify your identity",
-                completed=account_setup_complete,
+                title="Set up M-Pesa payouts",
+                description=(
+                    "Verify your M-Pesa number or add a bank account so "
+                    "we can pay you within 24 hours of every sale."
+                ),
+                completed=organization.subaccount_status
+                == SubaccountStatus.ACTIVE
+                and bool(organization.subaccount_code)
+                and not (organization.subaccount_code or "").startswith(
+                    "ACCT_test_"
+                ),
             )
         )
 
@@ -1100,22 +1107,6 @@ class OrganizationService:
             ),
             steps=steps,
             organization_status=organization.status,
-        )
-
-    def _is_account_setup_complete(self, organization: Organization) -> bool:
-        """Check if the organization's account setup is complete."""
-        if not organization.account_id:
-            return False
-
-        account = organization.account
-        if not account:
-            return False
-
-        admin = account.admin
-        return (
-            organization.details_submitted_at is not None
-            and account.is_details_submitted
-            and (admin.identity_verification_status in ["verified", "pending"])
         )
 
     async def is_organization_ready_for_payment(
