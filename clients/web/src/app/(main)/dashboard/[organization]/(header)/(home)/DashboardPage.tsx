@@ -2,7 +2,6 @@
 
 import { OverviewSection } from '@/components/DashboardOverview/OverviewSection'
 import { DashboardBody } from '@/components/Layout/DashboardLayout'
-import { IncompleteProfileBanner } from '@/components/Onboarding/IncompleteProfileBanner'
 import { OnboardingChecklist } from '@/components/Onboarding/OnboardingChecklist'
 import { AccountWidget } from '@/components/Widgets/AccountWidget'
 import { OrdersWidget } from '@/components/Widgets/OrdersWidget'
@@ -24,13 +23,16 @@ interface OverviewPageProps {
  *
  *  - Pre-ready (new creator): the OnboardingChecklist owns the page.
  *    Analytics widgets stay hidden because they'd render empty and
- *    distract from the actual next step. The IncompleteProfileBanner
- *    still surfaces (bio / avatar / cover are independent of payment
- *    readiness).
+ *    distract from the actual next step. The previous separate
+ *    IncompleteProfileBanner has been folded into the checklist as
+ *    its own step ("Complete your profile") so the dashboard shows
+ *    ONE consolidated setup card instead of a banner stacked on top
+ *    of a checklist.
  *
  *  - Ready (live storefront): analytics overview + Revenue / Orders /
  *    Account widgets. The checklist self-hides once payment_ready
- *    flips true, so we don't need to mount it on this branch.
+ *    flips true and every step (including the profile step) is
+ *    complete.
  *
  * This restores the upstream Polar pattern the user reported missing
  * ("there used to be in the dashbaord not analystics shown until the
@@ -48,9 +50,7 @@ export default function OverviewPage({ organization }: OverviewPageProps) {
   // collapse to a checklist (or vice versa).
   return (
     <DashboardBody className="gap-y-8 pb-16 md:gap-y-12" title={null}>
-      <IncompleteProfileBanner organization={organization} />
-
-      {!paymentStatusLoading && !ready && (
+      {!paymentStatusLoading && (
         <OnboardingChecklist organization={organization} />
       )}
 

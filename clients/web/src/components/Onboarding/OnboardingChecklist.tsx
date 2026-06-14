@@ -26,6 +26,12 @@
  *     stepper updates without a redeploy.
  *  4. Gate sits above the analytics widgets in DashboardPage; the page
  *     hides those widgets entirely until payment_ready.
+ *  5. The "Complete your profile" step (bio / avatar / cover) is
+ *     prepended client-side. Those fields don't gate payments — the
+ *     storefront still works without them — but a creator page with
+ *     placeholders kills buyer trust, so it lives in the same checklist
+ *     instead of hovering on its own as a separate banner. Hides
+ *     itself once all three storefront-critical fields are set.
  *
  * Anti-slop: no emoji icons, no "🚀", no "Get started in 60 seconds"
  * urgency framing, no progress percentages styled as neon. Just a thin
@@ -58,9 +64,57 @@ const stepHref = (orgSlug: string, stepId: string): string => {
     case 'mpesa_setup':
       return `${base}/finance/account`
     case 'submit_details':
+    case 'complete_profile':
       return `${base}/settings#organization`
     default:
       return `${base}/finance/account`
+  }
+}
+
+/** Build the synthetic "Complete your profile" step from the org's
+ *  storefront fields (avatar, bio, cover image). Returns null when
+ *  every field is set so the checklist doesn't render an
+ *  always-complete step. The shape mirrors the server's
+ *  PaymentStep schema. */
+const buildProfileStep = (
+  organization: schemas['Organization'],
+):
+  | {
+      id: 'complete_profile'
+      title: string
+      description: string
+      completed: boolean
+    }
+  | null => {
+  const profileSettings =
+    ((organization as unknown as { profile_settings?: { cover_image_url?: string } })
+      .profile_settings) ?? {}
+  const hasAvatar = !!organization.avatar_url
+  const hasBio = !!(
+    (organization as unknown as { bio?: string }).bio &&
+    String((organization as unknown as { bio?: string }).bio).trim().length > 0
+  )
+  const hasCover = !!profileSettings.cover_image_url
+
+  // What's missing — ordered most-impactful first.
+  const gaps: string[] = []
+  if (!hasCover) gaps.push('cover image')
+  if (!hasAvatar) gaps.push('logo / avatar')
+  if (!hasBio) gaps.push('bio')
+
+  if (gaps.length === 0) return null
+
+  const formatList = (items: string[]) => {
+    if (items.length === 1) return items[0]
+    if (items.length === 2) return `${items[0]} and ${items[1]}`
+    return items.slice(0, -1).join(', ') + ', and ' + items[items.length - 1]
+  }
+
+  return {
+    id: 'complete_profile',
+    title: 'Complete your profile',
+    description: `Add a ${formatList(gaps)} so your public creator page reads like a real shop.`,
+    completed: false,
   }
 }
 
@@ -73,11 +127,40 @@ export const OnboardingChecklist = ({
 
   // Render nothing while loading so the dashboard doesn't flash a stub.
   if (isLoading) return null
-  // Ready already? Hide the checklist entirely; analytics takes over.
-  if (!paymentStatus || paymentStatus.payment_ready) return null
+  if (!paymentStatus) return null
 
-  const steps = paymentStatus.steps ?? []
+  // Server-emitted steps drive the payment-readiness gate. Prepend the
+  // synthetic profile step so the dashboard shows ONE checklist instead
+  // of a banner-plus-checklist split that was reported as visually
+  // noisy. The checklist hides itself only when every step (including
+  // the synthetic one) is complete AND the org is payment_ready.
+  const serverSteps = paymentStatus.steps ?? []
+  const profileStep = buildProfileStep(organization)
+  const steps = profileStep
+    ? [
+        profileStep,
+        ...serverSteps.map((s) => ({
+          id: s.id,
+          title: s.title,
+          description: s.description,
+          completed: s.completed,
+        })),
+      ]
+    : serverSteps.map((s) => ({
+        id: s.id,
+        title: s.title,
+        description: s.description,
+        completed: s.completed,
+      }))
+
   if (steps.length === 0) return null
+
+  // Hide the whole checklist once every step is complete AND the org
+  // is payment_ready. The previous behavior (hide on payment_ready
+  // alone) caused the checklist to vanish before the creator filled
+  // their profile, leaving a half-empty storefront live.
+  const allComplete = steps.every((s) => s.completed)
+  if (paymentStatus.payment_ready && allComplete) return null
 
   const completedCount = steps.filter((s) => s.completed).length
   const total = steps.length
