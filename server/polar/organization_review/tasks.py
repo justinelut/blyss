@@ -232,6 +232,45 @@ async def run_review_agent(
                     verdict=report.verdict.value,
                 )
 
+            # Auto-approve on APPROVE: flip status to ACTIVE so the org
+            # appears on public surfaces (creators directory, homepage
+            # trending, marketplace browse). Without this the SUBMISSION
+            # path was a dead end for clean orgs — verdict came back
+            # PASS but status stayed at CREATED, the visibility filter
+            # excluded them, no sales could fire, the THRESHOLD review
+            # never ran, and they sat invisible until a backoffice
+            # admin manually flipped status. Catch-22 confirmed live
+            # against current-digital-design-studios on 2026-06-14:
+            # subaccount_status=active, details_done=t, 1 product, but
+            # status='created' and zero rows returned by
+            # /v1/organizations/creators.
+            #
+            # initially_reviewed_at is set so the dashboard's
+            # "your account has been reviewed" UI can read it; it also
+            # gates the next_review_threshold logic.
+            elif report.verdict == ReviewVerdict.APPROVE:
+                organization.status = OrganizationStatus.ACTIVE
+                organization.status_updated_at = datetime.now(UTC)
+                if organization.initially_reviewed_at is None:
+                    organization.initially_reviewed_at = datetime.now(UTC)
+                session.add(organization)
+
+                await review_repository.record_agent_decision(
+                    organization_id=organization_id,
+                    agent_review_id=agent_review.id,
+                    decision="APPROVE",
+                    review_context="submission",
+                    verdict=report.verdict.value,
+                    risk_score=report.overall_risk_score,
+                )
+
+                log.info(
+                    "organization_review.submission.approved",
+                    organization_id=str(organization_id),
+                    slug=organization.slug,
+                    verdict=report.verdict.value,
+                )
+
         # For SETUP_COMPLETE context: log the flagged verdict.
         # Do NOT set the org to INITIAL_REVIEW here — that must only happen
         # when check_review_threshold fires (on the first sale), so the

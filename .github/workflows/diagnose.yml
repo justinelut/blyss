@@ -250,6 +250,13 @@ jobs:
             echo
             echo "-- Most recently created org full row (so we can eyeball every gate at once) --"
             sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select id, slug, name, status, subaccount_status, subaccount_code, details_submitted_at, default_presentment_currency, account_id, created_at, modified_at from organizations where deleted_at is null order by created_at desc limit 5;\"" 2>&1 | head -25
+            echo
+            echo "-- BACKFILL: orgs that are PASS-reviewed but stuck at status='created' --"
+            echo "   Reads-only preview of which orgs the auto-promote fix will sweep up:"
+            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select o.slug, o.status, o.subaccount_status, r.verdict, r.created_at as reviewed_at from organizations o join organization_reviews r on r.organization_id=o.id where o.deleted_at is null and o.blocked_at is null and o.status='created' and o.subaccount_status='active' and r.verdict='PASS' order by o.created_at desc limit 25;\"" 2>&1 | head -25
+            echo
+            echo "   Apply the backfill (status -> active, status_updated_at, initially_reviewed_at):"
+            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \\\"update organizations o set status='active', status_updated_at=now(), initially_reviewed_at=coalesce(initially_reviewed_at, now()), modified_at=now() from organization_reviews r where r.organization_id=o.id and o.deleted_at is null and o.blocked_at is null and o.status='created' and o.subaccount_status='active' and r.verdict='PASS' returning o.slug, o.status as new_status;\\\"" 2>&1 | head -20
 
             echo "═══════════════════════════════════════"
             echo " API POD LOGS (current)"
