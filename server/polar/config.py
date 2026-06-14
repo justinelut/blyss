@@ -312,6 +312,15 @@ class Settings(BaseSettings):
     PAYSTACK_SECRET_KEY: str = ""
     PAYSTACK_PUBLIC_KEY: str = ""
     PAYSTACK_WEBHOOK_SECRET: str = ""
+    # ISO-4217 codes the merchant's Paystack account is allowed to charge.
+    # Kenyan Paystack accounts default to KES-only; USD requires explicit
+    # enablement on the Paystack dashboard. Sending any other currency to
+    # the popup or /transaction/initialize fails with "Currency not
+    # supported by merchant" — so we clamp checkout currency to this set
+    # before stamping it on the Checkout row. Override per-deploy via
+    # the PAYSTACK_SUPPORTED_CURRENCIES env var (comma-separated, e.g.
+    # "kes,usd") once a merchant has additional currencies enabled.
+    PAYSTACK_SUPPORTED_CURRENCIES: set[str] = {"kes"}
 
     # Numeral
     NUMERAL_API_KEY: str | None = None

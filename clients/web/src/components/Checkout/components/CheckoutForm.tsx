@@ -979,9 +979,32 @@ const PaystackCheckoutForm = (props: CheckoutFormProps) => {
         ''
 
       const amount = updated.total_amount ?? checkout.total_amount ?? 0
-      const currency = (
+      // Paystack-supported currencies for this merchant. Mirrors the
+      // server-side PAYSTACK_SUPPORTED_CURRENCIES setting; defaults to
+      // KES-only because Kenyan Paystack accounts cannot charge USD
+      // unless the merchant has explicitly enabled it on their
+      // dashboard. Any other currency reaching the popup throws
+      // "Currency not supported by merchant" which is misleading
+      // (the merchant CAN support it, just hasn't been enabled).
+      //
+      // The server already clamps Checkout.currency at creation time;
+      // this is a belt-and-suspenders fallback so historical checkouts
+      // (or any future code path that bypasses the clamp) don't crash
+      // the popup.
+      const PAYSTACK_SUPPORTED_CURRENCIES = ['KES']
+      const requestedCurrency = (
         (updated.currency || checkout.currency || 'KES') as string
       ).toUpperCase()
+      const currency = PAYSTACK_SUPPORTED_CURRENCIES.includes(requestedCurrency)
+        ? requestedCurrency
+        : (() => {
+            console.warn(
+              '[paystack] Checkout.currency %s is not in the merchant-supported set %o; clamping to KES to avoid "Currency not supported by merchant".',
+              requestedCurrency,
+              PAYSTACK_SUPPORTED_CURRENCIES,
+            )
+            return 'KES'
+          })()
       const reference = generatePaystackReference(updated.id || checkout.id)
 
       // Channel selection rules for Mode A:

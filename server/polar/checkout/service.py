@@ -1653,6 +1653,31 @@ class CheckoutService:
 
         currency = price.price_currency
 
+        # Same Paystack-supported-currency clamp applied in _get_currencies.
+        # A creator can publish a price in any currency, but if the
+        # merchant's Paystack account can't charge it, /transaction/initialize
+        # rejects with "Currency not supported by merchant". Refuse the
+        # checkout up-front with a clear validation error instead — the
+        # creator needs to either delete the unsupported-currency price or
+        # enable the currency on their Paystack dashboard.
+        if organization_service.uses_paystack(product.organization):
+            supported = {c.lower() for c in settings.PAYSTACK_SUPPORTED_CURRENCIES}
+            if currency.lower() not in supported:
+                raise PolarRequestValidationError(
+                    [
+                        {
+                            "type": "value_error",
+                            "loc": ("body", "product_price_id"),
+                            "msg": (
+                                f"This price is in {currency.upper()}, which "
+                                "this merchant's payment account cannot "
+                                "currently accept. Please contact the creator."
+                            ),
+                            "input": product_price_id,
+                        }
+                    ]
+                )
+
         return [product], product, price, currency
 
     async def _get_validated_product(
@@ -2516,16 +2541,41 @@ class CheckoutService:
         ip_country: str | None,
     ) -> Sequence[str]:
         if currency_request is not None:
-            return [currency_request]
+            candidates: list[str] = [currency_request]
+        else:
+            candidates = []
+            if ip_country is not None:
+                if (
+                    country_currency := get_presentment_currency(ip_country)
+                ) is not None:
+                    candidates.append(country_currency)
+            candidates.append(organization.default_presentment_currency)
 
-        currencies: list[str] = []
+        # Clamp to currencies the merchant's Paystack account can actually
+        # process. Kenyan Paystack accounts are KES-only by default; the
+        # popup throws "Currency not supported by merchant" when sent
+        # anything else. The set is configurable per-deploy via
+        # PAYSTACK_SUPPORTED_CURRENCIES so an operator can turn USD on
+        # once a merchant has enabled it on their Paystack dashboard.
+        # Currencies are case-insensitive (DB stores lowercase, ip-country
+        # mapping returns lowercase).
+        if organization_service.uses_paystack(organization):
+            supported = {c.lower() for c in settings.PAYSTACK_SUPPORTED_CURRENCIES}
+            filtered = [c for c in candidates if c.lower() in supported]
+            if not filtered:
+                # Buyer's currency isn't supported; fall back to the org's
+                # default. Validated at org-update time so it's always in
+                # the supported set under normal operation.
+                org_default = organization.default_presentment_currency.lower()
+                if org_default in supported:
+                    filtered = [org_default]
+                else:
+                    # Last-resort fallback: pick any supported currency.
+                    # Sorted for determinism in tests.
+                    filtered = [sorted(supported)[0]] if supported else ["kes"]
+            candidates = filtered
 
-        if ip_country is not None:
-            if (country_currency := get_presentment_currency(ip_country)) is not None:
-                currencies.append(country_currency)
-
-        currencies.append(organization.default_presentment_currency)
-        return currencies
+        return candidates
 
     async def _update_ip_country(
         self, session: AsyncSession, checkout: Checkout, ip_country: str | None
