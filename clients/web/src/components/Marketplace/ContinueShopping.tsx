@@ -25,6 +25,7 @@
 import { Eyebrow, SectionDivider, typography } from '@/design'
 import { useAuth } from '@/hooks'
 import { useCart } from '@/hooks/queries/cart'
+import { useDisplayCurrency } from '@/components/Marketplace/CurrencyProvider'
 import { schemas } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
@@ -77,6 +78,15 @@ export const ContinueShopping = () => {
   const cartItemCount =
     (cart as unknown as { items?: unknown[] } | undefined)?.items?.length ?? 0
   const cartHasItems = cartItemCount > 0
+
+  // Visitor's display currency (from /{country}/ URL or cookie or
+  // cf-ipcountry — see proxy.ts). Recently-viewed entries store the
+  // price in the currency the visitor saw at PDP time. If the visitor
+  // has since switched country, those stale prices would mislead. We
+  // honor the snapshot ONLY when its currency matches today's display
+  // currency; otherwise we hide the price line and let the click-through
+  // re-fetch fresh pricing from the PDP.
+  const visitorCurrency = useDisplayCurrency().toUpperCase()
 
   const [recent, setRecent] = useState<RecentlyViewedRow[]>([])
   useEffect(() => {
@@ -175,11 +185,12 @@ export const ContinueShopping = () => {
                     by {p.organizationName}
                   </p>
                 )}
-                {typeof p.price === 'number' && (
-                  <p className="font-display text-[15px] font-semibold tabular-nums text-[var(--text-primary)]">
-                    {fmtMinor(p.price, p.currency)}
-                  </p>
-                )}
+                {typeof p.price === 'number' &&
+                  (p.currency ?? '').toUpperCase() === visitorCurrency && (
+                    <p className="font-display text-[15px] font-semibold tabular-nums text-[var(--text-primary)]">
+                      {fmtMinor(p.price, p.currency)}
+                    </p>
+                  )}
               </div>
             </Link>
           ))}

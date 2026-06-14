@@ -2,11 +2,15 @@
 
 import Link from 'next/link'
 import { useReducedMotion, motion } from 'motion/react'
-import { FiStar } from 'react-icons/fi'
+import { FiShoppingCart, FiStar } from 'react-icons/fi'
 import { schemas } from '@/lib/api'
 import { OptimizedImage } from '@/components/Image/OptimizedImage'
 import { typography } from '@/design'
 import { cn } from '@/lib/utils'
+import { useAddToCart } from '@/hooks/queries/cart'
+import { useCreateProductCheckout } from '@/hooks/queries/checkouts'
+import { useRouter } from 'next/navigation'
+import { toast } from '@/components/Toast/use-toast'
 import { useDisplayCurrency } from './CurrencyProvider'
 import { CardWishlistButton } from './CardWishlistButton'
 
@@ -21,6 +25,10 @@ interface MarketplaceProductCardProps {
   /** Hide the hover-to-save heart pill (e.g. on the wishlist page where
    *  the parent already renders its own remove-from-wishlist control). */
   hideWishlistButton?: boolean
+  /** Hide the inline 'Add to cart' button. Pass true on surfaces where
+   *  the parent owns its own cart action (e.g. the wishlist page already
+   *  renders a move-to-cart pill, or for seed/placeholder cards). */
+  hideAddToCart?: boolean
   className?: string
 }
 
@@ -93,10 +101,15 @@ export const MarketplaceProductCard = ({
   href,
   hideCreator,
   hideWishlistButton,
+  hideAddToCart,
   className,
 }: MarketplaceProductCardProps) => {
   const reduce = useReducedMotion()
   const displayCurrency = useDisplayCurrency()
+  const router = useRouter()
+  const { mutate: addToCart, isPending: isAddingToCart } = useAddToCart()
+  const { mutate: createCheckout, isPending: isCreatingCheckout } =
+    useCreateProductCheckout()
   const productImage = product.medias?.[0]?.public_url
   // Seed-data placeholders use ids prefixed "seed_" — they have no PDP, so
   // route the click to the marketplace browse page instead of 404'ing.
@@ -106,6 +119,68 @@ export const MarketplaceProductCard = ({
     (product as any).organization?.name ??
     (product as any).organization?.slug ??
     null
+
+  // Buy CTA visibility: the inline cart pill only makes sense on real
+  // products that go through the cart. Seed cards have no real PDP, so
+  // we'd add a row that can never resolve.
+  // Subscriptions never go through the cart per §6.5 — they create a
+  // checkout directly — so on the card we route them to a checkout
+  // session under the same button. Free products do the same (no
+  // payment, no cart, just a checkout).
+  const buyCtaEnabled = !isSeed && !hideAddToCart
+  const isRecurring = !!(product as any).is_recurring
+  const firstAmount =
+    ((product as any).prices?.[0] as { price_amount?: number } | undefined)
+      ?.price_amount ?? 0
+  const goesThroughCheckout = isRecurring || firstAmount === 0
+
+  const onBuyClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (isSeed) return
+    if (goesThroughCheckout) {
+      createCheckout(product.id, {
+        onSuccess: ({ client_secret }) => {
+          router.push(`/checkout/${client_secret}`)
+        },
+        onError: () => {
+          toast({
+            title: 'Could not start checkout',
+            description: 'Try again, or open the product page.',
+            variant: 'error',
+            duration: 3500,
+          })
+        },
+      })
+    } else {
+      addToCart(
+        { productId: product.id, quantity: 1 },
+        {
+          onSuccess: () => {
+            toast({
+              title: 'Added to cart',
+              description: 'Tap the cart in the header to check out.',
+              duration: 2500,
+            })
+          },
+          onError: () => {
+            toast({
+              title: 'Could not add to cart',
+              description: 'Try again in a moment, or open the product page.',
+              variant: 'error',
+              duration: 3500,
+            })
+          },
+        },
+      )
+    }
+  }
+  const buyBusy = isAddingToCart || isCreatingCheckout
+  const buyLabel = goesThroughCheckout
+    ? isRecurring
+      ? 'Subscribe'
+      : 'Get it free'
+    : 'Add to cart'
 
   return (
     <Link
@@ -122,6 +197,29 @@ export const MarketplaceProductCard = ({
             parent owns its own wishlist control (e.g. the wishlist page). */}
         {!isSeed && !hideWishlistButton && (
           <CardWishlistButton productId={product.id} />
+        )}
+        {/* Add to cart / Subscribe — bottom-right pill, always visible on
+            mobile so the buyer can stay in the grid. Mirrors the wishlist
+            page's move-to-cart pill so visual rhythm matches across the
+            site. e.preventDefault + stopPropagation prevents the wrapping
+            <Link> from navigating when the buyer taps the button. */}
+        {buyCtaEnabled && (
+          <button
+            type="button"
+            onClick={onBuyClick}
+            disabled={buyBusy}
+            aria-label={buyLabel}
+            className={cn(
+              'absolute right-3 bottom-3 z-10 inline-flex h-9 items-center gap-1.5 rounded-full px-3.5',
+              'bg-[var(--accent)] text-[var(--accent-foreground)] shadow-sm',
+              'font-sans text-[12px] font-medium transition-all',
+              'hover:scale-[1.03] hover:bg-[var(--accent-hover)]',
+              'disabled:cursor-not-allowed disabled:opacity-60',
+            )}
+          >
+            <FiShoppingCart size={13} aria-hidden="true" />
+            <span>{buyBusy ? 'Adding…' : buyLabel}</span>
+          </button>
         )}
         <motion.div
           initial={false}
