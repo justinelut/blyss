@@ -59,17 +59,25 @@ async def unhandled_exception_handler(
     """Catch-all for anything that escaped the typed handlers above.
 
     Why this exists: FastAPI's default 500 path goes through Starlette's
-    `ServerErrorMiddleware`, which wraps the WHOLE app — including the
-    CORSMiddleware. So unhandled exceptions return a "Internal Server
-    Error" plain-text body with NO CORS headers, and the browser can't
-    even read the response. The user sees a misleading
-    "blocked by CORS policy" error instead of the real 500.
+    `ServerErrorMiddleware`, which is the outermost middleware in the
+    Starlette stack — even outside our CORSMatcherMiddleware. So
+    unhandled exceptions return a "Internal Server Error" plain-text
+    body with NO CORS headers, and the browser can't even read the
+    response. The user sees a misleading "blocked by CORS policy"
+    error instead of the real 500.
 
-    Returning a JSONResponse from here keeps the response inside the
-    FastAPI exception chain, which IS wrapped by CORSMiddleware, so the
-    Access-Control-Allow-Origin header sticks. Sentry still receives the
-    full trace via its instrumentation hook — we don't swallow the
-    exception, just convert it to a JSON response.
+    Returning a JSONResponse from here is half the fix: the response
+    body now reads as proper JSON. But ServerErrorMiddleware still
+    sends the response via its own outer `send`, bypassing
+    CORSMatcherMiddleware. So we ALSO have to set the CORS headers
+    manually here, mirroring the same matcher logic configure_cors
+    uses (FRONTEND_BASE_URL + CORS_ORIGINS allow-list with credentials,
+    everything else gets the wildcard non-credentialed echo).
+
+    Sentry still receives the full trace via log.exception. The
+    handler is registered LAST so the typed handlers (PolarError,
+    RequestValidationError, etc.) take precedence on their own
+    exception classes.
     """
     log.exception(
         "unhandled_exception",
@@ -80,12 +88,31 @@ async def unhandled_exception_handler(
         # to the client.
         exc_message=str(exc)[:500],
     )
+
+    headers: dict[str, str] = {}
+    origin = request.headers.get("origin")
+    if origin:
+        # Replicate configure_cors's allow-list. Allowed origins get
+        # credentialed echoback; everything else gets the wildcard
+        # non-credentialed echo so the browser still surfaces the JSON
+        # error to JS.
+        allowed = set(settings.CORS_ORIGINS)
+        if settings.FRONTEND_BASE_URL:
+            allowed.add(str(settings.FRONTEND_BASE_URL).rstrip("/"))
+        if origin in allowed:
+            headers["Access-Control-Allow-Origin"] = origin
+            headers["Access-Control-Allow-Credentials"] = "true"
+            headers["Vary"] = "Origin"
+        else:
+            headers["Access-Control-Allow-Origin"] = "*"
+
     return JSONResponse(
         status_code=500,
         content={
             "error": "InternalServerError",
             "detail": "An unexpected error occurred. Please try again.",
         },
+        headers=headers,
     )
 
 
