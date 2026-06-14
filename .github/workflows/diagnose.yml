@@ -276,6 +276,19 @@ jobs:
             echo "  deployed default in /app config.py:"
             sudo kubectl -n $NS exec $POD -- sh -c 'grep -n "PAYSTACK_SUPPORTED_CURRENCIES: set\[str\]" /app/server/polar/config.py 2>/dev/null || grep -rn "PAYSTACK_SUPPORTED_CURRENCIES: set\[str\]" /app 2>/dev/null | head -3' 2>&1 | head -3
 
+            echo
+            echo "═══════════════════════════════════════"
+            echo " /v1/reviews/ 500 DIAGNOSE"
+            echo "═══════════════════════════════════════"
+            echo "-- recent /v1/reviews/ access log entries (status codes) --"
+            sudo kubectl -n $NS logs deployment/blyss-api --tail=4000 2>&1 | grep -E "POST /v1/reviews/" | tail -10
+            echo
+            echo "-- recent unhandled exceptions / tracebacks --"
+            sudo kubectl -n $NS logs deployment/blyss-api --tail=4000 2>&1 | grep -B 2 -A 25 -E "/v1/reviews/.*500|Traceback|UnauthorizedReviewAccessError|review_service.create_review|exception" | tail -120
+            echo
+            echo "-- review_service.create_review path: orders this user could review --"
+            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select o.id as order_id, o.product_id, p.name, o.customer_id, c.email as customer_email, o.status, o.created_at from orders o join products p on p.id=o.product_id join customers c on c.id=o.customer_id where o.created_at > now() - interval '14 days' and o.status='paid' order by o.created_at desc limit 10;\"" 2>&1 | head -20
+
             echo "═══════════════════════════════════════"
             echo " API POD LOGS (current)"
             echo "═══════════════════════════════════════"
