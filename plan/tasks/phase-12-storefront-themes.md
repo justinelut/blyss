@@ -96,6 +96,13 @@ Goal: a creator can change accent, headline font, display style, motion intensit
 
 ### 12.1.5 Dashboard — Brand tab
 
+- [ ] **12.1.5.0 Restructure the dashboard "Storefront" nav from redirect → in-dashboard editor**
+  - Today: `DashboardSidebar.tsx` line ~163 and `DashboardLayout.tsx` mobile topbar both link to `/creators/{org.slug}` directly, dropping the creator out of the dashboard.
+  - Change: the "Storefront" sidebar entry now points to `/dashboard/{org}/storefront/theme` (the new editor).
+  - Mobile topbar's "Storefront" icon button is replaced with a smaller "View public →" affordance that opens `/creators/{slug}` in a new tab (`target="_blank"`, `rel="noopener"`).
+  - Add a "View public storefront →" pill button to the top-right of every page under `/dashboard/{org}/storefront/*` (uses `target="_blank"`).
+  - Acceptance: clicking "Storefront" in the dashboard sidebar lands on the Theme editor, NOT the public site. The public site is reachable via the secondary "View public" link from any storefront editor page.
+
 - [ ] **12.1.5.1 New route `/dashboard/{org}/storefront/theme`**
   - Add the dashboard nav item under "Storefront". Page renders three tabs (Brand / Layout / Sections) using shadcn `<Tabs>`. Layout + Sections tabs are present but disabled with a "Coming soon" badge until 12.3 + 12.4.
   - Acceptance: route mounts, Brand tab is the default.

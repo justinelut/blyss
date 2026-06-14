@@ -350,6 +350,22 @@ Every layout generates the same OG tags via the same `generateMetadata()` functi
 
 ## §19.8 Creator dashboard UX
 
+### §19.8.0 Navigation model — Storefront is an in-dashboard surface, not a redirect
+
+The dashboard's "Storefront" nav entry currently links *out* of the dashboard to `/creators/{slug}` (in `DashboardSidebar.tsx` and the mobile topbar in `DashboardLayout.tsx`). That UX is wrong for the theming work — every time the creator wants to customize, they get bounced out of the dashboard, lose unsaved state, and have no way to access editing controls.
+
+The new contract:
+
+- The "Storefront" nav entry is an **index route** in the dashboard, NOT a redirect.
+- Index route lands on `/dashboard/{org}/storefront` which renders the Theme tab by default.
+- Sub-routes for each customization concern: `/dashboard/{org}/storefront/theme`, `/dashboard/{org}/storefront/layout`, `/dashboard/{org}/storefront/sections`. (For v1 only the Theme route is functional; Layout and Sections are tabs in the same shell, disabled with a "Coming soon" badge.)
+- Every customization page has a **secondary** "View public storefront →" link in its top-right that opens `/creators/{slug}` in a new tab (`target="_blank"`, `rel="noopener"`). This is the only path from dashboard → public storefront. It never replaces the customization context.
+- The mobile dashboard topbar's quick-link button keeps its existence (it's the small affordance creators use to "see what buyers see") but its label and icon change so it's clearly a *peek*, not a navigation: small "View public →" pill, opens in a new tab, doesn't unmount the dashboard.
+
+This matches the Patreon / Substack / Gumroad / Linktree pattern where the "Storefront" / "Page" / "Brand" entry is always an editor in the operator's dashboard, with viewing the live page as a side action.
+
+The same pattern extends to future v4 storefront-related surfaces (custom domain, pages, integrations) — they all live under `/dashboard/{org}/storefront/*` as in-dashboard editors, never as redirects.
+
 ### §19.8.1 The route
 
 `/dashboard/{org}/storefront/theme` — three tabs.
