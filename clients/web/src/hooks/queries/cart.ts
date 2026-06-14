@@ -24,9 +24,22 @@ export const useCheckoutCart = () => {
         url: string
       }>,
     onError: (error: any) => {
+      // Same FastAPI-422-array unwrap as useCheckoutCartForOrganization
+      // (see comment there). Without this the buyer sees a generic
+      // "Failed to start checkout" toast instead of the real reason.
+      const rawDetail = error?.body?.detail ?? error?.error?.detail
+      const validationDetail = Array.isArray(rawDetail)
+        ? rawDetail
+            .map((d: { msg?: string }) =>
+              typeof d?.msg === 'string' ? d.msg : null,
+            )
+            .filter((m: string | null): m is string => !!m)
+            .join(' · ')
+        : null
+
       const errorMessage =
-        error?.error?.detail ||
-        error?.body?.detail ||
+        validationDetail ||
+        (typeof rawDetail === 'string' ? rawDetail : null) ||
         error?.message ||
         'Failed to start checkout'
 
@@ -331,9 +344,27 @@ export const useCheckoutCartForOrganization = () =>
         }),
       ) as Promise<{ client_secret: string; url: string }>,
     onError: (error: any) => {
+      // FastAPI 422 returns `body.detail` as an array of validation
+      // entries (`[{loc, msg, type}, ...]`). Without unwrapping it,
+      // the toast falls through to the generic "Failed to start
+      // checkout" — which is what was reported as a confusing
+      // "not found"-looking error when a USD-only product on a
+      // KES-only merchant hit the cart. Surface the first .msg so
+      // the buyer sees the real reason ("Products are not available
+      // in the specified currency.").
+      const rawDetail = error?.body?.detail ?? error?.error?.detail
+      const validationDetail = Array.isArray(rawDetail)
+        ? rawDetail
+            .map((d: { msg?: string }) =>
+              typeof d?.msg === 'string' ? d.msg : null,
+            )
+            .filter((m: string | null): m is string => !!m)
+            .join(' · ')
+        : null
+
       const errorMessage =
-        error?.error?.detail ||
-        error?.body?.detail ||
+        validationDetail ||
+        (typeof rawDetail === 'string' ? rawDetail : null) ||
         error?.message ||
         'Failed to start checkout'
 

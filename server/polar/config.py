@@ -313,14 +313,21 @@ class Settings(BaseSettings):
     PAYSTACK_PUBLIC_KEY: str = ""
     PAYSTACK_WEBHOOK_SECRET: str = ""
     # ISO-4217 codes the merchant's Paystack account is allowed to charge.
-    # Kenyan Paystack accounts default to KES-only; USD requires explicit
-    # enablement on the Paystack dashboard. Sending any other currency to
-    # the popup or /transaction/initialize fails with "Currency not
-    # supported by merchant" — so we clamp checkout currency to this set
-    # before stamping it on the Checkout row. Override per-deploy via
-    # the PAYSTACK_SUPPORTED_CURRENCIES env var (comma-separated, e.g.
-    # "kes,usd") once a merchant has additional currencies enabled.
-    PAYSTACK_SUPPORTED_CURRENCIES: set[str] = {"kes"}
+    # Blyss's main merchant account has both KES and USD enabled (the vast
+    # majority of products carry prices in both currencies). Default to
+    # ['kes','usd'] so multi-currency carts check out cleanly. An earlier
+    # KES-only default broke buyers on /ke trying to check out USD-only
+    # products — _get_currencies filtered the candidates to KES, the
+    # product had no KES price, and PriceSet.from_product raised
+    # NoPricesForCurrencies → 422 at /v1/cart/checkout.
+    #
+    # If a specific deploy/operator has only one currency enabled on
+    # their Paystack dashboard, override per-deploy via the
+    # PAYSTACK_SUPPORTED_CURRENCIES env var (comma-separated, e.g. "kes").
+    # Future direction: per-org supported_currencies (some creator
+    # subaccounts have only KES even when the platform main account has
+    # USD).
+    PAYSTACK_SUPPORTED_CURRENCIES: set[str] = {"kes", "usd"}
 
     # Numeral
     NUMERAL_API_KEY: str | None = None

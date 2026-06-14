@@ -981,17 +981,18 @@ const PaystackCheckoutForm = (props: CheckoutFormProps) => {
       const amount = updated.total_amount ?? checkout.total_amount ?? 0
       // Paystack-supported currencies for this merchant. Mirrors the
       // server-side PAYSTACK_SUPPORTED_CURRENCIES setting; defaults to
-      // KES-only because Kenyan Paystack accounts cannot charge USD
-      // unless the merchant has explicitly enabled it on their
-      // dashboard. Any other currency reaching the popup throws
-      // "Currency not supported by merchant" which is misleading
-      // (the merchant CAN support it, just hasn't been enabled).
+      // ['KES', 'USD'] because Blyss's main merchant account has both
+      // currencies enabled (matches the env-var default in
+      // server/polar/config.py). Anything else reaching the popup
+      // would throw "Currency not supported by merchant", which is
+      // misleading (the merchant CAN support more, just hasn't been
+      // enabled).
       //
       // The server already clamps Checkout.currency at creation time;
       // this is a belt-and-suspenders fallback so historical checkouts
       // (or any future code path that bypasses the clamp) don't crash
       // the popup.
-      const PAYSTACK_SUPPORTED_CURRENCIES = ['KES']
+      const PAYSTACK_SUPPORTED_CURRENCIES = ['KES', 'USD']
       const requestedCurrency = (
         (updated.currency || checkout.currency || 'KES') as string
       ).toUpperCase()
