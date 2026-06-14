@@ -21,14 +21,21 @@ import {
 import { cn } from '@/lib/utils'
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { use, useState } from 'react'
 import { schemas } from '@/lib/api'
 
 interface CategoryPageProps {
-  params: { slug: string }
+  // Next.js 15 made params a Promise. Synchronously reading params.slug
+  // (the previous code path) returned undefined under Next.js 15, which
+  // disabled the products query (enabled: !!parameters.slug) and the
+  // page rendered "Nothing here yet" forever — even though the API
+  // returned data. React.use() unwraps the promise inside the client
+  // component without making the component itself async.
+  params: Promise<{ slug: string }>
 }
 
 export default function CategoryPage({ params }: CategoryPageProps) {
+  const { slug } = use(params)
   const router = useRouter()
   const [currentPage, setCurrentPage] = useState(1)
   const limit = 24
@@ -37,7 +44,7 @@ export default function CategoryPage({ params }: CategoryPageProps) {
     data: category,
     isLoading: isCategoryLoading,
     isError: isCategoryError,
-  } = useCategoryBySlug(params.slug)
+  } = useCategoryBySlug(slug)
 
   const {
     data: productsData,
@@ -45,7 +52,7 @@ export default function CategoryPage({ params }: CategoryPageProps) {
     isError: isProductsError,
   } = useCategoryProducts(
     {
-      slug: params.slug,
+      slug,
       page: currentPage,
       limit,
     },

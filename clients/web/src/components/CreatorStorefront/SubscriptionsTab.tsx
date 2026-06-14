@@ -1,12 +1,14 @@
 'use client'
+'use client'
 
 import { schemas } from '@/lib/api'
 import { typography } from '@/design'
 import { cn } from '@/lib/utils'
+import { useDisplayCurrency } from '@/components/Marketplace/CurrencyProvider'
+import { findPriceForCurrency } from '@/lib/currency/marketplace'
 import { TierCard } from './TierCard'
 
 type Product = schemas['Product']
-type ProductPrice = Product['prices'][number]
 
 export interface SubscriptionsTabProps {
   /** All recurring (is_recurring=true) products by this creator. Treated as
@@ -19,13 +21,31 @@ export interface SubscriptionsTabProps {
   hasOtherWork?: boolean
 }
 
-const formatMonthlyPrice = (product: Product): { amount: string; cadence: string } => {
-  const price = product.prices?.[0] as ProductPrice | undefined
+/**
+ * Format the price + cadence for a subscription tier.
+ *
+ * Currency-aware: prefers the price priced in the visitor's display
+ * currency (geo-derived). Without this, a /us visitor would see KES
+ * prices on the storefront cards even though the marketplace + PDP
+ * already filter to USD-only products. Mirrors the FeaturedSubscriptions
+ * homepage card and the desktop ProductInfoColumn — single helper used
+ * site-wide.
+ */
+const formatMonthlyPrice = (
+  product: Product,
+  preferredCurrency: string,
+): { amount: string; cadence: string } => {
+  const price =
+    (findPriceForCurrency(product, preferredCurrency) as
+      | { price_amount?: number; price_currency?: string }
+      | undefined) ??
+    (product.prices?.[0] as
+      | { price_amount?: number; price_currency?: string }
+      | undefined)
   if (!price) return { amount: '—', cadence: '/ month' }
 
-  // Polar's price types vary — defensively read amount + currency.
-  const amountMinor = (price as any).price_amount ?? 0
-  const currency = ((price as any).price_currency ?? 'KES').toUpperCase()
+  const amountMinor = price.price_amount ?? 0
+  const currency = (price.price_currency ?? preferredCurrency).toUpperCase()
   const major = amountMinor / 100
 
   const formatted =
@@ -93,6 +113,13 @@ export const SubscriptionsTab = ({
   creatorName,
   hasOtherWork,
 }: SubscriptionsTabProps) => {
+  // Pull the visitor's display currency once at the top of the component
+  // so every tier card (and the formatMonthlyPrice call below) renders
+  // with consistent currency. Marketplace + storefront server-side
+  // queries already filter products to the visitor currency, so the
+  // helper's prices[0] fallback rarely fires.
+  const displayCurrency = useDisplayCurrency()
+
   if (!tiers.length) {
     return (
       <section className="mx-auto max-w-[1280px] px-6 py-16 md:px-16 md:py-24">
@@ -132,7 +159,7 @@ export const SubscriptionsTab = ({
       <div className={cn('mx-auto grid gap-6', columnsClass)}>
         {tiers.map((tier, i) => {
           const isFeatured = i === featuredIndex && tiers.length > 1
-          const { amount, cadence } = formatMonthlyPrice(tier)
+          const { amount, cadence } = formatMonthlyPrice(tier, displayCurrency)
           const bullets = getTierBullets(tier, 3)
 
           return (

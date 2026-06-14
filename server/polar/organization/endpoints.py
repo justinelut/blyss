@@ -218,16 +218,23 @@ async def get_creator(
     from polar.review.repository import ReviewRepository
 
     def _has_currency(product: object) -> bool:
-        """True if the product has an active price in the requested currency.
-        No conversion: a KES-only product is hidden from a USD visitor."""
+        """True if the product has an active price the visitor can pay in.
+
+        Mirrors the marketplace + PDP USD-fallback policy: visitor sees
+        the product if it was priced in either the visitor's currency
+        OR in USD (universal fallback). KES-only products stay hidden
+        from a /us or /za visitor — Paystack can't charge USD/ZAR for
+        a KES-only product.
+        """
         if currency is None:
             return True
         currency_lc = currency.lower()
+        allowed_currencies = {currency_lc, "usd"}
         for price in getattr(product, "prices", None) or []:
             if (
                 not getattr(price, "is_archived", False)
                 and (getattr(price, "price_currency", "") or "").lower()
-                == currency_lc
+                in allowed_currencies
             ):
                 return True
         return False

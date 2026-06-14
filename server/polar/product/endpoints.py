@@ -166,19 +166,30 @@ async def list_public_products(
         statement = statement.where(Product.organization_id == organization_id)
 
     if currency is not None:
-        # Hard currency filter (NO conversion): only surface products that
-        # the creator actually priced in the visitor's currency. A product
-        # priced only in KES is invisible to a USD visitor, because Paystack
-        # would charge in the product's own currency — showing it would be a
-        # price the buyer can't actually pay.
+        # Visitor-currency filter with USD as universal fallback.
+        # Per product brief: a creator may price in their local currency
+        # (KES, ZAR, NGN, …) or USD. A buyer in country X sees products
+        # priced in either:
+        #   1. X's local currency (if the creator priced for X), OR
+        #   2. USD (the universal fallback for everyone everywhere).
+        # This means a Kenyan creator who priced a product only in KES
+        # is hidden from a ZA visitor (Paystack can't charge ZAR for a
+        # KES-only product). The same product priced ALSO in USD is
+        # visible everywhere — buyer pays USD via Paystack regardless
+        # of their location.
         currency_lc = currency.lower()
+        # Always allow USD even when the visitor currency is something
+        # else, so creators who price universally in USD reach every
+        # buyer. When the visitor currency itself IS USD, the IN-clause
+        # collapses to a single value — no behavioral change.
+        allowed_currencies = {currency_lc, "usd"}
         statement = statement.where(
             select(ProductPrice.id)
             .where(
                 ProductPrice.product_id == Product.id,
                 ProductPrice.is_archived.is_(False),
                 ProductPrice.is_deleted.is_(False),
-                func.lower(ProductPrice.price_currency) == currency_lc,
+                func.lower(ProductPrice.price_currency).in_(allowed_currencies),
             )
             .exists()
         )
@@ -532,15 +543,17 @@ async def get_product_by_slug(
         if not viewer_owns_org:
             raise ResourceNotFound()
 
-    # Hard currency gate (no conversion): if the visitor's currency was passed
-    # and the creator didn't price this product in it, treat it as
-    # region-unavailable (404) — the buyer couldn't be charged in their
-    # currency anyway.
+    # Currency gate with USD-fallback (mirrors /v1/products/public).
+    # A buyer in country X can see this product if the creator priced it
+    # in either X's currency OR in USD (universal fallback). Otherwise
+    # 404 — Paystack can't charge a currency the product wasn't priced in.
     if currency is not None:
         currency_lc = currency.lower()
+        allowed_currencies = {currency_lc, "usd"}
         has_currency = any(
             not getattr(price, "is_archived", False)
-            and (getattr(price, "price_currency", "") or "").lower() == currency_lc
+            and (getattr(price, "price_currency", "") or "").lower()
+            in allowed_currencies
             for price in (product.prices or [])
         )
         if not has_currency:
