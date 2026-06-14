@@ -48,11 +48,22 @@ describe('locale URL handling', () => {
     expect(extractLocaleSegment('/')).toBeNull()
   })
 
-  it('returns null for unsupported 2-letter prefixes', () => {
-    // 'aa' is a valid 2-letter shape but not a supported country.
-    expect(extractLocaleSegment('/aa/marketplace')).toBeNull()
-    // 'fk' (Falkland Islands) — valid ISO but not in our supported list.
-    expect(extractLocaleSegment('/fk/marketplace')).toBeNull()
+  it('accepts every 2-letter country code (universal acceptance)', () => {
+    // 2026-06: switched to universal alpha-2 acceptance so visitors
+    // from any country in the world land on /{their-country}/ instead
+    // of a forced /us redirect. Currency for un-mapped countries
+    // resolves to USD via currencyForCountry().
+    expect(extractLocaleSegment('/aa/marketplace')).toEqual({
+      country: 'aa',
+      rest: '/marketplace',
+    })
+    expect(extractLocaleSegment('/fk/marketplace')).toEqual({
+      country: 'fk',
+      rest: '/marketplace',
+    })
+    // Currency for both above falls back to USD.
+    expect(currencyForCountry('aa')).toBe('usd')
+    expect(currencyForCountry('fk')).toBe('usd')
   })
 
   it('returns null for 3+ letter prefixes (avoids matching dashboard, login, etc.)', () => {

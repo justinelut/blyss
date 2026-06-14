@@ -4,7 +4,7 @@ import { RequestCookiesAdapter } from 'next/dist/server/web/spec-extension/adapt
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { COOKIE_MAX_AGE, DISTINCT_ID_COOKIE } from './experiments/constants'
-import { COUNTRY_COOKIE, SUPPORTED_COUNTRIES, isSupportedCountry } from './lib/geo'
+import { COUNTRY_COOKIE, SUPPORTED_COUNTRIES, currencyForCountry, isSupportedCountry } from './lib/geo'
 import { resolveGeo } from './lib/geo/middleware'
 import { createServerSideAPI } from './utils/client'
 
@@ -238,12 +238,11 @@ export async function proxy(request: NextRequest) {
       const requestHeaders = new Headers(request.headers)
       // The URL takes priority over cookie + cf-ipcountry for currency.
       requestHeaders.set('x-blyss-country', segment.country)
-      const countryToCurrency: Record<string, string> = {
-        ke: 'kes', us: 'usd', gb: 'gbp', ng: 'ngn', gh: 'ghs', za: 'zar',
-        de: 'eur', fr: 'eur', es: 'eur', it: 'eur', nl: 'eur', ie: 'eur',
-        pt: 'eur',
-      }
-      requestHeaders.set('x-blyss-currency', countryToCurrency[segment.country] ?? 'usd')
+      // Reuse the shared country->currency map (lib/geo). Anything
+      // unmapped resolves to USD — the universal Paystack-supported
+      // fallback that lets buyers in any country still pay for
+      // USD-priced products.
+      requestHeaders.set('x-blyss-currency', currencyForCountry(segment.country))
       requestHeaders.set('x-blyss-pathname', segment.rest)
       // Auth lookup — if the visitor has a polar_session cookie, surface
       // them via x-polar-user so the layout's getAuthenticatedUser() picks
