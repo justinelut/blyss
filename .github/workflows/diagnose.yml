@@ -271,44 +271,9 @@ jobs:
             echo "-- Cart items that exist + the implied currency-resolution mismatch --"
             sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select ci.id as cart_item_id, ci.user_id is not null as is_user_cart, ci.quantity, p.name as product, o.slug as creator, o.default_presentment_currency as creator_default, (select string_agg(pp.price_currency, ',') from product_prices pp where pp.product_id=p.id and pp.is_archived=false) as available_currencies from cart_items ci join products p on p.id=ci.product_id join organizations o on o.id=p.organization_id order by ci.created_at desc limit 15;\"" 2>&1 | head -25
             echo
-            echo "-- Settings.PAYSTACK_SUPPORTED_CURRENCIES seen by the running pod (env override + parsed value) --"
+            echo "-- Settings.PAYSTACK_SUPPORTED_CURRENCIES seen by the running pod --"
             sudo kubectl -n $NS exec $POD -- sh -c 'echo "  raw env: $POLAR_PAYSTACK_SUPPORTED_CURRENCIES"' 2>&1 | head -2
-            sudo kubectl -n $NS exec $POD -- python3 -c "
-from polar.config import settings
-print('  parsed:', sorted(settings.PAYSTACK_SUPPORTED_CURRENCIES))
-" 2>&1 | head -3 || true
-            echo
-            echo "-- Direct PriceSet probe: USD-only product on /ke buyer (KES geo) --"
-            echo "   Confirms that PriceSet resolution now finds the USD price instead of dying"
-            sudo kubectl -n $NS exec $POD -- python3 -c "
-import asyncio
-from polar.kit.db.postgres import create_async_engine, create_async_sessionmaker
-from polar.config import settings
-async def go():
-    engine = create_async_engine('script')
-    SessionLocal = create_async_sessionmaker(engine)
-    async with SessionLocal() as s:
-        from sqlalchemy import select
-        from polar.models import Product
-        from sqlalchemy.orm import selectinload
-        stmt = select(Product).where(Product.id == '4d0f689c-f693-41a0-a8db-fa7ac3c89d3a').options(selectinload(Product.prices))
-        r = await s.execute(stmt)
-        p = r.scalar_one_or_none()
-        if not p:
-            print('  product not found')
-            return
-        from polar.product.price_set import PriceSet, NoPricesForCurrencies
-        candidates = ['kes', 'usd']
-        supported = {c.lower() for c in settings.PAYSTACK_SUPPORTED_CURRENCIES}
-        filtered = [c for c in candidates if c in supported]
-        print('  pre-filter:', candidates, '· post-filter:', filtered)
-        try:
-            ps = PriceSet.from_product(p, *filtered)
-            print('  PriceSet OK · resolved currency:', ps.currency, '· prices:', len(ps.prices))
-        except NoPricesForCurrencies as e:
-            print('  STILL FAILING: NoPricesForCurrencies for', list(e.currency))
-asyncio.run(go())
-" 2>&1 | head -8 || true
+            sudo kubectl -n $NS exec $POD -- python3 -c 'from polar.config import settings; print("  parsed:", sorted(settings.PAYSTACK_SUPPORTED_CURRENCIES))' 2>&1 | head -3 || true
 
             echo "═══════════════════════════════════════"
             echo " API POD LOGS (current)"
