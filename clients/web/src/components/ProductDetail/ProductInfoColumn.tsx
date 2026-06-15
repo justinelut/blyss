@@ -222,10 +222,12 @@ export const ProductInfoColumn = ({
           </button>
         )}
 
-        {/* Payment note */}
+        {/* Payment note — kept generic so the line reads
+            internationally. Specific methods are surfaced at
+            checkout based on the visitor's country. */}
         <p className="flex items-center gap-2 font-sans text-[13px] text-[var(--text-muted)]">
           <span className="h-1 w-1 rounded-full bg-[var(--accent)]" aria-hidden="true" />
-          Card or M-Pesa · Instant delivery
+          Secure checkout · Instant delivery
         </p>
       </div>
 

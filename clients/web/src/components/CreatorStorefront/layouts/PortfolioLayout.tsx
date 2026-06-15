@@ -42,7 +42,7 @@ const PortfolioHero: React.FC<StorefrontHeroProps> = ({
 }) => (
   <header className="border-b border-[var(--border)] bg-[var(--background)]">
     <div className="mx-auto max-w-[1280px] px-6 py-12 md:px-16 md:py-20">
-      <Eyebrow>{city ?? 'Nairobi'} · Selected work</Eyebrow>
+      <Eyebrow>{city ? `${city} · ` : ''}Selected work</Eyebrow>
       <div className="mt-4 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
         <div className="flex items-end gap-5">
           <Avatar avatar_url={avatarUrl ?? null} name={name} className="h-20 w-20" />

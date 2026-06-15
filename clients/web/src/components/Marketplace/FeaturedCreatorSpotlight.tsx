@@ -33,7 +33,7 @@ export const FeaturedCreatorSpotlight = ({
   const avatar = (creator as any).avatar_url
   const slug = (creator as any).slug ?? creator.id
   const bio = ((creator as any).bio ?? '').slice(0, 240)
-  const city = ((creator as any).city ?? 'Nairobi') as string
+  const city = ((creator as any).city ?? null) as string | null
   const topProductImage = topProduct?.medias?.[0]?.public_url
   // Seed-data fallbacks (when no real data is in the DB) use ids prefixed
   // "seed_". Route those clicks to the directory/marketplace pages so cards
@@ -90,9 +90,11 @@ export const FeaturedCreatorSpotlight = ({
               >
                 {creator.name}
               </h2>
-              <p className="font-sans text-[13px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
-                {city}
-              </p>
+              {city && (
+                <p className="font-sans text-[13px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
+                  {city}
+                </p>
+              )}
             </div>
           </div>
 

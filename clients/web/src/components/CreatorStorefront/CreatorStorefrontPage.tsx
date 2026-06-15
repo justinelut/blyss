@@ -185,7 +185,7 @@ export function CreatorStorefrontPage({
         bio={creator.bio}
         avatarUrl={creator.avatarUrl}
         bannerUrl={creator.bannerUrl}
-        city={creator.city ?? 'Nairobi'}
+        city={creator.city ?? null}
         hasSubscriptions={tiers.length > 0}
         tipEnabled={creator.tipEnabled ?? true}
         socials={creator.socialLinks}

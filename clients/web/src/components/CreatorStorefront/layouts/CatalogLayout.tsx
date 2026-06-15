@@ -48,7 +48,7 @@ const CatalogHero: React.FC<StorefrontHeroProps> = ({
             {name}
           </h1>
           <span className="font-sans text-[12px] text-[var(--text-muted)]">
-            @{slug} · {city ?? 'Nairobi'}
+            @{slug}{city ? ` · ${city}` : ''}
           </span>
         </div>
       </div>

@@ -44,7 +44,7 @@ const GalleryHero: React.FC<StorefrontHeroProps> = ({
       <div className="flex items-center gap-4">
         <Avatar avatar_url={avatarUrl ?? null} name={name} className="h-16 w-16" />
         <div className="flex flex-col gap-1">
-          <Eyebrow>{city ?? 'Nairobi'}</Eyebrow>
+          {city && <Eyebrow>{city}</Eyebrow>}
           <h1
             className={cn(
               'font-display text-[28px] font-semibold leading-[1.1] tracking-[-0.02em] text-[var(--text-primary)] md:text-[34px]',

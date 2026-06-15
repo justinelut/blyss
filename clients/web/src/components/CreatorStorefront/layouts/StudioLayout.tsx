@@ -37,7 +37,7 @@ const StudioHero: React.FC<StorefrontHeroProps> = ({
 }) => (
   <header className="border-b border-[var(--border)] bg-[var(--background)]">
     <div className="mx-auto max-w-[820px] px-6 py-14 md:px-12 md:py-20">
-      <Eyebrow>{city ?? 'Nairobi'} · @{slug}</Eyebrow>
+      <Eyebrow>{city ? `${city} · ` : ''}@{slug}</Eyebrow>
       <h1
         className={cn(
           typography.h2,
