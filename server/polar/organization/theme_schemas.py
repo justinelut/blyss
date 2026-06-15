@@ -179,3 +179,47 @@ class StorefrontTokensPreviewResponse(Schema):
         int,
         Field(description="Seconds until the draft is purged."),
     ]
+
+
+class StorefrontTokensUpdateResponse(Schema):
+    """Return shape from `PATCH /v1/organizations/{id}/storefront/tokens`.
+
+    A minimal echo — the dashboard reloads after save (full SSR
+    refresh picks up the new tokens), so the endpoint doesn't need to
+    return the full storefront payload. Keeping this small avoids the
+    `Organization.products` lazy-load trap on the save path: the org
+    is loaded for write here, not with the eager-product-relationship
+    options the public GET uses.
+    """
+
+    model_config = ConfigDict(extra="forbid", from_attributes=True)
+
+    theme_layout: StorefrontLayoutSlug
+    theme_tokens: dict[str, Any]
+    theme_modules: list[dict[str, Any]]
+    theme_version_hash: str
+
+
+class StorefrontLayoutUpdate(Schema):
+    """PATCH body for `/v1/organizations/{id}/storefront/layout` (§19.4).
+
+    The closed-enum here is the security boundary: layouts outside
+    the curated five return 422.
+    """
+
+    model_config = ConfigDict(extra="forbid", from_attributes=True)
+
+    layout: StorefrontLayoutSlug
+
+
+class StorefrontModulesUpdate(Schema):
+    """PATCH body for `/v1/organizations/{id}/storefront/modules` (§19.5).
+
+    The list may be empty (no modules enabled). `extra='forbid'` on
+    each EnabledModule blocks unknown kinds.
+    """
+
+    model_config = ConfigDict(extra="forbid", from_attributes=True)
+
+    modules: list[EnabledModule] = Field(default_factory=list, max_length=20)
+

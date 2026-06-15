@@ -36,6 +36,10 @@ import {
   STOREFRONT_THEME_PRESETS,
   findMatchingPreset,
 } from '@/design/storefront-presets'
+import {
+  STOREFRONT_LAYOUTS,
+  STOREFRONT_MODULES,
+} from '@/design/storefront-layouts'
 import { schemas } from '@/lib/api'
 import { api } from '@/utils/client'
 import { cn } from '@/lib/utils'
@@ -43,8 +47,11 @@ import {
   STOREFRONT_TOKENS_DEFAULTS,
   type AccentName,
   type DisplayStyle,
+  type EnabledModule,
   type HeadlineFont,
+  type ModuleKind,
   type Motion,
+  type StorefrontLayoutSlug,
   type StorefrontTokens,
 } from '@/types/storefront-theme'
 import {
@@ -52,7 +59,15 @@ import {
   interDisplayFont,
   interTightFont,
 } from '@/fonts/fonts'
-import { FiArrowUpRight, FiCheck, FiRefreshCw } from 'react-icons/fi'
+import { FiArrowUpRight, FiCheck, FiEye, FiRefreshCw } from 'react-icons/fi'
+
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer'
 
 interface Props {
   organization: schemas['Organization']
@@ -121,6 +136,38 @@ const readSavedTokens = (
   return STOREFRONT_TOKENS_DEFAULTS
 }
 
+const readSavedLayout = (
+  organization: schemas['Organization'],
+): StorefrontLayoutSlug => {
+  const raw = (organization as unknown as { theme_layout?: unknown })
+    .theme_layout
+  if (typeof raw === 'string') return raw as StorefrontLayoutSlug
+  return 'editorial'
+}
+
+const readSavedModules = (
+  organization: schemas['Organization'],
+): EnabledModule[] => {
+  const raw = (organization as unknown as { theme_modules?: unknown })
+    .theme_modules
+  if (Array.isArray(raw)) return raw as EnabledModule[]
+  return []
+}
+
+const modulesEqual = (a: EnabledModule[], b: EnabledModule[]): boolean => {
+  // Compare as a kind→enabled map. v1 dirty-detection only cares
+  // whether toggles changed; v3 will add display_order tracking.
+  const byKind = (list: EnabledModule[]) =>
+    Object.fromEntries(list.map((m) => [m.kind, m.enabled]))
+  const aMap = byKind(a)
+  const bMap = byKind(b)
+  const keys = new Set([...Object.keys(aMap), ...Object.keys(bMap)])
+  for (const k of keys) {
+    if (aMap[k] !== bMap[k]) return false
+  }
+  return true
+}
+
 const tokensEqual = (a: StorefrontTokens, b: StorefrontTokens): boolean =>
   a.accent === b.accent &&
   a.accent_secondary === b.accent_secondary &&
@@ -136,14 +183,30 @@ export const StorefrontThemeEditor: React.FC<Props> = ({ organization }) => {
     () => readSavedTokens(organization),
     [organization],
   )
+  const savedLayout = React.useMemo(
+    () => readSavedLayout(organization),
+    [organization],
+  )
+  const savedModules = React.useMemo(
+    () => readSavedModules(organization),
+    [organization],
+  )
 
   const [draft, setDraft] = React.useState<StorefrontTokens>(savedTokens)
+  const [draftLayout, setDraftLayout] =
+    React.useState<StorefrontLayoutSlug>(savedLayout)
+  const [draftModules, setDraftModules] =
+    React.useState<EnabledModule[]>(savedModules)
   const [previewToken, setPreviewToken] = React.useState<string | null>(null)
   const [activeTab, setActiveTab] = React.useState<TabId>('brand')
   const [saving, setSaving] = React.useState(false)
   const [resetting, setResetting] = React.useState(false)
+  const [previewOpen, setPreviewOpen] = React.useState(false)
 
-  const dirty = !tokensEqual(draft, savedTokens)
+  const tokensDirty = !tokensEqual(draft, savedTokens)
+  const layoutDirty = draftLayout !== savedLayout
+  const modulesDirty = !modulesEqual(draftModules, savedModules)
+  const dirty = tokensDirty || layoutDirty || modulesDirty
 
   // Debounced preview save. When the form changes, after 400ms of
   // stillness POST the draft to /storefront/tokens/preview and store
@@ -188,23 +251,52 @@ export const StorefrontThemeEditor: React.FC<Props> = ({ organization }) => {
   const handleSave = React.useCallback(async () => {
     if (!dirty || saving) return
     setSaving(true)
+    type ApiClient = {
+      PATCH: (
+        path: string,
+        init: {
+          params: { path: { id: string } }
+          body: Record<string, unknown>
+        },
+      ) => Promise<{ error?: { detail?: string } | null }>
+    }
+    const apiClient = api as unknown as ApiClient
     try {
-      const result = await (api as unknown as {
-        PATCH: (
-          path: string,
-          init: {
-            params: { path: { id: string } }
-            body: StorefrontTokens
-          },
-        ) => Promise<{ error?: { detail?: string } | null }>
-      }).PATCH('/v1/organizations/{id}/storefront/tokens', {
-        params: { path: { id: organization.id } },
-        body: draft,
-      })
-      if (result?.error) {
+      // Run the three PATCHes in parallel; each is independent.
+      const writes: Promise<{ error?: { detail?: string } | null }>[] = []
+      if (tokensDirty) {
+        writes.push(
+          apiClient.PATCH('/v1/organizations/{id}/storefront/tokens', {
+            params: { path: { id: organization.id } },
+            body: draft as unknown as Record<string, unknown>,
+          }),
+        )
+      }
+      if (layoutDirty) {
+        writes.push(
+          apiClient.PATCH('/v1/organizations/{id}/storefront/layout', {
+            params: { path: { id: organization.id } },
+            body: { layout: draftLayout },
+          }),
+        )
+      }
+      if (modulesDirty) {
+        writes.push(
+          apiClient.PATCH('/v1/organizations/{id}/storefront/modules', {
+            params: { path: { id: organization.id } },
+            body: {
+              modules: draftModules as unknown as Record<string, unknown>[],
+            },
+          }),
+        )
+      }
+      const results = await Promise.all(writes)
+      const failure = results.find((r) => r?.error)
+      if (failure) {
         toast({
           title: 'Could not save theme',
-          description: result.error.detail ?? 'Please try again in a moment.',
+          description:
+            failure.error?.detail ?? 'Please try again in a moment.',
           variant: 'error',
         })
         return
@@ -213,11 +305,9 @@ export const StorefrontThemeEditor: React.FC<Props> = ({ organization }) => {
         title: 'Theme saved',
         description: 'Your storefront updates within 60 seconds.',
       })
-      // Soft-refresh the page so the server-rendered organization row
-      // picks up the new theme_tokens (and the dirty state collapses).
-      // Next.js server components only re-render on a full navigation
-      // or router.refresh(); a hard reload is the simplest, most
-      // reliable path on a dashboard surface.
+      // Soft-refresh the page so the SSR org row picks up the new
+      // theme_tokens / theme_layout / theme_modules and the dirty
+      // state collapses.
       if (typeof window !== 'undefined') {
         window.location.reload()
       }
@@ -231,10 +321,22 @@ export const StorefrontThemeEditor: React.FC<Props> = ({ organization }) => {
     } finally {
       setSaving(false)
     }
-  }, [dirty, saving, organization.id, draft])
+  }, [
+    dirty,
+    saving,
+    organization.id,
+    draft,
+    draftLayout,
+    draftModules,
+    tokensDirty,
+    layoutDirty,
+    modulesDirty,
+  ])
 
   const handleDiscard = React.useCallback(async () => {
     setDraft(savedTokens)
+    setDraftLayout(savedLayout)
+    setDraftModules(savedModules)
     try {
       await (api as unknown as {
         DELETE: (
@@ -323,6 +425,14 @@ export const StorefrontThemeEditor: React.FC<Props> = ({ organization }) => {
             <FiRefreshCw size={13} aria-hidden="true" />
             Reset to defaults
           </button>
+          <button
+            type="button"
+            onClick={() => setPreviewOpen(true)}
+            className="inline-flex h-10 items-center gap-1.5 rounded-md border border-[var(--border-strong)] bg-[var(--background)] px-3 font-sans text-[13px] font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-sunken)]"
+          >
+            <FiEye size={13} aria-hidden="true" />
+            Preview
+          </button>
           <a
             href={publicHref}
             target="_blank"
@@ -342,8 +452,8 @@ export const StorefrontThemeEditor: React.FC<Props> = ({ organization }) => {
       >
         {([
           { id: 'brand', label: 'Brand', disabled: false },
-          { id: 'layout', label: 'Layout', disabled: true },
-          { id: 'sections', label: 'Sections', disabled: true },
+          { id: 'layout', label: 'Layout', disabled: false },
+          { id: 'sections', label: 'Sections', disabled: false },
         ] as const).map((tab) => (
           <button
             key={tab.id}
@@ -360,18 +470,15 @@ export const StorefrontThemeEditor: React.FC<Props> = ({ organization }) => {
             )}
           >
             {tab.label}
-            {tab.disabled && (
-              <span className="rounded-full bg-[var(--surface-sunken)] px-2 py-0.5 font-sans text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
-                Soon
-              </span>
-            )}
           </button>
         ))}
       </nav>
 
-      {/* Body — split layout: form on the left, preview on the right (desktop) */}
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_minmax(0,560px)]">
-        {/* Left: form */}
+      {/* Body — single column. Preview lives in a drawer triggered by
+          the header's Preview button so creators get the full editor
+          width to scroll through pickers without a sticky iframe
+          eating half the viewport. */}
+      <div className="flex flex-col gap-8">
         <div className="flex flex-col gap-10">
           {activeTab === 'brand' && (
             <>
@@ -421,14 +528,21 @@ export const StorefrontThemeEditor: React.FC<Props> = ({ organization }) => {
                           <span className="font-sans text-[13px] font-medium text-[var(--text-primary)]">
                             {preset.name}
                           </span>
-                          {selected && (
-                            <span
-                              aria-hidden="true"
-                              className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-[var(--text-primary)] text-[var(--background)]"
-                            >
-                              <FiCheck size={10} strokeWidth={3} />
-                            </span>
-                          )}
+                          <span className="flex items-center gap-1.5">
+                            {preset.id === 'blyss' && (
+                              <span className="rounded-full bg-[var(--surface-sunken)] px-2 py-0.5 font-sans text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
+                                Default
+                              </span>
+                            )}
+                            {selected && (
+                              <span
+                                aria-hidden="true"
+                                className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-[var(--text-primary)] text-[var(--background)]"
+                              >
+                                <FiCheck size={10} strokeWidth={3} />
+                              </span>
+                            )}
+                          </span>
                         </span>
                         <span className="line-clamp-2 font-sans text-[11px] leading-[1.4] text-[var(--text-muted)]">
                           {preset.description}
@@ -656,55 +770,172 @@ export const StorefrontThemeEditor: React.FC<Props> = ({ organization }) => {
           )}
 
           {activeTab === 'layout' && (
-            <ComingSoonCard
-              tabName="Layout"
-              copy="Pick from a curated set of storefront layouts — gallery, catalog, portfolio, studio. Coming in v2."
-            />
+            <section className="flex flex-col gap-4">
+              <div>
+                <Eyebrow>Layout</Eyebrow>
+                <h2 className="mt-2 font-display text-[18px] font-semibold text-[var(--text-primary)]">
+                  Pick a structure for your storefront.
+                </h2>
+                <p className="mt-1 max-w-[60ch] font-sans text-[13px] leading-[1.55] text-[var(--text-secondary)]">
+                  Each layout is a different way of arranging your hero,
+                  product grid, and bio. Choose the one that fits how
+                  buyers should encounter your work. Editorial ships
+                  today; the others render the editorial layout while
+                  v2 builds them — your choice persists either way.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {STOREFRONT_LAYOUTS.map((layout) => {
+                  const selected = draftLayout === layout.slug
+                  const ready = layout.shipsIn === 'v1'
+                  return (
+                    <button
+                      key={layout.slug}
+                      type="button"
+                      onClick={() => setDraftLayout(layout.slug)}
+                      aria-pressed={selected}
+                      className={cn(
+                        'flex flex-col items-stretch gap-2 rounded-md border bg-[var(--background)] p-4 text-left transition-colors',
+                        selected
+                          ? 'border-[var(--text-primary)]'
+                          : 'border-[var(--border)] hover:border-[var(--border-strong)]',
+                      )}
+                    >
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="font-sans text-[13px] font-medium text-[var(--text-primary)]">
+                          {layout.name}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          {!ready && (
+                            <span className="rounded-full bg-[var(--surface-sunken)] px-2 py-0.5 font-sans text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
+                              v2
+                            </span>
+                          )}
+                          {selected && (
+                            <span
+                              aria-hidden="true"
+                              className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-[var(--text-primary)] text-[var(--background)]"
+                            >
+                              <FiCheck size={10} strokeWidth={3} />
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <p className="font-sans text-[12px] leading-[1.5] text-[var(--text-secondary)]">
+                        {layout.description}
+                      </p>
+                      <p className="font-sans text-[11px] leading-[1.4] text-[var(--text-muted)]">
+                        Best for: {layout.bestFor}
+                      </p>
+                    </button>
+                  )
+                })}
+              </div>
+            </section>
           )}
 
           {activeTab === 'sections' && (
-            <ComingSoonCard
-              tabName="Sections"
-              copy="Niche modules for your category — waveform players, recipe cards, before/after sliders, course outlines. Coming in v3."
-            />
+            <section className="flex flex-col gap-4">
+              <div>
+                <Eyebrow>Sections</Eyebrow>
+                <h2 className="mt-2 font-display text-[18px] font-semibold text-[var(--text-primary)]">
+                  Turn on niche modules for your category.
+                </h2>
+                <p className="mt-1 max-w-[60ch] font-sans text-[13px] leading-[1.55] text-[var(--text-secondary)]">
+                  Each module renders extra content on your storefront
+                  for the right kind of product. Toggle the ones that
+                  fit. Active modules ship in v3 — your choices
+                  persist now and turn on automatically when v3
+                  rolls out.
+                </p>
+              </div>
+              <div className="flex flex-col divide-y divide-[var(--border)] rounded-md border border-[var(--border)] bg-[var(--background)]">
+                {STOREFRONT_MODULES.map((module, index) => {
+                  const existing = draftModules.find(
+                    (m) => m.kind === module.kind,
+                  )
+                  const enabled = existing?.enabled ?? false
+                  return (
+                    <label
+                      key={module.kind}
+                      className="flex cursor-pointer items-start gap-4 p-4 transition-colors hover:bg-[var(--surface-sunken)]"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={enabled}
+                        onChange={(e) => {
+                          const next = e.target.checked
+                          setDraftModules((current) => {
+                            const filtered = current.filter(
+                              (m) => m.kind !== module.kind,
+                            )
+                            if (!next) return filtered
+                            return [
+                              ...filtered,
+                              {
+                                kind: module.kind as ModuleKind,
+                                enabled: true,
+                                settings: existing?.settings ?? {},
+                                display_order:
+                                  existing?.display_order ?? index,
+                              },
+                            ]
+                          })
+                        }}
+                        className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--text-primary)]"
+                      />
+                      <span className="flex flex-col gap-0.5">
+                        <span className="font-sans text-[13px] font-medium text-[var(--text-primary)]">
+                          {module.name}
+                        </span>
+                        <span className="font-sans text-[12px] leading-[1.5] text-[var(--text-secondary)]">
+                          {module.description}
+                        </span>
+                        <span className="mt-1 font-sans text-[11px] leading-[1.4] text-[var(--text-muted)]">
+                          Suggested for: {module.suggestedFor}
+                        </span>
+                      </span>
+                    </label>
+                  )
+                })}
+              </div>
+            </section>
           )}
         </div>
+      </div>
 
-        {/* Right: live preview */}
-        <aside className="flex flex-col gap-3 lg:sticky lg:top-4 lg:h-[calc(100vh-2rem)]">
-          <div className="flex items-center justify-between">
-            <Eyebrow>Live preview</Eyebrow>
-            <span className="font-sans text-[11px] text-[var(--text-muted)]">
-              {dirty ? 'Unsaved changes' : 'Up to date'}
-            </span>
-          </div>
-          <div className="relative flex-1 overflow-hidden rounded-md border border-[var(--border)] bg-[var(--surface)]">
-            {/* The iframe always points at the public /creators/{slug}.
-                When draft tokens differ from saved, we append the
-                signed preview_token so the public storefront renders
-                with the unsaved tokens. The frame_id reloads the
-                iframe each time previewToken changes — keying off
-                the token avoids partial-state caches. */}
+      {/* Preview drawer — slides up from the bottom on mobile and from
+          the right on desktop. Renders the public storefront against
+          the current draft tokens. /creators/{slug} allows same-origin
+          framing via the dedicated CSP entry in next.config.mjs. */}
+      <Drawer
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        direction="right"
+      >
+        <DrawerContent className="flex h-full max-h-[100dvh] w-full flex-col gap-0 p-0 sm:max-w-[640px] md:max-w-[760px] lg:max-w-[860px]">
+          <DrawerHeader className="border-b border-[var(--border)] px-5 py-4 text-left">
+            <DrawerTitle className="font-display text-[16px] font-semibold text-[var(--text-primary)]">
+              Storefront preview
+            </DrawerTitle>
+            <DrawerDescription className="font-sans text-[12px] text-[var(--text-muted)]">
+              {dirty
+                ? 'Showing your unsaved theme. Save to publish.'
+                : 'Showing the saved theme. Buyers see this version.'}
+            </DrawerDescription>
+          </DrawerHeader>
+          <div className="relative flex-1 overflow-hidden bg-[var(--surface)]">
+            {/* Re-key the iframe when the token changes so the embedded
+                page does a full reload with the new ?preview_theme=. */}
             <iframe
               key={previewToken ?? 'saved'}
               title="Storefront preview"
               src={previewHref}
-              className="h-full min-h-[400px] w-full border-0"
-              loading="lazy"
+              className="h-full w-full border-0"
             />
-            {/* Saved-state hint when no draft token */}
-            {!previewToken && (
-              <div className="pointer-events-none absolute right-3 top-3 rounded-md bg-[var(--background)]/90 px-2 py-1 font-sans text-[10px] uppercase tracking-[0.1em] text-[var(--text-muted)] backdrop-blur">
-                Saved theme
-              </div>
-            )}
           </div>
-          <p className="font-sans text-[11px] leading-[1.5] text-[var(--text-muted)]">
-            Buyers see your saved storefront. Click Save below to
-            publish your changes.
-          </p>
-        </aside>
-      </div>
+        </DrawerContent>
+      </Drawer>
 
       {/* Sticky save / discard toolbar — only renders when dirty */}
       {dirty && (

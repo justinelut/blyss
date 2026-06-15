@@ -59,8 +59,11 @@ from .schemas import (
 )
 from .schemas import Organization as OrganizationSchema
 from .theme_schemas import (
+    StorefrontLayoutUpdate,
+    StorefrontModulesUpdate,
     StorefrontTokensPreviewResponse,
     StorefrontTokensUpdate,
+    StorefrontTokensUpdateResponse,
 )
 from .service import organization as organization_service
 
@@ -481,7 +484,7 @@ async def update(
 
 @router.patch(
     "/{id}/storefront/tokens",
-    response_model=CreatorStorefrontSchema,
+    response_model=StorefrontTokensUpdateResponse,
     summary="Update Storefront Theme Tokens",
     responses={
         200: {"description": "Theme tokens updated."},
@@ -499,7 +502,7 @@ async def update_storefront_tokens(
     tokens: StorefrontTokensUpdate,
     auth_subject: auth.OrganizationsWrite,
     session: AsyncSession = Depends(get_db_session),
-) -> CreatorStorefrontSchema:
+) -> StorefrontTokensUpdateResponse:
     """Update the creator's storefront theme tokens.
 
     Per plan §19.6 + §19.8.2. The Pydantic model rejects unknown keys
@@ -510,6 +513,14 @@ async def update_storefront_tokens(
     `theme_version_hash`, which acts as the SSR cache key for
     /creators/{slug} — so the next visitor gets a fresh render
     automatically. No explicit cache invalidation needed.
+
+    The response is a minimal echo of the saved fields. The dashboard
+    triggers a full reload after save so the SSR fetch of the org row
+    picks the new tokens up — we don't need to return the whole
+    storefront payload here. Returning the full payload is also
+    actively HARMFUL: the org is loaded for write on this path
+    without the eager-product-relationship that the public GET uses,
+    and `Organization.products` is `lazy='raise'`.
     """
     organization = await organization_service.get(session, auth_subject, id)
 
@@ -521,28 +532,102 @@ async def update_storefront_tokens(
     organization.theme_tokens = tokens.model_dump(mode="json", exclude_none=False)
     session.add(organization)
     await session.flush()
+    await session.refresh(organization)
 
-    # Reuse the same builder as GET /creators/{slug} for response shape
-    # consistency. The endpoint here is private (auth-required) but the
-    # response schema is the public storefront one — the dashboard
-    # already knows how to consume it.
-    products = list(organization.products) if hasattr(organization, "products") else []
-    return CreatorStorefrontSchema(
-        id=organization.id,
-        name=organization.name,
-        slug=organization.slug,
-        avatar_url=organization.avatar_url,
-        cover_image_url=(organization.profile_settings or {}).get("cover_image_url"),
-        bio=organization.bio,
-        email=organization.email,
-        social_links=None,
-        socials=None,
-        tipping_enabled=organization.tipping_enabled,
+    return StorefrontTokensUpdateResponse(
         theme_layout=organization.theme_layout,
         theme_tokens=organization.theme_tokens or {},
         theme_modules=organization.theme_modules or [],
-        theme_version_hash=organization.theme_version_hash,
-        products=[],
+        theme_version_hash=organization.theme_version_hash or "",
+    )
+
+
+@router.patch(
+    "/{id}/storefront/layout",
+    response_model=StorefrontTokensUpdateResponse,
+    summary="Update Storefront Layout",
+    responses={
+        200: {"description": "Layout updated."},
+        403: {
+            "description": "Caller is not a member of this organization.",
+            "model": NotPermitted.schema(),
+        },
+        404: OrganizationNotFound,
+        422: {"description": "Layout outside the curated set."},
+    },
+    tags=[APITag.private],
+)
+async def update_storefront_layout(
+    id: OrganizationID,
+    body: StorefrontLayoutUpdate,
+    auth_subject: auth.OrganizationsWrite,
+    session: AsyncSession = Depends(get_db_session),
+) -> StorefrontTokensUpdateResponse:
+    """Switch the creator's storefront layout (§19.4).
+
+    Layouts outside the closed enum return 422. The version hash hook
+    bumps automatically so SSR caches invalidate on the next visitor.
+    """
+    organization = await organization_service.get(session, auth_subject, id)
+    if organization is None:
+        raise ResourceNotFound()
+
+    organization.theme_layout = body.layout
+    session.add(organization)
+    await session.flush()
+    await session.refresh(organization)
+
+    return StorefrontTokensUpdateResponse(
+        theme_layout=organization.theme_layout,
+        theme_tokens=organization.theme_tokens or {},
+        theme_modules=organization.theme_modules or [],
+        theme_version_hash=organization.theme_version_hash or "",
+    )
+
+
+@router.patch(
+    "/{id}/storefront/modules",
+    response_model=StorefrontTokensUpdateResponse,
+    summary="Update Storefront Modules",
+    responses={
+        200: {"description": "Module list updated."},
+        403: {
+            "description": "Caller is not a member of this organization.",
+            "model": NotPermitted.schema(),
+        },
+        404: OrganizationNotFound,
+        422: {"description": "Module outside the curated kinds."},
+    },
+    tags=[APITag.private],
+)
+async def update_storefront_modules(
+    id: OrganizationID,
+    body: StorefrontModulesUpdate,
+    auth_subject: auth.OrganizationsWrite,
+    session: AsyncSession = Depends(get_db_session),
+) -> StorefrontTokensUpdateResponse:
+    """Replace the creator's enabled modules list (§19.5).
+
+    Sends the full list every time — no patch semantics. Empty list
+    means no modules. Each EnabledModule.kind must be in the curated
+    enum; unknown kinds return 422.
+    """
+    organization = await organization_service.get(session, auth_subject, id)
+    if organization is None:
+        raise ResourceNotFound()
+
+    organization.theme_modules = [
+        m.model_dump(mode="json", exclude_none=False) for m in body.modules
+    ]
+    session.add(organization)
+    await session.flush()
+    await session.refresh(organization)
+
+    return StorefrontTokensUpdateResponse(
+        theme_layout=organization.theme_layout,
+        theme_tokens=organization.theme_tokens or {},
+        theme_modules=organization.theme_modules or [],
+        theme_version_hash=organization.theme_version_hash or "",
     )
 
 

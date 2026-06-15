@@ -56,6 +56,18 @@ const oauth2CSP = `
   frame-ancestors 'none';
 `
 
+// /creators/{slug} pages must be embeddable from the same-origin
+// dashboard editor's preview drawer (plan §19.8). Same-origin only —
+// no cross-site framing, so clickjacking from third-party sites is
+// still blocked. The page-level X-Frame-Options is dropped on this
+// path because DENY would otherwise override frame-ancestors in
+// older browsers.
+const creatorStorefrontCSP = `
+  ${baseCSP}
+  form-action 'self' ${process.env.NEXT_PUBLIC_API_URL} polar:;
+  frame-ancestors 'self';
+`
+
 // We rewrite Mintlify docs to polar.sh/docs, so we need a specific CSP for them
 // Ref: https://www.mintlify.com/docs/guides/csp-configuration#content-security-policy-csp-configuration
 const docsCSP = `
@@ -375,8 +387,36 @@ const nextConfig = {
 
     return [
       {
-        source: '/((?!checkout|oauth2|docs).*)',
+        source: '/((?!checkout|oauth2|docs|creators).*)',
         headers: baseHeaders,
+      },
+      {
+        // Creator storefronts must allow same-origin framing so the
+        // dashboard's theme editor preview drawer can embed them.
+        // X-Frame-Options is intentionally OMITTED here — frame-ancestors
+        // 'self' on the CSP is the modern equivalent and DENY would
+        // override it in legacy browsers.
+        source: '/creators/:path*',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: creatorStorefrontCSP.replace(/\n/g, ''),
+          },
+          {
+            key: 'Permissions-Policy',
+            value:
+              'payment=(), publickey-credentials-get=(), camera=(), microphone=(), geolocation=()',
+          },
+          ...(ENVIRONMENT === 'sandbox'
+            ? [
+                {
+                  key: 'X-Robots-Tag',
+                  value:
+                    'noindex, nofollow, noarchive, nosnippet, noimageindex',
+                },
+              ]
+            : []),
+        ],
       },
       {
         source: '/marketplace',
