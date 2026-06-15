@@ -32,6 +32,10 @@ import Avatar from '@/components/atoms/Avatar'
 import { toast } from '@/components/Toast/use-toast'
 import { Skeleton, Eyebrow, typography } from '@/design'
 import { STOREFRONT_PALETTE } from '@/design/storefront-palette'
+import {
+  STOREFRONT_THEME_PRESETS,
+  findMatchingPreset,
+} from '@/design/storefront-presets'
 import { schemas } from '@/lib/api'
 import { api } from '@/utils/client'
 import { cn } from '@/lib/utils'
@@ -371,6 +375,70 @@ export const StorefrontThemeEditor: React.FC<Props> = ({ organization }) => {
         <div className="flex flex-col gap-10">
           {activeTab === 'brand' && (
             <>
+              {/* Preset bundles — one-click starter themes */}
+              <section className="flex flex-col gap-4">
+                <div>
+                  <Eyebrow>Quick start</Eyebrow>
+                  <h2 className="mt-2 font-display text-[18px] font-semibold text-[var(--text-primary)]">
+                    Pick a starter theme.
+                  </h2>
+                  <p className="mt-1 max-w-[52ch] font-sans text-[13px] leading-[1.55] text-[var(--text-secondary)]">
+                    Curated bundles. Each picks an accent, font,
+                    typography rule, and motion intensity for you.
+                    Tweak any axis below afterwards.
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
+                  {STOREFRONT_THEME_PRESETS.map((preset) => {
+                    const accent = STOREFRONT_PALETTE[preset.tokens.accent]
+                    const matched = findMatchingPreset(draft)
+                    const selected = matched?.id === preset.id
+                    return (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => setDraft(preset.tokens)}
+                        aria-pressed={selected}
+                        title={preset.description}
+                        className={cn(
+                          'flex flex-col items-stretch gap-2 rounded-md border bg-[var(--background)] p-3 text-left transition-colors',
+                          selected
+                            ? 'border-[var(--text-primary)]'
+                            : 'border-[var(--border)] hover:border-[var(--border-strong)]',
+                        )}
+                      >
+                        <span
+                          aria-hidden="true"
+                          className="flex h-12 w-full items-center justify-center rounded-sm font-display text-[15px] font-semibold tracking-[-0.02em]"
+                          style={{
+                            backgroundColor: accent.value,
+                            color: accent.foreground,
+                          }}
+                        >
+                          Aa
+                        </span>
+                        <span className="flex items-baseline justify-between gap-2">
+                          <span className="font-sans text-[13px] font-medium text-[var(--text-primary)]">
+                            {preset.name}
+                          </span>
+                          {selected && (
+                            <span
+                              aria-hidden="true"
+                              className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-[var(--text-primary)] text-[var(--background)]"
+                            >
+                              <FiCheck size={10} strokeWidth={3} />
+                            </span>
+                          )}
+                        </span>
+                        <span className="line-clamp-2 font-sans text-[11px] leading-[1.4] text-[var(--text-muted)]">
+                          {preset.description}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </section>
+
               {/* Accent picker */}
               <section className="flex flex-col gap-4">
                 <div>
