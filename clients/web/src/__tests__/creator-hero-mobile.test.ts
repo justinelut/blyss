@@ -50,8 +50,14 @@ describe('Creator storefront hero — readability', () => {
     expect(src).toMatch(/flex-col[^"]*md:flex-row/)
   })
 
-  test('CTA row is full-width on mobile, inline on md+', () => {
-    expect(src).toMatch(/w-full[^"]*md:w-auto/)
+  test('Subscribe CTA is removed from the hero', () => {
+    // Per design decision: the Subscribe button no longer lives on the
+    // hero — buyers discover tiers via the Subscriptions tab. The hero
+    // is reserved for identity (avatar / name / handle / bio + Tip).
+    // Asserting the literal '>Subscribe<' text doesn't appear catches
+    // accidental re-additions in future PRs.
+    expect(src).not.toMatch(/>Subscribe</)
+    expect(src).not.toMatch(/onClick=\{onSubscribeClick\}/)
   })
 
   test('Heading size scales with viewport via clamp()', () => {
