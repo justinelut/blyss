@@ -368,6 +368,36 @@ class Organization(OrganizationBase):
             "dashboard form retains values after autosave."
         ),
     )
+
+    # ─── Storefront theme (plan §19) ──────────────────────────────────
+    # Returned on every Organization read so the dashboard editor at
+    # `/dashboard/{slug}/storefront/theme` can reflect the saved
+    # selection on first paint. Without these, the editor's
+    # `readSavedTokens(organization)` reads `undefined` and falls back
+    # to the v1 defaults — so even after a successful save, refreshing
+    # the editor showed the Blyss preset selected instead of whatever
+    # the creator just chose.
+    theme_layout: str = Field(
+        default="editorial",
+        description="Storefront layout slug. One of: editorial, gallery, catalog, portfolio, studio.",
+    )
+    theme_tokens: dict[str, Any] = Field(
+        default_factory=lambda: {
+            "accent": "burnt-orange",
+            "headline_font": "space-grotesk",
+            "display_style": "editorial",
+            "motion": "standard",
+        },
+        description="Storefront theme tokens (accent / font / display style / motion).",
+    )
+    theme_modules: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Enabled niche modules (waveform_player, before_after_slider, etc).",
+    )
+    theme_version_hash: str | None = Field(
+        default=None,
+        description="SHA-256 over (layout, tokens, modules). SSR cache key.",
+    )
     subscription_settings: OrganizationSubscriptionSettings = Field(
         description="Settings related to subscriptions management",
     )

@@ -15,7 +15,7 @@
  */
 
 import { FiSearch, FiUser, FiMenu, FiX, FiHeart } from 'react-icons/fi'
-import { FiGrid, FiLogOut } from 'react-icons/fi'
+import { FiGrid, FiLogOut, FiMoon, FiSun } from 'react-icons/fi'
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
@@ -346,6 +346,9 @@ function AccountMenu() {
             </li>
           </ul>
           <div className="border-t border-[var(--border)] py-2">
+            <ThemeToggleRow />
+          </div>
+          <div className="border-t border-[var(--border)] py-2">
             <a
               href={`${CONFIG.BASE_URL}/v1/auth/logout`}
               role="menuitem"
@@ -358,5 +361,85 @@ function AccountMenu() {
         </div>
       )}
     </div>
+  )
+}
+
+/**
+ * ThemeToggleRow — light/dark switch styled as a menuitem inside the
+ * AccountMenu dropdown. Mirrors the data-theme + localStorage pattern
+ * the existing `clients/web/src/design/ThemeToggle.tsx` uses, but
+ * styled as a row (not an icon button) to match the surrounding
+ * Dashboard / Wishlist / Sign out items.
+ */
+function ThemeToggleRow() {
+  const STORAGE_KEY = 'blyss-theme'
+  const [mounted, setMounted] = useState(false)
+  const [theme, setThemeState] = useState<'light' | 'dark'>('light')
+
+  useEffect(() => {
+    setMounted(true)
+    if (typeof window === 'undefined') return
+    const stored = localStorage.getItem(STORAGE_KEY) as
+      | 'light'
+      | 'dark'
+      | null
+    if (stored === 'light' || stored === 'dark') {
+      setThemeState(stored)
+      return
+    }
+    const prefersDark = window.matchMedia(
+      '(prefers-color-scheme: dark)',
+    ).matches
+    setThemeState(prefersDark ? 'dark' : 'light')
+  }, [])
+
+  const toggle = () => {
+    const next = theme === 'light' ? 'dark' : 'light'
+    setThemeState(next)
+    if (typeof document !== 'undefined') {
+      const html = document.documentElement
+      if (next === 'dark') {
+        html.setAttribute('data-theme', 'dark')
+        html.classList.add('dark')
+      } else {
+        html.removeAttribute('data-theme')
+        html.classList.remove('dark')
+      }
+    }
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE_KEY, next)
+    }
+  }
+
+  // Render a placeholder until mounted to avoid hydration mismatch.
+  if (!mounted) {
+    return (
+      <div
+        className="flex h-10 items-center px-4"
+        aria-hidden="true"
+      />
+    )
+  }
+
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      onClick={toggle}
+      className="flex w-full items-center justify-between gap-3 px-4 py-2.5 font-sans text-[14px] text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-sunken)]"
+      aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+    >
+      <span className="flex items-center gap-3">
+        {theme === 'light' ? (
+          <FiMoon size={16} className="text-[var(--text-muted)]" />
+        ) : (
+          <FiSun size={16} className="text-[var(--text-muted)]" />
+        )}
+        Theme
+      </span>
+      <span className="font-sans text-[12px] text-[var(--text-muted)]">
+        {theme === 'light' ? 'Light' : 'Dark'}
+      </span>
+    </button>
   )
 }

@@ -126,13 +126,17 @@ const StudioWorkSection: React.FC<StorefrontWorkSectionProps> = ({
   }
   return (
     <section className="mx-auto max-w-[1280px] px-6 py-10 md:px-16 md:py-16">
+      {/* Eyebrow stays in the narrow text column for editorial reading
+          rhythm; the index list itself spans the full container so
+          long product names + descriptions have room on wide
+          monitors. */}
       <div className="max-w-[820px]">
         <Eyebrow className="mb-2">Index</Eyebrow>
-        <div className="border-t border-[var(--border)]">
-          {products.map((product, i) => (
-            <StudioRow key={product.id} product={product} index={i} />
-          ))}
-        </div>
+      </div>
+      <div className="border-t border-[var(--border)]">
+        {products.map((product, i) => (
+          <StudioRow key={product.id} product={product} index={i} />
+        ))}
       </div>
     </section>
   )
