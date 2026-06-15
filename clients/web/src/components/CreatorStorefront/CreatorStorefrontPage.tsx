@@ -17,21 +17,23 @@ import { useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { parseAsStringEnum, useQueryState } from 'nuqs'
 import { schemas } from '@/lib/api'
-import { StorefrontHero } from './StorefrontHero'
 import { CreatorStorefrontFooter } from './CreatorStorefrontFooter'
 import {
   StorefrontTabs,
   type StorefrontTab,
   type StorefrontTabId,
 } from './StorefrontTabs'
-import { AllWorkTab } from './AllWorkTab'
+import { resolveStorefrontLayout } from './layouts'
 import { SubscriptionsTab } from './SubscriptionsTab'
 import { AboutTab, type AboutTabSocialLinks } from './AboutTab'
 import { StorefrontActionBar } from './StorefrontActionBar'
 import { ReviewsBlock, type ReviewSummary, type ReviewExcerpt } from './ReviewsBlock'
 import { useCurrencyControls } from '@/components/Marketplace/CurrencyProvider'
 import { StorefrontThemeProvider } from '@/components/Storefront/StorefrontThemeProvider'
-import type { StorefrontTokens } from '@/types/storefront-theme'
+import type {
+  StorefrontLayoutSlug,
+  StorefrontTokens,
+} from '@/types/storefront-theme'
 
 export interface CreatorStorefrontPageProps {
   /** Creator core fields, sourced from the public CreatorStorefrontSchema. */
@@ -51,6 +53,9 @@ export interface CreatorStorefrontPageProps {
     /** Storefront theme tokens (plan §19). When omitted the provider
      *  falls back to v1 defaults so the storefront still renders. */
     themeTokens?: StorefrontTokens | null
+    /** Storefront layout slug (plan §19.4). Falls back to 'editorial'
+     *  when omitted or unknown. */
+    themeLayout?: StorefrontLayoutSlug | null
   }
   /** All non-archived products by this creator, returned by the storefront
    *  endpoint. We split on `is_recurring` to derive subscription tiers. */
@@ -90,6 +95,11 @@ export function CreatorStorefrontPage({
   const tabsAnchorRef = useRef<HTMLDivElement | null>(null)
   const router = useRouter()
   const { country } = useCurrencyControls()
+
+  const layout = useMemo(
+    () => resolveStorefrontLayout(creator.themeLayout),
+    [creator.themeLayout],
+  )
 
   // Tab state — URL-driven via nuqs. Replace history (don't push) so the back
   // button takes users out of the storefront, not back through tab clicks.
@@ -163,7 +173,7 @@ export function CreatorStorefrontPage({
       tokens={creator.themeTokens ?? null}
       className="bg-[var(--background)] text-[var(--text-primary)]"
     >
-      <StorefrontHero
+      <layout.Hero
         name={creator.name}
         slug={creator.slug}
         organizationId={creator.id}
@@ -173,6 +183,7 @@ export function CreatorStorefrontPage({
         city={creator.city ?? 'Nairobi'}
         hasSubscriptions={tiers.length > 0}
         tipEnabled={creator.tipEnabled ?? true}
+        socials={creator.socialLinks}
         onSubscribeClick={handleSubscribeClick}
         onTipClick={handleTipClick}
       />
@@ -199,7 +210,7 @@ export function CreatorStorefrontPage({
         aria-labelledby={`storefront-tab-${tab}`}
       >
         {tab === 'work' && (
-          <AllWorkTab products={products} creatorName={creator.name} />
+          <layout.WorkSection products={products} creatorName={creator.name} />
         )}
         {tab === 'subscriptions' && (
           <SubscriptionsTab

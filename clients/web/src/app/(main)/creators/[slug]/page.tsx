@@ -326,6 +326,13 @@ export default async function Page({ params }: CreatorPageProps) {
               .theme_tokens as
               | import('@/types/storefront-theme').StorefrontTokens
               | undefined) ?? null,
+          // Plan §19.4 layout slug — falls back to 'editorial' inside
+          // resolveStorefrontLayout when the field is absent or unknown.
+          themeLayout:
+            ((creator as unknown as { theme_layout?: unknown })
+              .theme_layout as
+              | import('@/types/storefront-theme').StorefrontLayoutSlug
+              | undefined) ?? null,
         }}
         products={products}
         reviewSummary={reviewSummary}
