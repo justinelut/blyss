@@ -209,11 +209,10 @@ export const StorefrontThemeEditor: React.FC<Props> = ({ organization }) => {
   const dirty = tokensDirty || layoutDirty || modulesDirty
 
   // Debounced preview save. When the form changes, after 400ms of
-  // stillness POST the draft to /storefront/tokens/preview and store
-  // the returned signed token so the iframe re-renders with it. We
-  // don't preview when the form matches the saved state — that's the
-  // initial load (just point the iframe at the public URL with no
-  // token).
+  // stillness POST a draft envelope (any combination of tokens /
+  // layout / modules that are dirty) to /storefront/tokens/preview
+  // and store the returned signed token so the iframe re-renders
+  // with it. We don't preview when nothing's dirty.
   React.useEffect(() => {
     if (!dirty) {
       setPreviewToken(null)
@@ -221,12 +220,16 @@ export const StorefrontThemeEditor: React.FC<Props> = ({ organization }) => {
     }
     const id = setTimeout(async () => {
       try {
+        const body: Record<string, unknown> = {}
+        if (tokensDirty) body.tokens = draft
+        if (layoutDirty) body.layout = draftLayout
+        if (modulesDirty) body.modules = draftModules
         const result = (await (api as unknown as {
           POST: (
             path: string,
             init: {
               params: { path: { id: string } }
-              body: StorefrontTokens
+              body: Record<string, unknown>
             },
           ) => Promise<{
             data?: { preview_token?: string }
@@ -234,7 +237,7 @@ export const StorefrontThemeEditor: React.FC<Props> = ({ organization }) => {
           }>
         }).POST('/v1/organizations/{id}/storefront/tokens/preview', {
           params: { path: { id: organization.id } },
-          body: draft,
+          body,
         }))
         if (result?.data?.preview_token) {
           setPreviewToken(result.data.preview_token)
@@ -246,7 +249,16 @@ export const StorefrontThemeEditor: React.FC<Props> = ({ organization }) => {
       }
     }, 400)
     return () => clearTimeout(id)
-  }, [draft, dirty, organization.id])
+  }, [
+    draft,
+    draftLayout,
+    draftModules,
+    dirty,
+    tokensDirty,
+    layoutDirty,
+    modulesDirty,
+    organization.id,
+  ])
 
   const handleSave = React.useCallback(async () => {
     if (!dirty || saving) return

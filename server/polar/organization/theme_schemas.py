@@ -223,3 +223,18 @@ class StorefrontModulesUpdate(Schema):
 
     modules: list[EnabledModule] = Field(default_factory=list, max_length=20)
 
+
+class StorefrontPreviewBody(Schema):
+    """POST body for `/v1/organizations/{id}/storefront/tokens/preview`.
+
+    Each axis is optional. The draft envelope only carries the axes
+    the dashboard sent — the public-page splice falls back to the
+    saved row's value for any missing axis. Per plan §19.6.3.
+    """
+
+    model_config = ConfigDict(extra="forbid", from_attributes=True)
+
+    tokens: StorefrontTokensUpdate | None = None
+    layout: StorefrontLayoutSlug | None = None
+    modules: list[EnabledModule] | None = Field(default=None, max_length=20)
+

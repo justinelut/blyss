@@ -122,10 +122,17 @@ async def save_theme_draft(
     *,
     organization_id: UUID,
     user_id: UUID,
-    tokens: dict[str, Any],
+    tokens: dict[str, Any] | None = None,
+    layout: str | None = None,
+    modules: list[dict[str, Any]] | None = None,
 ) -> str:
-    """Store `tokens` in Redis under `(org, user)` and return a signed
-    preview token referencing it.
+    """Store the full draft (tokens + layout + modules) in Redis under
+    `(org, user)` and return a signed preview token referencing it.
+
+    Each axis is optional — a payload that only specifies `tokens`
+    leaves the layout / modules fields out of the envelope so the
+    public-page splice falls back to the org row's saved values for
+    those.
 
     Calling save_theme_draft for the same `(org, user)` pair overwrites
     the previous draft and rotates the draft_id — old tokens are
@@ -136,29 +143,34 @@ async def save_theme_draft(
     try:
         draft_id = secrets.token_urlsafe(12)
         key = _redis_key(org_id=organization_id, user_id=user_id)
-        # The draft envelope carries the draft_id alongside the tokens
-        # so a verify-token call doesn't have to hash twice. JSON-encoded
-        # because the value may grow as v2/v3 modules ship and we don't
-        # want to redo the storage shape later.
-        value = json.dumps(
-            {"draft_id": draft_id, "tokens": tokens},
-            separators=(",", ":"),
-            sort_keys=True,
-        )
+        envelope: dict[str, Any] = {"draft_id": draft_id}
+        if tokens is not None:
+            envelope["tokens"] = tokens
+        if layout is not None:
+            envelope["layout"] = layout
+        if modules is not None:
+            envelope["modules"] = modules
+        value = json.dumps(envelope, separators=(",", ":"), sort_keys=True)
         await redis.set(key, value, ex=STOREFRONT_THEME_DRAFT_TTL_SECONDS)
         return _make_token(
             org_id=organization_id, user_id=user_id, draft_id=draft_id
         )
     finally:
-        # Don't leave the connection lingering — let the pool reclaim.
         await redis.aclose()
 
 
 async def get_theme_draft(*, token: str) -> dict[str, Any] | None:
-    """Resolve a preview token to the stored token blob.
+    """Resolve a preview token to the stored draft envelope.
 
     Returns None for any of: invalid signature, expired/missing draft,
-    draft_id mismatch (token was for an older draft that's been rotated).
+    draft_id mismatch (token was for an older draft that's been
+    rotated).
+
+    Returned shape (each key optional — see save_theme_draft):
+        {"tokens": dict?, "layout": str?, "modules": list?}
+
+    The caller is responsible for falling back to the org row's saved
+    values for any axis not present in the envelope.
     """
 
     decoded = verify_token(token)
@@ -181,15 +193,16 @@ async def get_theme_draft(*, token: str) -> dict[str, Any] | None:
                 key=key,
             )
             return None
-        # Reject if the draft has been rotated since this token was
-        # issued — prevents a stale tab from rendering yesterday's
-        # draft after the creator started a new editing session.
         if envelope.get("draft_id") != decoded["draft_id"]:
             return None
-        tokens = envelope.get("tokens")
-        if not isinstance(tokens, dict):
-            return None
-        return tokens
+        result: dict[str, Any] = {}
+        if isinstance(envelope.get("tokens"), dict):
+            result["tokens"] = envelope["tokens"]
+        if isinstance(envelope.get("layout"), str):
+            result["layout"] = envelope["layout"]
+        if isinstance(envelope.get("modules"), list):
+            result["modules"] = envelope["modules"]
+        return result
     finally:
         await redis.aclose()
 

@@ -61,6 +61,7 @@ from .schemas import Organization as OrganizationSchema
 from .theme_schemas import (
     StorefrontLayoutUpdate,
     StorefrontModulesUpdate,
+    StorefrontPreviewBody,
     StorefrontTokensPreviewResponse,
     StorefrontTokensUpdate,
     StorefrontTokensUpdateResponse,
@@ -233,10 +234,13 @@ async def get_creator(
         raise ResourceNotFound()
 
     # Resolve preview-theme draft (if any). The draft replaces only
-    # `theme_tokens` on the response — `theme_layout` and
-    # `theme_modules` still come from the saved row. v1 only previews
-    # tokens; v2 will widen this to layout drafts.
+    # `theme_tokens`, `theme_layout`, AND `theme_modules` can all be
+    # spliced from the preview draft. Each axis is independent — a
+    # draft that only carries tokens leaves layout / modules falling
+    # back to the saved row. Per plan §19.6.3.
     preview_tokens: dict[str, Any] | None = None
+    preview_layout: str | None = None
+    preview_modules: list[dict[str, Any]] | None = None
     if preview_theme:
         from polar.organization.theme_preview import get_theme_draft, verify_token
 
@@ -247,7 +251,11 @@ async def get_creator(
         # the only place these tokens are minted, but the endpoint
         # is public so we double-check here).
         if decoded is not None and decoded["org_id"] == str(organization.id):
-            preview_tokens = await get_theme_draft(token=preview_theme)
+            draft = await get_theme_draft(token=preview_theme)
+            if draft is not None:
+                preview_tokens = draft.get("tokens")
+                preview_layout = draft.get("layout")
+                preview_modules = draft.get("modules")
 
     # Convert non-archived SQLAlchemy products → public Product schema dicts.
     # Lazy-import the schema to avoid a circular import (product.schemas
@@ -376,11 +384,15 @@ async def get_creator(
         tipping_enabled=organization.tipping_enabled,
         # Storefront theme — plan §19. Frontend renders ThemeProvider
         # and dynamic-imports the right layout from these three values.
-        theme_layout=organization.theme_layout,
+        theme_layout=preview_layout
+        if preview_layout is not None
+        else organization.theme_layout,
         theme_tokens=preview_tokens
         if preview_tokens is not None
         else (organization.theme_tokens or {}),
-        theme_modules=organization.theme_modules or [],
+        theme_modules=preview_modules
+        if preview_modules is not None
+        else (organization.theme_modules or []),
         theme_version_hash=organization.theme_version_hash,
         products=products,
     )
@@ -648,15 +660,20 @@ async def update_storefront_modules(
 )
 async def save_storefront_tokens_preview(
     id: OrganizationID,
-    tokens: StorefrontTokensUpdate,
+    body: StorefrontPreviewBody,
     auth_subject: auth.OrganizationsWrite,
     session: AsyncSession = Depends(get_db_session),
 ) -> StorefrontTokensPreviewResponse:
-    """Save a draft of theme tokens to Redis and return a signed token.
+    """Save a draft of theme tokens / layout / modules to Redis and
+    return a signed token referencing it.
+
+    The body is a wide envelope — each axis is optional. The
+    dashboard sends whichever axes have unsaved changes; the public
+    GET splice falls back to the saved row's value for missing axes.
 
     The dashboard's preview iframe loads `/creators/{slug}?preview_theme=<token>`
     which the storefront route validates and uses to render with the
-    unsaved tokens. Drafts expire in 30 minutes and are scoped to one
+    unsaved values. Drafts expire in 30 minutes and are scoped to one
     `(organization, user)` pair — the user's own token can't preview
     someone else's storefront.
 
@@ -679,7 +696,13 @@ async def save_storefront_tokens_preview(
     token = await save_theme_draft(
         organization_id=organization.id,
         user_id=user_id,
-        tokens=tokens.model_dump(mode="json", exclude_none=False),
+        tokens=body.tokens.model_dump(mode="json", exclude_none=False)
+        if body.tokens is not None
+        else None,
+        layout=body.layout,
+        modules=[m.model_dump(mode="json", exclude_none=False) for m in body.modules]
+        if body.modules is not None
+        else None,
     )
     return StorefrontTokensPreviewResponse(
         preview_token=token,
