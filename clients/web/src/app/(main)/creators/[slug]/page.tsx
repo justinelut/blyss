@@ -126,14 +126,18 @@ export async function generateMetadata({
   const { slug } = await params
   try {
     const creator = await fetchCreator(slug)
-    const title = `${creator.name} · Kenyan Creator on Blyss`
-    // Anti-slop fallback. Original used "the modern creator marketplace"
-    // which is exactly the kind of vague-AI prose we're trying to leave
-    // behind ("modern" is on the ban list). When the creator hasn't
-    // written a bio, name the platform, the country, the payment rail.
+    // Title: just the creator name. The root layout's metadata
+    // template ('%s') appends the brand suffix once. Page-
+    // level titles must NOT include 'Blyss' or 'on Blyss' or the
+    // browser tab reads 'Foo · Kenyan Creator'.
+    const title = creator.name
+    // Description: stays neutral and international. The previous
+    // copy hard-coded 'Kenyan' + 'M-Pesa', which doesn't read for
+    // visitors outside Kenya. Specific payment methods are surfaced
+    // on checkout based on country.
     const description =
       creator.bio?.trim() ||
-      `${creator.name} sells digital products on Blyss. Buy with M-Pesa or card. Instant delivery after payment.`
+      `Digital products by ${creator.name}. Instant delivery after payment.`
     const canonical = `${SITE_BASE}/creators/${creator.slug}`
     // Prefer the creator's banner (16:9, designed to be shareable) for
     // social previews; fall back to avatar then to the OG generator.
@@ -153,24 +157,23 @@ export async function generateMetadata({
       description,
       alternates: { canonical },
       openGraph: {
-        title,
+        title: `${creator.name} · Blyss`,
         description,
         url: canonical,
         siteName: 'Blyss',
         type: 'profile',
-        locale: 'en_KE',
         images: [
           {
             url: ogImage,
             width: 1200,
             height: 630,
-            alt: `${creator.name} on Blyss`,
+            alt: creator.name,
           },
         ],
       },
       twitter: {
         card: 'summary_large_image',
-        title,
+        title: `${creator.name} · Blyss`,
         description,
         images: [ogImage],
       },
@@ -178,7 +181,7 @@ export async function generateMetadata({
     }
   } catch {
     return {
-      title: 'Creator not found · Blyss',
+      title: 'Creator not found',
       robots: { index: false, follow: false },
     }
   }

@@ -6,8 +6,8 @@ import { SearchResults } from './SearchResults'
 import type { CategoryTile } from '@/components/Marketplace/BrowseByCraft'
 
 export const metadata: Metadata = {
-  title: 'Search · Blyss',
-  description: 'Find digital products and creators on Blyss.',
+  title: 'Search',
+  description: 'Find digital products and creators.',
 }
 
 /**

@@ -9,16 +9,16 @@ export const dynamic = "force-dynamic"
 export const revalidate = 60
 
 export const metadata: Metadata = {
-  title: 'Kenyan Creators on Blyss · Designers, Writers, Musicians, Educators',
+  title: 'Creators · Designers, Writers, Musicians, Educators',
   description:
-    'Browse Kenyan creators selling digital products. Designers, writers, musicians, educators, photographers, and producers based in Nairobi, Mombasa, Kisumu, and beyond. Pay with M-Pesa or card.',
+    'Browse creators selling digital products. Designers, writers, musicians, educators, photographers, and producers around the world.',
   keywords:
-    'Kenyan creators, Nairobi designers, Kenyan musicians, Kenyan ebooks authors, sell digital products Kenya, creator economy Kenya, M-Pesa creator marketplace',
+    'creators',
   alternates: { canonical: 'https://blyss.co.ke/creators' },
   openGraph: {
-    title: 'Kenyan Creators on Blyss',
+    title: 'Creators',
     description:
-      'Browse Kenyan creators selling digital products. Designers, writers, musicians, educators, photographers, and producers across Kenya.',
+      'Browse creators selling digital products. Designers, writers, musicians, educators, photographers, and producers across Kenya.',
     siteName: 'Blyss',
     type: 'website',
     locale: 'en_KE',
@@ -27,13 +27,13 @@ export const metadata: Metadata = {
         url: 'https://cdn.blyss.co.ke/brand/og-default.png',
         width: 1200,
         height: 630,
-        alt: 'Kenyan creators on Blyss',
+        alt: 'creators',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Kenyan Creators on Blyss',
+    title: 'Creators',
     description:
       'Designers, writers, musicians, educators, photographers, and producers from across Kenya.',
     images: ['https://cdn.blyss.co.ke/brand/og-default.png'],
@@ -87,7 +87,7 @@ export default async function CreatorsPage() {
         data={{
           '@context': 'https://schema.org',
           '@type': 'CollectionPage',
-          name: 'Independent Creators · Blyss',
+          name: 'Independent Creators',
           url: 'https://blyss.co.ke/creators',
           description:
             "Meet creators making things worth supporting. Designers, writers, musicians, educators, photographers.",

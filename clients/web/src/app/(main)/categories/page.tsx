@@ -7,16 +7,16 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 60
 
 export const metadata: Metadata = {
-  title: 'Categories · Browse Templates, Ebooks, Beats, Courses on Blyss',
+  title: 'Categories · Browse Templates, Ebooks, Beats, Courses',
   description:
-    'Browse every Blyss category. Templates, ebooks, beats and music, presets, courses, photography, software. Filter by Kenyan creators and pay with M-Pesa.',
+    'Browse every Blyss category. Templates, ebooks, beats and music, presets, courses, photography, software. Filter by creators and pay with M-Pesa.',
   keywords:
     'digital product categories Kenya, buy templates Kenya, buy ebooks Kenya, buy beats Kenya, buy presets Kenya, online courses Kenya, photography Kenya, software Kenya',
   alternates: { canonical: 'https://blyss.co.ke/categories' },
   openGraph: {
-    title: 'Categories · Blyss',
+    title: 'Categories',
     description:
-      'Templates, ebooks, beats and music, presets, courses, photography, software. All from Kenyan creators.',
+      'Templates, ebooks, beats and music, presets, courses, photography, software. All from creators.',
     type: 'website',
     locale: 'en_KE',
   },

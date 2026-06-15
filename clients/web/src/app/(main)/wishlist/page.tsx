@@ -4,8 +4,8 @@ import { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 
 export const metadata: Metadata = {
-  title: 'Wishlist · Blyss',
-  description: 'Items you saved on Blyss.',
+  title: 'Wishlist',
+  description: 'Items you saved.',
   robots: { index: false, follow: false },
 }
 

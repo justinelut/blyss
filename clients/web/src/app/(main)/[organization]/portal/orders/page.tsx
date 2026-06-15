@@ -15,10 +15,10 @@ export async function generateMetadata(props: {
   )
 
   return {
-    title: `Customer Portal | ${organization.name}`, // " | Blyss is added by the template"
+    title: `Customer Portal · ${organization.name}| ${organization.name}`, // " | Blyss is added by the template"
     openGraph: {
-      title: `Customer Portal | ${organization.name} on Blyss`,
-      description: `Customer Portal | ${organization.name} on Blyss`,
+      title: `Customer Portal · ${organization.name}| ${organization.name}`,
+      description: `Customer Portal · ${organization.name}| ${organization.name}`,
       siteName: 'Blyss',
       type: 'website',
       images: [
@@ -35,12 +35,12 @@ export async function generateMetadata(props: {
           url: `https://blyss.co.ke/og?org=${organization.slug}`,
           width: 1200,
           height: 630,
-          alt: `${organization.name} on Blyss`,
+          alt: `${organization.name}`,
         },
       ],
       card: 'summary_large_image',
-      title: `Customer Portal | ${organization.name} on Blyss`,
-      description: `Customer Portal | ${organization.name} on Blyss`,
+      title: `Customer Portal · ${organization.name}| ${organization.name}`,
+      description: `Customer Portal · ${organization.name}| ${organization.name}`,
     },
   }
 }

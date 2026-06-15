@@ -3,7 +3,7 @@ import { Metadata } from 'next'
 import { LoginShell } from './LoginShell'
 
 export const metadata: Metadata = {
-  title: 'Sign in · Blyss',
+  title: 'Sign in',
   description: 'Sign in to Blyss — Kenya\'s modern creator marketplace.',
 }
 

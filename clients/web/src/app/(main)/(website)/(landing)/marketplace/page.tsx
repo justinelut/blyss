@@ -13,16 +13,16 @@ export const dynamic = "force-dynamic"
 export const revalidate = 60
 
 export const metadata: Metadata = {
-  title: 'Marketplace · Buy Digital Products from Kenyan Creators',
+  title: 'Marketplace · Buy Digital Products from Creators',
   description:
-    'Browse 1000+ templates, ebooks, beats, presets, and courses from Kenyan creators. Filter by category, price, and product type. Pay with M-Pesa or card.',
+    'Browse 1000+ templates, ebooks, beats, presets, and courses from creators. Filter by category, price, and product type.',
   keywords:
-    'digital products Kenya, buy templates Kenya, buy ebooks Kenya, buy beats Kenya, buy presets Kenya, M-Pesa marketplace, Kenyan creators online, KSh digital downloads',
+    'digital products Kenya, buy templates Kenya, buy ebooks Kenya, buy beats Kenya, buy presets Kenya, M-Pesa marketplace, creators online, KSh digital downloads',
   alternates: { canonical: 'https://blyss.co.ke/marketplace' },
   openGraph: {
-    title: 'Marketplace · Buy Digital Products from Kenyan Creators',
+    title: 'Marketplace · Buy Digital Products from Creators',
     description:
-      'Browse templates, ebooks, beats, presets, and courses from Kenyan creators. Filter by category, price, and product type.',
+      'Browse templates, ebooks, beats, presets, and courses from creators. Filter by category, price, and product type.',
     type: 'website',
     locale: 'en_KE',
     images: [
@@ -30,15 +30,15 @@ export const metadata: Metadata = {
         url: 'https://cdn.blyss.co.ke/brand/og-default.png',
         width: 1200,
         height: 630,
-        alt: 'Blyss marketplace · Kenyan creators',
+        alt: 'Blyss marketplace · creators',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Marketplace · Kenyan Creators',
+    title: 'Marketplace · Creators',
     description:
-      'Templates, ebooks, beats, presets, and courses by Kenyan creators. Pay with M-Pesa.',
+      'Templates, ebooks, beats, presets, and courses by creators.',
     images: ['https://cdn.blyss.co.ke/brand/og-default.png'],
   },
 }
@@ -123,7 +123,7 @@ export default async function MarketplacePage({
         data={{
           '@context': 'https://schema.org',
           '@type': 'CollectionPage',
-          name: 'The Marketplace · Blyss',
+          name: 'The Marketplace',
           url: 'https://blyss.co.ke/marketplace',
           mainEntity: {
             '@type': 'ItemList',

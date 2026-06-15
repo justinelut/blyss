@@ -29,15 +29,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   try {
     const p = await fetchProduct(id)
     const org = (p as any).organization
-    const creatorName = org?.name ?? 'Kenyan creator'
-    const title = `${p.name} by ${creatorName} · Blyss`
+    const creatorName = org?.name ?? 'creator'
+    const title = `${p.name} by ${creatorName}`
     // Anti-slop fallback: when a creator hasn't filled in their product
     // description, generate copy that names the product, the creator,
-    // and the payment rail rather than a generic "Buy X on Blyss".
+    // and the payment rail rather than a generic "Buy X".
     // Concrete > vague for both Google and AI search.
     const desc =
       p.description?.slice(0, 160) ||
-      `${p.name} by ${creatorName} on Blyss. Buy with M-Pesa or card. Instant download after payment.`
+      `${p.name} by ${creatorName}. Buy with M-Pesa or card. Instant download after payment.`
     const img = p.medias?.[0]?.public_url ?? `${SITE}/api/og/product/${p.id}`
     return {
       title,
@@ -47,7 +47,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       twitter: { card: 'summary_large_image', title, description: desc, images: [img] },
       robots: { index: !p.is_archived, follow: true },
     }
-  } catch { return { title: 'Product not found · Blyss', robots: { index: false } } }
+  } catch { return { title: 'Product not found', robots: { index: false } } }
 }
 
 export default async function ProductPage({ params }: Props) {

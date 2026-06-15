@@ -30,6 +30,7 @@ import * as React from 'react'
 
 import Avatar from '@/components/atoms/Avatar'
 import { toast } from '@/components/Toast/use-toast'
+import revalidate from '@/app/actions'
 import { Skeleton, Eyebrow, typography } from '@/design'
 import { STOREFRONT_PALETTE } from '@/design/storefront-palette'
 import {
@@ -317,6 +318,17 @@ export const StorefrontThemeEditor: React.FC<Props> = ({ organization }) => {
         title: 'Theme saved',
         description: 'Your storefront updates within 60 seconds.',
       })
+      // Bust the SSR fetch caches that key on this org's slug so the
+      // editor + public storefront pick up the new theme on the next
+      // navigation. The window.location.reload below forces a fresh
+      // SSR fetch — this revalidate() ensures that fetch doesn't
+      // hit a stale ISR-cached body.
+      try {
+        await revalidate(`organizations:${organization.slug}`)
+      } catch {
+        // Best-effort — the bypassCache=true on the editor page is
+        // the primary safety net.
+      }
       // Soft-refresh the page so the SSR org row picks up the new
       // theme_tokens / theme_layout / theme_modules and the dirty
       // state collapses.
@@ -337,6 +349,7 @@ export const StorefrontThemeEditor: React.FC<Props> = ({ organization }) => {
     dirty,
     saving,
     organization.id,
+    organization.slug,
     draft,
     draftLayout,
     draftModules,
@@ -390,6 +403,11 @@ export const StorefrontThemeEditor: React.FC<Props> = ({ organization }) => {
         body: STOREFRONT_TOKENS_DEFAULTS,
       })
       toast({ title: 'Reset to defaults' })
+      try {
+        await revalidate(`organizations:${organization.slug}`)
+      } catch {
+        // Best-effort.
+      }
       if (typeof window !== 'undefined') {
         window.location.reload()
       }
@@ -401,7 +419,7 @@ export const StorefrontThemeEditor: React.FC<Props> = ({ organization }) => {
       })
       setResetting(false)
     }
-  }, [resetting, organization.id])
+  }, [resetting, organization.id, organization.slug])
 
   const publicHref = `${SITE_BASE}/creators/${organization.slug}`
   const previewHref = previewToken
@@ -432,15 +450,15 @@ export const StorefrontThemeEditor: React.FC<Props> = ({ organization }) => {
             type="button"
             onClick={handleReset}
             disabled={resetting}
-            className="inline-flex h-10 items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--background)] px-3 font-sans text-[13px] font-medium text-[var(--text-secondary)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-10 items-center gap-1.5 whitespace-nowrap rounded-md border border-[var(--border)] bg-[var(--background)] px-3 font-sans text-[13px] font-medium text-[var(--text-secondary)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             <FiRefreshCw size={13} aria-hidden="true" />
-            Reset to defaults
+            Reset
           </button>
           <button
             type="button"
             onClick={() => setPreviewOpen(true)}
-            className="inline-flex h-10 items-center gap-1.5 rounded-md border border-[var(--border-strong)] bg-[var(--background)] px-3 font-sans text-[13px] font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-sunken)]"
+            className="inline-flex h-10 items-center gap-1.5 whitespace-nowrap rounded-md border border-[var(--border-strong)] bg-[var(--background)] px-3 font-sans text-[13px] font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-sunken)]"
           >
             <FiEye size={13} aria-hidden="true" />
             Preview
@@ -449,9 +467,9 @@ export const StorefrontThemeEditor: React.FC<Props> = ({ organization }) => {
             href={publicHref}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex h-10 items-center gap-1.5 rounded-md bg-[var(--accent)] px-3 font-sans text-[13px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)]"
+            className="inline-flex h-10 items-center gap-1.5 whitespace-nowrap rounded-md bg-[var(--accent)] px-3 font-sans text-[13px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)]"
           >
-            View public storefront
+            View public
             <FiArrowUpRight size={13} aria-hidden="true" />
           </a>
         </div>
@@ -576,7 +594,7 @@ export const StorefrontThemeEditor: React.FC<Props> = ({ organization }) => {
                     The buttons, links, and accent rules on your
                     storefront use this. The marketplace header and
                     cart stay Blyss orange — buyers always know
-                    they&rsquo;re on Blyss.
+                    they&rsquo;re.
                   </p>
                 </div>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 md:grid-cols-4">
@@ -916,17 +934,22 @@ export const StorefrontThemeEditor: React.FC<Props> = ({ organization }) => {
         </div>
       </div>
 
-      {/* Preview drawer — slides up from the bottom on mobile and from
-          the right on desktop. Renders the public storefront against
-          the current draft tokens. /creators/{slug} allows same-origin
-          framing via the dedicated CSP entry in next.config.mjs. */}
+      {/* Preview drawer — slides up from the bottom on every viewport.
+          The shadcn Drawer's default direction-left/right and the
+          shouldScaleBackground=true default lock the document scroll
+          even when the drawer is closed (vaul transforms the wrapper);
+          forcing bottom direction + scaleBackground=false keeps the
+          page scrollable behind the drawer trigger.
+          /creators/{slug} allows same-origin framing via the dedicated
+          CSP entry in next.config.mjs. */}
       <Drawer
         open={previewOpen}
         onOpenChange={setPreviewOpen}
-        direction="right"
+        direction="bottom"
+        shouldScaleBackground={false}
       >
-        <DrawerContent className="flex h-full max-h-[100dvh] w-full flex-col gap-0 p-0 sm:max-w-[640px] md:max-w-[760px] lg:max-w-[860px]">
-          <DrawerHeader className="border-b border-[var(--border)] px-5 py-4 text-left">
+        <DrawerContent className="flex h-[92dvh] max-h-[92dvh] w-full flex-col gap-0 p-0">
+          <DrawerHeader className="border-b border-[var(--border)] px-5 py-4 text-center">
             <DrawerTitle className="font-display text-[16px] font-semibold text-[var(--text-primary)]">
               Storefront preview
             </DrawerTitle>
@@ -938,12 +961,15 @@ export const StorefrontThemeEditor: React.FC<Props> = ({ organization }) => {
           </DrawerHeader>
           <div className="relative flex-1 overflow-hidden bg-[var(--surface)]">
             {/* Re-key the iframe when the token changes so the embedded
-                page does a full reload with the new ?preview_theme=. */}
+                page does a full reload with the new ?preview_theme=.
+                The iframe is centered with a max width so on wide
+                desktop monitors the preview doesn't stretch into a
+                horizontally-distorted hero. */}
             <iframe
               key={previewToken ?? 'saved'}
               title="Storefront preview"
               src={previewHref}
-              className="h-full w-full border-0"
+              className="mx-auto block h-full w-full max-w-[1280px] border-0"
             />
           </div>
         </DrawerContent>

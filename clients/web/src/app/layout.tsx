@@ -32,25 +32,33 @@ export async function generateMetadata(): Promise<Metadata> {
   // ("Nairobi"), and the actual creator-payout window ("24 hours").
   // These specifics double as AI-search anchors — Perplexity,
   // Claude Search, and Google SGE pull literal phrases like
-  // "Kenyan creators" and "M-Pesa" from descriptions.
+  // "creators" and "M-Pesa" from descriptions.
+  // Root metadata. The template `'%s · Blyss'` means every page-
+  // level `title: 'Foo'` is rendered as `Foo · Blyss` in the browser
+  // tab. Page-level titles must NOT include 'Blyss' themselves or
+  // the suffix doubles. The default below is what shows when a child
+  // page has no title of its own.
+  //
+  // Keep meta locale-neutral so the site reads outside Kenya. The
+  // soft-launch market is still Kenyan creators selling to Kenyan
+  // buyers, but buyers in NG / ZA / GH / global also land here from
+  // search and shouldn't see "Kenyan creator" stamped everywhere.
   const baseMetadata: Metadata = {
     title: {
       template: '%s · Blyss',
-      default: 'Blyss — Kenyan Creator Marketplace · Pay with M-Pesa',
+      default: 'Blyss — Marketplace for Independent Creators',
     },
     description:
-      "Buy templates, ebooks, beats, presets, and courses from Kenyan creators. Pay with M-Pesa or card. Blyss pays creators within 24 hours. Made in Nairobi.",
+      'Buy templates, ebooks, beats, presets, and courses from independent creators. Instant download. Creators paid within 24 hours.',
     keywords: [
-      'digital products Kenya',
-      'Kenyan creators',
-      'M-Pesa marketplace',
-      'buy templates Kenya',
-      'ebooks Kenya',
-      'beats Kenya',
-      'presets Kenya',
-      'sell digital products Nairobi',
-      'creator economy Kenya',
-      'KSh digital products',
+      'digital products marketplace',
+      'buy templates online',
+      'buy ebooks online',
+      'buy beats online',
+      'buy presets online',
+      'creator marketplace',
+      'independent creators',
+      'instant download',
     ],
     authors: [{ name: 'Blyss', url: 'https://blyss.co.ke' }],
     publisher: 'Blyss',
@@ -58,19 +66,18 @@ export async function generateMetadata(): Promise<Metadata> {
       images: 'https://blyss.co.ke/og-image.png',
       type: 'website',
       siteName: 'Blyss',
-      title: 'Blyss — Kenyan Creator Marketplace · Pay with M-Pesa',
+      title: 'Blyss — Marketplace for Independent Creators',
       description:
-        "Buy templates, ebooks, beats, presets, and courses from Kenyan creators. Pay with M-Pesa or card. Blyss pays creators within 24 hours.",
-      locale: 'en_KE',
+        'Buy templates, ebooks, beats, presets, and courses from independent creators. Instant download.',
       url: 'https://blyss.co.ke/',
     },
     twitter: {
       images: 'https://blyss.co.ke/og-image.png',
       card: 'summary_large_image',
       site: '@blyssmarket',
-      title: 'Blyss — Kenyan Creator Marketplace · Pay with M-Pesa',
+      title: 'Blyss — Marketplace for Independent Creators',
       description:
-        "Templates, ebooks, beats, presets, courses by Kenyan creators. Pay with M-Pesa. Creators paid within 24 hours.",
+        'Templates, ebooks, beats, presets, courses by independent creators. Creators paid within 24 hours.',
     },
     metadataBase: new URL('https://blyss.co.ke/'),
     alternates: {

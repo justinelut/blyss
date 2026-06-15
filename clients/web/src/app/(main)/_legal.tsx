@@ -9,7 +9,7 @@ function getContent(file: string): string {
 
 export function makeLegalPage(file: string, title: string) {
   const metadata: Metadata = {
-    title: `${title} · Blyss`,
+    title: title,
     robots: { index: true, follow: true },
   }
 

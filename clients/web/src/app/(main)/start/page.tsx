@@ -8,9 +8,9 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 60
 
 export const metadata: Metadata = {
-  title: 'Start Selling Digital Products in Kenya · Blyss',
+  title: 'Start Selling Digital Products in Kenya',
   description:
-    'Set up your Blyss storefront in 10 minutes. Sell templates, ebooks, beats, presets, or courses to Kenyan buyers via M-Pesa or card. 24-hour payouts to your M-Pesa or bank account.',
+    'Set up your Blyss storefront in 10 minutes. Sell templates, ebooks, beats, presets, or courses. 24-hour payouts to your M-Pesa or bank account.',
   keywords:
     'sell digital products Kenya, sell ebooks Kenya, sell beats Kenya, sell presets Kenya, M-Pesa creator payouts, become a creator Kenya, Blyss storefront, online business Kenya',
   alternates: { canonical: 'https://blyss.co.ke/start' },
@@ -26,22 +26,22 @@ export const metadata: Metadata = {
         url: 'https://cdn.blyss.co.ke/brand/og-default.png',
         width: 1200,
         height: 630,
-        alt: 'Start selling on Blyss',
+        alt: 'Start selling',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Start Selling on Blyss',
+    title: 'Start Selling',
     description:
-      'Sell digital products to Kenyan buyers. M-Pesa or card. 24-hour payouts.',
+      'Sell digital products. 24-hour payouts.',
     images: ['https://cdn.blyss.co.ke/brand/og-default.png'],
   },
 }
 
 /**
  * Fetch the live product-category list. We use this as the "What can I
- * sell on Blyss?" answer so the page reflects what the marketplace
+ * sell?" answer so the page reflects what the marketplace
  * actually accepts (Templates, Ebooks, Beats and Music, Presets,
  * Courses, Photography, Software …) rather than 6 hardcoded examples
  * that drift out of sync. Errors are swallowed — the start page must
@@ -74,7 +74,7 @@ async function fetchProductCategories(): Promise<ProductCategory[]> {
 
 /**
  * Fetch the live creator-category list. Used to answer "Who else is
- * already on Blyss?" — designers, photographers, musicians, writers
+ * already?" — designers, photographers, musicians, writers
  * etc. Same fail-soft behaviour as fetchProductCategories.
  */
 async function fetchCreatorCategories(): Promise<CreatorCategory[]> {

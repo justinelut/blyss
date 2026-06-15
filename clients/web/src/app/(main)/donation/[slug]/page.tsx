@@ -20,12 +20,12 @@ export async function generateMetadata({
       }),
     )
     return {
-      title: `Tip ${creator.name} · Blyss`,
+      title: `Tip ${creator.name}`,
       description: `Send a one-time tip to support ${creator.name}.`,
       robots: { index: false, follow: true },
     }
   } catch {
-    return { title: 'Tip a creator · Blyss', robots: { index: false } }
+    return { title: 'Tip a creator', robots: { index: false } }
   }
 }
 

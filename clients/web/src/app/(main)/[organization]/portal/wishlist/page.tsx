@@ -2,8 +2,8 @@ import { Metadata } from 'next'
 import { BlyssWishlistPage } from '@/components/Wishlist/BlyssWishlistPage'
 
 export const metadata: Metadata = {
-  title: 'Wishlist · Customer Portal · Blyss',
-  description: 'Items you saved on Blyss.',
+  title: 'Wishlist · Customer Portal',
+  description: 'Items you saved.',
   robots: { index: false, follow: false },
 }
 

@@ -18,35 +18,40 @@ export const revalidate = 60
 // rewrite names the actual product types, the actual payment rail
 // (M-Pesa), and the actual creator payout window (24 hours). These
 // concrete phrases double as Google + AI-search anchors for queries
-// like "buy ebooks Kenya M-Pesa" or "Kenyan creator marketplace".
+// like "buy ebooks Kenya M-Pesa" or "creator marketplace".
+// Concrete phrases (templates / ebooks / beats / presets / courses)
+// double as Google + AI-search anchors. Title uses `absolute` so the
+// root layout's '%s · Blyss' template doesn't append a duplicate
+// "· Blyss" — the home page already names the brand.
 export const metadata: Metadata = {
-  title: 'Blyss · Buy from Kenyan Creators · Templates, Ebooks, Beats',
+  title: {
+    absolute: 'Blyss — Templates, Ebooks, Beats from Independent Creators',
+  },
   description:
-    'Templates, ebooks, beats, presets, courses, and subscription tiers from Kenyan creators. Pay with M-Pesa or card. Creators get paid within 24 hours.',
+    'Templates, ebooks, beats, presets, courses, and subscription tiers from independent creators. Instant download. Creators paid within 24 hours.',
   keywords:
-    'digital products Kenya, sell digital products Nairobi, M-Pesa marketplace, buy ebooks Kenya, beats by Kenyan producers, presets Kenya, courses Kenya, Kenyan creators, KSh checkout, blyss.co.ke',
+    'digital products marketplace, buy templates online, buy ebooks online, buy beats online, buy presets online, creator marketplace, independent creators, instant download, blyss.co.ke',
   alternates: { canonical: 'https://blyss.co.ke' },
   openGraph: {
     siteName: 'Blyss',
     type: 'website',
-    locale: 'en_KE',
-    title: 'Blyss · Buy from Kenyan Creators · Templates, Ebooks, Beats',
+    title: 'Blyss — Templates, Ebooks, Beats from Independent Creators',
     description:
-      'Templates, ebooks, beats, presets, courses, and subscription tiers from Kenyan creators. Pay with M-Pesa or card. Payouts within 24 hours.',
+      'Templates, ebooks, beats, presets, courses, and subscription tiers from independent creators. Payouts within 24 hours.',
     images: [
       {
         url: 'https://cdn.blyss.co.ke/brand/og-default.png',
         width: 1200,
         height: 630,
-        alt: 'Blyss — Kenyan creator marketplace',
+        alt: 'Blyss — independent creator marketplace',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Blyss · Kenyan Creator Marketplace',
+    title: 'Blyss — Independent Creator Marketplace',
     description:
-      'Templates, ebooks, beats, presets, and courses by Kenyan creators. Pay with M-Pesa. Payouts within 24 hours.',
+      'Templates, ebooks, beats, presets, and courses by independent creators. Payouts within 24 hours.',
     images: ['https://cdn.blyss.co.ke/brand/og-default.png'],
   },
 }

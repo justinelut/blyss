@@ -28,6 +28,12 @@ export default async function Page(props: {
   const organization = await getOrganizationBySlugOrNotFound(
     api,
     params.organization,
+    // Bypass the 10-min ISR cache on this page — the editor needs to
+    // see the saved theme_tokens / theme_layout / theme_modules
+    // immediately after the dashboard hits its window.location.reload()
+    // post-save. Without this, the SSR fetch can return the stale
+    // pre-save row and the editor highlights the wrong preset.
+    true,
   )
 
   return <StorefrontThemeEditor organization={organization} />
