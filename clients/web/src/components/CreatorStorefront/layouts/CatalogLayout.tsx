@@ -55,7 +55,7 @@ const CatalogHero: React.FC<StorefrontHeroProps> = ({
         />
       </div>
     )}
-    <div className="mx-auto flex max-w-[1280px] flex-col gap-4 px-6 py-6 md:flex-row md:items-center md:justify-between md:px-12">
+    <div className="mx-auto flex max-w-[1280px] flex-col gap-4 px-6 py-6 md:flex-row md:items-center md:justify-between md:px-16">
       <div className="flex items-center gap-3">
         <Avatar avatar_url={avatarUrl ?? null} name={name} className="h-12 w-12" />
         <div className="flex flex-col">
@@ -142,7 +142,7 @@ const CatalogWorkSection: React.FC<StorefrontWorkSectionProps> = ({
 }) => {
   if (!products.length) {
     return (
-      <section className="mx-auto max-w-[1024px] px-6 py-16 md:px-12 md:py-24">
+      <section className="mx-auto max-w-[1280px] px-6 py-16 md:px-16 md:py-24">
         <h2 className={cn(typography.h3, 'text-[var(--text-primary)]')}>
           {creatorName} hasn&rsquo;t published anything yet.
         </h2>
@@ -150,7 +150,7 @@ const CatalogWorkSection: React.FC<StorefrontWorkSectionProps> = ({
     )
   }
   return (
-    <section className="mx-auto max-w-[1024px] px-2 py-8 md:px-12 md:py-12">
+    <section className="mx-auto max-w-[1280px] px-6 py-8 md:px-16 md:py-12">
       <div className="border-t border-[var(--border)]">
         {products.map((product) => (
           <CatalogRow key={product.id} product={product} />

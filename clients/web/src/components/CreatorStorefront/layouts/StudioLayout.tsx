@@ -53,40 +53,42 @@ const StudioHero: React.FC<StorefrontHeroProps> = ({
         />
       </div>
     )}
-    <div className="mx-auto max-w-[820px] px-6 py-12 md:px-12 md:py-16">
-      <Eyebrow>{city ? `${city} · ` : ''}@{slug}</Eyebrow>
-      <h1
-        className={cn(
-          typography.h2,
-          'mt-4 leading-[1.05] tracking-[-0.02em] text-[var(--text-primary)]',
+    <div className="mx-auto max-w-[1280px] px-6 py-12 md:px-16 md:py-16">
+      <div className="max-w-[820px]">
+        <Eyebrow>{city ? `${city} · ` : ''}@{slug}</Eyebrow>
+        <h1
+          className={cn(
+            typography.h2,
+            'mt-4 leading-[1.05] tracking-[-0.02em] text-[var(--text-primary)]',
+          )}
+        >
+          {name}
+        </h1>
+        {bio && (
+          <p className="mt-6 max-w-[58ch] font-sans text-[18px] leading-[1.55] text-[var(--text-secondary)]">
+            {bio}
+          </p>
         )}
-      >
-        {name}
-      </h1>
-      {bio && (
-        <p className="mt-6 max-w-[58ch] font-sans text-[18px] leading-[1.55] text-[var(--text-secondary)]">
-          {bio}
-        </p>
-      )}
-      <div className="mt-8 flex flex-wrap items-center gap-3">
-        {hasSubscriptions && (
-          <button
-            type="button"
-            onClick={onSubscribeClick}
-            className="inline-flex h-10 items-center rounded-md bg-[var(--accent)] px-4 font-sans text-[13px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)]"
-          >
-            Subscribe
-          </button>
-        )}
-        {tipEnabled && (
-          <button
-            type="button"
-            onClick={onTipClick}
-            className="inline-flex h-10 items-center rounded-md border border-[var(--border-strong)] bg-[var(--background)] px-4 font-sans text-[13px] font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-sunken)]"
-          >
-            Tip
-          </button>
-        )}
+        <div className="mt-8 flex flex-wrap items-center gap-3">
+          {hasSubscriptions && (
+            <button
+              type="button"
+              onClick={onSubscribeClick}
+              className="inline-flex h-10 items-center rounded-md bg-[var(--accent)] px-4 font-sans text-[13px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)]"
+            >
+              Subscribe
+            </button>
+          )}
+          {tipEnabled && (
+            <button
+              type="button"
+              onClick={onTipClick}
+              className="inline-flex h-10 items-center rounded-md border border-[var(--border-strong)] bg-[var(--background)] px-4 font-sans text-[13px] font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-sunken)]"
+            >
+              Tip
+            </button>
+          )}
+        </div>
       </div>
     </div>
   </header>
@@ -122,20 +124,24 @@ const StudioWorkSection: React.FC<StorefrontWorkSectionProps> = ({
 }) => {
   if (!products.length) {
     return (
-      <section className="mx-auto max-w-[820px] px-6 py-16 md:px-12 md:py-24">
-        <h2 className={cn(typography.h3, 'text-[var(--text-primary)]')}>
-          {creatorName} hasn&rsquo;t published anything yet.
-        </h2>
+      <section className="mx-auto max-w-[1280px] px-6 py-16 md:px-16 md:py-24">
+        <div className="max-w-[820px]">
+          <h2 className={cn(typography.h3, 'text-[var(--text-primary)]')}>
+            {creatorName} hasn&rsquo;t published anything yet.
+          </h2>
+        </div>
       </section>
     )
   }
   return (
-    <section className="mx-auto max-w-[820px] px-6 py-10 md:px-12 md:py-16">
-      <Eyebrow className="mb-2">Index</Eyebrow>
-      <div className="border-t border-[var(--border)]">
-        {products.map((product, i) => (
-          <StudioRow key={product.id} product={product} index={i} />
-        ))}
+    <section className="mx-auto max-w-[1280px] px-6 py-10 md:px-16 md:py-16">
+      <div className="max-w-[820px]">
+        <Eyebrow className="mb-2">Index</Eyebrow>
+        <div className="border-t border-[var(--border)]">
+          {products.map((product, i) => (
+            <StudioRow key={product.id} product={product} index={i} />
+          ))}
+        </div>
       </div>
     </section>
   )

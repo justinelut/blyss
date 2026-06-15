@@ -119,7 +119,7 @@ const GalleryWorkSection: React.FC<StorefrontWorkSectionProps> = ({
     )
   }
   return (
-    <section className="mx-auto max-w-[1440px] px-4 py-10 md:px-12 md:py-16">
+    <section className="mx-auto max-w-[1280px] px-6 py-10 md:px-16 md:py-16">
       <div className="grid grid-cols-1 gap-x-4 gap-y-12 sm:grid-cols-2 sm:gap-x-6 sm:gap-y-16">
         {products.map((product) => (
           <MarketplaceProductCard

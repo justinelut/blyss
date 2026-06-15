@@ -57,7 +57,8 @@ export const RecipeCardModule: {
     const recipe = readRecipe(settings)
     if (!recipe) return null
     return (
-      <section className="mx-auto max-w-[820px] px-6 py-12 md:px-12">
+      <section className="mx-auto max-w-[1280px] px-6 py-12 md:px-16">
+        <div className="mx-auto max-w-[820px]">
         <Eyebrow>Sample recipe</Eyebrow>
         <article className="mt-4 rounded-md border border-[var(--border)] bg-[var(--background)] p-6 md:p-8">
           <h2 className="font-display text-[28px] font-semibold leading-[1.1] tracking-[-0.02em] text-[var(--text-primary)]">
@@ -98,6 +99,7 @@ export const RecipeCardModule: {
             </div>
           </div>
         </article>
+        </div>
       </section>
     )
   },

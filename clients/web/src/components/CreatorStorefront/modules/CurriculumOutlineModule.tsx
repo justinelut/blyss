@@ -63,7 +63,8 @@ export const CurriculumOutlineModule: {
       0,
     )
     return (
-      <section className="mx-auto max-w-[820px] px-6 py-12 md:px-12">
+      <section className="mx-auto max-w-[1280px] px-6 py-12 md:px-16">
+        <div className="mx-auto max-w-[820px]">
         <Eyebrow>What you&rsquo;ll learn</Eyebrow>
         <h2 className="mt-3 font-display text-[24px] font-semibold leading-[1.1] tracking-[-0.02em] text-[var(--text-primary)]">
           {modules.length} modules · {totalLessons} lessons
@@ -101,6 +102,7 @@ export const CurriculumOutlineModule: {
               </ol>
             </details>
           ))}
+        </div>
         </div>
       </section>
     )
