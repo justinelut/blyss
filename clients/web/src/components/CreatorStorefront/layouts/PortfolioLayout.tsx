@@ -47,7 +47,7 @@ const PortfolioHero: React.FC<StorefrontHeroProps> = ({
         editorial; functions as a 'practice' panorama beneath the
         resume header. */}
     {bannerUrl && (
-      <div className="relative aspect-[16/5] w-full overflow-hidden bg-[var(--surface-sunken)]">
+      <div className="relative h-[180px] w-full overflow-hidden bg-[var(--surface-sunken)] sm:h-[220px] md:h-[260px] lg:h-[300px]">
         <OptimizedImage
           src={bannerUrl}
           alt={`${name} cover`}
@@ -78,15 +78,6 @@ const PortfolioHero: React.FC<StorefrontHeroProps> = ({
           </div>
         </div>
         <div className="flex items-center gap-3">
-          {hasSubscriptions && (
-            <button
-              type="button"
-              onClick={onSubscribeClick}
-              className="inline-flex h-10 items-center rounded-md bg-[var(--accent)] px-4 font-sans text-[13px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)]"
-            >
-              Subscribe
-            </button>
-          )}
           {tipEnabled && (
             <button
               type="button"

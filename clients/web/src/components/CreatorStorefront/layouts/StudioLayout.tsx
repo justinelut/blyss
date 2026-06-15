@@ -42,7 +42,7 @@ const StudioHero: React.FC<StorefrontHeroProps> = ({
         gives the page a moment of imagery before the index of
         work below. */}
     {bannerUrl && (
-      <div className="relative aspect-[6/1] w-full overflow-hidden bg-[var(--surface-sunken)]">
+      <div className="relative h-[100px] w-full overflow-hidden bg-[var(--surface-sunken)] sm:h-[120px] md:h-[140px] lg:h-[160px]">
         <OptimizedImage
           src={bannerUrl}
           alt={`${name} cover`}
@@ -70,15 +70,6 @@ const StudioHero: React.FC<StorefrontHeroProps> = ({
           </p>
         )}
         <div className="mt-8 flex flex-wrap items-center gap-3">
-          {hasSubscriptions && (
-            <button
-              type="button"
-              onClick={onSubscribeClick}
-              className="inline-flex h-10 items-center rounded-md bg-[var(--accent)] px-4 font-sans text-[13px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)]"
-            >
-              Subscribe
-            </button>
-          )}
           {tipEnabled && (
             <button
               type="button"
@@ -99,7 +90,7 @@ const StudioRow: React.FC<{
   index: number
 }> = ({ product, index }) => (
   <Link
-    href={`/products/${product.id}`}
+    href={`/product/${product.id}`}
     className="group flex items-baseline gap-6 border-b border-[var(--border)] py-6 transition-colors hover:bg-[var(--surface-sunken)]"
   >
     <span className="w-10 flex-shrink-0 font-sans text-[13px] font-semibold tabular-nums text-[var(--text-muted)]">

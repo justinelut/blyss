@@ -44,7 +44,7 @@ const CatalogHero: React.FC<StorefrontHeroProps> = ({
     {/* Banner — thin (5:1 aspect) so the catalog rows below
         stay above the fold on most viewports. */}
     {bannerUrl && (
-      <div className="relative aspect-[5/1] w-full overflow-hidden bg-[var(--surface-sunken)]">
+      <div className="relative h-[120px] w-full overflow-hidden bg-[var(--surface-sunken)] sm:h-[140px] md:h-[160px] lg:h-[180px]">
         <OptimizedImage
           src={bannerUrl}
           alt={`${name} cover`}
@@ -73,15 +73,6 @@ const CatalogHero: React.FC<StorefrontHeroProps> = ({
         </p>
       )}
       <div className="flex flex-shrink-0 items-center gap-2">
-        {hasSubscriptions && (
-          <button
-            type="button"
-            onClick={onSubscribeClick}
-            className="inline-flex h-9 items-center rounded-md bg-[var(--accent)] px-3 font-sans text-[12px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)]"
-          >
-            Subscribe
-          </button>
-        )}
         {tipEnabled && (
           <button
             type="button"
@@ -103,7 +94,7 @@ const CatalogRow: React.FC<{ product: schemas['Product'] }> = ({ product }) => {
 
   return (
     <Link
-      href={`/products/${product.id}`}
+      href={`/product/${product.id}`}
       className="group flex items-center gap-4 border-b border-[var(--border)] px-2 py-4 transition-colors hover:bg-[var(--surface-sunken)]"
     >
       <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-sm bg-[var(--surface-sunken)]">

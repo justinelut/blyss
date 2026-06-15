@@ -45,7 +45,7 @@ const GalleryHero: React.FC<StorefrontHeroProps> = ({
   <header className="border-b border-[var(--border)] bg-[var(--background)]">
     {/* Banner — shorter than editorial, lets the grid below breathe */}
     {bannerUrl && (
-      <div className="relative aspect-[3/1] w-full overflow-hidden bg-[var(--surface-sunken)]">
+      <div className="relative h-[200px] w-full overflow-hidden bg-[var(--surface-sunken)] sm:h-[240px] md:h-[280px] lg:h-[320px]">
         <OptimizedImage
           src={bannerUrl}
           alt={`${name} cover`}
@@ -76,15 +76,6 @@ const GalleryHero: React.FC<StorefrontHeroProps> = ({
         </div>
       </div>
       <div className="flex flex-shrink-0 items-center gap-3">
-        {hasSubscriptions && (
-          <button
-            type="button"
-            onClick={onSubscribeClick}
-            className="inline-flex h-10 items-center rounded-md bg-[var(--accent)] px-4 font-sans text-[13px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)]"
-          >
-            Subscribe
-          </button>
-        )}
         {tipEnabled && (
           <button
             type="button"

@@ -21,6 +21,10 @@ import { useAuth } from '@/hooks/auth'
 import { CartItemRow } from './CartItemRow'
 import { typography } from '@/design'
 import { cn } from '@/lib/utils'
+import {
+  StorefrontThemeProvider,
+  useStorefrontTheme,
+} from '@/components/Storefront/StorefrontThemeProvider'
 
 interface CartDrawerProps {
   open: boolean
@@ -264,6 +268,14 @@ const CreatorCartDrawer = ({
     })
   }
 
+  // Read the active creator's theme tokens from React context. The
+  // StorefrontThemeProvider that wraps the storefront page populates
+  // this context — even though this drawer is rendered through Radix's
+  // portal (DOM-wise outside the provider's wrapper div), React
+  // context propagates through portals so we can re-establish the
+  // CSS-custom-property cascade locally inside the drawer below.
+  const themeTokens = useStorefrontTheme()
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
@@ -271,6 +283,10 @@ const CreatorCartDrawer = ({
         hideClose
         className="flex w-full flex-col bg-[var(--background)] p-0 sm:max-w-[420px]"
       >
+        <StorefrontThemeProvider
+          tokens={themeTokens}
+          className="flex h-full w-full flex-col bg-[var(--background)]"
+        >
         <SheetHeader className="flex flex-row items-center justify-between border-b border-[var(--border)] px-6 py-5">
           <SheetTitle className="font-display text-[18px] font-semibold text-[var(--text-primary)]">
             Your cart ({itemCount})
@@ -348,6 +364,7 @@ const CreatorCartDrawer = ({
             )}
           </div>
         )}
+        </StorefrontThemeProvider>
       </SheetContent>
     </Sheet>
   )

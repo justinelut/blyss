@@ -56,6 +56,27 @@ interface StorefrontThemeProviderProps {
 }
 
 /**
+ * React context that mirrors the active tokens. Any descendant in the
+ * React tree — even one rendered through a portal whose DOM lives
+ * outside the provider's wrapper div — can read the tokens via
+ * `useStorefrontTheme()` and re-establish the CSS-custom-property
+ * cascade locally (e.g. the cart drawer is a Radix portal and needs
+ * its own `<div data-storefront-theme>` to inherit the creator's
+ * accent + font on the storefront subtree).
+ */
+const StorefrontThemeContext = React.createContext<
+  StorefrontTokens | null
+>(null)
+
+/**
+ * Read the active storefront tokens from React context. Returns null
+ * when called outside a StorefrontThemeProvider — components should
+ * gracefully fall back to the global Blyss tokens in that case.
+ */
+export const useStorefrontTheme = (): StorefrontTokens | null =>
+  React.useContext(StorefrontThemeContext)
+
+/**
  * Map a token's `headline_font` to the matching CSS variable name
  * exported by `clients/web/src/fonts/fonts.ts`. Space Grotesk has no
  * dedicated `--font-storefront-*` variable because it's already the
@@ -168,14 +189,16 @@ export const StorefrontThemeProvider: React.FC<
   }, [accent, safe.headline_font, safe.display_style, safe.motion])
 
   return (
-    <div
-      data-storefront-theme={safe.accent}
-      data-storefront-display={safe.display_style}
-      data-storefront-motion={safe.motion}
-      className={className}
-      style={cssVars}
-    >
-      {children}
-    </div>
+    <StorefrontThemeContext.Provider value={safe}>
+      <div
+        data-storefront-theme={safe.accent}
+        data-storefront-display={safe.display_style}
+        data-storefront-motion={safe.motion}
+        className={className}
+        style={cssVars}
+      >
+        {children}
+      </div>
+    </StorefrontThemeContext.Provider>
   )
 }

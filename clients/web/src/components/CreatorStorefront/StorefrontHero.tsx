@@ -298,22 +298,10 @@ export const StorefrontHero = ({
               </div>
             </div>
 
-            {/* Primary CTA — Subscribe. Tip lives inline beside the
-                name (above) as a compact uppercase pill, freeing this
-                row for a single full-width primary CTA on mobile. The
-                hasSubscriptions gate prevents an empty row when the
-                creator hasn't published any tiers. */}
-            {hasSubscriptions && (
-              <div className="flex w-full items-center gap-3 md:w-auto">
-                <button
-                  type="button"
-                  onClick={onSubscribeClick}
-                  className="inline-flex h-11 flex-1 items-center justify-center rounded-md bg-[var(--accent)] px-5 font-sans text-[14px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)] md:flex-none"
-                >
-                  Subscribe
-                </button>
-              </div>
-            )}
+            {/* Subscribe lives in the Subscriptions tab, not the hero —
+                the hero stays clean for identity. (Removed the inline
+                Subscribe CTA per design decision: this is a creator
+                storefront, not a YouTube channel.) */}
           </div>
         </div>
       </motion.div>
