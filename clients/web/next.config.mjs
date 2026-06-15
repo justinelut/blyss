@@ -387,7 +387,15 @@ const nextConfig = {
 
     return [
       {
-        source: '/((?!checkout|oauth2|docs|creators).*)',
+        // Catch-all for non-creator, non-checkout, non-oauth2, non-docs
+        // routes. The negative lookahead ALSO excludes country-prefixed
+        // creator paths (e.g. `/ke/creators/foo`, `/za/creators/foo`)
+        // because Blyss's middleware 308-redirects every `/creators/*`
+        // to `/{cc}/creators/*` for SEO. Without this exclusion the
+        // post-redirect URL falls into this catch-all and gets
+        // `frame-ancestors 'none'` + `X-Frame-Options: DENY`, blocking
+        // the dashboard's theme editor preview iframe.
+        source: '/((?!checkout|oauth2|docs|creators|[a-z]{2}/creators).*)',
         headers: baseHeaders,
       },
       {
@@ -397,6 +405,34 @@ const nextConfig = {
         // 'self' on the CSP is the modern equivalent and DENY would
         // override it in legacy browsers.
         source: '/creators/:path*',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: creatorStorefrontCSP.replace(/\n/g, ''),
+          },
+          {
+            key: 'Permissions-Policy',
+            value:
+              'payment=(), publickey-credentials-get=(), camera=(), microphone=(), geolocation=()',
+          },
+          ...(ENVIRONMENT === 'sandbox'
+            ? [
+                {
+                  key: 'X-Robots-Tag',
+                  value:
+                    'noindex, nofollow, noarchive, nosnippet, noimageindex',
+                },
+              ]
+            : []),
+        ],
+      },
+      {
+        // Same headers but for the country-prefixed creator URL the
+        // marketplace middleware redirects every visitor to (e.g.
+        // `/ke/creators/foo`, `/za/creators/foo`). Without this entry
+        // the redirected path inherited the catch-all's DENY headers
+        // and blocked the editor's preview iframe.
+        source: '/:country([a-z]{2})/creators/:path*',
         headers: [
           {
             key: 'Content-Security-Policy',
