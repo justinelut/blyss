@@ -3,7 +3,7 @@
 import { OverviewSection } from '@/components/DashboardOverview/OverviewSection'
 import { DashboardBody } from '@/components/Layout/DashboardLayout'
 import { OnboardingChecklist } from '@/components/Onboarding/OnboardingChecklist'
-import { AccountWidget } from '@/components/Widgets/AccountWidget'
+import { SettlementWidget } from '@/components/Widgets/SettlementWidget'
 import { OrdersWidget } from '@/components/Widgets/OrdersWidget'
 import RevenueWidget from '@/components/Widgets/RevenueWidget'
 import { useOrganizationPaymentStatus } from '@/hooks/queries'
@@ -62,7 +62,7 @@ export default function OverviewPage({ organization }: OverviewPageProps) {
             <div className="grid grid-cols-1 [clip-path:inset(1px_1px_1px_1px)] lg:grid-cols-3">
               <RevenueWidget className={cellClassName} />
               <OrdersWidget className={cellClassName} />
-              <AccountWidget className={cellClassName} />
+              <SettlementWidget className={cellClassName} />
             </div>
           </div>
         </>

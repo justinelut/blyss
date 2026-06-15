@@ -239,10 +239,88 @@ export const MarketplaceHeader = ({ alwaysBlurred = false }: MarketplaceHeaderPr
                 </Link>
               </>
             )}
+            {/* Theme toggle — same surface as the desktop AccountMenu's
+                ThemeToggleRow, sized for mobile-tap targets. */}
+            <div className="my-4 h-px bg-[var(--border)]" />
+            <MobileThemeToggle />
           </nav>
         </motion.div>
       )}
     </>
+  )
+}
+
+/**
+ * MobileThemeToggle — large tap-friendly version of ThemeToggleRow,
+ * rendered inside the mobile menu drawer. Same data-theme +
+ * localStorage mechanism as the desktop dropdown row, sized to match
+ * the mobile drawer's display-3xl link rhythm.
+ */
+function MobileThemeToggle() {
+  const STORAGE_KEY = 'blyss-theme'
+  const [mounted, setMounted] = useState(false)
+  const [theme, setThemeState] = useState<'light' | 'dark'>('light')
+
+  useEffect(() => {
+    setMounted(true)
+    if (typeof window === 'undefined') return
+    const stored = localStorage.getItem(STORAGE_KEY) as
+      | 'light'
+      | 'dark'
+      | null
+    if (stored === 'light' || stored === 'dark') {
+      setThemeState(stored)
+      return
+    }
+    const prefersDark = window.matchMedia(
+      '(prefers-color-scheme: dark)',
+    ).matches
+    setThemeState(prefersDark ? 'dark' : 'light')
+  }, [])
+
+  const toggle = () => {
+    const next = theme === 'light' ? 'dark' : 'light'
+    setThemeState(next)
+    if (typeof document !== 'undefined') {
+      const html = document.documentElement
+      if (next === 'dark') {
+        html.setAttribute('data-theme', 'dark')
+        html.classList.add('dark')
+      } else {
+        html.removeAttribute('data-theme')
+        html.classList.remove('dark')
+      }
+    }
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE_KEY, next)
+    }
+  }
+
+  if (!mounted) {
+    return <div className="h-12" aria-hidden="true" />
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      aria-label={
+        theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'
+      }
+      className="flex items-center justify-between gap-3 font-display text-3xl font-medium text-[var(--text-primary)]"
+    >
+      <span className="flex items-center gap-3">
+        {theme === 'light' ? (
+          <FiMoon size={20} className="text-[var(--text-muted)]" />
+        ) : (
+          <FiSun size={20} className="text-[var(--text-muted)]" />
+        )}
+        Theme
+      </span>
+      <span className="font-sans text-[14px] text-[var(--text-muted)]">
+        {theme === 'light' ? 'Light' : 'Dark'}
+      </span>
+    </button>
   )
 }
 

@@ -36,12 +36,12 @@
 
 [data-theme='dark'],
 .dark {
-  --background:        #0F0E0C;   /* near-black, warm */
-  --surface:           #18171A;
-  --surface-elevated:  #211F22;
-  --surface-sunken:    #27262A;
-  --border:            #2C2A28;
-  --border-strong:     #3D3A35;
+  --background:        #100D08;   /* warm near-black, brown undertone (was #0F0E0C — too cool) */
+  --surface:           #1B160E;   /* dark espresso (was #18171A — read bluish-grey) */
+  --surface-elevated:  #25201A;   /* (was #211F22) */
+  --surface-sunken:    #2A2419;   /* (was #27262A) */
+  --border:            #322B1F;   /* (was #2C2A28) */
+  --border-strong:     #463C2A;   /* (was #3D3A35) */
   --text-primary:      #F5F2EC;   /* warm near-white */
   --text-secondary:    #BAB5A8;
   --text-muted:        #7A766B;

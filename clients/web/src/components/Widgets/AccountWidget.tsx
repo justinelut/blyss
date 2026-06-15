@@ -74,8 +74,8 @@ export const AccountWidget = ({ className }: AccountWidgetProps) => {
       ) : (
         <div className="dark:bg-polar-800 mb-6 flex flex-1 flex-col items-center justify-center gap-y-2 rounded-lg bg-gray-50 p-8 text-center">
           <h3>No payouts yet</h3>
-          <p className="dark:text-polar-500 text-sm text-gray-500">
-            You may only withdraw funds above $10.
+          <p className="dark:text-polar-500 text-sm text-[var(--text-muted)]">
+            Withdrawals appear here once they&rsquo;re processed.
           </p>
         </div>
       )}
