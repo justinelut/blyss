@@ -181,17 +181,19 @@ const SITE_BASE =
   process.env.NEXT_PUBLIC_FRONTEND_BASE_URL || 'https://blyss.co.ke'
 
 export const StorefrontThemeEditor: React.FC<Props> = ({ organization }) => {
-  const savedTokens = React.useMemo(
+  // The saved state is held in component-local state (not useMemo) so
+  // a successful save can update it in place — collapsing the dirty
+  // flag without a hard page reload. Initial values come from the
+  // SSR'd `organization` row; after that, every mutation goes through
+  // setSaved* below.
+  const [savedTokens, setSavedTokens] = React.useState<StorefrontTokens>(
     () => readSavedTokens(organization),
-    [organization],
   )
-  const savedLayout = React.useMemo(
+  const [savedLayout, setSavedLayout] = React.useState<StorefrontLayoutSlug>(
     () => readSavedLayout(organization),
-    [organization],
   )
-  const savedModules = React.useMemo(
+  const [savedModules, setSavedModules] = React.useState<EnabledModule[]>(
     () => readSavedModules(organization),
-    [organization],
   )
 
   const [draft, setDraft] = React.useState<StorefrontTokens>(savedTokens)
@@ -317,24 +319,27 @@ export const StorefrontThemeEditor: React.FC<Props> = ({ organization }) => {
       }
       toast({
         title: 'Theme saved',
-        description: 'Your storefront updates within 60 seconds.',
+        description: 'Your storefront is updating now.',
       })
+      // Update the saved state in place so the dirty flag collapses
+      // without a hard page reload — much smoother UX than blowing
+      // away the editor's scroll position + drawer state. The local
+      // state of draft/draftLayout/draftModules already matches what
+      // we just persisted, so copying those values across also
+      // re-syncs `findMatchingPreset` selection on the cards.
+      if (tokensDirty) setSavedTokens(draft)
+      if (layoutDirty) setSavedLayout(draftLayout)
+      if (modulesDirty) setSavedModules(draftModules)
+      setPreviewToken(null)
       // Bust the SSR fetch caches that key on this org's slug so the
-      // editor + public storefront pick up the new theme on the next
-      // navigation. The window.location.reload below forces a fresh
-      // SSR fetch — this revalidate() ensures that fetch doesn't
-      // hit a stale ISR-cached body.
+      // public storefront page (and any future SSR refresh of the
+      // editor) sees the freshest theme. Best-effort — the in-place
+      // state update above is the user-visible truth; this just
+      // helps any other tab the user has open.
       try {
         await revalidate(`organizations:${organization.slug}`)
       } catch {
-        // Best-effort — the bypassCache=true on the editor page is
-        // the primary safety net.
-      }
-      // Soft-refresh the page so the SSR org row picks up the new
-      // theme_tokens / theme_layout / theme_modules and the dirty
-      // state collapses.
-      if (typeof window !== 'undefined') {
-        window.location.reload()
+        // Silent — non-critical cache hint.
       }
     } catch (e) {
       toast({
@@ -404,14 +409,18 @@ export const StorefrontThemeEditor: React.FC<Props> = ({ organization }) => {
         body: STOREFRONT_TOKENS_DEFAULTS,
       })
       toast({ title: 'Reset to defaults' })
+      // Update saved + draft state in place so the editor reflects the
+      // reset without a hard reload. The next render highlights the
+      // Blyss preset card automatically via findMatchingPreset.
+      setSavedTokens(STOREFRONT_TOKENS_DEFAULTS)
+      setDraft(STOREFRONT_TOKENS_DEFAULTS)
+      setPreviewToken(null)
       try {
         await revalidate(`organizations:${organization.slug}`)
       } catch {
-        // Best-effort.
+        // Silent.
       }
-      if (typeof window !== 'undefined') {
-        window.location.reload()
-      }
+      setResetting(false)
     } catch (e) {
       toast({
         title: 'Reset failed',
@@ -954,7 +963,7 @@ export const StorefrontThemeEditor: React.FC<Props> = ({ organization }) => {
         direction="bottom"
         shouldScaleBackground={false}
       >
-        <DrawerContent className="flex h-[92dvh] max-h-[92dvh] w-full flex-col gap-0 p-0">
+        <DrawerContent className="flex h-[100dvh] max-h-[100dvh] w-full flex-col gap-0 p-0">
           <DrawerHeader className="border-b border-[var(--border)] px-5 py-4 text-center">
             <DrawerTitle className="font-display text-[16px] font-semibold text-[var(--text-primary)]">
               Storefront preview
