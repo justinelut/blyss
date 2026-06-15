@@ -127,20 +127,22 @@ const MarketplaceCartDrawer = ({
           ) : (
             <div className="divide-y divide-[var(--border)]">
               {groups.map((group) => {
-                // Resolve currency from this group's first item so the
-                // per-creator subtotal matches the line-item display.
-                // Without this, drawer subtotals fell back to KES even
-                // when the group's items were USD-priced — same bug
-                // /cart had on the totals row.
-                const first = group.items?.[0] as
+                // Drawer uses the server-resolved group.currency too —
+                // see CartPage.tsx::currencyForGroup for the full
+                // fallback chain.
+                const firstItem = group.items?.[0] as
                   | {
+                      currency?: string | null
                       product?: {
                         prices?: ReadonlyArray<{ price_currency?: string }>
                       }
                     }
                   | undefined
                 const groupCurrency = (
-                  first?.product?.prices?.[0]?.price_currency ?? 'KES'
+                  (group as { currency?: string | null }).currency ??
+                  firstItem?.currency ??
+                  firstItem?.product?.prices?.[0]?.price_currency ??
+                  'KES'
                 ).toUpperCase()
                 return (
                 <div key={group.organization.id} className="px-6 py-5">
@@ -243,6 +245,10 @@ const CreatorCartDrawer = ({
 
   const items = (scopedCart as any)?.items ?? []
   const subtotal = (scopedCart as any)?.subtotal ?? 0
+  const scopedCurrency =
+    ((scopedCart as any)?.currency as string | undefined) ??
+    ((items[0] as any)?.currency as string | undefined) ??
+    'KES'
   const itemCount = (scopedCart as any)?.item_count ?? items.length
 
   const otherCreatorsCount = (grouped?.groups ?? []).filter(
@@ -317,7 +323,7 @@ const CreatorCartDrawer = ({
                 Subtotal
               </span>
               <span className="font-display text-[18px] font-semibold tabular-nums text-[var(--text-primary)]">
-                {fmtPrice(subtotal)}
+                {fmtPrice(subtotal, scopedCurrency.toUpperCase())}
               </span>
             </div>
             <button

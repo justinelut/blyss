@@ -127,23 +127,29 @@ describe('Marketplace Currency Utilities', () => {
       expect(result?.price.price_amount).toBe(120000)
     })
 
-    it('should fallback to KES if preferred currency not available', () => {
+    it('should fallback to USD when preferred currency not available', () => {
+      // Was previously asserting "fallback to KES" — that step was
+      // dropped because KES is the creator's local currency, not a
+      // marketplace-wide fallback. The marketplace contract is
+      // (preferred OR USD), period. A buyer with a non-USD non-preferred
+      // currency on a product priced [KES, USD] sees USD, NOT KES.
       const result = getFallbackPrice(mockProduct, 'eur')
-      expect(result).toBeTruthy()
-      expect(result?.currency).toBe('kes')
-    })
-
-    it('should fallback to USD if KES not available', () => {
-      const productWithoutKES = {
-        ...mockProduct,
-        prices: mockProduct.prices.filter((p) => p.price_currency !== 'kes'),
-      }
-      const result = getFallbackPrice(productWithoutKES, 'eur')
       expect(result).toBeTruthy()
       expect(result?.currency).toBe('usd')
     })
 
-    it('should use first available price if no fallbacks exist', () => {
+    it('should fallback to USD for a Nigerian visitor on a [KES, USD] product', () => {
+      // The user-visible bug shape: a Nigerian browses a Kenyan creator
+      // priced in both KES and USD; should see USD, not KES.
+      const result = getFallbackPrice(mockProduct, 'ngn')
+      expect(result).toBeTruthy()
+      expect(result?.currency).toBe('usd')
+    })
+
+    it('should use first available price if no preferred + no USD', () => {
+      // When both step 1 (preferred) and step 2 (USD) miss, fall
+      // through to the first available price. Single-currency creators
+      // and legacy data depend on this.
       const productOnlyJPY = {
         ...mockProduct,
         prices: [mockProduct.prices[2]], // Only JPY price
@@ -151,6 +157,20 @@ describe('Marketplace Currency Utilities', () => {
       const result = getFallbackPrice(productOnlyJPY, 'eur')
       expect(result).toBeTruthy()
       expect(result?.currency).toBe('jpy')
+    })
+
+    it('should not double-step when the visitor IS USD', () => {
+      // The USD fallback step is skipped when preferredCurrency === 'usd'
+      // — step 1 already would have matched if a USD price existed. This
+      // test pins that no infinite loop / duplicate work happens.
+      const productWithoutUSD = {
+        ...mockProduct,
+        prices: mockProduct.prices.filter((p) => p.price_currency !== 'usd'),
+      }
+      const result = getFallbackPrice(productWithoutUSD, 'usd')
+      expect(result).toBeTruthy()
+      // Falls through to step 3 (first available).
+      expect(result?.currency).toBe(productWithoutUSD.prices[0].price_currency)
     })
 
     it('should return null for product with no prices', () => {

@@ -4,11 +4,22 @@ import { api } from '@/utils/client'
 import { unwrap } from '@/lib/api'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { defaultRetry } from './retry'
+import { useDisplayCurrency } from '@/components/Marketplace/CurrencyProvider'
 
 export const useCart = (enabled = true) => {
+  // Visitor's geo-derived currency (lowercase ISO). Threaded through to
+  // the API so the cart subtotal + per-row resolved currency match the
+  // product price in the buyer's currency, not whatever sits at
+  // product.prices[0]. Without this a /us-route visitor saw "KSh"
+  // labels on multi-currency products because backend picked the first
+  // price array entry.
+  const currency = useDisplayCurrency()
   return useQuery({
-    queryKey: ['cart'],
-    queryFn: () => unwrap(api.GET('/v1/cart')),
+    queryKey: ['cart', currency],
+    queryFn: () =>
+      unwrap(
+        (api as any).GET('/v1/cart', { params: { query: { currency } } }),
+      ),
     retry: defaultRetry,
     // Guests have no cart server-side — querying would 401 on every page
     // (the cart icon is in the global header). Callers pass `authenticated`.
@@ -59,10 +70,12 @@ interface AddToCartParams {
 
 export const useAddToCart = () => {
   const queryClient = getQueryClient()
+  const currency = useDisplayCurrency()
 
   return useMutation({
     mutationFn: ({ productId, quantity = 1 }: AddToCartParams) =>
-      api.POST('/v1/cart/items', {
+      (api as any).POST('/v1/cart/items', {
+        params: { query: { currency } },
         body: {
           product_id: productId,
           quantity,
@@ -102,10 +115,13 @@ export const useAddToCart = () => {
       })
     },
     onSuccess: (result) => {
-      if (result.error) {
+      const r = result as
+        | { error?: { detail?: string } | null; data?: unknown }
+        | undefined
+      if (r?.error) {
         toast({
           title: 'Error',
-          description: result.error.detail || 'Failed to add item to cart',
+          description: r.error.detail || 'Failed to add item to cart',
           variant: 'error',
         })
         return
@@ -295,16 +311,20 @@ interface CartGroupedResponse {
  * / global header drawer) where the buyer is operating across all
  * creators.
  */
-export const useCartGrouped = (enabled = true) =>
-  useQuery({
-    queryKey: ['cart', 'grouped'],
+export const useCartGrouped = (enabled = true) => {
+  const currency = useDisplayCurrency()
+  return useQuery({
+    queryKey: ['cart', 'grouped', currency],
     queryFn: () =>
       unwrap(
-        (api as any).GET('/v1/cart/grouped'),
+        (api as any).GET('/v1/cart/grouped', {
+          params: { query: { currency } },
+        }),
       ) as Promise<CartGroupedResponse>,
     retry: defaultRetry,
     enabled,
   })
+}
 
 /**
  * Creator-scoped cart: returns just one creator's slice of the buyer's
@@ -317,18 +337,20 @@ export const useCartGrouped = (enabled = true) =>
 export const useCartForOrganization = (
   organizationId: string | undefined,
   enabled = true,
-) =>
-  useQuery({
-    queryKey: ['cart', 'organization', organizationId],
+) => {
+  const currency = useDisplayCurrency()
+  return useQuery({
+    queryKey: ['cart', 'organization', organizationId, currency],
     queryFn: () =>
       unwrap(
         (api as any).GET('/v1/cart', {
-          params: { query: { organization_id: organizationId } },
+          params: { query: { organization_id: organizationId, currency } },
         }),
       ),
     retry: defaultRetry,
     enabled: enabled && !!organizationId,
   })
+}
 
 /**
  * Checkout one creator's cart slice. Other creators' items remain in

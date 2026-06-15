@@ -37,9 +37,11 @@ describe('Multi-creator cart wiring', () => {
   test('frontend add-to-cart sends only product_id (org resolved server-side)', () => {
     const cartHooks = read('src/hooks/queries/cart.ts')
     // POST body in useAddToCart contains product_id + quantity, no
-    // organization_id field.
+    // organization_id field. Accepts both the typed `api.POST` and
+    // the `(api as any).POST` cast — we use the cast when the OpenAPI
+    // spec hasn't been regenerated yet to include a new query param.
     expect(cartHooks).toMatch(
-      /api\.POST\('\/v1\/cart\/items',[\s\S]*?body:\s*\{[\s\S]*?product_id:[\s\S]*?\}/,
+      /\(?api( as any)?\)?\.POST\('\/v1\/cart\/items',[\s\S]*?body:\s*\{[\s\S]*?product_id:[\s\S]*?\}/,
     )
     // Negative: no organization_id leaks into the add-item payload.
     const addBlock = cartHooks.match(

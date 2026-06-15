@@ -58,6 +58,10 @@ from .schemas import (
     ProfileUpdateSchema,
 )
 from .schemas import Organization as OrganizationSchema
+from .theme_schemas import (
+    StorefrontTokensPreviewResponse,
+    StorefrontTokensUpdate,
+)
 from .service import organization as organization_service
 
 router = APIRouter(prefix="/organizations", tags=["organizations"])
@@ -199,6 +203,20 @@ async def get_creator(
             "Omit to include all products."
         ),
     ),
+    preview_theme: str | None = Query(
+        None,
+        description=(
+            "HMAC-signed token referencing a saved draft of theme tokens "
+            "(plan §19.6.3). When present, the response renders with the "
+            "draft tokens in place of the saved theme. Token must come "
+            "from the same organization's PATCH /storefront/tokens/preview "
+            "endpoint and be unexpired (30-min TTL). An invalid / "
+            "expired token is silently ignored — the response falls "
+            "back to the saved theme. Drafts are scoped to the user "
+            "who created them, so one creator's draft never leaks into "
+            "another creator's storefront preview."
+        ),
+    ),
     session: AsyncReadSession = Depends(get_db_read_session),
 ) -> CreatorStorefrontSchema:
     """Get creator storefront data by slug.
@@ -210,6 +228,23 @@ async def get_creator(
 
     if organization is None:
         raise ResourceNotFound()
+
+    # Resolve preview-theme draft (if any). The draft replaces only
+    # `theme_tokens` on the response — `theme_layout` and
+    # `theme_modules` still come from the saved row. v1 only previews
+    # tokens; v2 will widen this to layout drafts.
+    preview_tokens: dict[str, Any] | None = None
+    if preview_theme:
+        from polar.organization.theme_preview import get_theme_draft, verify_token
+
+        decoded = verify_token(preview_theme)
+        # Reject tokens that aren't for this org. Lets us return the
+        # saved theme instead of someone else's preview if a stale
+        # token bleeds through (defense in depth — the dashboard is
+        # the only place these tokens are minted, but the endpoint
+        # is public so we double-check here).
+        if decoded is not None and decoded["org_id"] == str(organization.id):
+            preview_tokens = await get_theme_draft(token=preview_theme)
 
     # Convert non-archived SQLAlchemy products → public Product schema dicts.
     # Lazy-import the schema to avoid a circular import (product.schemas
@@ -336,6 +371,14 @@ async def get_creator(
         if organization.socials
         else None,
         tipping_enabled=organization.tipping_enabled,
+        # Storefront theme — plan §19. Frontend renders ThemeProvider
+        # and dynamic-imports the right layout from these three values.
+        theme_layout=organization.theme_layout,
+        theme_tokens=preview_tokens
+        if preview_tokens is not None
+        else (organization.theme_tokens or {}),
+        theme_modules=organization.theme_modules or [],
+        theme_version_hash=organization.theme_version_hash,
         products=products,
     )
 
@@ -434,6 +477,165 @@ async def update(
         raise ResourceNotFound()
 
     return await organization_service.update(session, organization, organization_update)
+
+
+@router.patch(
+    "/{id}/storefront/tokens",
+    response_model=CreatorStorefrontSchema,
+    summary="Update Storefront Theme Tokens",
+    responses={
+        200: {"description": "Theme tokens updated."},
+        403: {
+            "description": "Caller is not a member of this organization.",
+            "model": NotPermitted.schema(),
+        },
+        404: OrganizationNotFound,
+        422: {"description": "Invalid token shape."},
+    },
+    tags=[APITag.private],
+)
+async def update_storefront_tokens(
+    id: OrganizationID,
+    tokens: StorefrontTokensUpdate,
+    auth_subject: auth.OrganizationsWrite,
+    session: AsyncSession = Depends(get_db_session),
+) -> CreatorStorefrontSchema:
+    """Update the creator's storefront theme tokens.
+
+    Per plan §19.6 + §19.8.2. The Pydantic model rejects unknown keys
+    (extra='forbid') and any value outside the curated palette / font /
+    display-style / motion enums returns 422 with the field path.
+
+    On save, the SQLAlchemy `before_update` hook recomputes
+    `theme_version_hash`, which acts as the SSR cache key for
+    /creators/{slug} — so the next visitor gets a fresh render
+    automatically. No explicit cache invalidation needed.
+    """
+    organization = await organization_service.get(session, auth_subject, id)
+
+    if organization is None:
+        raise ResourceNotFound()
+
+    # Persist as a plain dict so the JSONB column round-trips cleanly
+    # and the version-hash hook sees the new tokens before computing.
+    organization.theme_tokens = tokens.model_dump(mode="json", exclude_none=False)
+    session.add(organization)
+    await session.flush()
+
+    # Reuse the same builder as GET /creators/{slug} for response shape
+    # consistency. The endpoint here is private (auth-required) but the
+    # response schema is the public storefront one — the dashboard
+    # already knows how to consume it.
+    products = list(organization.products) if hasattr(organization, "products") else []
+    return CreatorStorefrontSchema(
+        id=organization.id,
+        name=organization.name,
+        slug=organization.slug,
+        avatar_url=organization.avatar_url,
+        cover_image_url=(organization.profile_settings or {}).get("cover_image_url"),
+        bio=organization.bio,
+        email=organization.email,
+        social_links=None,
+        socials=None,
+        tipping_enabled=organization.tipping_enabled,
+        theme_layout=organization.theme_layout,
+        theme_tokens=organization.theme_tokens or {},
+        theme_modules=organization.theme_modules or [],
+        theme_version_hash=organization.theme_version_hash,
+        products=[],
+    )
+
+
+@router.post(
+    "/{id}/storefront/tokens/preview",
+    response_model=StorefrontTokensPreviewResponse,
+    summary="Save Theme Tokens Draft for Preview",
+    responses={
+        200: {"description": "Draft saved; use the returned token to preview."},
+        403: {
+            "description": "Caller is not a member of this organization.",
+            "model": NotPermitted.schema(),
+        },
+        404: OrganizationNotFound,
+        422: {"description": "Invalid token shape."},
+    },
+    tags=[APITag.private],
+)
+async def save_storefront_tokens_preview(
+    id: OrganizationID,
+    tokens: StorefrontTokensUpdate,
+    auth_subject: auth.OrganizationsWrite,
+    session: AsyncSession = Depends(get_db_session),
+) -> StorefrontTokensPreviewResponse:
+    """Save a draft of theme tokens to Redis and return a signed token.
+
+    The dashboard's preview iframe loads `/creators/{slug}?preview_theme=<token>`
+    which the storefront route validates and uses to render with the
+    unsaved tokens. Drafts expire in 30 minutes and are scoped to one
+    `(organization, user)` pair — the user's own token can't preview
+    someone else's storefront.
+
+    Per plan §19.6.3 + §19.7.3.
+    """
+    organization = await organization_service.get(session, auth_subject, id)
+
+    if organization is None:
+        raise ResourceNotFound()
+
+    if not is_user(auth_subject):
+        raise Unauthorized()
+    user_id = auth_subject.subject.id
+
+    from .theme_preview import (
+        STOREFRONT_THEME_DRAFT_TTL_SECONDS,
+        save_theme_draft,
+    )
+
+    token = await save_theme_draft(
+        organization_id=organization.id,
+        user_id=user_id,
+        tokens=tokens.model_dump(mode="json", exclude_none=False),
+    )
+    return StorefrontTokensPreviewResponse(
+        preview_token=token,
+        expires_in=STOREFRONT_THEME_DRAFT_TTL_SECONDS,
+    )
+
+
+@router.delete(
+    "/{id}/storefront/tokens/preview",
+    status_code=204,
+    response_class=Response,
+    summary="Discard Storefront Theme Draft",
+    responses={
+        204: {"description": "Draft discarded."},
+        404: OrganizationNotFound,
+    },
+    tags=[APITag.private],
+)
+async def discard_storefront_tokens_preview(
+    id: OrganizationID,
+    auth_subject: auth.OrganizationsWrite,
+    session: AsyncSession = Depends(get_db_session),
+) -> Response:
+    """Discard the in-flight draft for the current (org, user) pair.
+
+    No-op if no draft exists. Lets the dashboard's "Discard" button
+    clean up Redis without waiting for the 30-min TTL.
+    """
+    organization = await organization_service.get(session, auth_subject, id)
+
+    if organization is None:
+        raise ResourceNotFound()
+
+    if not is_user(auth_subject):
+        raise Unauthorized()
+    user_id = auth_subject.subject.id
+
+    from .theme_preview import discard_theme_draft
+
+    await discard_theme_draft(organization_id=organization.id, user_id=user_id)
+    return Response(status_code=204)
 
 
 @router.delete(

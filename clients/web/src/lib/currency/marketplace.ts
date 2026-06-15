@@ -86,13 +86,24 @@ export const formatProductPrice = (
 }
 
 /**
- * Gets a fallback price when the preferred currency is not available
+ * Gets a fallback price when the preferred currency is not available.
  *
- * This function attempts to find a price in the following order:
- * 1. Preferred currency
- * 2. KES (default currency)
- * 3. USD (common fallback)
- * 4. First available price
+ * Resolution chain (mirrors the backend `_has_currency` filter on
+ * /v1/products/public — see polar/product/endpoints.py — and the cart
+ * `_calculate_item_subtotal` resolution chain):
+ *
+ *   1. Preferred currency  (visitor's geo currency)
+ *   2. USD                 (the universal fallback per the marketplace
+ *                           contract — every product priced in USD is
+ *                           visible to every buyer everywhere)
+ *   3. First available     (legacy / single-currency product safety net)
+ *
+ * KES is NOT in this chain. KES is the creator's local-default currency,
+ * not a buyer-side fallback. A Nigerian visitor browsing a product priced
+ * [KES, USD] sees USD via step 2, NOT KES via the (previously buggy) "try
+ * KES first" rule. That rule shipped the same bug shape /us visitors had
+ * with the cart pre-fix — it sent buyers the wrong currency label even
+ * when a USD price was available.
  *
  * @param product - The product with multiple price points
  * @param preferredCurrency - The preferred currency code
@@ -109,7 +120,7 @@ export const formatProductPrice = (
  * }
  *
  * getFallbackPrice(product, 'eur')
- * // Returns: { price: { price_amount: 120000, price_currency: 'kes' }, currency: 'kes' }
+ * // Returns: { price: { price_amount: 1500, price_currency: 'usd' }, currency: 'usd' }
  */
 export const getFallbackPrice = (
   product: schemas['Product'] | schemas['CheckoutProduct'],
@@ -119,25 +130,23 @@ export const getFallbackPrice = (
     return null
   }
 
-  // Try preferred currency first
+  // Step 1 — preferred currency.
   const preferredPrice = findPriceForCurrency(product, preferredCurrency)
   if (preferredPrice) {
-    return { price: preferredPrice, currency: preferredCurrency }
+    return { price: preferredPrice, currency: preferredCurrency.toLowerCase() }
   }
 
-  // Try KES (default)
-  const kesPrice = findPriceForCurrency(product, 'kes')
-  if (kesPrice) {
-    return { price: kesPrice, currency: 'kes' }
+  // Step 2 — USD universal fallback. Skip when the visitor IS USD;
+  // step 1 already would have matched if a USD price existed.
+  if (preferredCurrency.toLowerCase() !== 'usd') {
+    const usdPrice = findPriceForCurrency(product, 'usd')
+    if (usdPrice) {
+      return { price: usdPrice, currency: 'usd' }
+    }
   }
 
-  // Try USD (common fallback)
-  const usdPrice = findPriceForCurrency(product, 'usd')
-  if (usdPrice) {
-    return { price: usdPrice, currency: 'usd' }
-  }
-
-  // Use first available price
+  // Step 3 — first available price (single-currency products / legacy
+  // data). Reached only when the product has no USD price either.
   const firstPrice = product.prices[0]
   return { price: firstPrice, currency: firstPrice.price_currency }
 }

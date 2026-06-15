@@ -39,6 +39,18 @@ class CartItemResponse(TimestampedSchema):
     subtotal: int = Field(
         description="The subtotal for this cart item (price × quantity) in cents."
     )
+    currency: str | None = Field(
+        default=None,
+        description=(
+            "Lowercase ISO currency code the row was priced in (the "
+            "result of resolving the visitor's geo currency against "
+            "the product's price entries). Frontend uses this to "
+            "render the right symbol per row — picking "
+            "product.prices[0] blindly was the source of "
+            "/us-route-shows-KSh bug. Null only on legacy rows or "
+            "products with no fixed prices."
+        ),
+    )
 
 
 class CartResponse(Schema):
@@ -53,6 +65,13 @@ class CartResponse(Schema):
     )
     total: int = Field(
         description="The total amount (subtotal + tax) in cents.",
+    )
+    currency: str | None = Field(
+        default=None,
+        description=(
+            "Lowercase ISO currency code for the cart-level subtotal/total "
+            "(takes the first item's resolved currency)."
+        ),
     )
     item_count: int = Field(
         description="The total number of items in the cart.",
@@ -71,6 +90,14 @@ class CartGroup(Schema):
     subtotal: int
     tax: int
     total: int
+    currency: str | None = Field(
+        default=None,
+        description=(
+            "Lowercase ISO currency code for the group-level subtotal/total. "
+            "Frontend renders the per-group summary using this — see "
+            "CartPage.tsx currencyForGroup."
+        ),
+    )
     item_count: int
 
 

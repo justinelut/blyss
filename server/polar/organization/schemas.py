@@ -599,6 +599,21 @@ class CreatorStorefrontSchema(Schema):
     social_links: SocialLinks | None
     socials: list[dict] | None = None
     tipping_enabled: bool = False
+    # Storefront theme — plan §19. The frontend reads these to render
+    # the right ThemeProvider tokens + layout component. Defaults match
+    # `polar.organization.theme_schemas.STOREFRONT_TOKENS_DEFAULTS` so a
+    # fresh org renders identically to the pre-theme world.
+    theme_layout: str = "editorial"
+    theme_tokens: dict[str, Any] = Field(
+        default_factory=lambda: {
+            "accent": "burnt-orange",
+            "headline_font": "space-grotesk",
+            "display_style": "editorial",
+            "motion": "standard",
+        }
+    )
+    theme_modules: list[dict[str, Any]] = Field(default_factory=list)
+    theme_version_hash: str | None = None
     # Typed loosely as list[Any] because importing the public Product schema
     # would create a circular import (product.schemas imports from
     # organization.schemas). The endpoint converts SQLAlchemy products to

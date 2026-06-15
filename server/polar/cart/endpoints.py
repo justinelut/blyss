@@ -1,7 +1,7 @@
 from uuid import UUID
 from uuid import UUID
 
-from fastapi import Depends
+from fastapi import Depends, Query
 from pydantic import Field
 
 from polar.checkout import ip_geolocation
@@ -51,6 +51,15 @@ router = APIRouter(
 async def add_cart_item(
     item: CartItemCreate,
     auth_subject: CartWrite,
+    currency: str | None = Query(
+        None,
+        description=(
+            "ISO 4217 lowercase currency code (e.g. 'usd', 'kes'). "
+            "Drives which price entry is used to compute the row's "
+            "subtotal when the product carries multiple prices. Falls "
+            "back to the product's first price when no match exists."
+        ),
+    ),
     session: AsyncSession = Depends(get_db_session),
 ) -> CartItemResponse:
     """Add a product to the cart or increment quantity if it already exists."""
@@ -61,7 +70,9 @@ async def add_cart_item(
         quantity=item.quantity,
     )
 
-    item_subtotal = cart._calculate_item_subtotal(product, cart_item.quantity)
+    item_subtotal, item_currency = cart._calculate_item_subtotal(
+        product, cart_item.quantity, currency
+    )
 
     return CartItemResponse(
         id=cart_item.id,
@@ -69,6 +80,7 @@ async def add_cart_item(
         product=product,
         quantity=cart_item.quantity,
         subtotal=item_subtotal,
+        currency=item_currency,
         created_at=cart_item.created_at,
         modified_at=cart_item.modified_at,
     )
@@ -100,6 +112,19 @@ async def remove_cart_item(
 async def get_cart(
     auth_subject: CartRead,
     organization_id: UUID | None = None,
+    currency: str | None = Query(
+        None,
+        description=(
+            "ISO 4217 lowercase currency code (e.g. 'usd', 'kes'). "
+            "Drives which price entry on each multi-currency product "
+            "is used to compute item subtotals + label rows. Falls "
+            "back to the product's first price when no match exists. "
+            "Frontend reads the visitor's currency from the geo cookie "
+            "via useDisplayCurrency() and forwards it here so cart "
+            "rows render in the buyer's currency rather than whichever "
+            "price happens to sit at index 0 of the product."
+        ),
+    ),
     session: AsyncSession = Depends(get_db_session),
 ) -> CartResponse:
     """Get cart items with calculated totals.
@@ -119,11 +144,13 @@ async def get_cart(
             session=session,
             auth_subject=auth_subject,
             organization_id=organization_id,
+            currency=currency,
         )
     else:
         cart_data = await cart.get_cart(
             session=session,
             auth_subject=auth_subject,
+            currency=currency,
         )
 
     return CartResponse(**cart_data)
@@ -136,6 +163,14 @@ async def get_cart(
 )
 async def get_cart_grouped(
     auth_subject: CartRead,
+    currency: str | None = Query(
+        None,
+        description=(
+            "ISO 4217 lowercase currency code. See /v1/cart for "
+            "semantics — same currency-resolution rule applies per "
+            "row + per group."
+        ),
+    ),
     session: AsyncSession = Depends(get_db_session),
 ) -> CartGroupedResponse:
     """Return the buyer's cart grouped by creator.
@@ -151,6 +186,7 @@ async def get_cart_grouped(
     data = await cart.get_cart_grouped(
         session=session,
         auth_subject=auth_subject,
+        currency=currency,
     )
     return CartGroupedResponse(**data)
 

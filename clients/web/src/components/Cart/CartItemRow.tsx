@@ -12,6 +12,11 @@ interface CartItemRowProps {
     product: schemas['Product']
     quantity: number
     subtotal: number
+    /** Lowercase ISO currency the row was priced in (server-resolved
+     *  against the visitor's geo currency). May be missing on older
+     *  cached responses — we fall back to product.prices[0] in that
+     *  case to avoid a render crash. */
+    currency?: string | null
   }
   onRemove: (itemId: string) => void
   isRemoving?: boolean
@@ -46,8 +51,15 @@ export const CartItemRow = ({
   const { product } = item
   const img = product.medias?.[0]?.public_url
   const org = (product as any).organization
+  // Server tells us which currency the row was actually priced in
+  // (resolved against the visitor's geo currency). Fall back to the
+  // product's first price entry if the server response predates the
+  // cart-currency-aware refactor — that's the "old" behavior and at
+  // least keeps the row from crashing on missing data.
   const price = product.prices?.[0]
-  const currency = ((price as any)?.price_currency ?? 'KES').toUpperCase()
+  const currency = (
+    item.currency ?? (price as any)?.price_currency ?? 'KES'
+  ).toUpperCase()
 
   return (
     <div className="flex items-start gap-4 py-4">

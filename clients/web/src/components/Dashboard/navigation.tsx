@@ -8,6 +8,7 @@ import PeopleAltOutlined from '@mui/icons-material/PeopleAltOutlined'
 import ShoppingBagOutlined from '@mui/icons-material/ShoppingBagOutlined'
 import SpaceDashboardOutlined from '@mui/icons-material/SpaceDashboardOutlined'
 import TrendingUp from '@mui/icons-material/TrendingUp'
+import StorefrontOutlined from '@mui/icons-material/StorefrontOutlined'
 import TuneOutlined from '@mui/icons-material/TuneOutlined'
 import VolunteerActivismOutlined from '@mui/icons-material/VolunteerActivismOutlined'
 import DiscountOutlined from '@mui/icons-material/DiscountOutlined'
@@ -301,6 +302,32 @@ export const organizationRoutesList = (org?: schemas['Organization']): Route[] =
     icon: <AttachMoneyOutlined fontSize="inherit" />,
     if: true,
     subs: orgFinanceSubRoutesList(org),
+  },
+  {
+    // Storefront editor (plan §19.8.0). The marketplace-chrome
+    // sidebar footer already has a separate "View public" target=_blank
+    // link — we deliberately keep both: this entry is the IN-dashboard
+    // editor (Brand tab today; Layout + Sections tabs ship in v2/v3),
+    // the footer link is the side-action peek at the live page.
+    //
+    // Lands on `/dashboard/{slug}/storefront/theme` (the Brand tab).
+    // Layout + Sections are sub-routes that v2/v3 turn on.
+    id: 'storefront',
+    title: 'Storefront',
+    link: `/dashboard/${org?.slug ?? '[organization]'}/storefront/theme`,
+    icon: <StorefrontOutlined fontSize="inherit" />,
+    if: true,
+    checkIsActive: (currentRoute: string): boolean => {
+      return currentRoute.startsWith(
+        `/dashboard/${org?.slug ?? '[organization]'}/storefront`,
+      )
+    },
+    subs: [
+      {
+        title: 'Theme',
+        link: `/dashboard/${org?.slug ?? '[organization]'}/storefront/theme`,
+      },
+    ],
   },
   {
     id: 'settings',

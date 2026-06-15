@@ -317,6 +317,15 @@ export default async function Page({ params }: CreatorPageProps) {
           email: publicEmail,
           socialLinks,
           tipEnabled,
+          // Storefront theme tokens (plan §19). Passed through to the
+          // <StorefrontThemeProvider> wrapper inside the body. Falls
+          // back to v1 defaults inside the provider when the field is
+          // absent (e.g. an older API response shape pre-12.1).
+          themeTokens:
+            ((creator as unknown as { theme_tokens?: unknown })
+              .theme_tokens as
+              | import('@/types/storefront-theme').StorefrontTokens
+              | undefined) ?? null,
         }}
         products={products}
         reviewSummary={reviewSummary}

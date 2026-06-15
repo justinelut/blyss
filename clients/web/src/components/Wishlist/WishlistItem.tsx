@@ -52,7 +52,8 @@ export const WishlistItem = ({ item, currency }: WishlistItemProps) => {
       { productId: item.product_id, quantity: 1 },
       {
         onSuccess: (result) => {
-          if (!result.error) {
+          const r = result as { error?: unknown } | undefined
+          if (!r?.error) {
             // Remove from wishlist after successful cart addition
             removeFromWishlist(item.product_id, {
               onSettled: () => {

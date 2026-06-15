@@ -8,7 +8,7 @@ import Link from 'next/link'
 export const CartIcon = () => {
   const { authenticated } = useAuth()
   const { data: cart } = useCart(authenticated)
-  const itemCount = cart?.item_count ?? 0
+  const itemCount = (cart as { item_count?: number } | undefined)?.item_count ?? 0
 
   return (
     <Link

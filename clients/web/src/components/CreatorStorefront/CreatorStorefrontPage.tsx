@@ -30,6 +30,8 @@ import { AboutTab, type AboutTabSocialLinks } from './AboutTab'
 import { StorefrontActionBar } from './StorefrontActionBar'
 import { ReviewsBlock, type ReviewSummary, type ReviewExcerpt } from './ReviewsBlock'
 import { useCurrencyControls } from '@/components/Marketplace/CurrencyProvider'
+import { StorefrontThemeProvider } from '@/components/Storefront/StorefrontThemeProvider'
+import type { StorefrontTokens } from '@/types/storefront-theme'
 
 export interface CreatorStorefrontPageProps {
   /** Creator core fields, sourced from the public CreatorStorefrontSchema. */
@@ -46,6 +48,9 @@ export interface CreatorStorefrontPageProps {
     /** Whether the creator opted into accepting tips / donations. v1: always
      *  true if the backend doesn't expose the flag; phase-7 wires the gate. */
     tipEnabled?: boolean
+    /** Storefront theme tokens (plan §19). When omitted the provider
+     *  falls back to v1 defaults so the storefront still renders. */
+    themeTokens?: StorefrontTokens | null
   }
   /** All non-archived products by this creator, returned by the storefront
    *  endpoint. We split on `is_recurring` to derive subscription tiers. */
@@ -154,7 +159,10 @@ export function CreatorStorefrontPage({
   }
 
   return (
-    <div className="bg-[var(--background)] text-[var(--text-primary)]">
+    <StorefrontThemeProvider
+      tokens={creator.themeTokens ?? null}
+      className="bg-[var(--background)] text-[var(--text-primary)]"
+    >
       <StorefrontHero
         name={creator.name}
         slug={creator.slug}
@@ -238,6 +246,6 @@ export function CreatorStorefrontPage({
         email={creator.email}
         socials={creator.socialLinks}
       />
-    </div>
+    </StorefrontThemeProvider>
   )
 }

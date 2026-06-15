@@ -135,8 +135,15 @@ class CartService:
         self,
         session: AsyncSession,
         auth_subject: AuthSubject[User | Anonymous],
+        currency: str | None = None,
     ) -> dict:
-        """Get all cart items with calculated totals."""
+        """Get all cart items with calculated totals.
+
+        `currency` (lowercase ISO, e.g. 'usd' / 'kes') drives which
+        price entry on each multi-currency product is used to compute
+        subtotals + label items. Falls back to the product's first
+        price when a match isn't available.
+        """
         user_id, session_token = self._extract_owner_identifiers(auth_subject)
 
         repository = CartRepository(session)
@@ -147,11 +154,22 @@ class CartService:
 
         items_data = []
         subtotal = 0
+        # Track the dominant cart-level currency so the legacy /v1/cart
+        # response still has a single `currency` field. Multi-creator
+        # carts can mix currencies; the grouped endpoint returns per-
+        # group currency cleanly. For single-cart consumers we use the
+        # first item's resolved currency as the cart-level value, since
+        # that's the most common case (single-creator cart).
+        cart_currency: str | None = None
 
         for item in cart_items:
             product = item.product
-            item_subtotal = self._calculate_item_subtotal(product, item.quantity)
+            item_subtotal, item_currency = self._calculate_item_subtotal(
+                product, item.quantity, currency
+            )
             subtotal += item_subtotal
+            if cart_currency is None and item_currency is not None:
+                cart_currency = item_currency
 
             items_data.append(
                 {
@@ -160,6 +178,7 @@ class CartService:
                     "product": product,
                     "quantity": item.quantity,
                     "subtotal": item_subtotal,
+                    "currency": item_currency,
                     "created_at": item.created_at,
                     "modified_at": item.modified_at,
                 }
@@ -173,6 +192,7 @@ class CartService:
             "subtotal": subtotal,
             "tax": tax,
             "total": total,
+            "currency": cart_currency,
             "item_count": len(cart_items),
         }
 
@@ -180,6 +200,7 @@ class CartService:
         self,
         session: AsyncSession,
         auth_subject: AuthSubject[User | Anonymous],
+        currency: str | None = None,
     ) -> dict:
         """Group cart items by the creator who owns each product.
 
@@ -187,6 +208,13 @@ class CartService:
         marketplace cart is the aggregation of these per-org carts —
         one section per creator. Each section is independently
         checkable.
+
+        `currency` (lowercase ISO) drives the per-row + per-group price
+        resolution. When two products in the same group are priced in
+        different currencies (rare — same creator usually prices
+        consistently), the group's response carries the FIRST item's
+        resolved currency and per-item rows carry their own resolved
+        currency, so the frontend can render each row honestly.
 
         Sorted by most-recently-modified item first so the creator the
         buyer most recently engaged with surfaces at the top of the
@@ -231,12 +259,15 @@ class CartService:
         for org_id, items in by_org.items():
             subtotal = 0
             items_data = []
+            group_currency: str | None = None
             for item in items:
                 product = item.product
-                item_subtotal = self._calculate_item_subtotal(
-                    product, item.quantity
+                item_subtotal, item_currency = self._calculate_item_subtotal(
+                    product, item.quantity, currency
                 )
                 subtotal += item_subtotal
+                if group_currency is None and item_currency is not None:
+                    group_currency = item_currency
                 items_data.append(
                     {
                         "id": item.id,
@@ -244,6 +275,7 @@ class CartService:
                         "product": product,
                         "quantity": item.quantity,
                         "subtotal": item_subtotal,
+                        "currency": item_currency,
                         "created_at": item.created_at,
                         "modified_at": item.modified_at,
                     }
@@ -257,6 +289,7 @@ class CartService:
                     "subtotal": subtotal,
                     "tax": tax,
                     "total": total,
+                    "currency": group_currency,
                     "item_count": len(items),
                 }
             )
@@ -275,6 +308,7 @@ class CartService:
         session: AsyncSession,
         auth_subject: AuthSubject[User | Anonymous],
         organization_id: UUID,
+        currency: str | None = None,
     ) -> dict:
         """Return only the cart items belonging to one creator.
 
@@ -301,10 +335,15 @@ class CartService:
 
         items_data = []
         subtotal = 0
+        cart_currency: str | None = None
         for item in scoped:
             product = item.product
-            item_subtotal = self._calculate_item_subtotal(product, item.quantity)
+            item_subtotal, item_currency = self._calculate_item_subtotal(
+                product, item.quantity, currency
+            )
             subtotal += item_subtotal
+            if cart_currency is None and item_currency is not None:
+                cart_currency = item_currency
             items_data.append(
                 {
                     "id": item.id,
@@ -312,6 +351,7 @@ class CartService:
                     "product": product,
                     "quantity": item.quantity,
                     "subtotal": item_subtotal,
+                    "currency": item_currency,
                     "created_at": item.created_at,
                     "modified_at": item.modified_at,
                 }
@@ -325,6 +365,7 @@ class CartService:
             "subtotal": subtotal,
             "tax": tax,
             "total": total,
+            "currency": cart_currency,
             "item_count": len(scoped),
         }
 
@@ -401,20 +442,80 @@ class CartService:
             session_token = str(auth_subject.session.id)
             return None, session_token
 
-    def _calculate_item_subtotal(self, product: Product, quantity: int) -> int:
-        """Calculate subtotal for a cart item (price * quantity in cents)."""
+    def _calculate_item_subtotal(
+        self,
+        product: Product,
+        quantity: int,
+        currency: str | None = None,
+    ) -> tuple[int, str | None]:
+        """Calculate cart-item subtotal + the currency the row was priced in.
+
+        Currency-resolution chain (per the marketplace contract — see
+        polar/product/endpoints.py `_has_currency` USD-fallback rule):
+
+          1. visitor's `currency` (if the product has a price in it)
+          2. USD (the universal fallback — the marketplace shows products
+             with USD prices to everyone everywhere, so the cart must
+             match)
+          3. product.prices[0] (legacy / single-currency fallback so a
+             KES-only product on /ke still works for KE buyers; same
+             chain for /us with a USD-only product, etc.)
+
+        Without the USD step a Nigerian visitor adding a USD-priced
+        product would see the cart row labelled in whatever currency
+        sat at index 0 of product.prices — typically KES on
+        blyss-studio products which were priced in [KES, USD]. That's
+        the same shape of bug /us visitors had pre-fix.
+
+        Returns:
+            (subtotal_cents, currency_code) where currency_code is
+            lowercase ISO (e.g. 'usd', 'kes') or None if the product
+            has no fixed prices to resolve against.
+        """
+
         if not product.prices:
-            return 0
+            return 0, None
 
-        price = product.prices[0]
-        # Note: amount_type's column is plain String, so SQLAlchemy returns a
+        # Step 1 — visitor's currency.
+        chosen = None
+        if currency:
+            wanted = currency.lower()
+            chosen = next(
+                (
+                    p
+                    for p in product.prices
+                    if (p.price_currency or "").lower() == wanted
+                ),
+                None,
+            )
+        # Step 2 — USD universal fallback (only meaningful when the
+        # visitor's currency is something other than USD; for a USD
+        # visitor step 1 already matched if a USD price exists).
+        if chosen is None and (currency is None or currency.lower() != "usd"):
+            chosen = next(
+                (
+                    p
+                    for p in product.prices
+                    if (p.price_currency or "").lower() == "usd"
+                ),
+                None,
+            )
+        # Step 3 — last-resort first available price (single-currency
+        # products + legacy data).
+        if chosen is None:
+            chosen = product.prices[0]
+
+        # `amount_type`'s column is plain String, so SQLAlchemy returns a
         # raw str at runtime (not the ProductPriceAmountType enum). String
-        # comparison works either way; .value on a raw str raises AttributeError
-        # which was the live cart 500 ('str' object has no attribute 'value').
-        if str(price.amount_type) == "fixed":
-            return price.price_amount * quantity
+        # comparison works either way; .value on a raw str raises
+        # AttributeError which was the historical cart 500.
+        if str(chosen.amount_type) == "fixed":
+            return (
+                chosen.price_amount * quantity,
+                (chosen.price_currency or "").lower() or None,
+            )
 
-        return 0
+        return 0, (chosen.price_currency or "").lower() or None
 
     def _calculate_tax(self, subtotal: int) -> int:
         """Calculate estimated tax based on subtotal."""

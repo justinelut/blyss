@@ -398,6 +398,43 @@ class Organization(RateLimitGroupMixin, RecordModel):
     )
 
     #
+    # Storefront theme (plan §19) — three columns + a derived hash that
+    # acts as the SSR cache key. The columns are ALWAYS populated; the
+    # 2026-06-15-0800 migration applies the v1 defaults to every existing
+    # row so a fresh install renders identically to the pre-theme world.
+    #
+    # `theme_tokens` and `theme_modules` are validated against
+    # `polar.organization.theme_schemas` at the PATCH endpoints — Postgres
+    # only checks the layout enum (CHECK constraint).
+    #
+    theme_layout: Mapped[str] = mapped_column(
+        String(32),
+        nullable=False,
+        default="editorial",
+        server_default="editorial",
+    )
+    theme_tokens: Mapped[dict[str, Any]] = mapped_column(
+        JSONB,
+        nullable=False,
+        default=lambda: {
+            "accent": "burnt-orange",
+            "headline_font": "space-grotesk",
+            "display_style": "editorial",
+            "motion": "standard",
+        },
+    )
+    theme_modules: Mapped[list[dict[str, Any]]] = mapped_column(
+        JSONB,
+        nullable=False,
+        default=list,
+    )
+    theme_version_hash: Mapped[str | None] = mapped_column(
+        String(64),
+        nullable=True,
+        default=None,
+    )
+
+    #
     # Fields synced from GitHub
     #
 
@@ -553,3 +590,90 @@ class Organization(RateLimitGroupMixin, RecordModel):
             "reply_to_email_addr": self.email
             or settings.EMAIL_DEFAULT_REPLY_TO_EMAIL_ADDRESS,
         }
+
+
+# ---------------------------------------------------------------------------
+# Storefront theme version hash (plan §19.6.2)
+#
+# Recompute `theme_version_hash` whenever any of the three theme fields
+# changes. The hash is the SSR cache key for /creators/{slug} — when the
+# creator saves a theme change, the hash flips and the cache key changes,
+# so the next visitor gets a fresh render with no explicit invalidation.
+#
+# Implemented at the SQLAlchemy event layer (rather than at the service /
+# endpoint layer) so any future code path that mutates theme fields gets
+# the hash recomputed automatically — including direct admin updates from
+# the backoffice and bulk migrations.
+# ---------------------------------------------------------------------------
+
+
+def _compute_theme_version_hash(
+    theme_layout: str,
+    theme_tokens: dict[str, Any],
+    theme_modules: list[dict[str, Any]],
+) -> str:
+    """SHA-256 of the canonicalised theme triple.
+
+    Canonicalised = JSON with sorted keys + no whitespace, so two
+    semantically-identical theme configurations always produce the same
+    hash. Mirror of the `_initial_version_hash` in the migration so the
+    backfilled rows match the runtime computation.
+    """
+    import hashlib
+    import json
+
+    canonical = json.dumps(
+        {
+            "layout": theme_layout,
+            "tokens": theme_tokens,
+            "modules": theme_modules,
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+from sqlalchemy import event  # noqa: E402  (placed at end of module on purpose)
+
+
+@event.listens_for(Organization, "before_insert")
+def _organization_before_insert_set_theme_hash(
+    mapper: Any, connection: Any, target: Organization
+) -> None:
+    """Stamp the initial hash on insert so a freshly-created org never
+    has a NULL version hash. The migration backfills existing rows;
+    this covers everything created after the migration runs."""
+
+    target.theme_version_hash = _compute_theme_version_hash(
+        target.theme_layout or "editorial",
+        target.theme_tokens
+        or {
+            "accent": "burnt-orange",
+            "headline_font": "space-grotesk",
+            "display_style": "editorial",
+            "motion": "standard",
+        },
+        target.theme_modules or [],
+    )
+
+
+@event.listens_for(Organization, "before_update")
+def _organization_before_update_set_theme_hash(
+    mapper: Any, connection: Any, target: Organization
+) -> None:
+    """Recompute the hash on every save. Cheap (small JSON, fast hash);
+    we don't try to detect 'did the theme actually change?' because the
+    cost of recomputing is tiny vs the cost of a stale cache key."""
+
+    target.theme_version_hash = _compute_theme_version_hash(
+        target.theme_layout or "editorial",
+        target.theme_tokens
+        or {
+            "accent": "burnt-orange",
+            "headline_font": "space-grotesk",
+            "display_style": "editorial",
+            "motion": "standard",
+        },
+        target.theme_modules or [],
+    )

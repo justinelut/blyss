@@ -113,23 +113,27 @@ export const CartPage = () => {
 
   /**
    * Resolve the currency to use for a group's totals row from the
-   * group's own first item's price, NOT from a globally-shared
-   * variable. The previous implementation read the currency once from
-   * groups[0].items[0] and reused it for every group's subtotal/total
-   * — so a USD product on Creator A and a KES product on Creator B
-   * both rendered "US$" in their totals row even though Creator B's
-   * line item correctly read "KSh". Confirmed live on /ke/cart with
-   * a USD product (current-digital-design-studios) above a KES
-   * product (blyss-studio).
+   * server-set `group.currency` (resolved against the visitor's geo
+   * currency at the cart endpoint). Falls back to the first item's
+   * resolved currency, then to the first item's `product.prices[0]`
+   * for legacy responses, then KES — same defensive chain CartItemRow
+   * uses, so totals match the per-row symbols even if a stale cache
+   * returns a pre-refactor response shape.
    */
   const currencyForGroup = (group: (typeof groups)[number]): string => {
-    const first = group.items?.[0] as
+    const groupCurrency = (group as { currency?: string | null }).currency
+    if (groupCurrency) return groupCurrency.toUpperCase()
+    const firstItem = group.items?.[0] as
       | {
+          currency?: string | null
           product?: { prices?: ReadonlyArray<{ price_currency?: string }> }
         }
       | undefined
-    const code = first?.product?.prices?.[0]?.price_currency
-    return code ? code.toUpperCase() : 'KES'
+    const fallback =
+      firstItem?.currency ??
+      firstItem?.product?.prices?.[0]?.price_currency ??
+      'KES'
+    return fallback.toUpperCase()
   }
 
   return (
