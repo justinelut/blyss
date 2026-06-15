@@ -19,7 +19,7 @@
 
 import { schemas } from '@/lib/api'
 import { useEarningsSummary } from '@/hooks/queries/orders'
-import { FiArrowUpRight, FiCheck } from 'react-icons/fi'
+import { FiCheck } from 'react-icons/fi'
 
 interface BlyssEarningsCardProps {
   organization: schemas['Organization']
@@ -114,19 +114,9 @@ export const BlyssEarningsCard: React.FC<BlyssEarningsCardProps> = ({
             Paystack splits each sale at the moment of payment — you receive
             80% directly into your{' '}
             {payoutMethod === 'mpesa' ? 'M-Pesa wallet' : 'bank account'},
-            and Blyss keeps 20% as the marketplace fee. Settlement is T+2
-            (working days), so a Monday sale lands by Wednesday end-of-day.
-            No manual withdrawal needed.
+            and Blyss keeps 20% as the marketplace fee. Each settlement
+            shows below as Paystack confirms it.
           </p>
-          <a
-            href="https://dashboard.paystack.com/#/transactions"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 font-sans text-[14px] font-medium text-[var(--accent)] underline-offset-4 hover:underline"
-          >
-            Transaction history on Paystack
-            <FiArrowUpRight size={14} aria-hidden="true" />
-          </a>
         </div>
       </div>
     </div>

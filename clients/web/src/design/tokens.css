@@ -14,11 +14,11 @@
 
 :root {
   --background:        #FAFAF7;   /* warm off-white, paper not snow */
-  --surface:           #EFEDE7;   /* refined cream, slight warm-neutral cast */
+  --surface:           #F0EADC;   /* warm latte-paper, brown undertone (was #EFEDE7 — read cool/grey) */
   --surface-elevated:  #FFFFFF;   /* product cards, modals, dropdowns */
-  --surface-sunken:    #E5E3DD;   /* input bg, code blocks, hover */
-  --border:            #D9D5CB;   /* hairline, used sparingly */
-  --border-strong:     #BBB5A8;   /* focused inputs, active filter chips */
+  --surface-sunken:    #E6DDC9;   /* input bg, code blocks, hover (warmer than #E5E3DD) */
+  --border:            #D5CDB9;   /* hairline, warm sandstone (was #D9D5CB — too neutral) */
+  --border-strong:     #B7A98D;   /* focused inputs, active filter chips (warmer than #BBB5A8) */
   --text-primary:      #1A1A17;   /* warm near-black; never #000000 */
   --text-secondary:    #4A4842;   /* body */
   --text-muted:        #88857C;   /* metadata, captions, eyebrows */

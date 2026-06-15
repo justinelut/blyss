@@ -1,9 +1,12 @@
 # Paystack webhook event handlers
 import uuid
-from typing import cast
+from datetime import datetime
+from typing import Any, cast
 
 import structlog
 from dramatiq import Retry
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from polar.checkout.repository import CheckoutRepository
 from polar.checkout.service import checkout as checkout_service
@@ -18,6 +21,11 @@ from polar.integrations.paystack.service import (
 from polar.logging import Logger
 from polar.models.checkout import CheckoutStatus
 from polar.models.external_event import PaystackEvent
+from polar.models.organization import Organization
+from polar.models.paystack_settlement import (
+    PaystackSettlement,
+    PaystackSettlementStatus,
+)
 from polar.order.repository import OrderRepository
 from polar.order.service import order as order_service
 from polar.worker import AsyncSessionMaker, TaskPriority, actor, can_retry, enqueue_job
@@ -962,4 +970,282 @@ async def refund_processed(event_id: uuid.UUID) -> None:
                 order_id=str(order.id),
                 refunded_amount=new_refunded,
                 status=order.status,
+            )
+
+
+# ---------------------------------------------------------------------------
+# Settlement transfers — `transfer.success`, `transfer.failed`,
+# `transfer.reversed`. Per discussion (chat 2026-06-15): Paystack splits
+# every charge atomically at payment time into the creator's subaccount,
+# then settles the accumulated subaccount balance to the creator's bank /
+# M-Pesa per the subaccount's settlement schedule (T+1 to T+3). Paystack
+# emits `transfer.*` webhooks when each settlement transfer fires; before
+# this change Blyss ignored those events and the dashboard relied on a
+# computed `order_date + 2 working days` estimate. These actors persist
+# every event into `paystack_settlements` so the dashboard can show real
+# confirmation timestamps + amounts instead of an estimate.
+#
+# The reconciliation (event → organization) is best-effort: we read
+# `data.recipient.subaccount` (or `data.subaccount.subaccount_code`)
+# from the payload and look up the matching organization. Unmatched
+# events still get persisted with `organization_id=NULL` so a later
+# reconciliation pass can fix them.
+# ---------------------------------------------------------------------------
+
+
+def _extract_subaccount_code(data: dict[str, Any]) -> str | None:
+    """Pull the subaccount code out of a `transfer.*` event payload.
+
+    Paystack's payload shape varies between event versions, so we look
+    in multiple plausible spots. Returns the first non-empty match
+    (subaccount_code starts with `ACCT_` per Paystack's conventions),
+    else None.
+    """
+    candidates = [
+        ((data.get("recipient") or {}).get("subaccount") or {}).get(
+            "subaccount_code"
+        ),
+        ((data.get("recipient") or {}).get("subaccount") or {}).get("code"),
+        (data.get("subaccount") or {}).get("subaccount_code"),
+        (data.get("subaccount") or {}).get("code"),
+        data.get("subaccount_code"),
+    ]
+    for c in candidates:
+        if isinstance(c, str) and c.startswith("ACCT_"):
+            return c
+    return None
+
+
+def _extract_recipient_summary(
+    data: dict[str, Any],
+) -> tuple[str | None, str | None]:
+    """Pull a display name + last-4 of the recipient account.
+
+    `data.recipient.name` and `data.recipient.details.account_number`
+    are the canonical fields per Paystack docs. Falls back through a
+    few near-equivalents seen in the wild.
+    """
+    recipient = data.get("recipient") or {}
+    name = (
+        recipient.get("name")
+        or recipient.get("recipient_name")
+        or recipient.get("account_name")
+    )
+    account_number = (
+        (recipient.get("details") or {}).get("account_number")
+        or recipient.get("account_number")
+        or (recipient.get("details") or {}).get("authorization_code")
+    )
+    last4 = None
+    if isinstance(account_number, str) and len(account_number) >= 4:
+        last4 = account_number[-4:]
+    if isinstance(name, str) and name.strip():
+        return name.strip(), last4
+    return None, last4
+
+
+def _parse_settled_at(data: dict[str, Any]) -> datetime | None:
+    """Parse Paystack's settlement timestamp.
+
+    Paystack uses ISO-8601 strings on `transferred_at` for completed
+    transfers. Falls back to None when missing or malformed — the row
+    still records as success/failed without a timestamp.
+    """
+    raw = data.get("transferred_at") or data.get("paid_at") or data.get(
+        "createdAt"
+    )
+    if not isinstance(raw, str):
+        return None
+    try:
+        # Replace 'Z' with '+00:00' for fromisoformat compatibility on
+        # Python 3.11+. Newer payloads use the trailing-Z form.
+        return datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
+async def _persist_settlement_event(
+    *,
+    session: AsyncSession,
+    event_id: uuid.UUID,
+    event_data: dict[str, Any],
+    status: PaystackSettlementStatus,
+) -> None:
+    """Upsert a paystack_settlements row from a `transfer.*` event.
+
+    Idempotent on `paystack_transfer_id` — Paystack's webhook delivery
+    can retry, and external_event_service already dedupes at the
+    envelope level, but we double-down here to be safe. If the row
+    already exists, we update its status (e.g. `pending` → `success`).
+    """
+
+    transfer_id_raw = event_data.get("id")
+    if transfer_id_raw is None:
+        log.warning(
+            "paystack.webhook.transfer.missing_id",
+            event_id=event_id,
+        )
+        return
+
+    transfer_id = str(transfer_id_raw)
+    transfer_code = event_data.get("transfer_code")
+    if not isinstance(transfer_code, str):
+        transfer_code = None
+
+    subaccount_code = _extract_subaccount_code(event_data)
+    recipient_name, recipient_last4 = _extract_recipient_summary(event_data)
+    settled_at = _parse_settled_at(event_data)
+
+    amount = event_data.get("amount")
+    if not isinstance(amount, int) or amount <= 0:
+        log.warning(
+            "paystack.webhook.transfer.invalid_amount",
+            event_id=event_id,
+            amount=amount,
+        )
+        return
+
+    currency_raw = event_data.get("currency")
+    currency = (
+        currency_raw.lower()
+        if isinstance(currency_raw, str) and len(currency_raw) == 3
+        else "kes"
+    )
+
+    # Reconcile to an organization via subaccount_code.
+    organization_id: uuid.UUID | None = None
+    if subaccount_code:
+        result = await session.execute(
+            select(Organization).where(
+                Organization.subaccount_code == subaccount_code
+            )
+        )
+        organization = result.scalar_one_or_none()
+        if organization is not None:
+            organization_id = organization.id
+
+    # Upsert by transfer_id. If the row exists (re-delivered webhook,
+    # or a `transfer.success` arriving after `transfer.queued`), update
+    # the status + settled_at so the dashboard sees the latest state.
+    existing = await session.execute(
+        select(PaystackSettlement).where(
+            PaystackSettlement.paystack_transfer_id == transfer_id
+        )
+    )
+    row = existing.scalar_one_or_none()
+    if row is not None:
+        row.status = status
+        if settled_at is not None:
+            row.settled_at = settled_at
+        # Only fill in organization_id when not already set — we don't
+        # want to overwrite a hand-corrected reconciliation.
+        if row.organization_id is None and organization_id is not None:
+            row.organization_id = organization_id
+        if recipient_name and not row.recipient_name:
+            row.recipient_name = recipient_name
+        if recipient_last4 and not row.recipient_account_last4:
+            row.recipient_account_last4 = recipient_last4
+        # Always refresh raw_event so debug + future reconciliation
+        # has the latest payload.
+        row.raw_event = event_data
+    else:
+        row = PaystackSettlement(
+            paystack_transfer_id=transfer_id,
+            paystack_transfer_code=transfer_code,
+            paystack_subaccount_code=subaccount_code,
+            organization_id=organization_id,
+            amount=amount,
+            currency=currency,
+            settled_at=settled_at,
+            status=status,
+            recipient_name=recipient_name,
+            recipient_account_last4=recipient_last4,
+            raw_event=event_data,
+        )
+        session.add(row)
+
+    await session.flush()
+    log.info(
+        "paystack.webhook.transfer.persisted",
+        event_id=event_id,
+        transfer_id=transfer_id,
+        status=status,
+        organization_id=str(organization_id) if organization_id else None,
+        subaccount_code=subaccount_code,
+        amount=amount,
+        currency=currency,
+    )
+
+
+@actor(
+    actor_name="paystack.webhook.transfer.success",
+    priority=TaskPriority.MEDIUM,
+    max_retries=3,
+    min_backoff=1000,
+    max_backoff=60000,
+)
+async def transfer_success(event_id: uuid.UUID) -> None:
+    """Persist a successful Paystack settlement to the creator's bank/M-Pesa."""
+    async with AsyncSessionMaker() as session:
+        async with external_event_service.handle_paystack(
+            session, event_id
+        ) as event:
+            event_data = cast(PaystackEvent, event).paystack_data.get(
+                "data", {}
+            )
+            await _persist_settlement_event(
+                session=session,
+                event_id=event_id,
+                event_data=event_data,
+                status=PaystackSettlementStatus.success,
+            )
+
+
+@actor(
+    actor_name="paystack.webhook.transfer.failed",
+    priority=TaskPriority.MEDIUM,
+    max_retries=3,
+    min_backoff=1000,
+    max_backoff=60000,
+)
+async def transfer_failed(event_id: uuid.UUID) -> None:
+    """Persist a failed Paystack settlement so creators see the issue
+    rather than a perpetually 'pending' row."""
+    async with AsyncSessionMaker() as session:
+        async with external_event_service.handle_paystack(
+            session, event_id
+        ) as event:
+            event_data = cast(PaystackEvent, event).paystack_data.get(
+                "data", {}
+            )
+            await _persist_settlement_event(
+                session=session,
+                event_id=event_id,
+                event_data=event_data,
+                status=PaystackSettlementStatus.failed,
+            )
+
+
+@actor(
+    actor_name="paystack.webhook.transfer.reversed",
+    priority=TaskPriority.MEDIUM,
+    max_retries=3,
+    min_backoff=1000,
+    max_backoff=60000,
+)
+async def transfer_reversed(event_id: uuid.UUID) -> None:
+    """Persist a reversed Paystack settlement (rare — Paystack rolled back
+    a transfer that previously succeeded)."""
+    async with AsyncSessionMaker() as session:
+        async with external_event_service.handle_paystack(
+            session, event_id
+        ) as event:
+            event_data = cast(PaystackEvent, event).paystack_data.get(
+                "data", {}
+            )
+            await _persist_settlement_event(
+                session=session,
+                event_id=event_id,
+                event_data=event_data,
+                status=PaystackSettlementStatus.reversed,
             )
