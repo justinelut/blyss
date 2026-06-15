@@ -286,13 +286,13 @@ export default function ClientPage({
     <PayoutProvider>
       <div className="flex flex-col gap-y-8">
         <AccountBanner organization={organization} />
-        {/* Blyss earnings card — replaces the Polar/Stripe AccountBalance
-            for creators using Paystack subaccounts. Paystack auto-settles
-            T+2; there's nothing to "withdraw" manually. */}
-        {isPaystackOrg && <BlyssEarningsCard organization={organization} />}
-        {account && !isPaystackOrg && (
-          <AccountBalance account={account} organization={organization} />
-        )}
+        {/* Blyss earnings card — Blyss is Paystack-only, so we always
+            render the BlyssEarningsCard and never fall back to the
+            legacy Polar/Stripe AccountBalance + Withdraw widget.
+            Paystack auto-settles T+2; there's nothing to manually
+            withdraw. The card itself handles the "set up payouts"
+            empty state when subaccount_status is not yet active. */}
+        <BlyssEarningsCard organization={organization} />
         {isPaystackOrg ? (
           <BlyssPayoutLedger
             organization={organization}

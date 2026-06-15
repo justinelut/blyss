@@ -98,19 +98,11 @@ export default function ClientPage({
   return (
     <div className="flex flex-col gap-y-8">
       <AccountBanner organization={organization} />
-      {/* Blyss earnings card — shown to creators with an active
-          Paystack subaccount. Replaces the legacy AccountBalance +
-          Withdraw flow which is Polar/Stripe-only. */}
-      {isPaystackOrg && <BlyssEarningsCard organization={organization} />}
-      {account && !isPaystackOrg && (
-        <AccountBalance
-          account={account}
-          organization={organization}
-          onWithdrawSuccess={() =>
-            router.push(`/dashboard/${organization.slug}/finance/payouts`)
-          }
-        />
-      )}
+      {/* Blyss is Paystack-only — always render BlyssEarningsCard;
+          never fall back to the legacy AccountBalance + Withdraw
+          widget. Paystack auto-settles T+2 with no manual withdrawal
+          step. The card handles the no-subaccount empty state. */}
+      <BlyssEarningsCard organization={organization} />
       {isPaystackOrg ? (
         <BlyssIncomeLedger
           organization={organization}
