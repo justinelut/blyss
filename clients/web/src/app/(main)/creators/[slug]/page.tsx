@@ -333,6 +333,11 @@ export default async function Page({ params }: CreatorPageProps) {
               .theme_layout as
               | import('@/types/storefront-theme').StorefrontLayoutSlug
               | undefined) ?? null,
+          themeModules:
+            ((creator as unknown as { theme_modules?: unknown })
+              .theme_modules as
+              | import('@/types/storefront-theme').EnabledModule[]
+              | undefined) ?? null,
         }}
         products={products}
         reviewSummary={reviewSummary}

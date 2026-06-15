@@ -31,9 +31,11 @@ import { ReviewsBlock, type ReviewSummary, type ReviewExcerpt } from './ReviewsB
 import { useCurrencyControls } from '@/components/Marketplace/CurrencyProvider'
 import { StorefrontThemeProvider } from '@/components/Storefront/StorefrontThemeProvider'
 import type {
+  EnabledModule,
   StorefrontLayoutSlug,
   StorefrontTokens,
 } from '@/types/storefront-theme'
+import { StorefrontModules } from './modules'
 
 export interface CreatorStorefrontPageProps {
   /** Creator core fields, sourced from the public CreatorStorefrontSchema. */
@@ -56,6 +58,9 @@ export interface CreatorStorefrontPageProps {
     /** Storefront layout slug (plan §19.4). Falls back to 'editorial'
      *  when omitted or unknown. */
     themeLayout?: StorefrontLayoutSlug | null
+    /** Enabled niche modules (plan §19.5). Empty list / null renders
+     *  no modules. */
+    themeModules?: EnabledModule[] | null
   }
   /** All non-archived products by this creator, returned by the storefront
    *  endpoint. We split on `is_recurring` to derive subscription tiers. */
@@ -229,6 +234,18 @@ export function CreatorStorefrontPage({
           />
         )}
       </div>
+
+      {/* Niche modules — render after the active panel + before the
+          reviews block, scoped to the work tab so they don't compete
+          for attention with subscriptions or about. Each module is
+          a small section that can no-op if its settings aren't
+          configured (plan §19.5). */}
+      {tab === 'work' && (
+        <StorefrontModules
+          modules={creator.themeModules ?? []}
+          products={products}
+        />
+      )}
 
       {/* Reviews block — always rendered below the active panel so it appears
           regardless of which tab is open; the storefront's social proof is
