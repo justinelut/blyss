@@ -15,6 +15,7 @@
 
 import Link from 'next/link'
 
+import { OptimizedImage } from '@/components/Image/OptimizedImage'
 import { Eyebrow, typography } from '@/design'
 import { schemas } from '@/lib/api'
 import { cn } from '@/lib/utils'
@@ -29,6 +30,7 @@ const StudioHero: React.FC<StorefrontHeroProps> = ({
   name,
   slug,
   bio,
+  bannerUrl,
   city,
   hasSubscriptions,
   tipEnabled,
@@ -36,7 +38,22 @@ const StudioHero: React.FC<StorefrontHeroProps> = ({
   onTipClick,
 }) => (
   <header className="border-b border-[var(--border)] bg-[var(--background)]">
-    <div className="mx-auto max-w-[820px] px-6 py-14 md:px-12 md:py-20">
+    {/* Banner — narrow 6:1 strip. Studio is text-led but a banner
+        gives the page a moment of imagery before the index of
+        work below. */}
+    {bannerUrl && (
+      <div className="relative aspect-[6/1] w-full overflow-hidden bg-[var(--surface-sunken)]">
+        <OptimizedImage
+          src={bannerUrl}
+          alt={`${name} cover`}
+          fill
+          priority
+          className="object-cover"
+          sizes="100vw"
+        />
+      </div>
+    )}
+    <div className="mx-auto max-w-[820px] px-6 py-12 md:px-12 md:py-16">
       <Eyebrow>{city ? `${city} · ` : ''}@{slug}</Eyebrow>
       <h1
         className={cn(

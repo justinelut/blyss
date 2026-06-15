@@ -31,6 +31,7 @@ import * as React from 'react'
 import Avatar from '@/components/atoms/Avatar'
 import { toast } from '@/components/Toast/use-toast'
 import revalidate from '@/app/actions'
+import { DashboardBody } from '@/components/Layout/DashboardLayout'
 import { Skeleton, Eyebrow, typography } from '@/design'
 import { STOREFRONT_PALETTE } from '@/design/storefront-palette'
 import {
@@ -427,7 +428,12 @@ export const StorefrontThemeEditor: React.FC<Props> = ({ organization }) => {
     : publicHref
 
   return (
-    <div className="flex flex-col gap-8 p-4 md:p-8">
+    <DashboardBody
+      title={null}
+      wide
+      wrapperClassName="!pt-4 md:!pt-8"
+    >
+      <div className="flex flex-col gap-8 px-1 pb-12 md:px-2">
       {/* Header */}
       <header className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
@@ -1013,7 +1019,8 @@ export const StorefrontThemeEditor: React.FC<Props> = ({ organization }) => {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </DashboardBody>
   )
 }
 

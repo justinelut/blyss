@@ -16,7 +16,13 @@ const _getOrganizationBySlug = async (
   }
 
   if (bypassCache) {
-    requestOptions.cache = 'no-cache'
+    // 'no-store' fully bypasses Next.js's data cache; 'no-cache' would
+    // still let the response be cached after a freshness check, which
+    // for the storefront-theme editor's post-save reload means a stale
+    // org row could still come back. The dashboard editor calls this
+    // path with bypassCache=true after a PATCH and needs the fresh
+    // theme tokens immediately.
+    requestOptions.cache = 'no-store'
   } else {
     requestOptions.next = {
       tags: [`organizations:${slug}`],

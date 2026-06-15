@@ -33,6 +33,7 @@ const CatalogHero: React.FC<StorefrontHeroProps> = ({
   slug,
   bio,
   avatarUrl,
+  bannerUrl,
   city,
   hasSubscriptions,
   tipEnabled,
@@ -40,6 +41,20 @@ const CatalogHero: React.FC<StorefrontHeroProps> = ({
   onTipClick,
 }) => (
   <header className="border-b border-[var(--border)] bg-[var(--surface)]">
+    {/* Banner — thin (5:1 aspect) so the catalog rows below
+        stay above the fold on most viewports. */}
+    {bannerUrl && (
+      <div className="relative aspect-[5/1] w-full overflow-hidden bg-[var(--surface-sunken)]">
+        <OptimizedImage
+          src={bannerUrl}
+          alt={`${name} cover`}
+          fill
+          priority
+          className="object-cover"
+          sizes="100vw"
+        />
+      </div>
+    )}
     <div className="mx-auto flex max-w-[1280px] flex-col gap-4 px-6 py-6 md:flex-row md:items-center md:justify-between md:px-12">
       <div className="flex items-center gap-3">
         <Avatar avatar_url={avatarUrl ?? null} name={name} className="h-12 w-12" />

@@ -5,9 +5,10 @@
  * illustrators, fashion designers. Per plan §19.4.
  *
  * Differences from editorial:
- *   - Compact identity row (avatar + name + bio + CTAs in a single
- *     horizontal band instead of a full-bleed 16:9 banner). Photo
- *     reels are the focus, not the creator's portrait.
+ *   - Cover banner up top (3:1, shorter than editorial's 16:9)
+ *     with a compact identity row beneath it. Photo reels are the
+ *     focus, but the banner gives the creator a moment to breathe
+ *     before the grid.
  *   - 2-column product grid on desktop (was 4). Each product is
  *     larger so the imagery dominates. Mobile stays 1-column.
  *   - Tighter type rhythm — the creator's identity gets out of the
@@ -17,6 +18,7 @@
 import Link from 'next/link'
 
 import Avatar from '@/components/atoms/Avatar'
+import { OptimizedImage } from '@/components/Image/OptimizedImage'
 import { MarketplaceProductCard } from '@/components/Marketplace/MarketplaceProductCard'
 import { Eyebrow, typography } from '@/design'
 import { schemas } from '@/lib/api'
@@ -33,6 +35,7 @@ const GalleryHero: React.FC<StorefrontHeroProps> = ({
   slug,
   bio,
   avatarUrl,
+  bannerUrl,
   city,
   hasSubscriptions,
   tipEnabled,
@@ -40,7 +43,20 @@ const GalleryHero: React.FC<StorefrontHeroProps> = ({
   onTipClick,
 }) => (
   <header className="border-b border-[var(--border)] bg-[var(--background)]">
-    <div className="mx-auto flex max-w-[1280px] flex-col gap-6 px-6 py-10 md:flex-row md:items-center md:justify-between md:px-16 md:py-14">
+    {/* Banner — shorter than editorial, lets the grid below breathe */}
+    {bannerUrl && (
+      <div className="relative aspect-[3/1] w-full overflow-hidden bg-[var(--surface-sunken)]">
+        <OptimizedImage
+          src={bannerUrl}
+          alt={`${name} cover`}
+          fill
+          priority
+          className="object-cover"
+          sizes="100vw"
+        />
+      </div>
+    )}
+    <div className="mx-auto flex max-w-[1280px] flex-col gap-6 px-6 py-8 md:flex-row md:items-center md:justify-between md:px-16 md:py-10">
       <div className="flex items-center gap-4">
         <Avatar avatar_url={avatarUrl ?? null} name={name} className="h-16 w-16" />
         <div className="flex flex-col gap-1">

@@ -17,6 +17,7 @@
 import Link from 'next/link'
 
 import Avatar from '@/components/atoms/Avatar'
+import { OptimizedImage } from '@/components/Image/OptimizedImage'
 import { MarketplaceProductCard } from '@/components/Marketplace/MarketplaceProductCard'
 import { Eyebrow, typography } from '@/design'
 import { schemas } from '@/lib/api'
@@ -33,6 +34,7 @@ const PortfolioHero: React.FC<StorefrontHeroProps> = ({
   slug,
   bio,
   avatarUrl,
+  bannerUrl,
   city,
   hasSubscriptions,
   tipEnabled,
@@ -41,7 +43,22 @@ const PortfolioHero: React.FC<StorefrontHeroProps> = ({
   onTipClick,
 }) => (
   <header className="border-b border-[var(--border)] bg-[var(--background)]">
-    <div className="mx-auto max-w-[1280px] px-6 py-12 md:px-16 md:py-20">
+    {/* Banner — 16:5 panorama. Wider than gallery, narrower than
+        editorial; functions as a 'practice' panorama beneath the
+        resume header. */}
+    {bannerUrl && (
+      <div className="relative aspect-[16/5] w-full overflow-hidden bg-[var(--surface-sunken)]">
+        <OptimizedImage
+          src={bannerUrl}
+          alt={`${name} cover`}
+          fill
+          priority
+          className="object-cover"
+          sizes="100vw"
+        />
+      </div>
+    )}
+    <div className="mx-auto max-w-[1280px] px-6 py-10 md:px-16 md:py-14">
       <Eyebrow>{city ? `${city} · ` : ''}Selected work</Eyebrow>
       <div className="mt-4 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
         <div className="flex items-end gap-5">
