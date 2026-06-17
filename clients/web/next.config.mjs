@@ -38,10 +38,20 @@ const baseCSP = `
     base-uri 'self';
     ${ENVIRONMENT !== 'development' ? 'upgrade-insecure-requests;' : ''}
 `
+
+// Frame-ancestors allow-list — applied site-wide so studio.blyss.co.ke
+// can embed any blyss.co.ke page in an iframe. `*.vercel.app` covers
+// Vercel preview deploys during testing. `'self'` keeps the dashboard
+// editor's existing same-origin iframe (storefront preview drawer)
+// working. OAuth2 stays at 'none' separately for anti-clickjacking
+// on the auth flow.
+const ALLOWED_FRAME_ANCESTORS =
+  "'self' https://studio.blyss.co.ke https://*.vercel.app"
+
 const nonEmbeddedCSP = `
   ${baseCSP}
   form-action 'self' ${process.env.NEXT_PUBLIC_API_URL} polar:;
-  frame-ancestors 'none';
+  frame-ancestors ${ALLOWED_FRAME_ANCESTORS};
 `
 const embeddedCSP = `
   ${baseCSP}
@@ -51,21 +61,23 @@ const embeddedCSP = `
 `
 // Don't add form-action to the OAuth2 authorize page, as it blocks the OAuth2 redirection
 // 10-years old debate about whether to block redirects with form-action or not: https://github.com/w3c/webappsec-csp/issues/8
+//
+// OAuth2 keeps frame-ancestors 'none' even after the studio embed
+// allow-list — auth screens MUST NOT be embeddable to prevent
+// click-jacked credential entry.
 const oauth2CSP = `
   ${baseCSP}
   frame-ancestors 'none';
 `
 
-// /creators/{slug} pages must be embeddable from the same-origin
-// dashboard editor's preview drawer (plan §19.8). Same-origin only —
-// no cross-site framing, so clickjacking from third-party sites is
-// still blocked. The page-level X-Frame-Options is dropped on this
-// path because DENY would otherwise override frame-ancestors in
-// older browsers.
+// /creators/{slug} pages — same allow-list as the rest of the site so
+// studio.blyss.co.ke can preview them. Previously restricted to 'self'
+// for the dashboard's own preview drawer; widening doesn't lose that
+// because 'self' is still in the list.
 const creatorStorefrontCSP = `
   ${baseCSP}
   form-action 'self' ${process.env.NEXT_PUBLIC_API_URL} polar:;
-  frame-ancestors 'self';
+  frame-ancestors ${ALLOWED_FRAME_ANCESTORS};
 `
 
 // We rewrite Mintlify docs to polar.sh/docs, so we need a specific CSP for them
@@ -81,6 +93,7 @@ const docsCSP = `
   connect-src 'self' *.mintlify.dev *.mintlify.com d1ctpt7j8wusba.cloudfront.net mintcdn.com *.mintcdn.com
   api.mintlifytrieve.com www.googletagmanager.com cdn.segment.com plausible.io us.posthog.com browser.sentry-cdn.com;
   frame-src 'self' *.mintlify.dev https://polar-public-assets.s3.us-east-2.amazonaws.com;
+  frame-ancestors ${ALLOWED_FRAME_ANCESTORS};
 `
 
 /** @type {import('next').NextConfig} */
@@ -369,12 +382,17 @@ const nextConfig = {
       {
         key: 'Permissions-Policy',
         value:
-          'payment=(), publickey-credentials-get=(), camera=(), microphone=(), geolocation=()',
+          'payment=(), publickey-credentials-get=(), camera=(),' +
+          ' microphone=(), geolocation=()',
       },
-      {
-        key: 'X-Frame-Options',
-        value: 'DENY',
-      },
+      // X-Frame-Options is intentionally NOT set here. The legacy
+      // header only supports DENY/SAMEORIGIN (no allow-list), and
+      // older Chrome/Safari honor it AHEAD of CSP. With the new
+      // ALLOWED_FRAME_ANCESTORS list (which includes
+      // studio.blyss.co.ke + Vercel previews + same-origin), CSP
+      // alone is the right enforcement surface. OAuth2 routes still
+      // set X-Frame-Options: DENY explicitly for anti-clickjacking
+      // on the auth screens.
     ]
 
     // Add X-Robots-Tag header for sandbox environment
@@ -387,72 +405,16 @@ const nextConfig = {
 
     return [
       {
-        // Catch-all for non-creator, non-checkout, non-oauth2, non-docs
-        // routes. The negative lookahead ALSO excludes country-prefixed
-        // creator paths (e.g. `/ke/creators/foo`, `/za/creators/foo`)
-        // because Blyss's middleware 308-redirects every `/creators/*`
-        // to `/{cc}/creators/*` for SEO. Without this exclusion the
-        // post-redirect URL falls into this catch-all and gets
-        // `frame-ancestors 'none'` + `X-Frame-Options: DENY`, blocking
-        // the dashboard's theme editor preview iframe.
-        source: '/((?!checkout|oauth2|docs|creators|[a-z]{2}/creators).*)',
+        // Catch-all for everything except checkout, oauth2, docs.
+        // The non-embedded CSP now includes studio.blyss.co.ke +
+        // *.vercel.app in frame-ancestors, AND we no longer set
+        // X-Frame-Options: DENY here, so creator pages and
+        // country-prefixed creator pages work without a separate
+        // entry — the previous bespoke /creators/:path* and
+        // /:country([a-z]{2})/creators/:path* rules collapsed into
+        // this catch-all once both became identical.
+        source: '/((?!checkout|oauth2|docs).*)',
         headers: baseHeaders,
-      },
-      {
-        // Creator storefronts must allow same-origin framing so the
-        // dashboard's theme editor preview drawer can embed them.
-        // X-Frame-Options is intentionally OMITTED here — frame-ancestors
-        // 'self' on the CSP is the modern equivalent and DENY would
-        // override it in legacy browsers.
-        source: '/creators/:path*',
-        headers: [
-          {
-            key: 'Content-Security-Policy',
-            value: creatorStorefrontCSP.replace(/\n/g, ''),
-          },
-          {
-            key: 'Permissions-Policy',
-            value:
-              'payment=(), publickey-credentials-get=(), camera=(), microphone=(), geolocation=()',
-          },
-          ...(ENVIRONMENT === 'sandbox'
-            ? [
-                {
-                  key: 'X-Robots-Tag',
-                  value:
-                    'noindex, nofollow, noarchive, nosnippet, noimageindex',
-                },
-              ]
-            : []),
-        ],
-      },
-      {
-        // Same headers but for the country-prefixed creator URL the
-        // marketplace middleware redirects every visitor to (e.g.
-        // `/ke/creators/foo`, `/za/creators/foo`). Without this entry
-        // the redirected path inherited the catch-all's DENY headers
-        // and blocked the editor's preview iframe.
-        source: '/:country([a-z]{2})/creators/:path*',
-        headers: [
-          {
-            key: 'Content-Security-Policy',
-            value: creatorStorefrontCSP.replace(/\n/g, ''),
-          },
-          {
-            key: 'Permissions-Policy',
-            value:
-              'payment=(), publickey-credentials-get=(), camera=(), microphone=(), geolocation=()',
-          },
-          ...(ENVIRONMENT === 'sandbox'
-            ? [
-                {
-                  key: 'X-Robots-Tag',
-                  value:
-                    'noindex, nofollow, noarchive, nosnippet, noimageindex',
-                },
-              ]
-            : []),
-        ],
       },
       {
         source: '/marketplace',
@@ -525,10 +487,10 @@ const nextConfig = {
             value:
               'payment=(), publickey-credentials-get=(), camera=(), microphone=(), geolocation=()',
           },
-          {
-            key: 'X-Frame-Options',
-            value: 'DENY',
-          },
+          // X-Frame-Options dropped — `frame-ancestors` in docsCSP
+          // (now scoped to ALLOWED_FRAME_ANCESTORS) is the modern
+          // equivalent and DENY would override it in legacy browsers,
+          // blocking studio.blyss.co.ke from previewing docs.
           ...(ENVIRONMENT === 'sandbox'
             ? [
                 {
