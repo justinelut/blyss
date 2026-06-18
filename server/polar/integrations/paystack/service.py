@@ -124,6 +124,8 @@ class PaystackService:
         subaccount: str | None = None,
         channels: list[str] | None = None,
         metadata: dict[str, Any] | None = None,
+        transaction_charge: int | None = None,
+        bearer: str | None = None,
     ) -> dict[str, Any]:
         """
         Initialize a payment transaction.
@@ -140,6 +142,16 @@ class PaystackService:
                 (e.g. ["card", "mobile_money"]). When None, Paystack shows
                 every channel enabled on the merchant account.
             metadata: Optional transaction metadata
+            transaction_charge: Override the platform's per-transaction
+                cut, in kobo. When set (typically to 0), this OVERRIDES
+                the subaccount's `percentage_charge` for this transaction
+                only. Used by donation/tip flows where Blyss takes 0%
+                and the creator keeps everything (less Paystack's fee).
+            bearer: Who pays Paystack's processing fee. "account" =
+                Blyss main account, "subaccount" = the creator's
+                subaccount. Defaults to Paystack's account behaviour
+                (main pays). Donation/tip flows pass "subaccount" so
+                Blyss doesn't absorb the fee on a 0%-cut transaction.
 
         Returns:
             dict containing authorization_url and reference
@@ -164,6 +176,17 @@ class PaystackService:
             payload["channels"] = channels
         if metadata:
             payload["metadata"] = metadata
+        if transaction_charge is not None:
+            # `transaction_charge` is the kobo amount the main account
+            # keeps, expressed as an absolute value (not a %). Paystack
+            # only honours it when `subaccount` is set; without a
+            # subaccount the full amount lands on the main account
+            # regardless. We always send it as int kobo.
+            payload["transaction_charge"] = int(transaction_charge)
+        if bearer is not None:
+            # Paystack accepts "account" | "subaccount". We pass it
+            # through unchanged; validation lives at the call site.
+            payload["bearer"] = bearer
 
         # Log the API call with sanitized parameters (no sensitive data)
         log.info(
@@ -174,6 +197,8 @@ class PaystackService:
             reference=reference,
             subaccount=subaccount,
             has_metadata=metadata is not None,
+            transaction_charge=transaction_charge,
+            bearer=bearer,
         )
 
         try:

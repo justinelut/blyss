@@ -99,10 +99,24 @@ class DonationService:
             currency=currency,
             reference=payment_reference,
             subaccount=organization.subaccount_code,
+            # Donations / tips are 100% to the creator, NOT the 80/20
+            # split that product sales use. Blyss keeps no portion of
+            # a tip — the creator absorbs Paystack's processing fee
+            # from their share.
+            #
+            # transaction_charge=0 → Paystack puts ZERO of the principal
+            #   into the Blyss main account. The full amount lands in
+            #   the creator's subaccount.
+            # bearer="subaccount" → Paystack's processing fee comes out
+            #   of the creator's share, not Blyss's account. Without
+            #   this, Blyss would absorb the fee on a 0%-cut transaction.
+            transaction_charge=0,
+            bearer="subaccount",
             metadata={
                 "donation_id": str(donation.id),
                 "organization_id": str(organization_id),
                 "donor_name": donor_name,
+                "is_donation": True,
             },
         )
 
@@ -223,11 +237,22 @@ class DonationService:
                 "donation_id": str(donation.id),
                 "organization_id": str(organization.id),
                 "donor_name": donor_name,
+                "is_donation": True,
             },
         }
-        # Split to the creator subaccount when configured; else Blyss main.
+        # Donation split policy (matches the hosted-init path above):
+        #   * Send the full amount to the creator's subaccount —
+        #     Blyss keeps NO portion of a tip.
+        #   * transaction_charge = 0 overrides the subaccount's
+        #     percentage_charge (which is set to 20% for product
+        #     sales) so the principal stays whole.
+        #   * bearer = "subaccount" makes Paystack deduct its
+        #     processing fee from the creator's share, not from
+        #     Blyss's main account.
         if organization.subaccount_code:
             payload["subaccount"] = organization.subaccount_code
+            payload["transaction_charge"] = 0
+            payload["bearer"] = "subaccount"
 
         _apply_channel_payload(payload, charge)
 
