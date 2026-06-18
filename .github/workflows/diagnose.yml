@@ -190,19 +190,34 @@ jobs:
             echo "-- API: /v1/donation/* requests (last 24h) --"
             sudo kubectl -n $NS logs deployment/blyss-api --tail=8000 2>&1 | grep -E "/v1/donation/" | tail -20 || echo "(no donation API hits)"
             echo "-- email_logs rows for donations (last 24h) --"
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select id, to_email, subject, status, created_at from email_logs where created_at > now() - interval '24 hours' order by created_at desc limit 20;\"" 2>&1 | head -25
-            echo "-- email_logs failures only (status != 'sent', last 7d) --"
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select id, to_email, subject, status, error_message, created_at from email_logs where status != 'sent' and created_at > now() - interval '7 days' order by created_at desc limit 15;\"" 2>&1 | head -20
+            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select id, to_email_addr, subject, status, created_at from email_logs where created_at > now() - interval '24 hours' order by created_at desc limit 20;\"" 2>&1 | head -25
+            echo "-- email_logs failures only (status='failed', last 7d) --"
+            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select id, to_email_addr, subject, status, error, created_at from email_logs where status = 'failed' and created_at > now() - interval '7 days' order by created_at desc limit 15;\"" 2>&1 | head -20
             echo "-- ANY ActorNotFound errors in worker (post-fix probe) --"
             sudo kubectl -n $NS logs deployment/blyss-worker --tail=8000 2>&1 | grep -E "ActorNotFound" | tail -10 || echo "(no ActorNotFound — registration fix is live)"
-            echo "-- worker actors registered probe (live introspection) --"
-            sudo kubectl -n $NS exec deployment/blyss-worker -- python3 -c "
+            echo "-- worker actors registered probe (live introspection from worker venv) --"
+            sudo kubectl -n $NS exec deployment/blyss-worker -- sh -c "cd /app/server && python -c \"
             import polar.tasks
             import dramatiq
             broker = dramatiq.get_broker()
             for n in ['donation.notify','donation.send_confirmation','donation.send_receipt']:
                 print(f'  {n}:', 'REGISTERED' if n in broker.actors else 'MISSING')
-            " 2>&1 | tail -10 || echo "(introspection failed)"
+            \"" 2>&1 | tail -10 || echo "(introspection failed)"
+            echo "-- REPLAY: re-enqueue donation.notify for the stuck tip --"
+            echo "   donation_id=98f58647-907e-4f03-9383-2cc2f663f724 (KSh 50, current-digital-design-studios)"
+            sudo kubectl -n $NS exec deployment/blyss-api -- sh -c "cd /app/server && python -c \"
+            import polar.tasks
+            import dramatiq, uuid
+            broker = dramatiq.get_broker()
+            actor = broker.actors.get('donation.notify')
+            print('  actor present:', actor is not None)
+            if actor:
+                msg = actor.send(uuid.UUID('98f58647-907e-4f03-9383-2cc2f663f724'))
+                print('  enqueued message_id:', msg.message_id)
+            \"" 2>&1 | tail -5 || echo "(replay failed)"
+            echo "-- worker logs RIGHT AFTER replay (10s window) --"
+            sleep 10
+            sudo kubectl -n $NS logs deployment/blyss-worker --since=15s 2>&1 | tail -40
 
             echo
             echo "-- worker PREVIOUS container exit logs (if crashed) --"
