@@ -1,11 +1,13 @@
 from polar.auth import tasks as auth
 from polar.benefit import tasks as benefit
 from polar.billing_entry import tasks as billing_entry
+from polar.cart import tasks as cart
 from polar.checkout import tasks as checkout
 from polar.customer import tasks as customer
 from polar.customer_meter import tasks as customer_meter
 from polar.customer_seat import tasks as customer_seat
 from polar.customer_session import tasks as customer_session
+from polar.donation import tasks as donation
 from polar.email import tasks as email
 from polar.email_update import tasks as email_update
 from polar.event import tasks as event
@@ -16,6 +18,7 @@ from polar.integrations.loops import tasks as loops
 from polar.integrations.paystack import tasks as paystack
 from polar.integrations.stripe import tasks as stripe
 from polar.meter import tasks as meter
+from polar.newsletter import tasks as newsletter
 from polar.notifications import tasks as notifications
 from polar.observability.slo_report import tasks as slo_report
 from polar.order import tasks as order
@@ -34,12 +37,14 @@ __all__ = [
     "auth",
     "benefit",
     "billing_entry",
+    "cart",
     "chargeback_stop",
     "checkout",
     "customer",
     "customer_meter",
     "customer_seat",
     "customer_session",
+    "donation",
     "email",
     "email_update",
     "event",
@@ -48,6 +53,7 @@ __all__ = [
     "loops",
     "paystack",
     "meter",
+    "newsletter",
     "notifications",
     "order",
     "organization",
