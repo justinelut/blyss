@@ -177,6 +177,32 @@ jobs:
             sudo kubectl -n $NS exec $POD -- sh -c 'echo "  POLAR_RESEND_API_KEY set: $([ -n \"$POLAR_RESEND_API_KEY\" ] && echo yes || echo no) (len=${#POLAR_RESEND_API_KEY})"; echo "  POLAR_LOOPS_API_KEY set: $([ -n \"$POLAR_LOOPS_API_KEY\" ] && echo yes || echo no) (len=${#POLAR_LOOPS_API_KEY})"; echo "  POLAR_PLAIN_TOKEN: $([ -n \"$POLAR_PLAIN_TOKEN\" ] && echo set || echo unset) (len=${#POLAR_PLAIN_TOKEN})"; echo "  POLAR_AI_PROVIDER=$POLAR_AI_PROVIDER"; echo "  POLAR_GOOGLE_AI_API_KEY set: $([ -n \"$POLAR_GOOGLE_AI_API_KEY\" ] && echo yes || echo no) (len=${#POLAR_GOOGLE_AI_API_KEY})"' 2>&1 | head -10
             echo "-- worker logs (last 30 lines) --"
             sudo kubectl -n $NS logs deployment/blyss-worker --tail=30 2>&1 | tail -20
+            echo ""
+            echo "═══════════════════════════════════════"
+            echo " DONATION / TIP EMAIL PROBE"
+            echo "═══════════════════════════════════════"
+            echo "-- ALL donations (last 7 days) --"
+            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select id, organization_id, amount, currency, payment_status, donor_email, created_at from donations order by created_at desc limit 10;\"" 2>&1 | head -20
+            echo "-- worker: donation actor activity (last 24h) --"
+            sudo kubectl -n $NS logs deployment/blyss-worker --tail=8000 2>&1 | grep -E "donation\.notify|donation\.send_confirmation|donation\.send_receipt|donation\.recorded|ActorNotFound.*donation" | tail -30 || echo "(no donation worker activity)"
+            echo "-- worker: paystack→donation chain --"
+            sudo kubectl -n $NS logs deployment/blyss-worker --tail=8000 2>&1 | grep -E "paystack\.webhook\.donation|donation_id|donation\.confirmation|donation\.receipt" | tail -30 || echo "(no donation chain logs)"
+            echo "-- API: /v1/donation/* requests (last 24h) --"
+            sudo kubectl -n $NS logs deployment/blyss-api --tail=8000 2>&1 | grep -E "/v1/donation/" | tail -20 || echo "(no donation API hits)"
+            echo "-- email_logs rows for donations (last 24h) --"
+            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select id, to_email, subject, status, created_at from email_logs where created_at > now() - interval '24 hours' order by created_at desc limit 20;\"" 2>&1 | head -25
+            echo "-- email_logs failures only (status != 'sent', last 7d) --"
+            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select id, to_email, subject, status, error_message, created_at from email_logs where status != 'sent' and created_at > now() - interval '7 days' order by created_at desc limit 15;\"" 2>&1 | head -20
+            echo "-- ANY ActorNotFound errors in worker (post-fix probe) --"
+            sudo kubectl -n $NS logs deployment/blyss-worker --tail=8000 2>&1 | grep -E "ActorNotFound" | tail -10 || echo "(no ActorNotFound — registration fix is live)"
+            echo "-- worker actors registered probe (live introspection) --"
+            sudo kubectl -n $NS exec deployment/blyss-worker -- python3 -c "
+            import polar.tasks
+            import dramatiq
+            broker = dramatiq.get_broker()
+            for n in ['donation.notify','donation.send_confirmation','donation.send_receipt']:
+                print(f'  {n}:', 'REGISTERED' if n in broker.actors else 'MISSING')
+            " 2>&1 | tail -10 || echo "(introspection failed)"
 
             echo
             echo "-- worker PREVIOUS container exit logs (if crashed) --"
