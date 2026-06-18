@@ -3,9 +3,9 @@ from uuid import UUID
 import structlog
 
 from polar.config import settings
-from polar.email.tasks import email_send
+from polar.email.sender import DEFAULT_FROM_EMAIL_ADDRESS
 from polar.logging import Logger
-from polar.worker import AsyncSessionMaker, TaskPriority, actor
+from polar.worker import AsyncSessionMaker, TaskPriority, actor, enqueue_job
 
 log: Logger = structlog.get_logger()
 
@@ -48,12 +48,13 @@ async def send_subscription_confirmation(
         </html>
         """
 
-        email_send.send(
+        enqueue_job(
+            "email.send",
             to_email_addr=email,
             subject=subject,
             html_content=html_content,
             from_name=organization.name,
-            from_email_addr=settings.EMAIL_SENDER_FROM_EMAIL,
+            from_email_addr=DEFAULT_FROM_EMAIL_ADDRESS,
             email_headers=None,
             reply_to_name=None,
             reply_to_email_addr=None,
@@ -100,12 +101,13 @@ async def send_newsletter_to_subscriber(
         </html>
         """
 
-        email_send.send(
+        enqueue_job(
+            "email.send",
             to_email_addr=email,
             subject=subject,
             html_content=html_content,
             from_name=organization.name,
-            from_email_addr=settings.EMAIL_SENDER_FROM_EMAIL,
+            from_email_addr=DEFAULT_FROM_EMAIL_ADDRESS,
             email_headers=None,
             reply_to_name=None,
             reply_to_email_addr=None,

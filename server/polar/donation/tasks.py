@@ -3,9 +3,8 @@ from uuid import UUID
 import structlog
 
 from polar.email.sender import DEFAULT_FROM_EMAIL_ADDRESS
-from polar.email.tasks import email_send
 from polar.logging import Logger
-from polar.worker import AsyncSessionMaker, TaskPriority, actor
+from polar.worker import AsyncSessionMaker, TaskPriority, actor, enqueue_job
 
 log: Logger = structlog.get_logger()
 
@@ -85,7 +84,8 @@ async def notify_donation(donation_id: UUID) -> None:
             </html>
             """
             try:
-                email_send.send(
+                enqueue_job(
+                    "email.send",
                     to_email_addr=donation.donor_email,
                     subject=donor_subject,
                     html_content=donor_html,
@@ -134,7 +134,8 @@ async def notify_donation(donation_id: UUID) -> None:
             </html>
             """
             try:
-                email_send.send(
+                enqueue_job(
+                    "email.send",
                     to_email_addr=creator_email,
                     subject=creator_subject,
                     html_content=creator_html,
@@ -189,7 +190,8 @@ async def send_donation_confirmation(
         </html>
         """
 
-        email_send.send(
+        enqueue_job(
+            "email.send",
             to_email_addr=donor_email,
             subject=subject,
             html_content=html_content,
@@ -265,7 +267,8 @@ async def send_donation_receipt(
         </html>
         """
 
-        email_send.send(
+        enqueue_job(
+            "email.send",
             to_email_addr=donor_email,
             subject=subject,
             html_content=html_content,
