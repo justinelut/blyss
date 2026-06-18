@@ -196,7 +196,7 @@ jobs:
             echo "-- ANY ActorNotFound errors in worker (post-fix probe) --"
             sudo kubectl -n $NS logs deployment/blyss-worker --tail=8000 2>&1 | grep -E "ActorNotFound" | tail -10 || echo "(no ActorNotFound — registration fix is live)"
             echo "-- worker actors registered probe (live introspection from worker venv) --"
-            sudo kubectl -n $NS exec deployment/blyss-worker -- sh -c "cd /app/server && python -c \"
+            sudo kubectl -n $NS exec deployment/blyss-worker -- sh -c "cd /app/server && uv run python -c \"
             import polar.tasks
             import dramatiq
             broker = dramatiq.get_broker()
@@ -205,7 +205,7 @@ jobs:
             \"" 2>&1 | tail -10 || echo "(introspection failed)"
             echo "-- REPLAY: re-enqueue donation.notify for the stuck tip --"
             echo "   donation_id=98f58647-907e-4f03-9383-2cc2f663f724 (KSh 50, current-digital-design-studios)"
-            sudo kubectl -n $NS exec deployment/blyss-api -- sh -c "cd /app/server && python -c \"
+            sudo kubectl -n $NS exec deployment/blyss-api -- sh -c "cd /app/server && uv run python -c \"
             import polar.tasks
             import dramatiq, uuid
             broker = dramatiq.get_broker()
