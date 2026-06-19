@@ -104,19 +104,29 @@ export default function HomePage({
       <Hero
         showcaseProducts={products.slice(0, 4)}
         showcaseCreators={creators.slice(0, 4)}
+        totals={{
+          creators: creators.length || undefined,
+          products: products.length || undefined,
+        }}
       />
       {/* Long Document cadence (Hallmark macrostructure):
-          editorial letter → product band → category band → creator band →
-          recurring band → process steps → closing dark band.
-          ContinueShopping sits above the editorial letter so visitors with
-          a pending cart or recently-viewed history land on intent first.
-          The component self-hides for first-time / no-history visitors. */}
+          marquee → returning-buyer cart strip → product band (proves
+          breadth immediately for first-time visitors) → category band
+          → creator band → recurring band → editorial letter → process
+          steps → closing dark band.
+
+          Note: NoteFromMakers (the editorial italic letter) used to
+          sit immediately under the hero. That order works for an
+          identity site but underwhelms a marketplace landing — buyers
+          hit a paragraph instead of products. Moved below the catalog
+          surfaces so the page leads with proof of life and closes
+          with voice. */}
       <ContinueShopping />
-      <NoteFromMakers />
       {products.length > 0 && <TrendingProducts products={products} />}
       {cats.length > 0 && <BrowseByCraft categories={cats} />}
       {creators.length > 0 && <FeaturedCreators creators={creators} />}
       {subs.length > 0 && <FeaturedSubscriptions subscriptions={subs} />}
+      <NoteFromMakers />
       <HowItWorks />
       <ClosingCtaBand />
     </>
