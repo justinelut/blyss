@@ -18,6 +18,16 @@ from polar.worker import enqueue_job
 
 log: Logger = structlog.get_logger()
 
+# NOTE: Google OAuth client is constructed at module-import time from
+# settings.GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET. Both are registered
+# in polar/runtime_settings/registry.py so the backoffice form lets
+# admins update them — but rotating the values requires running the
+# 'Refresh Secrets & Restart' GitHub Action so the API pod boots with
+# the new env (the OAuth dependency wrapper OAuth2AuthorizeCallback in
+# endpoints.py captures this client at boot). Refactoring to a
+# per-request lazy resolver (like Paystack / Resend / Loops) is a
+# separate follow-up — touching critical login code carries more risk
+# than the rotation cadence justifies right now.
 google_oauth_client = GoogleOAuth2(
     settings.GOOGLE_CLIENT_ID, settings.GOOGLE_CLIENT_SECRET
 )

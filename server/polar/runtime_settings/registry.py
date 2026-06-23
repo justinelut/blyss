@@ -8,6 +8,8 @@ from polar.runtime_settings.verifiers import (
     VerifierFn,
     verify_cerebras,
     verify_gemini,
+    verify_google_oauth_client_id,
+    verify_google_oauth_client_secret,
     verify_groq,
     verify_loops,
     verify_openai,
@@ -113,6 +115,33 @@ REGISTRY: list[RegisteredKey] = [
         label="Plain Token",
         description="Plain.com support API token",
         requires_verification=False,
+    ),
+    RegisteredKey(
+        key="GOOGLE_CLIENT_ID",
+        category="auth",
+        label="Google OAuth Client ID",
+        description=(
+            "Google Sign-In OAuth 2.0 client ID — get it from "
+            "https://console.cloud.google.com/apis/credentials. "
+            "Format: <project_number>-<32-chars>.apps.googleusercontent.com. "
+            "After saving, run the 'Refresh Secrets & Restart' workflow "
+            "so the API pod picks up the new value (the OAuth client is "
+            "constructed at boot)."
+        ),
+        sensitive=False,
+        verifier=verify_google_oauth_client_id,
+    ),
+    RegisteredKey(
+        key="GOOGLE_CLIENT_SECRET",
+        category="auth",
+        label="Google OAuth Client Secret",
+        description=(
+            "Google Sign-In OAuth 2.0 client secret — paired with the "
+            "Client ID above. Always starts with 'GOCSPX-'. After "
+            "rotating, run 'Refresh Secrets & Restart' so the API pod "
+            "boots with the new secret."
+        ),
+        verifier=verify_google_oauth_client_secret,
     ),
     RegisteredKey(
         key="MPESA_VERIFICATION_AMOUNT_KOBO",

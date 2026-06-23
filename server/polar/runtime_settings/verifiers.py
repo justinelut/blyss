@@ -67,3 +67,47 @@ async def verify_openai(key: str) -> VerifierResult:
 
 async def verify_cerebras(key: str) -> VerifierResult:
     return await _bearer_get("https://api.cerebras.ai/v1/models", key)
+
+
+async def verify_google_oauth_client_id(key: str) -> VerifierResult:
+    """Validate the Google OAuth Client ID format only — Google doesn't
+    expose an unauthenticated endpoint that confirms a client_id is
+    valid + active without issuing a real OAuth flow. We at minimum
+    enforce the canonical shape: <project_number>-<32-char>.apps.googleusercontent.com.
+    A wrong format means the key is definitely broken; a right format
+    means it's well-shaped (final validation happens on first login).
+    """
+    import re
+
+    pattern = r"^\d+-[a-z0-9]{32}\.apps\.googleusercontent\.com$"
+    if re.match(pattern, key.strip()):
+        return VerifierResult(
+            ok=True,
+            message=(
+                "client_id shape ok (final validation on first OAuth flow)"
+            ),
+        )
+    return VerifierResult(
+        ok=False,
+        message=(
+            "expected format: <project_number>-<32 chars>.apps.googleusercontent.com"
+        ),
+    )
+
+
+async def verify_google_oauth_client_secret(key: str) -> VerifierResult:
+    """Google OAuth client secrets start with 'GOCSPX-'. Format check
+    only — the secret is one half of a pair and can't be validated in
+    isolation against Google's API."""
+    if key.strip().startswith("GOCSPX-") and len(key.strip()) >= 28:
+        return VerifierResult(
+            ok=True, message="client_secret shape ok (GOCSPX- prefix present)"
+        )
+    return VerifierResult(
+        ok=False,
+        message=(
+            "Google OAuth client secrets start with 'GOCSPX-' and are at "
+            "least 28 chars. Got something else — re-copy from "
+            "console.cloud.google.com/apis/credentials"
+        ),
+    )
