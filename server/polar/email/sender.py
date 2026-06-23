@@ -124,8 +124,20 @@ class ResendEmailSender(EmailSender):
             log.warning("resend.disabled: no api key on file")
             return None
         to_email_addr_ascii = to_ascii_email(to_email_addr)
+        # Defense in depth: scrub CR/LF/whitespace from the from-name
+        # and the from-address before composing the header line. A
+        # production incident once shipped 'Blyss <hello@\n>' to Resend
+        # because the k8s secret had a trailing newline in
+        # EMAIL_FROM_DOMAIN; the config-load validator now catches that
+        # at boot, but stripping again here is cheap insurance against
+        # header-injection from any other source (an org name field,
+        # for example, that Pydantic permitted but Resend won't).
+        safe_from_name = "".join(
+            c for c in (from_name or "") if c not in "\r\n\0<>"
+        ).strip() or DEFAULT_FROM_NAME
+        safe_from_email = to_ascii_email(from_email_addr)
         payload: dict[str, Any] = {
-            "from": f"{from_name} <{to_ascii_email(from_email_addr)}>",
+            "from": f"{safe_from_name} <{safe_from_email}>",
             "to": [to_email_addr_ascii],
             "subject": subject,
             "html": html_content,
@@ -141,8 +153,11 @@ class ResendEmailSender(EmailSender):
             else [],
         }
         if reply_to_name and reply_to_email_addr:
+            safe_reply_name = "".join(
+                c for c in (reply_to_name or "") if c not in "\r\n\0<>"
+            ).strip()
             payload["reply_to"] = (
-                f"{reply_to_name} <{to_ascii_email(reply_to_email_addr)}>"
+                f"{safe_reply_name} <{to_ascii_email(reply_to_email_addr)}>"
             )
 
         try:

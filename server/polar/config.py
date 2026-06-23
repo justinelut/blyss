@@ -693,14 +693,62 @@ class Settings(BaseSettings):
         """Validate rebrand-specific configuration at startup.
 
         Ensures required configuration for Blyss rebrand is properly set.
+        Also defensively strips whitespace from email-from values — a
+        deploy bug once landed `EMAIL_FROM_DOMAIN` with a trailing
+        newline in the k8s secret, which produced 'Blyss <hello@\\n>'
+        as the Resend `from` line and rejected every login email.
+        Strip + assert at startup instead of finding out from a
+        Resend 422 in production.
         """
         if self.PLATFORM_FEE_BASIS_POINTS < 0:
             raise ValueError(
                 f"PLATFORM_FEE_BASIS_POINTS must be non-negative, got {self.PLATFORM_FEE_BASIS_POINTS}"
             )
 
+        # Email config — defensive strip of any whitespace (incl. CRLF)
+        # that secret-injection tooling can introduce. Mutates `self`
+        # so DEFAULT_FROM_EMAIL_ADDRESS (computed at module-import
+        # time) doesn't see the dirty value on a future re-import,
+        # though in practice the import happens once.
+        self.EMAIL_FROM_NAME = (self.EMAIL_FROM_NAME or "").strip()
+        self.EMAIL_FROM_LOCAL = (self.EMAIL_FROM_LOCAL or "").strip()
+        self.EMAIL_FROM_DOMAIN = (self.EMAIL_FROM_DOMAIN or "").strip()
+
         if not self.EMAIL_FROM_NAME:
             raise ValueError("EMAIL_FROM_NAME is required for email branding")
+        if not self.EMAIL_FROM_LOCAL:
+            raise ValueError("EMAIL_FROM_LOCAL is required for outbound email")
+        if not self.EMAIL_FROM_DOMAIN:
+            raise ValueError("EMAIL_FROM_DOMAIN is required for outbound email")
+
+        # Reject any control / whitespace char surviving inside the
+        # local or domain — guards against header-injection via
+        # CRLF and against the deploy-secret newline bug above.
+        for field, value in (
+            ("EMAIL_FROM_LOCAL", self.EMAIL_FROM_LOCAL),
+            ("EMAIL_FROM_DOMAIN", self.EMAIL_FROM_DOMAIN),
+        ):
+            if any(c.isspace() or c in "\r\n\0<>" for c in value):
+                raise ValueError(
+                    f"{field} contains whitespace or invalid chars after strip: "
+                    f"{value!r}. Check your env / k8s secret for stray newlines."
+                )
+
+        # Final shape check — the constructed local@domain must validate
+        # as an email so a bad config fails at startup rather than at
+        # the first send. Use the same email_validator pinned by Polar
+        # elsewhere; check_deliverability=False so we don't talk DNS
+        # at boot.
+        try:
+            from email_validator import EmailNotValidError, validate_email
+
+            full = f"{self.EMAIL_FROM_LOCAL}@{self.EMAIL_FROM_DOMAIN}"
+            validate_email(full, check_deliverability=False)
+        except EmailNotValidError as e:
+            raise ValueError(
+                f"EMAIL_FROM_LOCAL@EMAIL_FROM_DOMAIN ({full!r}) "
+                f"failed validation: {e}"
+            ) from e
 
 
 settings = Settings()
