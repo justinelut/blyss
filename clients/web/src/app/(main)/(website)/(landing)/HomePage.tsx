@@ -32,6 +32,7 @@ interface HomePageProps {
     creators: number
     products: number
     total_paid_out: number
+  total_earned: number
     total_paid_out_currency: string
     settlements_count: number
   } | null
@@ -118,6 +119,7 @@ export default function HomePage({
                 creators: stats.creators || undefined,
                 products: stats.products || undefined,
                 totalPaidOut: stats.total_paid_out || undefined,
+                totalEarned: stats.total_earned || undefined,
                 totalPaidOutCurrency: stats.total_paid_out_currency,
               }
             : undefined

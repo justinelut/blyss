@@ -13,11 +13,13 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import func, select
 
 from polar.models import (
+    Order,
     Organization,
     PaystackSettlement,
     PaystackSettlementStatus,
     Product,
 )
+from polar.models.order import OrderStatus
 from polar.openapi import APITag
 from polar.organization.visibility import public_organization_filters
 from polar.postgres import AsyncSession, get_db_session
@@ -90,10 +92,39 @@ async def get_marketplace_stats(
     total_paid_out = int(paid_total_row[0] or 0)
     settlements_count = int(paid_total_row[1] or 0)
 
+    # 4. Total earned — creator-side share across paid orders. The
+    # `Order.platform_fee_amount` column already carries Blyss's cut
+    # at order-create time, so the creator's net is total - fee -
+    # refunded. Aggregated across all paid orders in any time window
+    # (cumulative). Useful as a fallback when total_paid_out is 0
+    # (fresh deploy / no transfer.success webhooks fired yet) — the
+    # money already moved into creators' Paystack subaccounts at
+    # charge time, even if it hasn't settled to bank/M-Pesa yet.
+    earned_row = (
+        await session.execute(
+            select(
+                func.coalesce(
+                    func.sum(
+                        (
+                            Order.subtotal_amount
+                            - Order.discount_amount
+                            + Order.tax_amount
+                            - Order.platform_fee_amount
+                            - Order.refunded_amount
+                        )
+                    ),
+                    0,
+                )
+            ).where(Order.status == OrderStatus.paid)
+        )
+    ).scalar_one()
+    total_earned = int(earned_row or 0)
+
     body = MarketplaceStatsResponse(
         creators=creators_count,
         products=products_count,
         total_paid_out=total_paid_out,
+        total_earned=total_earned,
         total_paid_out_currency="kes",
         settlements_count=settlements_count,
     )

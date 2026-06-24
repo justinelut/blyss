@@ -58,11 +58,23 @@ export const StartFooter = () => (
           <Link href="/help" className="hover:text-[var(--text-primary)]">
             Help
           </Link>
-          <Link href="/legal/terms" className="hover:text-[var(--text-primary)]">
+          {/* These pages live at the root, NOT under /legal/. The
+              previous /legal/terms + /legal/privacy paths 404'd
+              because the actual app routes are app/(main)/terms,
+              app/(main)/privacy, app/(main)/acceptable-use — same
+              paths every other footer in the app uses (Organization
+              footer, Login, Onboarding). */}
+          <Link href="/terms" className="hover:text-[var(--text-primary)]">
             Terms
           </Link>
-          <Link href="/legal/privacy" className="hover:text-[var(--text-primary)]">
+          <Link href="/privacy" className="hover:text-[var(--text-primary)]">
             Privacy
+          </Link>
+          <Link
+            href="/acceptable-use"
+            className="hover:text-[var(--text-primary)]"
+          >
+            Acceptable use
           </Link>
         </div>
       </div>

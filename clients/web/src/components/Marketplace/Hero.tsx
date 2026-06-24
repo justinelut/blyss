@@ -25,7 +25,6 @@ import { motion, useReducedMotion, useScroll, useTransform } from 'motion/react'
 import { useRef } from 'react'
 import { FiArrowRight } from 'react-icons/fi'
 import { schemas } from '@/lib/api'
-import { Eyebrow } from '@/design'
 import { cn } from '@/lib/utils'
 
 interface HeroProps {
@@ -47,6 +46,12 @@ interface HeroProps {
      *  fourth stat tile labelled "Paid out" — proves the
      *  marketplace pays creators in real money, not promises. */
     totalPaidOut?: number
+    /** Fallback when totalPaidOut is 0 — sum of creator earnings
+     *  on PAID orders (regardless of settlement). The money has
+     *  already moved into creators' Paystack subaccounts at
+     *  charge time; it just hasn't been transferred to bank/M-Pesa
+     *  yet. Same currency as totalPaidOut. */
+    totalEarned?: number
     /** ISO 4217 lowercased. Defaults to 'kes' when omitted. */
     totalPaidOutCurrency?: string
   }
@@ -129,10 +134,22 @@ export const Hero = ({
   // Stats strip — only shown when there's at least one real number to
   // print. Zero-totals collapse the strip entirely (avoids "0 creators"
   // greeting buyers on a fresh deploy).
+  // Money tile uses settled total when available, falls back to
+  // "earned" (paid orders × creator share) when no transfer.success
+  // webhook has fired yet.
+  const moneyValue =
+    totals?.totalPaidOut && totals.totalPaidOut > 0
+      ? totals.totalPaidOut
+      : totals?.totalEarned ?? 0
+  const moneyLabel =
+    totals?.totalPaidOut && totals.totalPaidOut > 0
+      ? 'Paid out'
+      : 'Earned'
+  const showMoney = moneyValue > 0
   const statsAvailable = !!(
     (totals?.creators && totals.creators > 0) ||
     (totals?.products && totals.products > 0) ||
-    (totals?.totalPaidOut && totals.totalPaidOut > 0)
+    showMoney
   )
 
   return (
@@ -147,13 +164,13 @@ export const Hero = ({
           style={{ y: parallaxY }}
           className="flex flex-col lg:col-span-7"
         >
-          <motion.div {...fadeUp(0.05)}>
-            <Eyebrow accent>Digital products · Independent creators</Eyebrow>
-          </motion.div>
+          {/* Eyebrow removed — 'Digital products · Independent creators'
+              was a label of what the visitor was already looking at,
+              which doesn't earn its space. The headline starts the page. */}
 
           <h1
             id="home-marquee-headline"
-            className="mt-6 font-display font-semibold tracking-[-0.025em] leading-[0.98] text-[clamp(48px,8vw,108px)] text-[var(--text-primary)]"
+            className="font-display font-semibold tracking-[-0.025em] leading-[0.98] text-[clamp(48px,8vw,108px)] text-[var(--text-primary)]"
             style={{ overflowWrap: 'anywhere', minWidth: 0 }}
           >
             {headlineWords.map((word, i) => {
@@ -242,13 +259,13 @@ export const Hero = ({
                   label="Products"
                 />
               ) : null}
-              {totals?.totalPaidOut && totals.totalPaidOut > 0 ? (
+              {showMoney ? (
                 <StatCell
                   value={formatMoney(
-                    totals.totalPaidOut,
-                    totals.totalPaidOutCurrency ?? 'kes',
+                    moneyValue,
+                    totals?.totalPaidOutCurrency ?? 'kes',
                   )}
-                  label="Paid out"
+                  label={moneyLabel}
                 />
               ) : null}
               <StatCell value="24h" label="Payouts" />

@@ -175,6 +175,7 @@ interface MarketplaceStats {
   creators: number
   products: number
   total_paid_out: number
+  total_earned: number
   total_paid_out_currency: string
   settlements_count: number
 }

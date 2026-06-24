@@ -6,6 +6,10 @@ import { schemas } from '@/lib/api'
 import { CreatorsHero } from '@/components/Marketplace/CreatorsHero'
 import { FeaturedCreatorSpotlight } from '@/components/Marketplace/FeaturedCreatorSpotlight'
 import { CreatorsGrid } from '@/components/Marketplace/CreatorsGrid'
+import {
+  StartStatsStrip,
+  type StartStats,
+} from '@/components/Start/StartStatsStrip'
 import { useCreatorCategories } from '@/hooks/queries/creators'
 import { Eyebrow, typography } from '@/design'
 import { cn } from '@/lib/utils'
@@ -17,6 +21,9 @@ interface CreatorsDirectoryPageProps {
   featuredSpotlight?: schemas['Organization'] | null
   /** Top product from the spotlight creator */
   spotlightTopProduct?: schemas['Product'] | null
+  /** Marketplace-wide stats (creators count, total paid out, etc.).
+   *  Same data source as the homepage hero + /start strip. */
+  stats?: StartStats | null
 }
 
 /**
@@ -35,6 +42,7 @@ export function CreatorsDirectoryPage({
   initialCreators,
   featuredSpotlight,
   spotlightTopProduct,
+  stats = null,
 }: CreatorsDirectoryPageProps) {
   const { data: categories = [] } = useCreatorCategories()
 
@@ -66,6 +74,14 @@ export function CreatorsDirectoryPage({
         total={filtered.length}
         categories={categories}
       />
+
+      {/* Marketplace stats strip — same source as the homepage hero +
+          /start. Sits between the hero and any spotlight so visitors
+          who came in via `/creators` directly see proof of life
+          (creators count, paid-out total) without scrolling. Hides
+          itself when totals are zero, so a fresh deploy doesn't
+          advertise '0 creators'. */}
+      <StartStatsStrip stats={stats} />
 
       {/* Featured spotlight — only when one is provided + we're on All */}
       {featuredSpotlight && active === 'all' && (

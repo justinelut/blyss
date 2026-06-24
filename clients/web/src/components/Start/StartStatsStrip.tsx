@@ -17,6 +17,7 @@ export interface StartStats {
   creators: number
   products: number
   total_paid_out: number
+  total_earned: number
   total_paid_out_currency: string
   settlements_count: number
 }
@@ -30,11 +31,27 @@ export const StartStatsStrip = ({ stats }: Props) => {
   if (!stats) return null
   const showCreators = stats.creators > 0
   const showProducts = stats.products > 0
-  const showPaidOut = stats.total_paid_out > 0
+  // Prefer the confirmed-settlement number when we have it; fall
+  // back to total_earned (orders × creator share) when no
+  // transfer.success webhook has fired yet — the money has already
+  // moved to creators' Paystack subaccounts at charge time, just
+  // not yet settled to bank/M-Pesa. Showing earned-but-not-settled
+  // gives an honest live number on fresh deploys instead of "0".
+  const moneyValue = stats.total_paid_out > 0
+    ? stats.total_paid_out
+    : stats.total_earned
+  const moneyLabel = stats.total_paid_out > 0 ? 'Paid to creators' : 'Earned by creators'
+  const moneyDetail =
+    stats.total_paid_out > 0
+      ? `Across ${stats.settlements_count} settlement${
+          stats.settlements_count === 1 ? '' : 's'
+        }`
+      : 'Settlements roll out on Paystack T+2'
+  const showMoney = moneyValue > 0
 
   // If the deploy is fresh and we'd show zero across the board, skip
   // the whole strip rather than print "0 / 0 / 0".
-  if (!showCreators && !showProducts && !showPaidOut) return null
+  if (!showCreators && !showProducts && !showMoney) return null
 
   return (
     <section
@@ -64,16 +81,14 @@ export const StartStatsStrip = ({ stats }: Props) => {
               detail="Templates, ebooks, beats, presets, courses"
             />
           )}
-          {showPaidOut && (
+          {showMoney && (
             <Stat
               value={formatMoney(
-                stats.total_paid_out,
+                moneyValue,
                 stats.total_paid_out_currency,
               )}
-              label="Paid to creators"
-              detail={`Across ${stats.settlements_count} settlement${
-                stats.settlements_count === 1 ? '' : 's'
-              }`}
+              label={moneyLabel}
+              detail={moneyDetail}
             />
           )}
           <Stat value="24h" label="Payout window" detail="M-Pesa or bank" />

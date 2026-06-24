@@ -31,6 +31,21 @@ class MarketplaceStatsResponse(Schema):
         )
     )
 
+    total_earned: int = Field(
+        description=(
+            "Sum (in minor units of `total_paid_out_currency`) of "
+            "creator earnings on PAID orders, regardless of whether "
+            "Paystack has settled them yet. Computed as "
+            "(subtotal - discount + tax - platform_fee - refunded) "
+            "summed across all paid orders. Useful as a fallback "
+            "metric on fresh deploys where no transfer.success "
+            "webhook has fired yet but money has flowed through "
+            "checkout: Paystack splits at charge time so the money "
+            "is already in creators' subaccounts, just not yet "
+            "transferred to their bank/M-Pesa accounts."
+        )
+    )
+
     total_paid_out_currency: str = Field(
         description=(
             "ISO 4217 lowercased. Currently always 'kes' since Blyss's "

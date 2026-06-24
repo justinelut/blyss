@@ -398,6 +398,39 @@ class Organization(OrganizationBase):
         default=None,
         description="SHA-256 over (layout, tokens, modules). SSR cache key.",
     )
+
+    # ─── Per-creator card stats (plan §card-stats) ─────────────────────
+    # Computed via scalar subqueries on the public listing endpoints
+    # (/v1/organizations/public + /v1/organizations/creators) so cards
+    # can show "Products · Sold · Earned" without an extra round-trip.
+    # All default to 0 — non-listing fetches (auth'd dashboard reads,
+    # for instance) leave them at zero rather than running the
+    # subqueries on every Organization fetch.
+    products_count: int = Field(
+        default=0,
+        description=(
+            "Count of live, non-archived, non-deleted products owned by "
+            "this creator. Populated only on public listing endpoints."
+        ),
+    )
+    total_orders: int = Field(
+        default=0,
+        description=(
+            "Count of paid orders across this creator's products. "
+            "Populated only on public listing endpoints."
+        ),
+    )
+    total_earned: int = Field(
+        default=0,
+        description=(
+            "Cumulative creator-side earnings across all paid orders, "
+            "in minor units (kobo for KES). Computed as "
+            "(subtotal - discount + tax - platform_fee - refunded) "
+            "summed across paid orders. Populated only on public "
+            "listing endpoints."
+        ),
+    )
+
     subscription_settings: OrganizationSubscriptionSettings = Field(
         description="Settings related to subscriptions management",
     )
@@ -614,6 +647,11 @@ class CreatorSummarySchema(Schema):
     slug: str
     avatar_url: str | None
     product_count: int
+    # Per-creator card stats — computed via scalar subqueries on the
+    # listing path. Defaults to 0 so older clients deployed against
+    # newer servers don't break.
+    total_orders: int = 0
+    total_earned: int = 0
 
 
 class CreatorStorefrontSchema(Schema):

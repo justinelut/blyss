@@ -53,6 +53,12 @@ export default async function CreatorsPage() {
 
   const creators = (creatorsResp.items ?? []) as any[]
 
+  // Marketplace-level stats — feeds the strip under the hero. Same
+  // /v1/marketplace/stats endpoint used by the homepage + /start.
+  // Cheap (5-min edge cache); failure is non-fatal — the strip
+  // hides itself on null.
+  const stats = await fetchMarketplaceStats(api)
+
   // Spotlight: prefer a creator flagged is_featured_spotlight; fallback to
   // the first featured creator if no spotlight flag exists yet.
   const spotlight =
@@ -107,7 +113,39 @@ export default async function CreatorsPage() {
         initialCreators={creators}
         featuredSpotlight={spotlight}
         spotlightTopProduct={spotlightTopProduct}
+        stats={stats}
       />
     </>
   )
+}
+
+interface MarketplaceStats {
+  creators: number
+  products: number
+  total_paid_out: number
+  total_earned: number
+  total_paid_out_currency: string
+  settlements_count: number
+}
+
+async function fetchMarketplaceStats(
+  api: Awaited<ReturnType<typeof getServerSideAPI>>,
+): Promise<MarketplaceStats | null> {
+  try {
+    const result = (await (
+      api as unknown as {
+        GET: (
+          path: string,
+          init: { params: { query: Record<string, unknown> } },
+        ) => Promise<{ data?: MarketplaceStats; error?: unknown }>
+      }
+    ).GET('/v1/marketplace/stats', { params: { query: {} } })) as {
+      data?: MarketplaceStats
+      error?: unknown
+    }
+    return result?.data ?? null
+  } catch (error) {
+    console.error('creators: failed to fetch marketplace stats', error)
+    return null
+  }
 }

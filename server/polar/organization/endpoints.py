@@ -91,30 +91,96 @@ async def list_public_organizations(
     List public organizations without authentication.
 
     This endpoint is used for the marketplace homepage to display trending creators.
+    Each row carries `products_count`, `total_orders`, and `total_earned`
+    computed via scalar subqueries (no denormalised counters, no
+    migration). Three subqueries × ~12 rows ≈ 30ms total — cheap
+    enough that the SSR-cached homepage doesn't notice.
     """
-    from sqlalchemy import select
-    from sqlalchemy.orm import selectinload
+    from sqlalchemy import func, select
 
-    from polar.models import Organization
+    from polar.models import Order, Organization, Product
+    from polar.models.order import OrderStatus
     from polar.organization.visibility import public_organization_filters
 
-    statement = select(Organization).where(*public_organization_filters())
+    # Per-organization scalar subqueries. `correlate(Organization)` is
+    # required because Organization is in the OUTER select; without
+    # the explicit correlation SQLAlchemy emits a Cartesian join.
+    products_count_subq = (
+        select(func.count(Product.id))
+        .where(
+            Product.organization_id == Organization.id,
+            Product.is_archived.is_(False),
+            Product.deleted_at.is_(None),
+        )
+        .correlate(Organization)
+        .scalar_subquery()
+    )
+    orders_count_subq = (
+        select(func.count(Order.id))
+        .where(
+            Order.product_id.in_(
+                select(Product.id).where(
+                    Product.organization_id == Organization.id
+                )
+            ),
+            Order.status == OrderStatus.paid,
+        )
+        .correlate(Organization)
+        .scalar_subquery()
+    )
+    total_earned_subq = (
+        select(
+            func.coalesce(
+                func.sum(
+                    Order.subtotal_amount
+                    - Order.discount_amount
+                    + Order.tax_amount
+                    - Order.platform_fee_amount
+                    - Order.refunded_amount
+                ),
+                0,
+            )
+        )
+        .where(
+            Order.product_id.in_(
+                select(Product.id).where(
+                    Product.organization_id == Organization.id
+                )
+            ),
+            Order.status == OrderStatus.paid,
+        )
+        .correlate(Organization)
+        .scalar_subquery()
+    )
 
-    # Skip is_featured filter for now since profile_settings might not be set
-    # if is_featured is not None:
-    #     statement = statement.where(
-    #         Organization.profile_settings["is_featured"].astext == str(is_featured).lower()
-    #     )
+    statement = select(
+        Organization,
+        products_count_subq.label("products_count"),
+        orders_count_subq.label("total_orders"),
+        total_earned_subq.label("total_earned"),
+    ).where(*public_organization_filters())
 
-    statement = statement.order_by(Organization.created_at.desc())
-    statement = statement.limit(limit)
+    statement = statement.order_by(Organization.created_at.desc()).limit(limit)
 
     result = await session.execute(statement)
-    organizations = result.scalars().unique().all()
+    rows = result.unique().all()
+
+    items: list[OrganizationSchema] = []
+    for row in rows:
+        org = row[0]
+        # Attach the computed values BEFORE Pydantic validation so
+        # `from_attributes=True` picks them up. Setting attributes on
+        # the SQLAlchemy instance is fine — they're not column
+        # writes, just instance-level attribute attachments that
+        # Pydantic reads via getattr().
+        org.products_count = int(row.products_count or 0)
+        org.total_orders = int(row.total_orders or 0)
+        org.total_earned = int(row.total_earned or 0)
+        items.append(OrganizationSchema.model_validate(org))
 
     return ListResource.from_paginated_results(
-        [OrganizationSchema.model_validate(org) for org in organizations],
-        len(organizations),
+        items,
+        len(items),
         PaginationParams(limit=limit, page=1),
     )
 
@@ -169,11 +235,53 @@ async def list_creators(
         session, search=search, limit=limit, offset=offset
     )
 
-    # Build response with product counts
+    # Per-creator paid-order aggregates. ONE batched query for every
+    # org in the directory rather than N scalar subqueries — Postgres
+    # GROUP BY is materially cheaper for the 100-row directory case.
+    # Indexes on Order.product_id (FK) + Product.organization_id (FK)
+    # make this O(rows in matching paid orders).
+    from sqlalchemy import func, select as _select
+
+    from polar.models import Order, Product
+    from polar.models.order import OrderStatus
+
+    earnings_by_org: dict = {}
+    org_ids = [o.id for o in organizations]
+    if org_ids:
+        rows = await session.execute(
+            _select(
+                Product.organization_id.label("org_id"),
+                func.count(Order.id).label("orders_count"),
+                func.coalesce(
+                    func.sum(
+                        Order.subtotal_amount
+                        - Order.discount_amount
+                        + Order.tax_amount
+                        - Order.platform_fee_amount
+                        - Order.refunded_amount
+                    ),
+                    0,
+                ).label("earned"),
+            )
+            .join(Product, Product.id == Order.product_id)
+            .where(
+                Product.organization_id.in_(org_ids),
+                Order.status == OrderStatus.paid,
+            )
+            .group_by(Product.organization_id)
+        )
+        for row in rows:
+            earnings_by_org[row.org_id] = (
+                int(row.orders_count or 0),
+                int(row.earned or 0),
+            )
+
+    # Build response with product counts + earnings stats
     result = []
     for org in organizations:
         # Count non-archived products
         product_count = len([p for p in org.products if not p.is_archived])
+        total_orders, total_earned = earnings_by_org.get(org.id, (0, 0))
 
         result.append(
             CreatorSummarySchema(
@@ -182,6 +290,8 @@ async def list_creators(
                 slug=org.slug,
                 avatar_url=org.avatar_url,
                 product_count=product_count,
+                total_orders=total_orders,
+                total_earned=total_earned,
             )
         )
 
