@@ -22,10 +22,15 @@ describe('STOREFRONT_LAYOUTS', () => {
     }
   })
 
-  it('editorial is the only one shipping in v1', () => {
+  it('every layout ships in v1 (all 5 layouts have a hero + work section)', () => {
+    // Earlier the catalog/gallery/portfolio/studio layouts shipped only
+    // their data (so the editor could persist a creator's choice while
+    // the public page rendered editorial). They each ship a real hero
+    // and work section now — none should be marked v2.
     const v1 = STOREFRONT_LAYOUTS.filter((l) => l.shipsIn === 'v1')
-    expect(v1).toHaveLength(1)
-    expect(v1[0].slug).toBe('editorial')
+    expect(v1).toHaveLength(5)
+    const v2 = STOREFRONT_LAYOUTS.filter((l) => l.shipsIn === 'v2')
+    expect(v2).toHaveLength(0)
   })
 
   it('every layout has a non-empty name + description + bestFor', () => {

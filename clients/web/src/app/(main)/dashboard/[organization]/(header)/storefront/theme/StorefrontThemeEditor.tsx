@@ -33,6 +33,7 @@ import { toast } from '@/components/Toast/use-toast'
 import revalidate from '@/app/actions'
 import { DashboardBody } from '@/components/Layout/DashboardLayout'
 import { Skeleton, Eyebrow, typography } from '@/design'
+import { StorefrontLayoutThumb } from '@/components/Storefront/StorefrontLayoutThumb'
 import { STOREFRONT_PALETTE } from '@/design/storefront-palette'
 import {
   STOREFRONT_THEME_PRESETS,
@@ -824,15 +825,12 @@ export const StorefrontThemeEditor: React.FC<Props> = ({ organization }) => {
                 <p className="mt-1 max-w-[60ch] font-sans text-[13px] leading-[1.55] text-[var(--text-secondary)]">
                   Each layout is a different way of arranging your hero,
                   product grid, and bio. Choose the one that fits how
-                  buyers should encounter your work. Editorial ships
-                  today; the others render the editorial layout while
-                  v2 builds them — your choice persists either way.
+                  buyers should encounter your work. Save to apply.
                 </p>
               </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {STOREFRONT_LAYOUTS.map((layout) => {
                   const selected = draftLayout === layout.slug
-                  const ready = layout.shipsIn === 'v1'
                   return (
                     <button
                       key={layout.slug}
@@ -840,31 +838,40 @@ export const StorefrontThemeEditor: React.FC<Props> = ({ organization }) => {
                       onClick={() => setDraftLayout(layout.slug)}
                       aria-pressed={selected}
                       className={cn(
-                        'flex flex-col items-stretch gap-2 rounded-md border bg-[var(--background)] p-4 text-left transition-colors',
+                        'flex flex-col items-stretch gap-3 rounded-md border bg-[var(--background)] p-3 text-left transition-colors',
                         selected
                           ? 'border-[var(--text-primary)]'
                           : 'border-[var(--border)] hover:border-[var(--border-strong)]',
                       )}
                     >
+                      {/* Layout thumbnail — small SVG of the actual
+                          layout shape so creators recognise it
+                          visually before committing. */}
+                      <div
+                        className={cn(
+                          'overflow-hidden rounded-sm border',
+                          selected
+                            ? 'border-[var(--text-primary)]'
+                            : 'border-[var(--border)]',
+                        )}
+                      >
+                        <StorefrontLayoutThumb
+                          slug={layout.slug}
+                          className="block h-auto w-full"
+                        />
+                      </div>
                       <div className="flex items-baseline justify-between gap-2">
                         <span className="font-sans text-[13px] font-medium text-[var(--text-primary)]">
                           {layout.name}
                         </span>
-                        <div className="flex items-center gap-2">
-                          {!ready && (
-                            <span className="rounded-full bg-[var(--surface-sunken)] px-2 py-0.5 font-sans text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
-                              v2
-                            </span>
-                          )}
-                          {selected && (
-                            <span
-                              aria-hidden="true"
-                              className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-[var(--text-primary)] text-[var(--background)]"
-                            >
-                              <FiCheck size={10} strokeWidth={3} />
-                            </span>
-                          )}
-                        </div>
+                        {selected && (
+                          <span
+                            aria-hidden="true"
+                            className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-[var(--text-primary)] text-[var(--background)]"
+                          >
+                            <FiCheck size={10} strokeWidth={3} />
+                          </span>
+                        )}
                       </div>
                       <p className="font-sans text-[12px] leading-[1.5] text-[var(--text-secondary)]">
                         {layout.description}

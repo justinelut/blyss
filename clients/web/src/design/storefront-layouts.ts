@@ -3,12 +3,12 @@
  *
  * Per plan §19.4 (layouts) and §19.5 (modules).
  *
- * The actual per-layout React component swap on /creators/{slug} is
- * a follow-up (v2 builds the 5 distinct layouts, v3 wires the 7
- * modules). At v1 the editor lets a creator persist their CHOICE to
- * the existing JSONB columns (`theme_layout`, `theme_modules`); the
- * public page falls back to the editorial layout for any unknown or
- * not-yet-implemented slug.
+ * The 5 layout components live in
+ * `clients/web/src/components/CreatorStorefront/layouts/` —
+ * editorial, gallery, catalog, portfolio, studio. All five render
+ * fully on /creators/{slug} (resolveStorefrontLayout in
+ * layouts/index.ts dispatches by slug). The dashboard editor lets a
+ * creator pick which one applies to their storefront.
  *
  * Adding a new layout / module: append below + add to the matching
  * Literal in `server/polar/organization/theme_schemas.py` and
@@ -48,7 +48,7 @@ export const STOREFRONT_LAYOUTS: readonly StorefrontLayoutDefinition[] = [
     description:
       'Grid-led with a soft hero. Image-density first, type quiet.',
     bestFor: 'Photographers, illustrators, fashion designers.',
-    shipsIn: 'v2',
+    shipsIn: 'v1',
   },
   {
     slug: 'catalog',
@@ -56,7 +56,7 @@ export const STOREFRONT_LAYOUTS: readonly StorefrontLayoutDefinition[] = [
     description:
       'Thin identity row, list-row product layout for fast scanning.',
     bestFor: 'Many-SKU sellers — ebook authors, preset packs, beats.',
-    shipsIn: 'v2',
+    shipsIn: 'v1',
   },
   {
     slug: 'portfolio',
@@ -64,7 +64,7 @@ export const STOREFRONT_LAYOUTS: readonly StorefrontLayoutDefinition[] = [
     description:
       'Resume-style banner, project case-studies, product-as-evidence.',
     bestFor: 'Designers, agencies, freelancers selling templates.',
-    shipsIn: 'v2',
+    shipsIn: 'v1',
   },
   {
     slug: 'studio',
@@ -72,7 +72,7 @@ export const STOREFRONT_LAYOUTS: readonly StorefrontLayoutDefinition[] = [
     description:
       'Lab notebook. Text-led, dense, tagged collections, RSS feel.',
     bestFor: 'Writers, researchers, technical-content creators.',
-    shipsIn: 'v2',
+    shipsIn: 'v1',
   },
 ] as const
 
