@@ -16,6 +16,15 @@ export { LegalDoc } from './LegalDoc'
 export { JsonLd } from './JsonLd'
 export { ThemeToggle } from './ThemeToggle'
 export { PageEnter, StaggerList, StaggerItem, FadeIn } from './PageMotion'
+export {
+  BlyssDialog,
+  BlyssDialogHeader,
+  BlyssDialogEyebrow,
+  BlyssDialogTitle,
+  BlyssDialogBody,
+  type BlyssDialogProps,
+  type BlyssDialogEyebrowProps,
+} from './BlyssDialog'
 
 export {
   typography,

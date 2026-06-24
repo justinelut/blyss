@@ -682,6 +682,27 @@ class CreatorStorefrontSchema(Schema):
     )
     theme_modules: list[dict[str, Any]] = Field(default_factory=list)
     theme_version_hash: str | None = None
+    # Per-creator card-stat aggregates — computed in get_creator()
+    # via three small queries (count(products), count(orders) +
+    # sum(earned)). Same numbers shown on the directory cards, surfaced
+    # here so the storefront page can render them in the hero too.
+    # Defaults are 0 so older callers still validate.
+    products_count: int = Field(
+        default=0,
+        description="Number of non-archived products this creator publishes.",
+    )
+    total_orders: int = Field(
+        default=0,
+        description="Lifetime paid orders across this creator's products.",
+    )
+    total_earned: int = Field(
+        default=0,
+        description=(
+            "Cumulative creator-side earnings on paid orders, in minor "
+            "units (cents). Sum of subtotal − discount + tax − "
+            "platform_fee − refunded over PAID orders."
+        ),
+    )
     # Typed loosely as list[Any] because importing the public Product schema
     # would create a circular import (product.schemas imports from
     # organization.schemas). The endpoint converts SQLAlchemy products to

@@ -61,6 +61,11 @@ export interface CreatorStorefrontPageProps {
     /** Enabled niche modules (plan §19.5). Empty list / null renders
      *  no modules. */
     themeModules?: EnabledModule[] | null
+    /** Per-creator card stats — Products / Sold / Earned. Defaults to
+     *  0 when the field is absent (e.g. older API response). */
+    productsCount?: number
+    totalOrders?: number
+    totalEarned?: number
   }
   /** All non-archived products by this creator, returned by the storefront
    *  endpoint. We split on `is_recurring` to derive subscription tiers. */
@@ -191,6 +196,9 @@ export function CreatorStorefrontPage({
         socials={creator.socialLinks}
         onSubscribeClick={handleSubscribeClick}
         onTipClick={handleTipClick}
+        productsCount={creator.productsCount ?? 0}
+        totalOrders={creator.totalOrders ?? 0}
+        totalEarned={creator.totalEarned ?? 0}
       />
 
       {/* Anchor used by the Subscribe CTA to scroll into view */}

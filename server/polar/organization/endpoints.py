@@ -466,6 +466,43 @@ async def get_creator(
                     if "website" not in social_links_dict:
                         social_links_dict["website"] = url
 
+    # Per-creator card-stat aggregates. Two small queries against
+    # already-indexed columns. The product count comes for free from
+    # `visible_products` we computed above, so we only need the
+    # orders + earned aggregate.
+    from sqlalchemy import func, select as _stat_select
+
+    from polar.models import Order, Product
+    from polar.models.order import OrderStatus
+
+    products_count = len(visible_products)
+    total_orders = 0
+    total_earned = 0
+    earnings_row = await session.execute(
+        _stat_select(
+            func.count(Order.id).label("orders_count"),
+            func.coalesce(
+                func.sum(
+                    Order.subtotal_amount
+                    - Order.discount_amount
+                    + Order.tax_amount
+                    - Order.platform_fee_amount
+                    - Order.refunded_amount
+                ),
+                0,
+            ).label("earned"),
+        )
+        .select_from(Order)
+        .join(Product, Product.id == Order.product_id)
+        .where(
+            Product.organization_id == organization.id,
+            Order.status == OrderStatus.paid,
+        )
+    )
+    earnings = earnings_row.one()
+    total_orders = int(earnings.orders_count or 0)
+    total_earned = int(earnings.earned or 0)
+
     return CreatorStorefrontSchema(
         id=organization.id,
         name=organization.name,
@@ -500,6 +537,9 @@ async def get_creator(
         if preview_modules is not None
         else (organization.theme_modules or []),
         theme_version_hash=organization.theme_version_hash,
+        products_count=products_count,
+        total_orders=total_orders,
+        total_earned=total_earned,
         products=products,
     )
 

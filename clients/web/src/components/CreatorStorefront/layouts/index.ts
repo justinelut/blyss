@@ -35,6 +35,12 @@ export interface StorefrontHeroProps {
   socials?: AboutTabSocialLinks | null
   onSubscribeClick?: () => void
   onTipClick?: () => void
+  /** Per-creator card stats — Products / Sold / Earned. Each layout's
+   *  Hero may render them differently (or not at all on minimal
+   *  layouts), but the contract is consistent. */
+  productsCount?: number
+  totalOrders?: number
+  totalEarned?: number
 }
 
 export interface StorefrontWorkSectionProps {

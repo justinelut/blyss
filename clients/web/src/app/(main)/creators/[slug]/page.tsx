@@ -341,6 +341,18 @@ export default async function Page({ params }: CreatorPageProps) {
               .theme_modules as
               | import('@/types/storefront-theme').EnabledModule[]
               | undefined) ?? null,
+          // Per-creator card stats — populated by /v1/organizations/creators/{slug}.
+          // Same numbers shown on directory cards, surfaced here so the
+          // storefront hero can render them too.
+          productsCount:
+            (creator as unknown as { products_count?: number })
+              .products_count ?? 0,
+          totalOrders:
+            (creator as unknown as { total_orders?: number })
+              .total_orders ?? 0,
+          totalEarned:
+            (creator as unknown as { total_earned?: number })
+              .total_earned ?? 0,
         }}
         products={products}
         reviewSummary={reviewSummary}

@@ -6,11 +6,12 @@ import Link from 'next/link'
 import { FiArrowLeft, FiHeart } from 'react-icons/fi'
 import { OptimizedImage } from '@/components/Image/OptimizedImage'
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+  BlyssDialog,
+  BlyssDialogBody,
+  BlyssDialogEyebrow,
+  BlyssDialogHeader,
+  BlyssDialogTitle,
+} from '@/design'
 import { cn } from '@/lib/utils'
 
 export interface StorefrontHeroProps {
@@ -38,6 +39,12 @@ export interface StorefrontHeroProps {
   onSubscribeClick?: () => void
   /** Optional handler for "Tip" CTA — opens donation modal */
   onTipClick?: () => void
+  /** Per-creator card stats — same numbers shown on directory cards.
+   *  Hidden when all three are zero so a fresh storefront doesn't
+   *  read "0 sold · KSh 0 earned". */
+  productsCount?: number
+  totalOrders?: number
+  totalEarned?: number
 }
 
 /**
@@ -70,6 +77,9 @@ export const StorefrontHero = ({
   tipEnabled = false,
   onSubscribeClick,
   onTipClick,
+  productsCount = 0,
+  totalOrders = 0,
+  totalEarned = 0,
 }: StorefrontHeroProps) => {
   const reduce = useReducedMotion()
   const ease = [0.32, 0.72, 0, 1] as const
@@ -295,6 +305,36 @@ export const StorefrontHero = ({
                     )}
                   </div>
                 )}
+                {/* Per-creator stats — Products · Sold · Earned. Plain
+                    numerics, no badges, no stars. Hidden when all three
+                    are zero so a fresh storefront stays clean. */}
+                {(() => {
+                  const fragments: string[] = []
+                  if (productsCount > 0) {
+                    fragments.push(
+                      `${productsCount} ${productsCount === 1 ? 'product' : 'products'}`,
+                    )
+                  }
+                  if (totalOrders > 0) {
+                    fragments.push(`${formatStatCount(totalOrders)} sold`)
+                  }
+                  if (totalEarned > 0) {
+                    fragments.push(`${formatStatMoney(totalEarned)} earned`)
+                  }
+                  if (fragments.length === 0) return null
+                  return (
+                    <p
+                      className={cn(
+                        'mt-2 font-sans text-[12px] tabular-nums',
+                        bannerUrl
+                          ? 'text-white/75'
+                          : 'text-[var(--text-secondary)]',
+                      )}
+                    >
+                      {fragments.join(' · ')}
+                    </p>
+                  )
+                })()}
               </div>
             </div>
 
@@ -306,36 +346,53 @@ export const StorefrontHero = ({
         </div>
       </motion.div>
 
-      {/* Full-screen bio modal — opened by 'Read more' on the hero. The
-          long-form biography lives on the About tab too, but having it
-          one click away from the hero keeps visitors in flow without
-          forcing a tab switch.
-
-          Uses shadcn Dialog (portaled to <body>) instead of a hand-rolled
-          fixed-position modal. The hero banner animates with a `scale`
-          transform, which creates a stacking context — a `fixed` modal
-          rendered inside the hero was trapped in it and painted BELOW the
-          product grid further down the page. Portaling to body escapes
-          that entirely. */}
-      <Dialog open={bioOpen} onOpenChange={setBioOpen}>
-        {bio && (
-          <DialogContent className="max-w-[640px] gap-0 p-0">
-            <DialogHeader className="px-6 pt-12 pb-0 text-left sm:px-10 sm:pt-12">
-              <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
-                About
-              </p>
-              <DialogTitle className="mt-2 font-display text-[28px] font-semibold leading-[1.15] tracking-[-0.02em] text-[var(--text-primary)]">
-                {name}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="max-h-[60vh] overflow-y-auto px-6 pb-8 pt-6 sm:px-10 sm:pb-12">
-              <p className="whitespace-pre-line font-sans text-[15px] leading-[1.6] text-[var(--text-secondary)]">
-                {bio}
-              </p>
-            </div>
-          </DialogContent>
-        )}
-      </Dialog>
+      {/* Full-screen bio modal — opened by 'Read more' on the hero.
+          Custom Blyss-styled dialog with motion (paper card, warm scrim,
+          smooth ease, slides up on mobile / scales-in on desktop). The
+          shadcn Dialog had a generic look that didn't match the rest of
+          the storefront chrome. Portaled to <body> so the hero's banner
+          scale transform doesn't trap it in the hero's stacking context. */}
+      {bio && (
+        <BlyssDialog
+          open={bioOpen}
+          onOpenChange={setBioOpen}
+          maxWidth={640}
+          titleId="storefront-bio-title"
+        >
+          <BlyssDialogHeader>
+            <BlyssDialogEyebrow>About</BlyssDialogEyebrow>
+            <BlyssDialogTitle id="storefront-bio-title">
+              {name}
+            </BlyssDialogTitle>
+          </BlyssDialogHeader>
+          <BlyssDialogBody>
+            <p className="whitespace-pre-line font-sans text-[15px] leading-[1.6] text-[var(--text-secondary)]">
+              {bio}
+            </p>
+          </BlyssDialogBody>
+        </BlyssDialog>
+      )}
     </section>
   )
+}
+
+// ───────────────────────────────────────────────────────────────────
+// Stat formatters — match the directory cards so a creator's
+// numbers read identically across surfaces. Lifted into module
+// scope so each render doesn't re-create the closures.
+// ───────────────────────────────────────────────────────────────────
+
+const formatStatCount = (n: number): string => {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`
+  return String(n)
+}
+
+const formatStatMoney = (minor: number): string => {
+  // Settlements are KES today; FX-aware display lands when we expand
+  // beyond Kenya.
+  const major = Math.round((minor || 0) / 100)
+  if (major >= 1_000_000) return `KSh ${(major / 1_000_000).toFixed(1)}M`
+  if (major >= 1_000) return `KSh ${(major / 1_000).toFixed(1)}K`
+  return `KSh ${major}`
 }
