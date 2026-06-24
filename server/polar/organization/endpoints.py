@@ -117,12 +117,10 @@ async def list_public_organizations(
     )
     orders_count_subq = (
         select(func.count(Order.id))
+        .select_from(Order)
+        .join(Product, Product.id == Order.product_id)
         .where(
-            Order.product_id.in_(
-                select(Product.id).where(
-                    Product.organization_id == Organization.id
-                )
-            ),
+            Product.organization_id == Organization.id,
             Order.status == OrderStatus.paid,
         )
         .correlate(Organization)
@@ -141,12 +139,10 @@ async def list_public_organizations(
                 0,
             )
         )
+        .select_from(Order)
+        .join(Product, Product.id == Order.product_id)
         .where(
-            Order.product_id.in_(
-                select(Product.id).where(
-                    Product.organization_id == Organization.id
-                )
-            ),
+            Product.organization_id == Organization.id,
             Order.status == OrderStatus.paid,
         )
         .correlate(Organization)
