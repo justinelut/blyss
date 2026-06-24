@@ -171,14 +171,51 @@ async function getCategories(): Promise<CategoryTile[]> {
   }
 }
 
+interface MarketplaceStats {
+  creators: number
+  products: number
+  total_paid_out: number
+  total_paid_out_currency: string
+  settlements_count: number
+}
+
+async function getMarketplaceStats(): Promise<MarketplaceStats | null> {
+  try {
+    const cookieStore = await cookies()
+    const headersList = await headers()
+    const serverApi = await createServerSideAPI(headersList, cookieStore)
+    const result = (await (
+      serverApi as unknown as {
+        GET: (
+          path: string,
+          init: { params: { query: Record<string, unknown> } },
+        ) => Promise<{ data?: MarketplaceStats; error?: unknown }>
+      }
+    ).GET('/v1/marketplace/stats', { params: { query: {} } })) as {
+      data?: MarketplaceStats
+      error?: unknown
+    }
+    return result?.data ?? null
+  } catch (error) {
+    console.error('Failed to fetch marketplace stats:', error)
+    return null
+  }
+}
+
 export default async function Page() {
-  const [featuredProducts, featuredSubscriptions, trendingCreators, categories] =
-    await Promise.all([
-      getFeaturedProducts(),
-      getFeaturedSubscriptions(),
-      getTrendingCreators(),
-      getCategories(),
-    ])
+  const [
+    featuredProducts,
+    featuredSubscriptions,
+    trendingCreators,
+    categories,
+    stats,
+  ] = await Promise.all([
+    getFeaturedProducts(),
+    getFeaturedSubscriptions(),
+    getTrendingCreators(),
+    getCategories(),
+    getMarketplaceStats(),
+  ])
 
   return (
     <HomePage
@@ -186,6 +223,7 @@ export default async function Page() {
       featuredSubscriptions={featuredSubscriptions}
       trendingCreators={trendingCreators}
       categories={categories}
+      stats={stats}
     />
   )
 }

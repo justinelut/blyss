@@ -72,6 +72,9 @@ from polar.payout.endpoints import router as payout_router
 from polar.paystack_settlement.endpoints import (
     router as paystack_settlement_router,
 )
+from polar.marketplace_stats.endpoints import (
+    router as marketplace_stats_router,
+)
 
 # from polar.personal_access_token.endpoints import router as pat_router
 from polar.product.endpoints import router as product_router
@@ -211,6 +214,7 @@ router.include_router(payment_router)
 # /payouts
 router.include_router(payout_router)
 router.include_router(paystack_settlement_router)
+router.include_router(marketplace_stats_router)
 # /wallets
 router.include_router(wallet_router)
 # /integrations/chargeback-stop

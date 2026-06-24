@@ -28,6 +28,13 @@ interface HomePageProps {
   featuredSubscriptions: schemas['Subscription'][]
   trendingCreators: schemas['Organization'][]
   categories: CategoryTile[]
+  stats: {
+    creators: number
+    products: number
+    total_paid_out: number
+    total_paid_out_currency: string
+    settlements_count: number
+  } | null
 }
 
 /**
@@ -57,6 +64,7 @@ export default function HomePage({
   featuredSubscriptions,
   trendingCreators,
   categories,
+  stats,
 }: HomePageProps) {
   // Real data only — no seed fallbacks. Sections handle empty states.
   const products = featuredProducts ?? []
@@ -104,10 +112,16 @@ export default function HomePage({
       <Hero
         showcaseProducts={products.slice(0, 4)}
         showcaseCreators={creators.slice(0, 4)}
-        totals={{
-          creators: creators.length || undefined,
-          products: products.length || undefined,
-        }}
+        totals={
+          stats
+            ? {
+                creators: stats.creators || undefined,
+                products: stats.products || undefined,
+                totalPaidOut: stats.total_paid_out || undefined,
+                totalPaidOutCurrency: stats.total_paid_out_currency,
+              }
+            : undefined
+        }
       />
       {/* Long Document cadence (Hallmark macrostructure):
           marquee → returning-buyer cart strip → product band (proves

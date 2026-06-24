@@ -37,11 +37,18 @@ interface HeroProps {
    *  array couldn't fill. */
   showcaseCreators?: schemas['Organization'][]
   /** Optional total-counts strip — when provided shows real numbers
-   *  ("48 creators · 320 products"). When omitted the strip hides
-   *  rather than printing zeros. */
+   *  ("48 creators · 320 products · KSh 285K paid out"). When omitted
+   *  the strip hides rather than printing zeros. */
   totals?: {
     creators?: number
     products?: number
+    /** Sum of successful Paystack settlements in the smallest unit
+     *  of `totalPaidOutCurrency` (kobo for KES). Drives the
+     *  fourth stat tile labelled "Paid out" — proves the
+     *  marketplace pays creators in real money, not promises. */
+    totalPaidOut?: number
+    /** ISO 4217 lowercased. Defaults to 'kes' when omitted. */
+    totalPaidOutCurrency?: string
   }
 }
 
@@ -124,7 +131,8 @@ export const Hero = ({
   // greeting buyers on a fresh deploy).
   const statsAvailable = !!(
     (totals?.creators && totals.creators > 0) ||
-    (totals?.products && totals.products > 0)
+    (totals?.products && totals.products > 0) ||
+    (totals?.totalPaidOut && totals.totalPaidOut > 0)
   )
 
   return (
@@ -215,11 +223,12 @@ export const Hero = ({
           </motion.div>
 
           {/* Stats strip — real numbers only. Hairline rule above; eyebrow
-              type below. Hidden entirely when totals are zero / unset. */}
+              type below. Hidden entirely when totals are zero / unset.
+              Up to four cells: Creators · Products · Paid out · Payouts (24h). */}
           {statsAvailable && (
             <motion.div
               {...fadeUp(0.75)}
-              className="mt-12 grid grid-cols-3 gap-4 border-t border-[var(--border)] pt-6 max-w-[44ch]"
+              className="mt-12 grid grid-cols-2 gap-4 border-t border-[var(--border)] pt-6 sm:grid-cols-4 max-w-[60ch]"
             >
               {totals?.creators && totals.creators > 0 ? (
                 <StatCell
@@ -231,6 +240,15 @@ export const Hero = ({
                 <StatCell
                   value={formatCount(totals.products)}
                   label="Products"
+                />
+              ) : null}
+              {totals?.totalPaidOut && totals.totalPaidOut > 0 ? (
+                <StatCell
+                  value={formatMoney(
+                    totals.totalPaidOut,
+                    totals.totalPaidOutCurrency ?? 'kes',
+                  )}
+                  label="Paid out"
                 />
               ) : null}
               <StatCell value="24h" label="Payouts" />
@@ -328,4 +346,19 @@ const formatCount = (n: number): string => {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`
   return String(n)
+}
+
+/**
+ * Format a "total paid out" sum from minor units to a compact display
+ * string. e.g. (285_000, 'kes') → 'KSh 2.9K'.
+ *
+ * The hero stat tiles only have ~80px of horizontal real estate per
+ * cell, so we use K/M abbreviations even on the major value. Anyone
+ * who needs the exact figure can drill into the dashboard.
+ */
+const formatMoney = (minor: number, currency: string): string => {
+  const major = (minor || 0) / 100
+  const cur = (currency || 'kes').toUpperCase()
+  const symbol = cur === 'KES' ? 'KSh' : cur === 'USD' ? 'US$' : cur
+  return `${symbol} ${formatCount(Math.round(major))}`
 }

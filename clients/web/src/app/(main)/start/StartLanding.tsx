@@ -25,6 +25,12 @@ import Link from 'next/link'
 import { FiArrowRight, FiCheck } from 'react-icons/fi'
 import { Eyebrow, typography } from '@/design'
 import { cn } from '@/lib/utils'
+import { StartHeader } from '@/components/Start/StartHeader'
+import { StartFooter } from '@/components/Start/StartFooter'
+import {
+  StartStatsStrip,
+  type StartStats,
+} from '@/components/Start/StartStatsStrip'
 
 export interface ProductCategory {
   id: string
@@ -43,6 +49,7 @@ export interface CreatorCategory {
 interface Props {
   productCategories: ProductCategory[]
   creatorCategories: CreatorCategory[]
+  stats?: StartStats | null
 }
 
 /** Fallback short list used when the categories endpoint returns
@@ -66,7 +73,7 @@ const FALLBACK_CREATOR_CATEGORIES: CreatorCategory[] = [
   { id: 'fc-developers', name: 'Developers', slug: 'developers' },
 ]
 
-export const StartLanding = ({ productCategories, creatorCategories }: Props) => {
+export const StartLanding = ({ productCategories, creatorCategories, stats = null }: Props) => {
   const reduce = useReducedMotion()
   const ease = [0.32, 0.72, 0, 1] as const
 
@@ -91,6 +98,7 @@ export const StartLanding = ({ productCategories, creatorCategories }: Props) =>
 
   return (
     <div className="bg-[var(--background)] text-[var(--text-primary)]">
+      <StartHeader />
       {/* 1 — Hero */}
       <section className="mx-auto max-w-[1280px] px-6 pt-24 pb-16 md:px-16 md:pt-40 md:pb-24">
         <motion.div {...fadeUp(0)}>
@@ -141,6 +149,13 @@ export const StartLanding = ({ productCategories, creatorCategories }: Props) =>
           when you do.
         </motion.p>
       </section>
+
+      {/* Stats strip — real numbers from /v1/marketplace/stats. Renders
+          immediately after the hero so a creator-prospect's first
+          confirmation that "Blyss is alive" is real proof, not stock
+          marketing copy. Hides itself when totals are zero on a
+          fresh deploy. */}
+      <StartStatsStrip stats={stats} />
 
       {/* 2 — What you can sell (REAL product categories) */}
       <section className="bg-[var(--surface)]">
@@ -562,6 +577,8 @@ export const StartLanding = ({ productCategories, creatorCategories }: Props) =>
           </motion.div>
         </div>
       </section>
+
+      <StartFooter />
     </div>
   )
 }

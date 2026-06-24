@@ -93,14 +93,44 @@ async function fetchCreatorCategories(): Promise<CreatorCategory[]> {
 }
 
 export default async function Page() {
-  const [productCategories, creatorCategories] = await Promise.all([
+  const [productCategories, creatorCategories, stats] = await Promise.all([
     fetchProductCategories(),
     fetchCreatorCategories(),
+    fetchMarketplaceStats(),
   ])
   return (
     <StartLanding
       productCategories={productCategories}
       creatorCategories={creatorCategories}
+      stats={stats}
     />
   )
+}
+
+interface StartStats {
+  creators: number
+  products: number
+  total_paid_out: number
+  total_paid_out_currency: string
+  settlements_count: number
+}
+
+async function fetchMarketplaceStats(): Promise<StartStats | null> {
+  try {
+    const result = (await (
+      api as unknown as {
+        GET: (
+          path: string,
+          init: { params: { query: Record<string, unknown> } },
+        ) => Promise<{ data?: StartStats; error?: unknown }>
+      }
+    ).GET('/v1/marketplace/stats', { params: { query: {} } })) as {
+      data?: StartStats
+      error?: unknown
+    }
+    return result?.data ?? null
+  } catch (error) {
+    console.error('start: failed to fetch marketplace stats', error)
+    return null
+  }
 }
