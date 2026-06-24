@@ -1,5 +1,6 @@
 'use client'
 
+import * as React from 'react'
 import Link from 'next/link'
 import { useReducedMotion, motion } from 'motion/react'
 import { FiShoppingCart, FiStar } from 'react-icons/fi'
@@ -64,6 +65,13 @@ const recurringCadence = (product: Product): string => {
   const count = (product as any).recurring_interval_count ?? 1
   const unit = interval === 'year' ? 'year' : 'month'
   return count === 1 ? ` / ${unit}` : ` / ${count} ${unit}s`
+}
+
+const formatCount = (n: number): string => {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 10_000) return `${(n / 1_000).toFixed(0)}K`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`
+  return String(n)
 }
 
 /**
@@ -295,26 +303,63 @@ export const MarketplaceProductCard = ({
           </p>
         )}
         {(() => {
-          // Compact rating per blyss-design (no 5-star graphic row): show
-          // "4.8 · 32 reviews" only when the product has reviews.
-          const summary = (product as any).review_summary as
-            | { average_rating: number; total_reviews: number }
-            | null
-            | undefined
-          if (!summary || summary.total_reviews <= 0) return null
+          // Compact rating + sales row per blyss-design (no 5-star graphic):
+          // "4.8 · 32 reviews · 18 sold". Reads the per-listing card stats
+          // populated by /v1/products/public (review_count,
+          // review_rating_avg, orders_count). Each fragment is shown
+          // only when its value is meaningful — a fresh product never
+          // reads "0 sold · 0 reviews".
+          //
+          // Also tolerates the legacy `review_summary` shape that some
+          // older fetches still populate, so this card works on both
+          // /v1/products/public (new shape) and any internal feed that
+          // still attaches the old object.
+          const p = product as unknown as {
+            review_count?: number
+            review_rating_avg?: number | null
+            orders_count?: number
+            review_summary?: {
+              average_rating: number
+              total_reviews: number
+            } | null
+          }
+          const reviewCount = p.review_count ?? p.review_summary?.total_reviews ?? 0
+          const reviewAvg =
+            p.review_rating_avg ?? p.review_summary?.average_rating ?? null
+          const ordersCount = p.orders_count ?? 0
+          const fragments: React.ReactNode[] = []
+          if (reviewCount > 0 && reviewAvg !== null) {
+            fragments.push(
+              <span key="rating" className="flex items-center gap-1">
+                <FiStar
+                  size={13}
+                  className="fill-[var(--accent)] text-[var(--accent)]"
+                />
+                <span className="font-medium tabular-nums">
+                  {reviewAvg.toFixed(1)}
+                </span>
+                <span className="text-[var(--text-muted)]">
+                  ({reviewCount})
+                </span>
+              </span>,
+            )
+          }
+          if (ordersCount > 0) {
+            fragments.push(
+              <span key="sold" className="text-[var(--text-secondary)]">
+                {formatCount(ordersCount)} sold
+              </span>,
+            )
+          }
+          if (fragments.length === 0) return null
           return (
-            <p className="flex items-center gap-1.5 font-sans text-[13px] text-[var(--text-secondary)]">
-              <FiStar
-                size={13}
-                className="fill-[var(--accent)] text-[var(--accent)]"
-              />
-              <span className="font-medium tabular-nums">
-                {summary.average_rating.toFixed(1)}
-              </span>
-              <span className="text-[var(--text-muted)]">
-                · {summary.total_reviews}{' '}
-                {summary.total_reviews === 1 ? 'review' : 'reviews'}
-              </span>
+            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 font-sans text-[13px] text-[var(--text-secondary)]">
+              {fragments.map((f, i) => (
+                <React.Fragment key={i}>
+                  {i > 0 && <span className="text-[var(--text-muted)]">·</span>}
+                  {f}
+                </React.Fragment>
+              ))}
             </p>
           )
         })()}

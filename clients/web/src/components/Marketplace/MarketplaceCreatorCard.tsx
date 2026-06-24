@@ -157,6 +157,7 @@ export const MarketplaceCreatorCard = ({
                 On Blyss since {joinYear}
               </p>
             )}
+            <CreatorCardStats creator={creator} />
           </div>
         </motion.div>
       </Link>
@@ -263,8 +264,60 @@ export const MarketplaceCreatorCard = ({
               On Blyss since {joinYear}
             </p>
           )}
+          <CreatorCardStats creator={creator} />
         </div>
       </motion.div>
     </Link>
   )
+}
+
+/**
+ * CreatorCardStats — compact 'Products · Sold · Earned' line under
+ * the creator's name. Reads optional fields (default 0) attached to
+ * the Organization payload by the public listing endpoints. Each
+ * fragment is rendered only when its number is non-zero so a fresh
+ * creator's card doesn't read '0 sold · KSh 0 earned'.
+ */
+const CreatorCardStats: React.FC<{ creator: Organization }> = ({ creator }) => {
+  const c = creator as unknown as {
+    products_count?: number
+    total_orders?: number
+    total_earned?: number
+  }
+  const productsCount = c.products_count ?? 0
+  const totalOrders = c.total_orders ?? 0
+  const totalEarned = c.total_earned ?? 0
+  const fragments: string[] = []
+  if (productsCount > 0) {
+    fragments.push(
+      `${productsCount} ${productsCount === 1 ? 'product' : 'products'}`,
+    )
+  }
+  if (totalOrders > 0) {
+    fragments.push(`${formatCount(totalOrders)} sold`)
+  }
+  if (totalEarned > 0) {
+    fragments.push(`${formatMoney(totalEarned)} earned`)
+  }
+  if (fragments.length === 0) return null
+  return (
+    <p className="mt-1 font-sans text-[12px] tabular-nums text-[var(--text-secondary)]">
+      {fragments.join(' · ')}
+    </p>
+  )
+}
+
+const formatCount = (n: number): string => {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`
+  return String(n)
+}
+
+const formatMoney = (minor: number): string => {
+  // Blyss settlements are KES today; FX-aware display lands when we
+  // expand to USD/NGN settlements.
+  const major = Math.round((minor || 0) / 100)
+  if (major >= 1_000_000) return `KSh ${(major / 1_000_000).toFixed(1)}M`
+  if (major >= 1_000) return `KSh ${(major / 1_000).toFixed(1)}K`
+  return `KSh ${major}`
 }

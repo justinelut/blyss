@@ -187,6 +187,55 @@ class TestCreatorSummarySchema:
         )
         assert schema.product_count == 0
 
+    def test_card_stats_default_zero(self) -> None:
+        """New per-card stats default to 0 when omitted (legacy callers)."""
+        import uuid
+
+        schema = CreatorSummarySchema(
+            id=uuid.uuid4(),
+            name="Anonymous",
+            slug="anon",
+            avatar_url=None,
+            product_count=0,
+        )
+        assert schema.total_orders == 0
+        assert schema.total_earned == 0
+
+    def test_card_stats_preserved_when_set(self) -> None:
+        """Per-card stats round-trip through validation when provided."""
+        import uuid
+
+        schema = CreatorSummarySchema(
+            id=uuid.uuid4(),
+            name="Selling Maker",
+            slug="selling-maker",
+            avatar_url=None,
+            product_count=12,
+            total_orders=148,
+            total_earned=1_250_000,  # 12,500 KES in minor units
+        )
+        assert schema.total_orders == 148
+        assert schema.total_earned == 1_250_000
+
+    def test_card_stats_from_attributes(self) -> None:
+        """Schema reads stats off arbitrary objects via from_attributes."""
+        import uuid
+        from types import SimpleNamespace
+
+        ns = SimpleNamespace(
+            id=uuid.uuid4(),
+            name="From-Attr Creator",
+            slug="from-attr",
+            avatar_url=None,
+            product_count=3,
+            total_orders=7,
+            total_earned=42_000,
+        )
+        schema = CreatorSummarySchema.model_validate(ns)
+        assert schema.product_count == 3
+        assert schema.total_orders == 7
+        assert schema.total_earned == 42_000
+
 
 class TestCreatorStorefrontSchema:
     """Test CreatorStorefrontSchema serialization."""

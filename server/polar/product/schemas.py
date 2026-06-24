@@ -883,6 +883,35 @@ class Product(MetadataOutputMixin, ProductBase):
         description="List of custom fields attached to the product."
     )
 
+    # ─── Per-product card stats (populated only by public listing) ──
+    # Computed via batched aggregates on /v1/products/public so the
+    # marketplace cards can show 'Sold N · 4.8 · 32 reviews' without
+    # an extra round-trip. Defaults to 0 / null so non-listing fetches
+    # (auth'd dashboard reads, individual product detail) leave them
+    # unset rather than running aggregates on every Product fetch.
+    orders_count: int = Field(
+        default=0,
+        description=(
+            "Count of paid orders for this product. Populated only on "
+            "public listing endpoints; defaults to 0 elsewhere."
+        ),
+    )
+    review_count: int = Field(
+        default=0,
+        description=(
+            "Count of approved reviews for this product. Populated only "
+            "on public listing endpoints."
+        ),
+    )
+    review_rating_avg: float | None = Field(
+        default=None,
+        description=(
+            "Mean review rating (1.0-5.0) across approved reviews. Null "
+            "when there are no reviews yet. Populated only on public "
+            "listing endpoints."
+        ),
+    )
+
 
 BenefitPublicList = Annotated[
     list[BenefitPublic],

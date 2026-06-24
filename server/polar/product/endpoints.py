@@ -304,8 +304,64 @@ async def list_public_products(
 
     results, count = await repository.paginate(statement, limit=limit, page=page)
 
+    # Per-product card aggregates — single batched query each for
+    # orders + reviews. Cheaper than N scalar subqueries when the
+    # listing returns the maximum of 100 rows. Indexes already exist
+    # on Order.product_id (FK) and ix_product_reviews_product_id, so
+    # the GROUP BY runs against an indexed column.
+    from polar.models import Order
+    from polar.models.order import OrderStatus
+    from polar.models.product_review import ProductReview
+
+    product_ids = [p.id for p in results]
+    orders_by_product: dict = {}
+    reviews_by_product: dict = {}
+    if product_ids:
+        order_rows = await session.execute(
+            select(
+                Order.product_id,
+                func.count(Order.id).label("count"),
+            )
+            .where(
+                Order.product_id.in_(product_ids),
+                Order.status == OrderStatus.paid,
+            )
+            .group_by(Order.product_id)
+        )
+        for row in order_rows:
+            orders_by_product[row.product_id] = int(row.count or 0)
+
+        review_rows = await session.execute(
+            select(
+                ProductReview.product_id,
+                func.count(ProductReview.id).label("count"),
+                func.avg(ProductReview.rating).label("avg"),
+            )
+            .where(
+                ProductReview.product_id.in_(product_ids),
+                ProductReview.deleted_at.is_(None),
+            )
+            .group_by(ProductReview.product_id)
+        )
+        for row in review_rows:
+            reviews_by_product[row.product_id] = (
+                int(row.count or 0),
+                float(row.avg) if row.avg is not None else None,
+            )
+
+    # Attach computed values to each Product instance before model_validate.
+    # Same trick as the creator listing — the SQLAlchemy instance accepts
+    # ad-hoc attribute attachments, Pydantic reads them via from_attributes.
+    items: list[ProductSchema] = []
+    for product in results:
+        product.orders_count = orders_by_product.get(product.id, 0)
+        rc, ravg = reviews_by_product.get(product.id, (0, None))
+        product.review_count = rc
+        product.review_rating_avg = ravg
+        items.append(ProductSchema.model_validate(product))
+
     return ListResource.from_paginated_results(
-        [ProductSchema.model_validate(result) for result in results],
+        items,
         count,
         PaginationParams(limit=limit, page=page),
     )

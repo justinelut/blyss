@@ -193,3 +193,52 @@ class TestProductPriceMeteredUnitCreate:
         assert len(errors) == 1
         assert errors[0]["type"] == "less_than_equal"
         assert errors[0]["loc"] == ("cap_amount",)
+
+
+class TestProductCardStatsFields:
+    """Per-listing card-stat fields on Product schema (orders_count,
+    review_count, review_rating_avg). These are populated only by the
+    public listing endpoint (/v1/products/public) — defaults must
+    keep every other surface (dashboard reads, individual product
+    detail) unaffected.
+    """
+
+    def test_orders_count_defaults_to_zero(self) -> None:
+        """orders_count must default to 0 so legacy fetches that don't
+        set it serialise without error."""
+        from polar.product.schemas import Product
+
+        # Direct model_fields access — no need to build a full Product
+        # (which requires prices/benefits/medias/attached_custom_fields)
+        # to assert the field exists with the expected default.
+        assert "orders_count" in Product.model_fields
+        assert Product.model_fields["orders_count"].default == 0
+
+    def test_review_count_defaults_to_zero(self) -> None:
+        from polar.product.schemas import Product
+
+        assert "review_count" in Product.model_fields
+        assert Product.model_fields["review_count"].default == 0
+
+    def test_review_rating_avg_defaults_to_none(self) -> None:
+        """Rating avg defaults to None, not 0.0 — so the frontend
+        knows the difference between 'no reviews yet' and '0-star
+        average' (which can't actually happen since rating is 1-5)."""
+        from polar.product.schemas import Product
+
+        assert "review_rating_avg" in Product.model_fields
+        assert Product.model_fields["review_rating_avg"].default is None
+
+    def test_review_rating_avg_accepts_float(self) -> None:
+        """Avg field must be a nullable float."""
+        from polar.product.schemas import Product
+
+        anno = Product.model_fields["review_rating_avg"].annotation
+        # Optional[float] / float | None resolves to a Union — verify
+        # both float and NoneType are valid by checking via
+        # Pydantic's TypeAdapter rather than introspecting Union form.
+        from pydantic import TypeAdapter
+
+        adapter = TypeAdapter(anno)
+        assert adapter.validate_python(4.5) == 4.5
+        assert adapter.validate_python(None) is None
