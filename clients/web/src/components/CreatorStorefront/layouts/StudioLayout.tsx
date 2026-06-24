@@ -25,6 +25,7 @@ import type {
   StorefrontLayout,
   StorefrontWorkSectionProps,
 } from './index'
+import { HeroBio, HeroStatsLine } from './_shared'
 
 const StudioHero: React.FC<StorefrontHeroProps> = ({
   name,
@@ -36,6 +37,9 @@ const StudioHero: React.FC<StorefrontHeroProps> = ({
   tipEnabled,
   onSubscribeClick,
   onTipClick,
+  productsCount = 0,
+  totalOrders = 0,
+  totalEarned = 0,
 }) => (
   <header className="border-b border-[var(--border)] bg-[var(--background)]">
     {/* Banner — narrow 6:1 strip. Studio is text-led but a banner
@@ -65,10 +69,22 @@ const StudioHero: React.FC<StorefrontHeroProps> = ({
           {name}
         </h1>
         {bio && (
-          <p className="mt-6 max-w-[58ch] font-sans text-[18px] leading-[1.55] text-[var(--text-secondary)]">
-            {bio}
-          </p>
+          <div className="mt-6 max-w-[58ch]">
+            <HeroBio
+              bio={bio}
+              name={name}
+              threshold={200}
+              clampLines={3}
+              className="text-[18px] leading-[1.55]"
+            />
+          </div>
         )}
+        <HeroStatsLine
+          className="mt-6"
+          productsCount={productsCount}
+          totalOrders={totalOrders}
+          totalEarned={totalEarned}
+        />
         <div className="mt-8 flex flex-wrap items-center gap-3">
           {tipEnabled && (
             <button

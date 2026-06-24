@@ -1,5 +1,31 @@
 'use client'
 
+/**
+ * shadcn Dialog — Blyss restyle.
+ *
+ * The original shadcn defaults shipped with several anti-design patterns
+ * that didn't fit the Blyss surface:
+ *   - Pure black `bg-black/80` overlay (we use the warm scrim
+ *     `rgba(15,14,12,0.55)` per §3.2 so the modal feels like part of
+ *     the paper UI, not a generic dropshipping admin)
+ *   - Heavy `zoom-in-95` + `slide-in-from-top-[48%]` entry animation
+ *     (we use a simple smooth fade + 4px lift — feels like the Linear
+ *     dialog rather than a Bootstrap modal)
+ *   - `shadow-lg` on the content (forbidden by §3.4 — borders / tone
+ *     shifts only)
+ *   - Visible `focus:ring-2 focus:ring-offset-2 focus:ring-ring` on
+ *     the × button — every dashboard modal had a navy outline halo
+ *     sitting around the close icon
+ *
+ * This file keeps the full Radix accessibility behaviour (portal, focus
+ * trap, escape-to-close, scroll lock, aria-* wiring) and simply swaps
+ * the surface treatment + motion for Blyss tones. All exported names
+ * match the original so call-sites don't have to change.
+ *
+ * For new marketing / storefront surfaces prefer `@/design/BlyssDialog`
+ * which uses motion/react directly and supports bottom-sheet on mobile.
+ */
+
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { X } from 'lucide-react'
 import * as React from 'react'
@@ -22,7 +48,11 @@ const DialogOverlay = ({
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/80',
+      // Warm scrim instead of pure black. Simple fade only — no
+      // heavy slide/zoom on the backdrop.
+      'fixed inset-0 z-50 bg-[rgba(15,14,12,0.55)] backdrop-blur-[2px]',
+      'data-[state=open]:animate-in data-[state=closed]:animate-out',
+      'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
       className,
     )}
     {...props}
@@ -41,13 +71,35 @@ const DialogContent = ({
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        'bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] fixed top-[50%] left-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border p-6 shadow-lg duration-200 sm:rounded-lg',
+        // Surface — paper background, hairline border (no shadow per §3.4),
+        // rounded 8px to match the rest of the system.
+        'fixed top-[50%] left-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4',
+        'border border-[var(--border)] bg-[var(--background)] p-6 sm:rounded-lg',
+        // Motion — simple smooth fade + 4px translate lift on enter.
+        // Duration short (180ms) so heavy modals don't feel slow.
+        'duration-200',
+        'data-[state=open]:animate-in data-[state=closed]:animate-out',
+        'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+        // Keep a small lift but kill the 48%-slide-from-top + 95%-zoom.
+        // The lift feels like the modal "settles" rather than launches.
+        'data-[state=open]:slide-in-from-top-1 data-[state=closed]:slide-out-to-top-1',
         className,
       )}
       {...props}
     >
       {children}
-      <DialogPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:pointer-events-none">
+      <DialogPrimitive.Close
+        className={cn(
+          // Subtle, ringless. On hover and on focus we shift the
+          // background and color — no halo.
+          'absolute top-4 right-4 inline-flex h-8 w-8 items-center justify-center rounded-md',
+          'text-[var(--text-muted)] transition-colors',
+          'hover:bg-[var(--surface-sunken)] hover:text-[var(--text-primary)]',
+          'focus:bg-[var(--surface-sunken)] focus:text-[var(--text-primary)]',
+          'focus-visible:outline-none focus-visible:bg-[var(--surface-sunken)]',
+          'disabled:pointer-events-none',
+        )}
+      >
         <X className="h-4 w-4" />
         <span className="sr-only">Close</span>
       </DialogPrimitive.Close>
@@ -92,7 +144,9 @@ const DialogTitle = ({
   <DialogPrimitive.Title
     ref={ref}
     className={cn(
-      'text-lg leading-none font-semibold tracking-tight',
+      // Use Blyss display type. Existing callers can override via
+      // `className`.
+      'font-display text-[20px] font-semibold leading-[1.2] tracking-[-0.01em] text-[var(--text-primary)]',
       className,
     )}
     {...props}
@@ -107,7 +161,10 @@ const DialogDescription = ({
 }: React.ComponentProps<typeof DialogPrimitive.Description>) => (
   <DialogPrimitive.Description
     ref={ref}
-    className={cn('text-muted-foreground text-sm', className)}
+    className={cn(
+      'font-sans text-[14px] leading-[1.55] text-[var(--text-secondary)]',
+      className,
+    )}
     {...props}
   />
 )

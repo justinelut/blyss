@@ -28,6 +28,7 @@ import type {
   StorefrontLayout,
   StorefrontWorkSectionProps,
 } from './index'
+import { HeroBio, HeroStatsLine } from './_shared'
 
 const PortfolioHero: React.FC<StorefrontHeroProps> = ({
   name,
@@ -41,6 +42,9 @@ const PortfolioHero: React.FC<StorefrontHeroProps> = ({
   socials,
   onSubscribeClick,
   onTipClick,
+  productsCount = 0,
+  totalOrders = 0,
+  totalEarned = 0,
 }) => (
   <header className="border-b border-[var(--border)] bg-[var(--background)]">
     {/* Banner — 16:5 panorama. Wider than gallery, narrower than
@@ -90,10 +94,22 @@ const PortfolioHero: React.FC<StorefrontHeroProps> = ({
         </div>
       </div>
       {bio && (
-        <p className="mt-8 max-w-[64ch] font-sans text-[20px] leading-[1.45] text-[var(--text-secondary)]">
-          {bio}
-        </p>
+        <div className="mt-8 max-w-[64ch]">
+          <HeroBio
+            bio={bio}
+            name={name}
+            threshold={200}
+            clampLines={3}
+            className="text-[20px] leading-[1.45]"
+          />
+        </div>
       )}
+      <HeroStatsLine
+        className="mt-6"
+        productsCount={productsCount}
+        totalOrders={totalOrders}
+        totalEarned={totalEarned}
+      />
       {socials && (socials.twitter || socials.instagram || socials.website) && (
         <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 font-sans text-[13px] text-[var(--text-muted)]">
           {socials.website && (

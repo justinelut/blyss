@@ -27,6 +27,7 @@ import type {
   StorefrontLayout,
   StorefrontWorkSectionProps,
 } from './index'
+import { HeroBio, HeroStatsLine } from './_shared'
 
 const CatalogHero: React.FC<StorefrontHeroProps> = ({
   name,
@@ -39,6 +40,9 @@ const CatalogHero: React.FC<StorefrontHeroProps> = ({
   tipEnabled,
   onSubscribeClick,
   onTipClick,
+  productsCount = 0,
+  totalOrders = 0,
+  totalEarned = 0,
 }) => (
   <header className="border-b border-[var(--border)] bg-[var(--surface)]">
     {/* Banner — thin (5:1 aspect) so the catalog rows below
@@ -65,13 +69,21 @@ const CatalogHero: React.FC<StorefrontHeroProps> = ({
           <span className="font-sans text-[12px] text-[var(--text-muted)]">
             @{slug}{city ? ` · ${city}` : ''}
           </span>
+          <HeroStatsLine
+            className="mt-1"
+            productsCount={productsCount}
+            totalOrders={totalOrders}
+            totalEarned={totalEarned}
+          />
         </div>
       </div>
-      {bio && (
-        <p className="max-w-[44ch] font-sans text-[13px] leading-[1.5] text-[var(--text-secondary)]">
-          {bio}
-        </p>
-      )}
+      <HeroBio
+        bio={bio}
+        name={name}
+        threshold={120}
+        clampLines={2}
+        className="max-w-[44ch] text-[13px]"
+      />
       <div className="flex flex-shrink-0 items-center gap-2">
         {tipEnabled && (
           <button

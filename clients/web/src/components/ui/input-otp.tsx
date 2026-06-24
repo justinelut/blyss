@@ -50,7 +50,7 @@ const InputOTPSlot = ({
       ref={ref}
       className={cn(
         'border-input dark:bg-polar-900 relative flex h-10 w-10 items-center justify-center border-y border-r bg-white text-sm transition-all first:rounded-l-md first:border-l last:rounded-r-md',
-        isActive && 'ring-ring ring-offset-background z-10 ring-2',
+        isActive && 'ring-1 ring-[var(--accent)]/40 z-10',
         className,
       )}
       {...props}

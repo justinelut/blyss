@@ -29,6 +29,7 @@ import type {
   StorefrontLayout,
   StorefrontWorkSectionProps,
 } from './index'
+import { HeroBio, HeroStatsLine } from './_shared'
 
 const GalleryHero: React.FC<StorefrontHeroProps> = ({
   name,
@@ -41,6 +42,9 @@ const GalleryHero: React.FC<StorefrontHeroProps> = ({
   tipEnabled,
   onSubscribeClick,
   onTipClick,
+  productsCount = 0,
+  totalOrders = 0,
+  totalEarned = 0,
 }) => (
   <header className="border-b border-[var(--border)] bg-[var(--background)]">
     {/* Banner — shorter than editorial, lets the grid below breathe */}
@@ -57,7 +61,7 @@ const GalleryHero: React.FC<StorefrontHeroProps> = ({
       </div>
     )}
     <div className="mx-auto flex max-w-[1280px] flex-col gap-6 px-6 py-8 md:flex-row md:items-center md:justify-between md:px-16 md:py-10">
-      <div className="flex items-center gap-4">
+      <div className="flex items-start gap-4">
         <Avatar avatar_url={avatarUrl ?? null} name={name} className="h-16 w-16" />
         <div className="flex flex-col gap-1">
           {city && <Eyebrow>{city}</Eyebrow>}
@@ -68,11 +72,17 @@ const GalleryHero: React.FC<StorefrontHeroProps> = ({
           >
             {name}
           </h1>
-          {bio && (
-            <p className="max-w-[60ch] font-sans text-[14px] leading-[1.55] text-[var(--text-secondary)]">
-              {bio}
-            </p>
-          )}
+          <HeroBio
+            bio={bio}
+            name={name}
+            className="max-w-[60ch]"
+          />
+          <HeroStatsLine
+            className="mt-1"
+            productsCount={productsCount}
+            totalOrders={totalOrders}
+            totalEarned={totalEarned}
+          />
         </div>
       </div>
       <div className="flex flex-shrink-0 items-center gap-3">
