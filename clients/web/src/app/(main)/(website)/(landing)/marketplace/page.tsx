@@ -13,32 +13,33 @@ export const dynamic = "force-dynamic"
 export const revalidate = 60
 
 export const metadata: Metadata = {
-  title: 'Marketplace · Buy Digital Products from Creators',
+  title: 'Browse digital products · Instant download · Blyss marketplace',
   description:
-    'Browse 1000+ templates, ebooks, beats, presets, and courses from creators. Filter by category, price, and product type.',
+    'Browse templates, ebooks, beats, presets, courses, fonts, and stock assets from creators. Pay with M-Pesa, Visa, or Mastercard. Instant download after checkout.',
   keywords:
-    'digital products Kenya, buy templates Kenya, buy ebooks Kenya, buy beats Kenya, buy presets Kenya, M-Pesa marketplace, creators online, KSh digital downloads',
+    'buy digital downloads, digital products marketplace, buy notion templates, buy lightroom presets, buy beats online, buy ebooks online, buy online courses, buy canva templates, buy fonts commercial use, royalty free music, instant download, digital products kenya, mpesa digital products',
   alternates: { canonical: 'https://blyss.co.ke/marketplace' },
   openGraph: {
-    title: 'Marketplace · Buy Digital Products from Creators',
+    title: 'Browse digital products · Blyss marketplace',
     description:
-      'Browse templates, ebooks, beats, presets, and courses from creators. Filter by category, price, and product type.',
+      'Templates, ebooks, beats, presets, courses, fonts. M-Pesa or card. Instant download.',
     type: 'website',
     locale: 'en_KE',
+    url: 'https://blyss.co.ke/marketplace',
     images: [
       {
         url: 'https://cdn.blyss.co.ke/brand/og-default.png',
         width: 1200,
         height: 630,
-        alt: 'Blyss marketplace · creators',
+        alt: 'Blyss marketplace',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Marketplace · Creators',
+    title: 'Browse digital products · Blyss',
     description:
-      'Templates, ebooks, beats, presets, and courses by creators.',
+      'Templates, ebooks, beats, presets, courses. Instant download.',
     images: ['https://cdn.blyss.co.ke/brand/og-default.png'],
   },
 }
@@ -119,6 +120,16 @@ export default async function MarketplacePage({
 
   return (
     <>
+      <JsonLd
+        data={{
+          '@context': 'https://schema.org',
+          '@type': 'BreadcrumbList',
+          itemListElement: [
+            { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://blyss.co.ke/' },
+            { '@type': 'ListItem', position: 2, name: 'Marketplace', item: 'https://blyss.co.ke/marketplace' },
+          ],
+        }}
+      />
       <JsonLd
         data={{
           '@context': 'https://schema.org',

@@ -26,11 +26,13 @@ const ORIGIN = 'https://blyss.co.ke'
 
 const organizationSchema = {
   '@context': 'https://schema.org',
-  '@type': 'Organization',
+  '@type': 'OnlineStore',
   '@id': `${ORIGIN}/#organization`,
   name: 'Blyss',
+  alternateName: 'Blyss Marketplace',
   url: ORIGIN,
   logo: `${ORIGIN}/og-image.png`,
+  image: `${ORIGIN}/og-image.png`,
   description:
     'Marketplace for Kenyan creators selling templates, ebooks, beats, presets, and courses. Buyers pay with M-Pesa or card. Creators are paid within 24 hours.',
   foundingLocation: {
@@ -42,9 +44,72 @@ const organizationSchema = {
       addressCountry: 'KE',
     },
   },
-  areaServed: { '@type': 'Country', name: 'Kenya' },
-  paymentAccepted: ['M-Pesa', 'Visa', 'Mastercard'],
-  currenciesAccepted: 'KES',
+  address: {
+    '@type': 'PostalAddress',
+    addressLocality: 'Nairobi',
+    addressCountry: 'KE',
+  },
+  areaServed: [
+    { '@type': 'Country', name: 'Kenya' },
+    { '@type': 'Country', name: 'Uganda' },
+    { '@type': 'Country', name: 'Tanzania' },
+    { '@type': 'Country', name: 'Nigeria' },
+    { '@type': 'Country', name: 'South Africa' },
+    { '@type': 'Country', name: 'United States' },
+    { '@type': 'Country', name: 'United Kingdom' },
+  ],
+  paymentAccepted: ['M-Pesa', 'Visa', 'Mastercard', 'Apple Pay', 'Google Pay'],
+  currenciesAccepted: ['KES', 'USD'],
+  // Top-level offer catalog — gives AI search engines a tree of what
+  // Blyss sells, mapped to schema.org product categories. Each
+  // OfferCatalog item links back to the live category page where
+  // the actual products are listed.
+  hasOfferCatalog: {
+    '@type': 'OfferCatalog',
+    name: 'Digital products',
+    itemListElement: [
+      {
+        '@type': 'OfferCatalog',
+        name: 'Notion templates',
+        url: `${ORIGIN}/category/notion-templates`,
+      },
+      {
+        '@type': 'OfferCatalog',
+        name: 'Lightroom presets',
+        url: `${ORIGIN}/category/lightroom-presets`,
+      },
+      {
+        '@type': 'OfferCatalog',
+        name: 'Ebooks',
+        url: `${ORIGIN}/category/ebooks`,
+      },
+      {
+        '@type': 'OfferCatalog',
+        name: 'Beats and instrumentals',
+        url: `${ORIGIN}/category/beats`,
+      },
+      {
+        '@type': 'OfferCatalog',
+        name: 'Online courses',
+        url: `${ORIGIN}/category/courses`,
+      },
+      {
+        '@type': 'OfferCatalog',
+        name: 'Canva templates',
+        url: `${ORIGIN}/category/canva-templates`,
+      },
+      {
+        '@type': 'OfferCatalog',
+        name: 'Fonts',
+        url: `${ORIGIN}/category/fonts`,
+      },
+      {
+        '@type': 'OfferCatalog',
+        name: 'Stock music',
+        url: `${ORIGIN}/category/stock-music`,
+      },
+    ],
+  },
   sameAs: [
     'https://twitter.com/blyssmarket',
     'https://instagram.com/blyssmarket',

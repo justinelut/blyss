@@ -83,15 +83,38 @@ export default async function ProductPage({ params }: Props) {
       priceCurrency: currency,
       availability: product.is_archived ? 'https://schema.org/Discontinued' : 'https://schema.org/InStock',
       url: `${SITE}/product/${product.id}`,
+      seller: org?.name
+        ? {
+            '@type': 'Organization',
+            name: org.name,
+            url: org.slug ? `${SITE}/creators/${org.slug}` : undefined,
+          }
+        : undefined,
     },
+  }
+
+  // aggregateRating — only emit when reviews actually exist, otherwise
+  // Google flags the schema as misleading. The new card-stat fields
+  // ship from /v1/products/{id} as `review_count` + `review_rating_avg`.
+  const reviewCount = (product as any).review_count as number | undefined
+  const reviewAvg = (product as any).review_rating_avg as number | null | undefined
+  if (typeof reviewCount === 'number' && reviewCount > 0 && typeof reviewAvg === 'number' && reviewAvg > 0) {
+    productLd.aggregateRating = {
+      '@type': 'AggregateRating',
+      ratingValue: reviewAvg.toFixed(1),
+      reviewCount,
+      bestRating: 5,
+      worstRating: 1,
+    }
   }
 
   const breadcrumbLd = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Browse', item: `${SITE}/marketplace` },
-      { '@type': 'ListItem', position: 2, name: product.name, item: `${SITE}/product/${product.id}` },
+      { '@type': 'ListItem', position: 1, name: 'Home', item: `${SITE}/` },
+      { '@type': 'ListItem', position: 2, name: 'Marketplace', item: `${SITE}/marketplace` },
+      { '@type': 'ListItem', position: 3, name: product.name, item: `${SITE}/product/${product.id}` },
     ],
   }
 

@@ -46,19 +46,36 @@ export async function generateMetadata(): Promise<Metadata> {
   const baseMetadata: Metadata = {
     title: {
       template: '%s · Blyss',
-      default: 'Blyss — Marketplace for Independent Creators',
+      default:
+        'Blyss — Digital products from Kenyan creators · Templates, ebooks, beats, presets, courses',
     },
     description:
-      'Buy templates, ebooks, beats, presets, and courses from independent creators. Instant download. Creators paid within 24 hours.',
+      'Marketplace for Kenyan creators. Buy templates, ebooks, beats, presets, and courses with M-Pesa, Visa, or Mastercard. Instant download. Creators paid within 24 hours.',
     keywords: [
-      'digital products marketplace',
-      'buy templates online',
-      'buy ebooks online',
+      // Kenyan-context (top autocomplete intents — research 2026-06-26)
+      'digital products kenya',
+      'sell digital products kenya',
+      'buy ebooks kenya',
+      'm-pesa shop',
+      'side hustle kenya',
+      'make money online kenya',
+      'kenyan creator economy',
+      'online courses kenya',
+      'kenyan music producers',
+      // Buyer-side (global)
+      'buy notion templates',
+      'buy lightroom presets',
+      'wedding lightroom presets',
       'buy beats online',
-      'buy presets online',
+      'social media templates',
+      'instagram canva templates',
+      'royalty free music',
+      'fonts for commercial use',
+      'instant download digital',
+      // Category framing
+      'digital products marketplace',
       'creator marketplace',
       'independent creators',
-      'instant download',
     ],
     authors: [{ name: 'Blyss', url: 'https://blyss.co.ke' }],
     publisher: 'Blyss',
@@ -66,18 +83,20 @@ export async function generateMetadata(): Promise<Metadata> {
       images: 'https://blyss.co.ke/og-image.png',
       type: 'website',
       siteName: 'Blyss',
-      title: 'Blyss — Marketplace for Independent Creators',
+      title:
+        'Blyss — Digital products from Kenyan creators',
       description:
-        'Buy templates, ebooks, beats, presets, and courses from independent creators. Instant download.',
+        'Templates, ebooks, beats, presets, courses. Pay with M-Pesa, Visa, or Mastercard. Instant download. Creators paid within 24 hours.',
       url: 'https://blyss.co.ke/',
+      locale: 'en_KE',
     },
     twitter: {
       images: 'https://blyss.co.ke/og-image.png',
       card: 'summary_large_image',
       site: '@blyssmarket',
-      title: 'Blyss — Marketplace for Independent Creators',
+      title: 'Blyss — Digital products from Kenyan creators',
       description:
-        'Templates, ebooks, beats, presets, courses by independent creators. Creators paid within 24 hours.',
+        'Templates, ebooks, beats, presets, courses. M-Pesa, Visa, Mastercard. Instant download.',
     },
     metadataBase: new URL('https://blyss.co.ke/'),
     alternates: {
@@ -151,6 +170,16 @@ export default async function RootLayout({
       className={`antialiased ${inter.variable} ${spaceGrotesk.variable} ${louize.variable} ${GeistMono.variable}`}
     >
       <head>
+        {/* Resource hints — open the TCP + TLS handshake to the
+            domains we WILL hit early so the LCP image and first API
+            call don't wait on a cold connection. cdn is critical
+            (hero + product imagery); api is for SSR data the client
+            re-validates. dns-prefetch is the cheap fallback for the
+            other origins. */}
+        <link rel="preconnect" href="https://cdn.blyss.co.ke" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://api.blyss.co.ke" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://cdn.blyss.co.ke" />
+        <link rel="dns-prefetch" href="https://api.blyss.co.ke" />
         {/* Light is the default, dominant mode (plan/04-ui-direction.md §3.2).
             Dark is reserved for accent sections, opted into by wrapping the
             section in `.dark`. No theme class on <html> = light by default. */}

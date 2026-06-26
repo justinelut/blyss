@@ -9,16 +9,16 @@ export const dynamic = "force-dynamic"
 export const revalidate = 60
 
 export const metadata: Metadata = {
-  title: 'Creators · Designers, Writers, Musicians, Educators',
+  title: 'Creators · Kenyan + global makers on Blyss',
   description:
-    'Browse creators selling digital products. Designers, writers, musicians, educators, photographers, and producers around the world.',
+    'Browse independent creators selling digital products on Blyss. Kenyan and global designers, writers, musicians, photographers, course teachers, and developers.',
   keywords:
-    'creators',
+    'kenyan creators, kenyan designers, kenyan musicians, kenyan ebook authors, kenyan course creators, independent creators africa, kenyan music producers, top kenyan creators',
   alternates: { canonical: 'https://blyss.co.ke/creators' },
   openGraph: {
-    title: 'Creators',
+    title: 'Creators · Kenyan + global makers on Blyss',
     description:
-      'Browse creators selling digital products. Designers, writers, musicians, educators, photographers, and producers across Kenya.',
+      'Independent creators selling templates, ebooks, beats, presets, courses. Kenyan + global.',
     siteName: 'Blyss',
     type: 'website',
     locale: 'en_KE',
@@ -27,15 +27,15 @@ export const metadata: Metadata = {
         url: 'https://cdn.blyss.co.ke/brand/og-default.png',
         width: 1200,
         height: 630,
-        alt: 'creators',
+        alt: 'Blyss creators',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Creators',
+    title: 'Creators on Blyss',
     description:
-      'Designers, writers, musicians, educators, photographers, and producers from across Kenya.',
+      'Kenyan + global designers, writers, musicians, photographers, course teachers.',
     images: ['https://cdn.blyss.co.ke/brand/og-default.png'],
   },
   robots: { index: true, follow: true },
@@ -89,6 +89,16 @@ export default async function CreatorsPage() {
 
   return (
     <>
+      <JsonLd
+        data={{
+          '@context': 'https://schema.org',
+          '@type': 'BreadcrumbList',
+          itemListElement: [
+            { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://blyss.co.ke/' },
+            { '@type': 'ListItem', position: 2, name: 'Creators', item: 'https://blyss.co.ke/creators' },
+          ],
+        }}
+      />
       <JsonLd
         data={{
           '@context': 'https://schema.org',
