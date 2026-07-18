@@ -10,6 +10,7 @@
  * otherwise they'd hit AlreadyActiveSubscriptionError mid-checkout.
  */
 
+import Link from '@/components/Marketplace/LocaleLink'
 import { OptimizedImage } from '@/components/Image/OptimizedImage'
 import { useAuth } from '@/hooks'
 import { useActiveSubscriptionForProduct } from '@/hooks/queries/subscriptions'
@@ -149,7 +150,7 @@ export const TierCard = ({
             Manage in portal
           </a>
         ) : (
-          <a
+          <Link
             href={`/product/${tier.id}`}
             className={cn(
               'mt-10 inline-flex h-11 items-center justify-center rounded-md px-5 font-sans text-[14px] font-medium transition-colors',
@@ -159,7 +160,7 @@ export const TierCard = ({
             )}
           >
             Subscribe — {amount}
-          </a>
+          </Link>
         )}
       </div>
     </article>

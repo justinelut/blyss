@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import Link from '@/components/Marketplace/LocaleLink'
 import { FiHeart, FiTrash2 } from 'react-icons/fi'
 import { OptimizedImage } from '@/components/Image/OptimizedImage'
 import { schemas } from '@/lib/api'

@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import Link from './LocaleLink'
 import { useRouter } from 'next/navigation'
 import { schemas } from '@/lib/api'
 import { Eyebrow, SectionDivider, typography } from '@/design'

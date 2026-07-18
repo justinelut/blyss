@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import Link from '@/components/Marketplace/LocaleLink'
 import { Eyebrow, typography } from '@/design'
 import { cn } from '@/lib/utils'
 

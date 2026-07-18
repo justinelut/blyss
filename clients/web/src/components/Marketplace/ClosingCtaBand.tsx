@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "./LocaleLink";
 
 export const ClosingCtaBand = () => (
   <section className="dark relative overflow-hidden bg-[var(--background)] text-[var(--text-primary)]">

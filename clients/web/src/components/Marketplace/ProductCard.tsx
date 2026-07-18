@@ -5,7 +5,7 @@ import { OptimizedImage } from '@/components/Image/OptimizedImage'
 import { useAddToCart } from '@/hooks/queries/cart'
 import { schemas } from '@/lib/api'
 import Button from '@/components/atoms/Button'
-import Link from 'next/link'
+import Link from './LocaleLink'
 import { useState } from 'react'
 
 interface ProductCardProps {

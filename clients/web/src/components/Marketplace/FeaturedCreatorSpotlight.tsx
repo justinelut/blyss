@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import Link from './LocaleLink'
 import { schemas } from '@/lib/api'
 import { OptimizedImage } from '@/components/Image/OptimizedImage'
 import { Eyebrow, SectionDivider, typography } from '@/design'

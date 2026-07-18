@@ -7,7 +7,7 @@ import { useAddToCart } from '@/hooks/queries/cart'
 import { schemas } from '@/lib/api'
 import Button from '@/components/atoms/Button'
 import { FiShoppingCart, FiTrash2 } from 'react-icons/fi'
-import Link from 'next/link'
+import Link from '@/components/Marketplace/LocaleLink'
 import { useState } from 'react'
 
 interface WishlistItemProps {

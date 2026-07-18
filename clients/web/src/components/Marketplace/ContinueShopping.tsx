@@ -28,7 +28,7 @@ import { useCart } from '@/hooks/queries/cart'
 import { useDisplayCurrency } from '@/components/Marketplace/CurrencyProvider'
 import { schemas } from '@/lib/api'
 import { cn } from '@/lib/utils'
-import Link from 'next/link'
+import Link from './LocaleLink'
 import { useEffect, useState } from 'react'
 import { FiArrowRight } from 'react-icons/fi'
 

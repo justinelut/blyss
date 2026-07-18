@@ -20,7 +20,7 @@
 import NextLink, { type LinkProps } from 'next/link'
 import type { AnchorHTMLAttributes, ReactNode } from 'react'
 import { useCurrencyControls } from '@/components/Marketplace/CurrencyProvider'
-import { isSupportedCountry } from '@/lib/geo'
+import { localizeMarketplaceHref } from '@/lib/geo/path'
 
 type LocaleLinkProps = Omit<LinkProps, 'href'> &
   Omit<AnchorHTMLAttributes<HTMLAnchorElement>, keyof LinkProps> & {
@@ -28,49 +28,9 @@ type LocaleLinkProps = Omit<LinkProps, 'href'> &
     children?: ReactNode
   }
 
-/** Internal paths that bypass locale prefixing (must match proxy.ts). */
-const INTERNAL_PREFIXES = [
-  '/dashboard',
-  '/finance',
-  '/settings',
-  '/onboarding',
-  '/oauth2',
-  '/api',
-  '/checkout',
-  '/_buy',
-  '/_my',
-  '/ingest',
-  '/monitoring',
-  '/docs',
-]
-
-const isExternal = (href: string): boolean =>
-  /^(?:[a-z]+:|\/\/|#|mailto:|tel:)/i.test(href)
-
-const isInternal = (href: string): boolean =>
-  INTERNAL_PREFIXES.some((p) => href === p || href.startsWith(`${p}/`))
-
-const startsWithSupportedCountry = (href: string): boolean => {
-  const m = href.match(/^\/([a-z]{2})(?:\/|$)/i)
-  return !!m && isSupportedCountry(m[1].toLowerCase())
-}
-
 export function LocaleLink({ href, children, ...rest }: LocaleLinkProps) {
   const { country } = useCurrencyControls()
-
-  let resolvedHref = href
-
-  if (
-    typeof href === 'string' &&
-    href.startsWith('/') &&
-    !isExternal(href) &&
-    !isInternal(href) &&
-    !startsWithSupportedCountry(href)
-  ) {
-    // Strip a leading slash, reattach with the country segment.
-    const path = href === '/' ? '' : href
-    resolvedHref = `/${country}${path}`
-  }
+  const resolvedHref = localizeMarketplaceHref(href, country)
 
   return (
     <NextLink href={resolvedHref} {...rest}>

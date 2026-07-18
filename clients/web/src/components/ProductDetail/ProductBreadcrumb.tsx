@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import Link from '@/components/Marketplace/LocaleLink'
 import { FiChevronRight } from 'react-icons/fi'
 import { cn } from '@/lib/utils'
 

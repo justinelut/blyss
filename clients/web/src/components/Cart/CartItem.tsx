@@ -5,7 +5,7 @@ import { formatCurrency } from '@/lib/currency'
 import { Button } from '@/components/ui/button'
 import { FiTrash2 } from 'react-icons/fi'
 import Image from 'next/image'
-import Link from 'next/link'
+import Link from '@/components/Marketplace/LocaleLink'
 import { useState } from 'react'
 
 interface CartItemProps {

@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import Link from 'next/link'
+import Link from './LocaleLink'
 import { useReducedMotion, motion } from 'motion/react'
 import { FiShoppingCart, FiStar } from 'react-icons/fi'
 import { schemas } from '@/lib/api'

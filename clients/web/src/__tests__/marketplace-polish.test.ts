@@ -46,3 +46,18 @@ describe('Marketplace polish', () => {
     }
   })
 })
+
+describe('Marketplace locale navigation', () => {
+  test('high-traffic buyer links use LocaleLink instead of raw Next links', () => {
+    for (const f of [
+      'src/components/Marketplace/MarketplaceProductCard.tsx',
+      'src/components/Marketplace/MarketplaceHeader.tsx',
+      'src/components/Marketplace/Hero.tsx',
+      'src/components/Marketplace/MarketplaceCreatorCard.tsx',
+    ]) {
+      const src = read(f)
+      expect(src).toMatch(/import Link from ["']\.\/LocaleLink["']/)
+      expect(src).not.toMatch(/import Link from ["']next\/link["']/)
+    }
+  })
+})

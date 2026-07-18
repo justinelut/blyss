@@ -6,6 +6,7 @@ import {
   isSupportedCountry,
   normalizeCountry,
 } from './index'
+import { countryFromPathname } from './path'
 
 export interface ResolvedGeo {
   country: string
@@ -14,13 +15,27 @@ export interface ResolvedGeo {
   shouldSetCookie: boolean
 }
 
+const countryFromSameOriginReferrer = (request: NextRequest): string | null => {
+  const referrer = request.headers.get('referer')
+  if (!referrer) return null
+
+  try {
+    const url = new URL(referrer)
+    if (url.origin !== request.nextUrl.origin) return null
+    return countryFromPathname(url.pathname)
+  } catch {
+    return null
+  }
+}
+
 /**
  * Resolve the visitor's country + currency for the marketplace.
  *
  * Precedence:
  *   1. Explicit cookie override (the visitor picked a country/currency)
- *   2. Cloudflare `cf-ipcountry` request header (Blyss is behind Cloudflare)
- *   3. Default: US / USD — never KES — so international buyers aren't shown a
+ *   2. Locale on a same-origin referring page (protects older raw links)
+ *   3. Cloudflare `cf-ipcountry` or Vercel's country header
+ *   4. Default: US / USD — never KES — so international buyers aren't shown a
  *      price they can't be charged.
  */
 export function resolveGeo(request: NextRequest): ResolvedGeo {
@@ -32,6 +47,15 @@ export function resolveGeo(request: NextRequest): ResolvedGeo {
       currency: currencyForCountry(country),
       // Cookie already set; don't rewrite on every request.
       shouldSetCookie: false,
+    }
+  }
+
+  const referrerCountry = countryFromSameOriginReferrer(request)
+  if (referrerCountry) {
+    return {
+      country: referrerCountry,
+      currency: currencyForCountry(referrerCountry),
+      shouldSetCookie: true,
     }
   }
 

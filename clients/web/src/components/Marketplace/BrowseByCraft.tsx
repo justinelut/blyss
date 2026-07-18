@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import Link from './LocaleLink'
 import { Eyebrow, SectionDivider, typography } from '@/design'
 import { OptimizedImage } from '@/components/Image/OptimizedImage'
 import { cn } from '@/lib/utils'

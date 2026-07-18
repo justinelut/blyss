@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import Link from './LocaleLink'
 import { schemas } from '@/lib/api'
 import { Eyebrow, SectionDivider, typography } from '@/design'
 import { OptimizedImage } from '@/components/Image/OptimizedImage'
