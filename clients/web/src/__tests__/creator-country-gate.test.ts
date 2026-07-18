@@ -1,6 +1,6 @@
-import { describe, test, expect } from 'vitest'
-import { readFileSync } from 'fs'
-import { join } from 'path'
+import { describe, test, expect } from "vitest";
+import { readFileSync } from "fs";
+import { join } from "path";
 
 /**
  * Creator country gate — dashboard waitlist routing.
@@ -21,40 +21,40 @@ import { join } from 'path'
 
 const RESULT_FILE = join(
   process.cwd(),
-  'src/components/Organization/AIValidationResult.tsx',
-)
+  "src/components/Organization/AIValidationResult.tsx",
+);
 const FORM_FILE = join(
   process.cwd(),
-  'src/components/Organization/CreatorWaitlistForm.tsx',
-)
+  "src/components/Organization/CreatorWaitlistForm.tsx",
+);
 
-describe('Creator country gate waitlist', () => {
-  const resultSrc = readFileSync(RESULT_FILE, 'utf8')
-  const formSrc = readFileSync(FORM_FILE, 'utf8')
+describe("Creator country gate waitlist", () => {
+  const resultSrc = readFileSync(RESULT_FILE, "utf8");
+  const formSrc = readFileSync(FORM_FILE, "utf8");
 
-  test('AIValidationResult detects a country denial', () => {
-    expect(resultSrc).toContain("denial_kind === 'country'")
-  })
+  test("AIValidationResult detects a country denial", () => {
+    expect(resultSrc).toMatch(/denial_kind === ["']country["']/);
+  });
 
-  test('country denial renders the waitlist form, not the appeal form', () => {
-    expect(resultSrc).toContain('CreatorWaitlistForm')
+  test("country denial renders the waitlist form, not the appeal form", () => {
+    expect(resultSrc).toContain("CreatorWaitlistForm");
     // The branch must guard the waitlist with isCountryDenial so policy
     // denials keep their appeal flow.
-    expect(resultSrc).toContain('isCountryDenial')
-  })
+    expect(resultSrc).toContain("isCountryDenial");
+  });
 
-  test('waitlist form posts to the org-scoped waitlist endpoint', () => {
-    expect(formSrc).toContain('/v1/organizations/{id}/waitlist')
-  })
+  test("waitlist form posts to the org-scoped waitlist endpoint", () => {
+    expect(formSrc).toContain("/v1/organizations/{id}/waitlist");
+  });
 
-  test('no Kenya-only / region-restriction copy leaks to the UI', () => {
-    const combined = (resultSrc + formSrc).toLowerCase()
-    expect(combined).not.toContain('kenya')
-    expect(combined).not.toContain('kenya-only')
-  })
+  test("no Kenya-only / region-restriction copy leaks to the UI", () => {
+    const combined = (resultSrc + formSrc).toLowerCase();
+    expect(combined).not.toContain("kenya");
+    expect(combined).not.toContain("kenya-only");
+  });
 
-  test('waitlist copy is generic and forward-looking', () => {
-    expect(formSrc.toLowerCase()).toContain('region')
-    expect(formSrc).toContain('waitlist')
-  })
-})
+  test("waitlist copy is generic and forward-looking", () => {
+    expect(formSrc.toLowerCase()).toContain("region");
+    expect(formSrc).toContain("waitlist");
+  });
+});

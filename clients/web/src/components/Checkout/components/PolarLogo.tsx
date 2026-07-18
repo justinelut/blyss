@@ -9,9 +9,9 @@ const PolarLogo = ({
   width,
   height,
 }: {
-  className?: string
-  width?: number
-  height?: number
+  className?: string;
+  width?: number;
+  height?: number;
 }) => {
   return (
     <svg
@@ -35,9 +35,9 @@ const PolarLogo = ({
       >
         Blyss
       </text>
-      <circle cx="50" cy="28" r="1.4" fill="#F97316" />
+      <circle cx="50" cy="28" r="1.4" fill="#9B352F" />
     </svg>
-  )
-}
+  );
+};
 
-export default PolarLogo
+export default PolarLogo;

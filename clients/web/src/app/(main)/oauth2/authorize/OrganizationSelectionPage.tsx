@@ -1,17 +1,17 @@
-'use client'
+"use client";
 
-import revalidate from '@/app/actions'
-import { CurrencySelector } from '@/components/CurrencySelector'
-import SupportedUseCases from '@/components/Onboarding/components/SupportedUseCases'
-import { useAuth } from '@/hooks'
-import { useCreateOrganization } from '@/hooks/queries'
-import { getServerURL } from '@/utils/api'
-import { setValidationErrors } from '@/utils/api/errors'
-import { schemas } from '@/lib/api'
-import Avatar from '@/components/atoms/Avatar'
-import Button from '@/components/atoms/Button'
-import Input from '@/components/atoms/Input'
-import { Checkbox } from '@/components/ui/checkbox'
+import revalidate from "@/app/actions";
+import { CurrencySelector } from "@/components/CurrencySelector";
+import SupportedUseCases from "@/components/Onboarding/components/SupportedUseCases";
+import { useAuth } from "@/hooks";
+import { useCreateOrganization } from "@/hooks/queries";
+import { getServerURL } from "@/utils/api";
+import { setValidationErrors } from "@/utils/api/errors";
+import { schemas } from "@/lib/api";
+import Avatar from "@/components/atoms/Avatar";
+import Button from "@/components/atoms/Button";
+import Input from "@/components/atoms/Input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Form,
   FormControl,
@@ -19,42 +19,42 @@ import {
   FormField,
   FormItem,
   FormMessage,
-} from '@/components/ui/form'
-import { Label } from '@/components/ui/label'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
-import { useForm, useWatch } from 'react-hook-form'
-import slugify from 'slugify'
-import SharedLayout from './components/SharedLayout'
+} from "@/components/ui/form";
+import { Label } from "@/components/ui/label";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
+import slugify from "slugify";
+import SharedLayout from "./components/SharedLayout";
 
 type FormSchema = Pick<
-  schemas['OrganizationCreate'],
-  'name' | 'slug' | 'default_presentment_currency'
+  schemas["OrganizationCreate"],
+  "name" | "slug" | "default_presentment_currency"
 > & {
-  terms: boolean
-}
+  terms: boolean;
+};
 
 const OrganizationSelectionPage = ({
   authorizeResponse: { client, organizations },
   searchParams,
 }: {
-  authorizeResponse: schemas['AuthorizeResponseOrganization']
-  searchParams: Record<string, string>
+  authorizeResponse: schemas["AuthorizeResponseOrganization"];
+  searchParams: Record<string, string>;
 }) => {
-  const router = useRouter()
-  const { currentUser, setUserOrganizations } = useAuth()
-  const createOrganization = useCreateOrganization()
-  const [editedSlug, setEditedSlug] = useState(false)
+  const router = useRouter();
+  const { currentUser, setUserOrganizations } = useAuth();
+  const createOrganization = useCreateOrganization();
+  const [editedSlug, setEditedSlug] = useState(false);
 
   const form = useForm<FormSchema>({
     defaultValues: {
-      name: '',
-      slug: '',
-      default_presentment_currency: 'usd',
+      name: "",
+      slug: "",
+      default_presentment_currency: "usd",
       terms: false,
     },
-  })
+  });
 
   const {
     control,
@@ -62,68 +62,68 @@ const OrganizationSelectionPage = ({
     setError,
     setValue,
     formState: { errors },
-  } = form
+  } = form;
 
   const { name, slug, terms } = useWatch({
     control,
-  })
+  });
 
   useEffect(() => {
     if (!editedSlug && name) {
-      setValue('slug', slugify(name, { lower: true, strict: true }))
+      setValue("slug", slugify(name, { lower: true, strict: true }));
     } else if (slug) {
       setValue(
-        'slug',
+        "slug",
         slugify(slug, { lower: true, trim: false, strict: true }),
-      )
+      );
     }
-  }, [name, editedSlug, slug, setValue])
+  }, [name, editedSlug, slug, setValue]);
 
-  const serializedSearchParams = new URLSearchParams(searchParams).toString()
-  const actionURL = `${getServerURL()}/v1/oauth2/consent?${serializedSearchParams}`
+  const serializedSearchParams = new URLSearchParams(searchParams).toString();
+  const actionURL = `${getServerURL()}/v1/oauth2/consent?${serializedSearchParams}`;
 
   const buildOrganizationSelectionURL = (
-    organization: schemas['AuthorizeOrganization'],
+    organization: schemas["AuthorizeOrganization"],
   ) => {
     const updatedSearchParams = {
       ...searchParams,
       sub: organization.id,
-    }
+    };
     const serializedSearchParams = new URLSearchParams(
       updatedSearchParams,
-    ).toString()
-    return `?${serializedSearchParams}`
-  }
+    ).toString();
+    return `?${serializedSearchParams}`;
+  };
 
   const onSubmit = async (data: FormSchema) => {
-    if (!data.terms) return
+    if (!data.terms) return;
 
     const { data: organization, error } =
-      await createOrganization.mutateAsync(data)
+      await createOrganization.mutateAsync(data);
 
     if (error) {
       if (error.detail) {
-        setValidationErrors(error.detail, setError)
+        setValidationErrors(error.detail, setError);
       }
-      return
+      return;
     }
 
     await revalidate(`users:${currentUser?.id}:organizations`, {
       expire: 0,
-    })
-    setUserOrganizations((orgs) => [...orgs, organization])
+    });
+    setUserOrganizations((orgs) => [...orgs, organization]);
 
     // Navigate to the same page with the new organization selected
     const updatedSearchParams = new URLSearchParams({
       ...searchParams,
       sub: organization.id,
-    })
-    router.push(`?${updatedSearchParams.toString()}`)
-  }
+    });
+    router.push(`?${updatedSearchParams.toString()}`);
+  };
 
-  const clientName = client.client_name || client.client_id
-  const hasTerms = client.policy_uri || client.tos_uri
-  const hasOrganizations = organizations.length > 0
+  const clientName = client.client_name || client.client_id;
+  const hasTerms = client.policy_uri || client.tos_uri;
+  const hasOrganizations = organizations.length > 0;
 
   // No organizations - show create form
   if (!hasOrganizations) {
@@ -134,7 +134,7 @@ const OrganizationSelectionPage = ({
           <>
             Welcome to Blyss!
             <br />
-            Create an organization and connect to{' '}
+            Create a shop and connect it to{" "}
             <span className="dark:text-polar-200 font-medium text-gray-700">
               {clientName}
             </span>
@@ -153,17 +153,17 @@ const OrganizationSelectionPage = ({
                 control={control}
                 name="name"
                 rules={{
-                  required: 'Organization name is required',
+                  required: "Shop name is required",
                   minLength: {
                     value: 3,
-                    message: 'Name must be at least 3 characters',
+                    message: "Name must be at least 3 characters",
                   },
                 }}
                 render={({ field }) => (
                   <FormItem className="w-full">
-                    <Label htmlFor="name">Organization Name</Label>
+                    <Label htmlFor="name">Shop name</Label>
                     <FormControl>
-                      <Input {...field} placeholder="Acme Inc." />
+                      <Input {...field} placeholder="Amina Studio" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -174,20 +174,20 @@ const OrganizationSelectionPage = ({
                 control={control}
                 name="slug"
                 rules={{
-                  required: 'Slug is required',
+                  required: "Slug is required",
                   minLength: {
                     value: 3,
-                    message: 'Slug must be at least 3 characters',
+                    message: "Slug must be at least 3 characters",
                   },
                 }}
                 render={({ field }) => (
                   <FormItem className="w-full">
-                    <Label htmlFor="slug">Organization Slug</Label>
+                    <Label htmlFor="slug">Shop address</Label>
                     <FormControl>
                       <Input
                         type="text"
                         {...field}
-                        placeholder="acme-inc"
+                        placeholder="amina-studio"
                         onFocus={() => setEditedSlug(true)}
                       />
                     </FormControl>
@@ -200,7 +200,7 @@ const OrganizationSelectionPage = ({
                 control={control}
                 name="default_presentment_currency"
                 rules={{
-                  required: 'Currency is required',
+                  required: "Currency is required",
                 }}
                 render={({ field }) => (
                   <FormItem className="w-full">
@@ -209,7 +209,7 @@ const OrganizationSelectionPage = ({
                     </Label>
                     <FormControl>
                       <CurrencySelector
-                        value={field.value as schemas['PresentmentCurrency']}
+                        value={field.value as schemas["PresentmentCurrency"]}
                         onChange={field.onChange}
                       />
                     </FormControl>
@@ -231,7 +231,7 @@ const OrganizationSelectionPage = ({
                 control={control}
                 name="terms"
                 rules={{
-                  required: 'You must accept the terms to continue',
+                  required: "You must accept the terms to continue",
                 }}
                 render={({ field }) => (
                   <FormItem>
@@ -240,7 +240,7 @@ const OrganizationSelectionPage = ({
                         id="terms"
                         checked={field.value}
                         onCheckedChange={(checked) => {
-                          setValue('terms', checked === true)
+                          setValue("terms", checked === true);
                         }}
                         className="mt-1"
                       />
@@ -262,7 +262,7 @@ const OrganizationSelectionPage = ({
                             >
                               Acceptable Use Policy
                             </a>
-                            {' — '}what creators can and can&apos;t sell on
+                            {" — "}what creators can and can&apos;t sell on
                             Blyss
                           </li>
                           <li>
@@ -311,7 +311,7 @@ const OrganizationSelectionPage = ({
             }
             form="organization-create-form"
           >
-            Create Organization
+            Create shop
           </Button>
           <form method="post" action={actionURL}>
             <Button
@@ -328,7 +328,7 @@ const OrganizationSelectionPage = ({
 
         {hasTerms && (
           <div className="mt-4 text-center text-sm text-gray-500">
-            Before using this app, you can review {clientName}&apos;s{' '}
+            Before using this app, you can review {clientName}&apos;s{" "}
             {client.tos_uri && (
               <a
                 className="dark:text-polar-300 text-gray-700"
@@ -337,7 +337,7 @@ const OrganizationSelectionPage = ({
                 Terms of Service
               </a>
             )}
-            {client.tos_uri && client.policy_uri && ' and '}
+            {client.tos_uri && client.policy_uri && " and "}
             {client.policy_uri && (
               <a
                 className="dark:text-polar-300 text-gray-700"
@@ -350,7 +350,7 @@ const OrganizationSelectionPage = ({
           </div>
         )}
       </SharedLayout>
-    )
+    );
   }
 
   // Has organizations - show selection list
@@ -361,7 +361,7 @@ const OrganizationSelectionPage = ({
         <>
           <span className="dark:text-polar-200 font-medium text-gray-700">
             {clientName}
-          </span>{' '}
+          </span>{" "}
           wants to access one of your Blyss organizations. Select one:
         </>
       }
@@ -397,7 +397,7 @@ const OrganizationSelectionPage = ({
         </div>
         {hasTerms && (
           <div className="mt-8 text-center text-sm text-gray-500">
-            Before using this app, you can review {clientName}&apos;s{' '}
+            Before using this app, you can review {clientName}&apos;s{" "}
             {client.tos_uri && (
               <a
                 className="dark:text-polar-300 text-gray-700"
@@ -406,7 +406,7 @@ const OrganizationSelectionPage = ({
                 Terms of Service
               </a>
             )}
-            {client.tos_uri && client.policy_uri && ' and '}
+            {client.tos_uri && client.policy_uri && " and "}
             {client.policy_uri && (
               <a
                 className="dark:text-polar-300 text-gray-700"
@@ -420,7 +420,7 @@ const OrganizationSelectionPage = ({
         )}
       </form>
     </SharedLayout>
-  )
-}
+  );
+};
 
-export default OrganizationSelectionPage
+export default OrganizationSelectionPage;

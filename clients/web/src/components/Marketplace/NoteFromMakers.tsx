@@ -1,17 +1,17 @@
-import { SectionDivider } from '@/design'
-import { cn } from '@/lib/utils'
+import { SectionDivider } from "@/design";
+import { cn } from "@/lib/utils";
 
 interface NoteFromMakersProps {
   /** Override the editorial paragraph */
-  body?: string
+  body?: string;
   /** Override the signature */
-  signature?: string
+  signature?: string;
 }
 
 const DEFAULT_BODY =
-  "A modern marketplace for independent creators. Discover digital products from creators around the world — templates, ebooks, beats, courses, subscription tiers — and pay with card or mobile money."
+  "Independent work from Kenya, made for screens everywhere. Buy a practical template, a thoughtful guide, a new sound, or ongoing access to a creator you want to support.";
 
-const DEFAULT_SIGNATURE = '— Blyss'
+const DEFAULT_SIGNATURE = "— Blyss";
 
 /**
  * NoteFromMakers — full-bleed editorial paragraph in Inter italic.
@@ -28,7 +28,7 @@ export const NoteFromMakers = ({
       <div className="mx-auto max-w-[60ch] text-center">
         <p
           className={cn(
-            'font-sans italic text-[clamp(20px,2.4vw,28px)] leading-[1.4] text-[var(--text-primary)]',
+            "font-sans italic text-[clamp(20px,2.4vw,28px)] leading-[1.4] text-[var(--text-primary)]",
           )}
         >
           {body}
@@ -38,5 +38,5 @@ export const NoteFromMakers = ({
         </p>
       </div>
     </SectionDivider>
-  )
-}
+  );
+};

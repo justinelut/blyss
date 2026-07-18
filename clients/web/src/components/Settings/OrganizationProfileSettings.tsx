@@ -1,180 +1,180 @@
-import { useAuth } from '@/hooks'
-import { useUpdateOrganization } from '@/hooks/queries'
-import { useAutoSave } from '@/hooks/useAutoSave'
-import { useURLValidation } from '@/hooks/useURLValidation'
-import { setValidationErrors } from '@/utils/api/errors'
-import AddOutlined from '@mui/icons-material/AddOutlined'
-import AddPhotoAlternateOutlined from '@mui/icons-material/AddPhotoAlternateOutlined'
-import CloseOutlined from '@mui/icons-material/CloseOutlined'
-import Facebook from '@mui/icons-material/Facebook'
-import GitHub from '@mui/icons-material/GitHub'
-import Instagram from '@mui/icons-material/Instagram'
-import LinkedIn from '@mui/icons-material/LinkedIn'
-import Public from '@mui/icons-material/Public'
-import X from '@mui/icons-material/X'
-import YouTube from '@mui/icons-material/YouTube'
-import { isValidationError, schemas } from '@/lib/api'
-import Avatar from '@/components/atoms/Avatar'
-import Button from '@/components/atoms/Button'
-import CopyToClipboardInput from '@/components/atoms/CopyToClipboardInput'
-import Input from '@/components/atoms/Input'
-import MoneyInput from '@/components/atoms/MoneyInput'
+import { useAuth } from "@/hooks";
+import { useUpdateOrganization } from "@/hooks/queries";
+import { useAutoSave } from "@/hooks/useAutoSave";
+import { useURLValidation } from "@/hooks/useURLValidation";
+import { setValidationErrors } from "@/utils/api/errors";
+import AddOutlined from "@mui/icons-material/AddOutlined";
+import AddPhotoAlternateOutlined from "@mui/icons-material/AddPhotoAlternateOutlined";
+import CloseOutlined from "@mui/icons-material/CloseOutlined";
+import Facebook from "@mui/icons-material/Facebook";
+import GitHub from "@mui/icons-material/GitHub";
+import Instagram from "@mui/icons-material/Instagram";
+import LinkedIn from "@mui/icons-material/LinkedIn";
+import Public from "@mui/icons-material/Public";
+import X from "@mui/icons-material/X";
+import YouTube from "@mui/icons-material/YouTube";
+import { isValidationError, schemas } from "@/lib/api";
+import Avatar from "@/components/atoms/Avatar";
+import Button from "@/components/atoms/Button";
+import CopyToClipboardInput from "@/components/atoms/CopyToClipboardInput";
+import Input from "@/components/atoms/Input";
+import MoneyInput from "@/components/atoms/MoneyInput";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/atoms/Select'
-import TextArea from '@/components/atoms/TextArea'
-import { Checkbox } from '@/components/ui/checkbox'
+} from "@/components/atoms/Select";
+import TextArea from "@/components/atoms/TextArea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Form,
   FormControl,
   FormField,
   FormMessage,
-} from '@/components/ui/form'
-import { AlertTriangle, CheckCircle, Loader2 } from 'lucide-react'
-import { useRouter } from 'next/navigation'
-import React, { useCallback } from 'react'
-import { FileRejection } from 'react-dropzone'
-import { useForm, useFormContext, useWatch } from 'react-hook-form'
-import { twMerge } from 'tailwind-merge'
-import { FileObject, useFileUpload } from '../FileUpload'
-import { toast } from '../Toast/use-toast'
-import ConfirmationButton from '../ui/ConfirmationButton'
+} from "@/components/ui/form";
+import { AlertTriangle, CheckCircle, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import React, { useCallback } from "react";
+import { FileRejection } from "react-dropzone";
+import { useForm, useFormContext, useWatch } from "react-hook-form";
+import { twMerge } from "tailwind-merge";
+import { FileObject, useFileUpload } from "../FileUpload";
+import { toast } from "../Toast/use-toast";
+import ConfirmationButton from "../ui/ConfirmationButton";
 import {
   SettingsGroup,
   SettingsGroupActions,
   SettingsGroupItem,
-} from './SettingsGroup'
+} from "./SettingsGroup";
 
 interface OrganizationDetailsFormProps {
-  organization: schemas['Organization']
-  inKYCMode: boolean
+  organization: schemas["Organization"];
+  inKYCMode: boolean;
 }
 
 const AcquisitionOptions = {
-  website: 'Website & SEO',
-  socials: 'Social media',
-  sales: 'Sales',
-  ads: 'Ads',
-  email: 'Email marketing',
-  other: 'Other',
-}
+  website: "Website & SEO",
+  socials: "Social media",
+  sales: "Sales",
+  ads: "Ads",
+  email: "Email marketing",
+  other: "Other",
+};
 
 const SwitchingFromOptions = {
-  paddle: 'Paddle',
-  lemon_squeezy: 'Lemon Squeezy',
-  gumroad: 'Gumroad',
-  stripe: 'Stripe',
-  other: 'Other',
-}
+  paddle: "Paddle",
+  lemon_squeezy: "Lemon Squeezy",
+  gumroad: "Gumroad",
+  stripe: "Stripe",
+  other: "Other",
+};
 
 const SOCIAL_PLATFORM_DOMAINS: Record<string, string> = {
-  'x.com': 'x',
-  'twitter.com': 'x',
-  'instagram.com': 'instagram',
-  'facebook.com': 'facebook',
-  'fb.com': 'facebook',
-  'youtube.com': 'youtube',
-  'youtu.be': 'youtube',
-  'linkedin.com': 'linkedin',
-  'github.com': 'github',
-  'threads.net': 'threads',
-  'tiktok.com': 'tiktok',
-  'discord.gg': 'discord',
-  'discord.com': 'discord',
-}
+  "x.com": "x",
+  "twitter.com": "x",
+  "instagram.com": "instagram",
+  "facebook.com": "facebook",
+  "fb.com": "facebook",
+  "youtube.com": "youtube",
+  "youtu.be": "youtube",
+  "linkedin.com": "linkedin",
+  "github.com": "github",
+  "threads.net": "threads",
+  "tiktok.com": "tiktok",
+  "discord.gg": "discord",
+  "discord.com": "discord",
+};
 
 interface OrganizationSocialLinksProps {
-  required?: boolean
+  required?: boolean;
 }
 
 const OrganizationSocialLinks = ({
   required,
 }: OrganizationSocialLinksProps) => {
   const { watch, setValue, formState } =
-    useFormContext<schemas['OrganizationUpdate']>()
-  const socials = watch('socials') || []
+    useFormContext<schemas["OrganizationUpdate"]>();
+  const socials = watch("socials") || [];
 
   const hasValidSocial = socials.some(
-    (social) => social.url && social.url.trim() !== '',
-  )
-  const showError = required && formState.isSubmitted && !hasValidSocial
+    (social) => social.url && social.url.trim() !== "",
+  );
+  const showError = required && formState.isSubmitted && !hasValidSocial;
 
   const getIcon = (platform: string, className: string) => {
     switch (platform) {
-      case 'x':
-        return <X className={className} />
-      case 'instagram':
-        return <Instagram className={className} />
-      case 'facebook':
-        return <Facebook className={className} />
-      case 'github':
-        return <GitHub className={className} />
-      case 'youtube':
-        return <YouTube className={className} />
-      case 'linkedin':
-        return <LinkedIn className={className} />
+      case "x":
+        return <X className={className} />;
+      case "instagram":
+        return <Instagram className={className} />;
+      case "facebook":
+        return <Facebook className={className} />;
+      case "github":
+        return <GitHub className={className} />;
+      case "youtube":
+        return <YouTube className={className} />;
+      case "linkedin":
+        return <LinkedIn className={className} />;
       default:
-        return <Public className={className} />
+        return <Public className={className} />;
     }
-  }
+  };
 
   const handleAddSocial = () => {
-    setValue('socials', [...socials, { platform: 'other', url: '' }], {
+    setValue("socials", [...socials, { platform: "other", url: "" }], {
       shouldDirty: true,
-    })
-  }
+    });
+  };
 
   const handleRemoveSocial = (index: number) => {
     setValue(
-      'socials',
+      "socials",
       socials.filter((_, i) => i !== index),
       { shouldDirty: true },
-    )
-  }
+    );
+  };
 
   const handleChange = (index: number, value: string) => {
-    if (value.startsWith('http://')) {
-      value = value.replace('http://', 'https://')
+    if (value.startsWith("http://")) {
+      value = value.replace("http://", "https://");
     }
-    const hasProtocol = value.startsWith('https://')
+    const hasProtocol = value.startsWith("https://");
     const isTypingProtocol =
-      'https://'.startsWith(value) || 'http://'.startsWith(value)
+      "https://".startsWith(value) || "http://".startsWith(value);
     if (!hasProtocol && !isTypingProtocol) {
-      value = 'https://' + value
+      value = "https://" + value;
     }
 
     // Infer the platform from the URL
-    let newPlatform: schemas['OrganizationSocialPlatforms'] = 'other'
+    let newPlatform: schemas["OrganizationSocialPlatforms"] = "other";
     try {
-      const url = new URL(value)
-      let hostname = url.hostname
-      if (hostname.startsWith('www.')) {
-        hostname = hostname.slice(4)
+      const url = new URL(value);
+      let hostname = url.hostname;
+      if (hostname.startsWith("www.")) {
+        hostname = hostname.slice(4);
       }
       newPlatform = (SOCIAL_PLATFORM_DOMAINS[hostname] ??
-        'other') as schemas['OrganizationSocialPlatforms']
+        "other") as schemas["OrganizationSocialPlatforms"];
       // eslint-disable-next-line no-empty
     } catch {}
 
     // Update the socials array
-    const updatedSocials = [...socials]
-    updatedSocials[index] = { platform: newPlatform, url: value }
-    setValue('socials', updatedSocials, { shouldDirty: true })
-  }
+    const updatedSocials = [...socials];
+    updatedSocials[index] = { platform: newPlatform, url: value };
+    setValue("socials", updatedSocials, { shouldDirty: true });
+  };
 
   return (
     <div className="space-y-3">
       {socials.map((social, index) => (
         <div key={index} className="flex items-center gap-3">
           <div className="flex w-5 justify-center">
-            {getIcon(social.platform, 'text-[var(--text-muted)] h-4 w-4')}
+            {getIcon(social.platform, "text-[var(--text-muted)] h-4 w-4")}
           </div>
           <Input
-            value={social.url || ''}
+            value={social.url || ""}
             onChange={(e) => handleChange(index, e.target.value)}
             placeholder="https://"
             className="flex-1"
@@ -205,17 +205,17 @@ const OrganizationSocialLinks = ({
         </p>
       )}
     </div>
-  )
-}
+  );
+};
 
 const CompactTextArea = ({
   field,
   placeholder,
   rows = 3,
 }: {
-  field: any
-  placeholder: string
-  rows?: number
+  field: any;
+  placeholder: string;
+  rows?: number;
 }) => (
   <TextArea
     {...field}
@@ -223,57 +223,57 @@ const CompactTextArea = ({
     placeholder={placeholder}
     className="resize-none"
   />
-)
+);
 
 export const OrganizationDetailsForm: React.FC<
   OrganizationDetailsFormProps
 > = ({ organization, inKYCMode }) => {
   const { control, setError, setValue } =
-    useFormContext<schemas['OrganizationUpdate']>()
-  const { name, avatar_url: avatarURL } = useWatch({ control })
+    useFormContext<schemas["OrganizationUpdate"]>();
+  const { name, avatar_url: avatarURL } = useWatch({ control });
   const profileSettings = useWatch({
     control,
-    name: 'profile_settings',
-  })
-  const coverImageURL = profileSettings?.cover_image_url ?? null
+    name: "profile_settings",
+  });
+  const coverImageURL = profileSettings?.cover_image_url ?? null;
 
   const { status: urlStatus, validateURL } = useURLValidation({
     organizationSlug: organization.slug,
-  })
+  });
 
   const onFilesUpdated = useCallback(
-    (files: FileObject<schemas['OrganizationAvatarFileRead']>[]) => {
+    (files: FileObject<schemas["OrganizationAvatarFileRead"]>[]) => {
       if (files.length === 0) {
-        return
+        return;
       }
-      const lastFile = files[files.length - 1]
-      setValue('avatar_url', lastFile.public_url, { shouldDirty: true })
+      const lastFile = files[files.length - 1];
+      setValue("avatar_url", lastFile.public_url, { shouldDirty: true });
     },
     [setValue],
-  )
+  );
   const onFilesRejected = useCallback(
     (rejections: FileRejection[]) => {
       rejections.forEach((rejection) => {
-        setError('avatar_url', { message: rejection.errors[0].message })
-      })
+        setError("avatar_url", { message: rejection.errors[0].message });
+      });
     },
     [setError],
-  )
+  );
   const { getRootProps, getInputProps, isDragActive } = useFileUpload({
     organization: organization,
-    service: 'organization_avatar',
+    service: "organization_avatar",
     accept: {
-      'image/jpeg': [],
-      'image/png': [],
-      'image/gif': [],
-      'image/webp': [],
-      'image/svg+xml': [],
+      "image/jpeg": [],
+      "image/png": [],
+      "image/gif": [],
+      "image/webp": [],
+      "image/svg+xml": [],
     },
     maxSize: 1 * 1024 * 1024,
     onFilesUpdated,
     onFilesRejected,
     initialFiles: [],
-  })
+  });
 
   // Banner image uploader. Stored on the JSON profile_settings column as
   // `cover_image_url` so the public storefront (StorefrontHero) can render it.
@@ -281,42 +281,39 @@ export const OrganizationDetailsForm: React.FC<
   // S3 bucket — adding a dedicated service type would require a backend
   // migration for no functional gain.
   const onBannerUpdated = useCallback(
-    (files: FileObject<schemas['OrganizationAvatarFileRead']>[]) => {
-      if (files.length === 0) return
-      const lastFile = files[files.length - 1]
-      setValue(
-        'profile_settings.cover_image_url',
-        lastFile.public_url,
-        { shouldDirty: true },
-      )
+    (files: FileObject<schemas["OrganizationAvatarFileRead"]>[]) => {
+      if (files.length === 0) return;
+      const lastFile = files[files.length - 1];
+      setValue("profile_settings.cover_image_url", lastFile.public_url, {
+        shouldDirty: true,
+      });
     },
     [setValue],
-  )
+  );
   const onBannerRejected = useCallback(
     (rejections: FileRejection[]) => {
       rejections.forEach((rejection) => {
-        setError(
-          'profile_settings.cover_image_url',
-          { message: rejection.errors[0].message },
-        )
-      })
+        setError("profile_settings.cover_image_url", {
+          message: rejection.errors[0].message,
+        });
+      });
     },
     [setError],
-  )
+  );
   const banner = useFileUpload({
     organization: organization,
-    service: 'organization_avatar',
+    service: "organization_avatar",
     accept: {
-      'image/jpeg': [],
-      'image/png': [],
-      'image/webp': [],
+      "image/jpeg": [],
+      "image/png": [],
+      "image/webp": [],
     },
     // Banners are larger than avatars — allow up to 5 MB.
     maxSize: 5 * 1024 * 1024,
     onFilesUpdated: onBannerUpdated,
     onFilesRejected: onBannerRejected,
     initialFiles: [],
-  })
+  });
 
   return (
     <div className="space-y-8">
@@ -329,16 +326,16 @@ export const OrganizationDetailsForm: React.FC<
         </p>
         <FormField
           control={control}
-          name={'profile_settings.cover_image_url'}
+          name={"profile_settings.cover_image_url"}
           render={() => (
             <div>
               <div
                 {...banner.getRootProps()}
                 className={twMerge(
-                  'relative cursor-pointer overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface-sunken)] transition-opacity hover:opacity-90',
-                  banner.isDragActive && 'opacity-50',
+                  "relative cursor-pointer overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface-sunken)] transition-opacity hover:opacity-90",
+                  banner.isDragActive && "opacity-50",
                 )}
-                style={{ aspectRatio: '16 / 9', maxHeight: 220 }}
+                style={{ aspectRatio: "16 / 9", maxHeight: 220 }}
               >
                 <input {...banner.getInputProps()} />
                 {coverImageURL ? (
@@ -351,7 +348,9 @@ export const OrganizationDetailsForm: React.FC<
                 ) : (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-[var(--text-muted)]">
                     <AddPhotoAlternateOutlined fontSize="medium" />
-                    <span className="text-xs">Click or drag to upload banner</span>
+                    <span className="text-xs">
+                      Click or drag to upload banner
+                    </span>
                   </div>
                 )}
               </div>
@@ -374,14 +373,14 @@ export const OrganizationDetailsForm: React.FC<
                   <div
                     {...getRootProps()}
                     className={twMerge(
-                      'relative cursor-pointer',
-                      isDragActive && 'opacity-50',
+                      "relative cursor-pointer",
+                      isDragActive && "opacity-50",
                     )}
                   >
                     <input {...getInputProps()} />
                     <Avatar
-                      avatar_url={avatarURL ?? ''}
-                      name={name ?? ''}
+                      avatar_url={avatarURL ?? ""}
+                      name={name ?? ""}
                       className="h-16 w-16 transition-opacity hover:opacity-75"
                     />
                     <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity hover:opacity-100">
@@ -397,17 +396,17 @@ export const OrganizationDetailsForm: React.FC<
           <div className="space-y-4 sm:col-span-10">
             <div>
               <label className="mb-2 block text-sm font-medium">
-                Organization Name *
+                Shop name *
               </label>
               <FormField
                 control={control}
                 name="name"
-                rules={{ required: 'Organization name is required' }}
+                rules={{ required: "Shop name is required" }}
                 render={({ field }) => (
                   <div>
                     <Input
                       {...field}
-                      value={field.value || ''}
+                      value={field.value || ""}
                       placeholder="Acme Inc"
                     />
                     <FormMessage />
@@ -423,13 +422,13 @@ export const OrganizationDetailsForm: React.FC<
               <FormField
                 control={control}
                 name="email"
-                rules={{ required: 'Support email is required' }}
+                rules={{ required: "Support email is required" }}
                 render={({ field }) => (
                   <div>
                     <Input
                       type="email"
                       {...field}
-                      value={field.value || ''}
+                      value={field.value || ""}
                       placeholder="support@acme.com"
                     />
                     <FormMessage />
@@ -446,17 +445,17 @@ export const OrganizationDetailsForm: React.FC<
             control={control}
             name="website"
             rules={{
-              required: 'Website is required',
+              required: "Website is required",
               validate: (value) => {
-                if (!value) return 'Website is required'
-                if (!value.startsWith('https://')) {
-                  return 'Website must start with https://'
+                if (!value) return "Website is required";
+                if (!value.startsWith("https://")) {
+                  return "Website must start with https://";
                 }
                 try {
-                  new URL(value)
-                  return true
+                  new URL(value);
+                  return true;
                 } catch {
-                  return 'Please enter a valid URL'
+                  return "Please enter a valid URL";
                 }
               },
             }}
@@ -465,38 +464,38 @@ export const OrganizationDetailsForm: React.FC<
                 <Input
                   type="url"
                   {...field}
-                  value={field.value || ''}
+                  value={field.value || ""}
                   placeholder="https://acme.com"
                   onChange={(e) => {
-                    let value = e.target.value
-                    if (value.startsWith('http://')) {
-                      value = value.replace('http://', 'https://')
+                    let value = e.target.value;
+                    if (value.startsWith("http://")) {
+                      value = value.replace("http://", "https://");
                     }
-                    const hasProtocol = value.startsWith('https://')
+                    const hasProtocol = value.startsWith("https://");
                     const isTypingProtocol =
-                      'https://'.startsWith(value) ||
-                      'http://'.startsWith(value)
+                      "https://".startsWith(value) ||
+                      "http://".startsWith(value);
                     if (!hasProtocol && !isTypingProtocol) {
-                      value = 'https://' + value
+                      value = "https://" + value;
                     }
-                    field.onChange(value)
+                    field.onChange(value);
                   }}
                   onBlur={(e) => {
-                    field.onBlur()
-                    validateURL(e.target.value)
+                    field.onBlur();
+                    validateURL(e.target.value);
                   }}
                   postSlot={
-                    urlStatus === 'validating' ? (
+                    urlStatus === "validating" ? (
                       <Loader2 className="h-4 w-4 animate-spin text-[var(--text-muted)]" />
-                    ) : urlStatus === 'valid' ? (
+                    ) : urlStatus === "valid" ? (
                       <CheckCircle className="h-4 w-4 text-green-500" />
-                    ) : urlStatus === 'invalid' ? (
+                    ) : urlStatus === "invalid" ? (
                       <AlertTriangle className="h-4 w-4 text-amber-500" />
                     ) : null
                   }
                 />
                 <FormMessage />
-                {urlStatus === 'invalid' && (
+                {urlStatus === "invalid" && (
                   <p className="mt-1 text-xs text-amber-600">
                     Website appears to be unreachable
                   </p>
@@ -510,11 +509,11 @@ export const OrganizationDetailsForm: React.FC<
         <div>
           <div className="mb-4 flex flex-col items-start">
             <label className="block text-sm font-medium">
-              Social Media {inKYCMode && '*'}
+              Social Media {inKYCMode && "*"}
             </label>
             <p className="mt-2 text-xs text-[var(--text-secondary)]">
-              Add your social profiles. They appear on your public
-              creator page so buyers can follow you.
+              Add your social profiles. They appear on your public creator page
+              so buyers can follow you.
             </p>
           </div>
           <OrganizationSocialLinks required={inKYCMode} />
@@ -544,14 +543,14 @@ export const OrganizationDetailsForm: React.FC<
                 control={control}
                 name="details.about"
                 rules={{
-                  required: 'Please describe your business',
+                  required: "Please describe your business",
                   minLength: {
                     value: 50,
-                    message: 'Please provide at least 50 characters',
+                    message: "Please provide at least 50 characters",
                   },
                   maxLength: {
                     value: 3000,
-                    message: 'Please keep under 3000 characters',
+                    message: "Please keep under 3000 characters",
                   },
                 }}
                 render={({ field }) => (
@@ -583,14 +582,14 @@ export const OrganizationDetailsForm: React.FC<
                 control={control}
                 name="details.product_description"
                 rules={{
-                  required: 'Please describe what you sell',
+                  required: "Please describe what you sell",
                   minLength: {
                     value: 50,
-                    message: 'Please provide at least 50 characters',
+                    message: "Please provide at least 50 characters",
                   },
                   maxLength: {
                     value: 3000,
-                    message: 'Please keep under 3000 characters',
+                    message: "Please keep under 3000 characters",
                   },
                 }}
                 render={({ field }) => (
@@ -622,14 +621,14 @@ export const OrganizationDetailsForm: React.FC<
                 control={control}
                 name="details.intended_use"
                 rules={{
-                  required: 'Please describe how you will use Blyss',
+                  required: "Please describe how you will use Blyss",
                   minLength: {
                     value: 30,
-                    message: 'Please provide at least 30 characters',
+                    message: "Please provide at least 30 characters",
                   },
                   maxLength: {
                     value: 3000,
-                    message: 'Please keep under 3000 characters',
+                    message: "Please keep under 3000 characters",
                   },
                 }}
                 render={({ field }) => (
@@ -657,10 +656,10 @@ export const OrganizationDetailsForm: React.FC<
                 control={control}
                 name="details.customer_acquisition"
                 rules={{
-                  required: 'Please select at least one acquisition channel',
+                  required: "Please select at least one acquisition channel",
                   validate: (value) =>
                     (value && value.length > 0) ||
-                    'Please select at least one channel',
+                    "Please select at least one channel",
                 }}
                 render={({ field }) => (
                   <div>
@@ -674,13 +673,13 @@ export const OrganizationDetailsForm: React.FC<
                             <Checkbox
                               checked={field.value?.includes(key) || false}
                               onCheckedChange={(checked) => {
-                                const current = field.value || []
+                                const current = field.value || [];
                                 if (checked) {
-                                  field.onChange([...current, key])
+                                  field.onChange([...current, key]);
                                 } else {
                                   field.onChange(
                                     current.filter((v) => v !== key),
-                                  )
+                                  );
                                 }
                               }}
                             />
@@ -709,14 +708,14 @@ export const OrganizationDetailsForm: React.FC<
                         {...field}
                         placeholder={1_000_000_00}
                         currency={
-                          organization.default_presentment_currency || 'kes'
+                          organization.default_presentment_currency || "kes"
                         }
                         className="w-full"
                       />
                       <p className="mt-1.5 text-xs text-[var(--text-muted)]">
-                        Approximate sales in the next 12 months, in{' '}
+                        Approximate sales in the next 12 months, in{" "}
                         {(
-                          organization.default_presentment_currency || 'kes'
+                          organization.default_presentment_currency || "kes"
                         ).toUpperCase()}
                         .
                       </p>
@@ -736,12 +735,12 @@ export const OrganizationDetailsForm: React.FC<
                   render={({ field }) => (
                     <div>
                       <Select
-                        value={field.value || 'none'}
+                        value={field.value || "none"}
                         onValueChange={(value) => {
-                          field.onChange(value === 'none' ? undefined : value)
-                          setValue('details.switching', value !== 'none', {
+                          field.onChange(value === "none" ? undefined : value);
+                          setValue("details.switching", value !== "none", {
                             shouldDirty: true,
-                          })
+                          });
                         }}
                       >
                         <SelectTrigger>
@@ -770,103 +769,103 @@ export const OrganizationDetailsForm: React.FC<
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
 interface OrganizationProfileSettingsProps {
-  organization: schemas['Organization']
-  kyc?: boolean
-  onSubmitted?: () => void
+  organization: schemas["Organization"];
+  kyc?: boolean;
+  onSubmitted?: () => void;
 }
 
 const OrganizationProfileSettings: React.FC<
   OrganizationProfileSettingsProps
 > = ({ organization: _organization, kyc, onSubmitted }) => {
-  const organization = _organization as schemas['Organization'] & {
-    default_presentment_currency: schemas['PresentmentCurrency']
-  }
-  const router = useRouter()
-  const form = useForm<schemas['OrganizationUpdate']>({
+  const organization = _organization as schemas["Organization"] & {
+    default_presentment_currency: schemas["PresentmentCurrency"];
+  };
+  const router = useRouter();
+  const form = useForm<schemas["OrganizationUpdate"]>({
     defaultValues: organization,
-  })
-  const { handleSubmit, setError, formState, reset } = form
-  const inKYCMode = kyc === true
+  });
+  const { handleSubmit, setError, formState, reset } = form;
+  const inKYCMode = kyc === true;
 
-  const { currentUser } = useAuth()
+  const { currentUser } = useAuth();
 
-  const updateOrganization = useUpdateOrganization()
+  const updateOrganization = useUpdateOrganization();
 
-  const onSave = async (body: schemas['OrganizationUpdate']) => {
+  const onSave = async (body: schemas["OrganizationUpdate"]) => {
     const emptySocials =
       body.socials?.filter(
-        (social) => !social.url || social.url.trim() === '',
-      ) || []
+        (social) => !social.url || social.url.trim() === "",
+      ) || [];
     const cleanedBody = {
       ...body,
       socials: body.socials?.filter(
-        (social) => social.url && social.url.trim() !== '',
+        (social) => social.url && social.url.trim() !== "",
       ),
-    }
+    };
 
     const { data, error } = await updateOrganization.mutateAsync({
       id: organization.id,
       body: cleanedBody,
       userId: currentUser?.id,
-    })
+    });
 
     if (error) {
       const errorMessage = Array.isArray(error.detail)
         ? error.detail[0]?.msg ||
-          'An error occurred while updating the organization'
-        : typeof error.detail === 'string'
+          "An error occurred while updating the organization"
+        : typeof error.detail === "string"
           ? error.detail
-          : 'An error occurred while updating the organization'
+          : "An error occurred while updating the organization";
 
       if (isValidationError(error.detail)) {
-        setValidationErrors(error.detail, setError)
+        setValidationErrors(error.detail, setError);
       } else {
-        setError('root', { message: errorMessage })
+        setError("root", { message: errorMessage });
       }
 
       toast({
-        title: 'Organization Update Failed',
+        title: "Shop update failed",
         description: errorMessage,
-      })
+      });
 
-      return
+      return;
     }
 
     reset({
       ...data,
       default_presentment_currency:
-        data.default_presentment_currency as schemas['PresentmentCurrency'],
+        data.default_presentment_currency as schemas["PresentmentCurrency"],
       socials: [...(data.socials || []), ...emptySocials],
-    })
+    });
 
     // Refresh the router to get the updated organization data from the server
-    router.refresh()
+    router.refresh();
 
     if (onSubmitted) {
-      onSubmitted()
+      onSubmitted();
     }
-  }
+  };
 
   const handleFormSubmit = () => {
-    handleSubmit(onSave)()
-  }
+    handleSubmit(onSave)();
+  };
 
   useAutoSave({
     form,
     onSave,
     delay: 1000,
     enabled: !inKYCMode,
-  })
+  });
 
   return (
     <Form {...form}>
       <form
         onSubmit={(e) => {
-          e.preventDefault()
+          e.preventDefault();
         }}
         className="max-w-2xl"
       >
@@ -874,33 +873,33 @@ const OrganizationProfileSettings: React.FC<
           {!inKYCMode && (
             <>
               <SettingsGroupItem
-                title="Identifier"
-                description="Unique identifier for your organization"
+                title="Shop ID"
+                description="Internal identifier for this shop"
               >
                 <FormControl>
                   <CopyToClipboardInput
                     value={organization.id}
                     onCopy={() => {
                       toast({
-                        title: 'Copied To Clipboard',
-                        description: `Organization ID was copied to clipboard`,
-                      })
+                        title: "Copied To Clipboard",
+                        description: `Shop ID was copied to clipboard`,
+                      });
                     }}
                   />
                 </FormControl>
               </SettingsGroupItem>
               <SettingsGroupItem
-                title="Organization Slug"
-                description="Used for Customer Portal, Transaction Statements, etc."
+                title="Shop address"
+                description="Used in your public shop link"
               >
                 <FormControl>
                   <CopyToClipboardInput
                     value={organization.slug}
                     onCopy={() => {
                       toast({
-                        title: 'Copied To Clipboard',
-                        description: `Organization Slug was copied to clipboard`,
-                      })
+                        title: "Copied To Clipboard",
+                        description: `Shop address was copied to clipboard`,
+                      });
                     }}
                   />
                 </FormControl>
@@ -931,7 +930,7 @@ const OrganizationProfileSettings: React.FC<
         </SettingsGroup>
       </form>
     </Form>
-  )
-}
+  );
+};
 
-export default OrganizationProfileSettings
+export default OrganizationProfileSettings;

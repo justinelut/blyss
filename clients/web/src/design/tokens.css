@@ -13,44 +13,50 @@
  * ============================================================================= */
 
 :root {
-  --background:        #FAFAF7;   /* warm off-white, paper not snow */
-  --surface:           #F0EADC;   /* warm latte-paper, brown undertone (was #EFEDE7 — read cool/grey) */
-  --surface-elevated:  #FFFFFF;   /* product cards, modals, dropdowns */
-  --surface-sunken:    #E6DDC9;   /* input bg, code blocks, hover (warmer than #E5E3DD) */
-  --border:            #D5CDB9;   /* hairline, warm sandstone (was #D9D5CB — too neutral) */
-  --border-strong:     #B7A98D;   /* focused inputs, active filter chips (warmer than #BBB5A8) */
-  --text-primary:      #1A1A17;   /* warm near-black; never #000000 */
-  --text-secondary:    #4A4842;   /* body */
-  --text-muted:        #88857C;   /* metadata, captions, eyebrows */
-  --accent:            #C2410C;   /* burnt orange — Blyss signature */
-  --accent-hover:      #DD5818;
-  --accent-foreground: #FAFAF7;   /* on the accent */
-  --success:           #15803D;
-  --danger:            #B91C1C;
-  --warning:           #B45309;
+  --background: #fafaf7; /* warm off-white, paper not snow */
+  --surface: #f0eadc; /* warm latte-paper, brown undertone (was #EFEDE7 — read cool/grey) */
+  --surface-elevated: #ffffff; /* product cards, modals, dropdowns */
+  --surface-sunken: #e6ddc9; /* input bg, code blocks, hover (warmer than #E5E3DD) */
+  --border: #d5cdb9; /* hairline, warm sandstone (was #D9D5CB — too neutral) */
+  --border-strong: #b7a98d; /* focused inputs, active filter chips (warmer than #BBB5A8) */
+  --text-primary: #1a1a17; /* warm near-black; never #000000 */
+  --text-secondary: #4a4842; /* body */
+  --text-muted: #88857c; /* metadata, captions, eyebrows */
+  --action: #1a1a17; /* primary structural actions */
+  --action-hover: #31312c;
+  --action-foreground: #fafaf7;
+  --accent: #9b352f; /* restrained oxblood commerce accent */
+  --accent-hover: #842b27;
+  --accent-foreground: #fafaf7;
+  --success: #15803d;
+  --danger: #b91c1c;
+  --warning: #b45309;
 
   /* Aliases the existing Polar codebase expects — point to Blyss tokens */
   --background-foreground: var(--text-primary);
   --foreground: var(--text-primary);
 }
 
-[data-theme='dark'],
+[data-theme="dark"],
 .dark {
-  --background:        #100D08;   /* warm near-black, brown undertone (was #0F0E0C — too cool) */
-  --surface:           #1B160E;   /* dark espresso (was #18171A — read bluish-grey) */
-  --surface-elevated:  #25201A;   /* (was #211F22) */
-  --surface-sunken:    #2A2419;   /* (was #27262A) */
-  --border:            #322B1F;   /* (was #2C2A28) */
-  --border-strong:     #463C2A;   /* (was #3D3A35) */
-  --text-primary:      #F5F2EC;   /* warm near-white */
-  --text-secondary:    #BAB5A8;
-  --text-muted:        #7A766B;
-  --accent:            #F97316;   /* brighter orange for dark sections */
-  --accent-hover:      #FFA052;
-  --accent-foreground: #0F0E0C;
-  --success:           #16A34A;
-  --danger:            #DC2626;
-  --warning:           #D97706;
+  --background: #100d08; /* warm near-black, brown undertone (was #0F0E0C — too cool) */
+  --surface: #1b160e; /* dark espresso (was #18171A — read bluish-grey) */
+  --surface-elevated: #25201a; /* (was #211F22) */
+  --surface-sunken: #2a2419; /* (was #27262A) */
+  --border: #322b1f; /* (was #2C2A28) */
+  --border-strong: #463c2a; /* (was #3D3A35) */
+  --text-primary: #f5f2ec; /* warm near-white */
+  --text-secondary: #bab5a8;
+  --text-muted: #7a766b;
+  --action: #f5f2ec;
+  --action-hover: #ffffff;
+  --action-foreground: #1a1a17;
+  --accent: #e07a70;
+  --accent-hover: #ed9188;
+  --accent-foreground: #0f0e0c;
+  --success: #16a34a;
+  --danger: #dc2626;
+  --warning: #d97706;
 
   --background-foreground: var(--text-primary);
   --foreground: var(--text-primary);

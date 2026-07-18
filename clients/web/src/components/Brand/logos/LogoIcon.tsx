@@ -1,9 +1,9 @@
-import { cn } from '@/lib/utils'
+import { cn } from "@/lib/utils";
 
 interface LogoIconProps {
-  size?: number
-  className?: string
-  style?: React.CSSProperties
+  size?: number;
+  className?: string;
+  style?: React.CSSProperties;
 }
 
 /**
@@ -14,7 +14,11 @@ interface LogoIconProps {
  * inside the upper bowl as an integrated brand signature. Mirrors the
  * SVG in `src/app/icon.svg` and `src/app/apple-icon.svg` exactly.
  */
-export default function LogoIcon({ size = 32, className, style }: LogoIconProps) {
+export default function LogoIcon({
+  size = 32,
+  className,
+  style,
+}: LogoIconProps) {
   return (
     <svg
       width={size}
@@ -22,7 +26,7 @@ export default function LogoIcon({ size = 32, className, style }: LogoIconProps)
       viewBox="0 0 64 64"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      className={cn('inline-block', className)}
+      className={cn("inline-block", className)}
       style={style}
       role="img"
       aria-label="Blyss"
@@ -33,9 +37,9 @@ export default function LogoIcon({ size = 32, className, style }: LogoIconProps)
         fill="#F5F0E8"
         fillRule="evenodd"
       />
-      <circle cx="33" cy="23" r="2.5" fill="#F97316" />
+      <circle cx="33" cy="23" r="2.5" fill="#9B352F" />
     </svg>
-  )
+  );
 }
 
-export { LogoIcon }
+export { LogoIcon };

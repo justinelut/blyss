@@ -1,4 +1,4 @@
-'use client'
+"use client";
 
 /* Hallmark · component: settings/payouts-step · genre: editorial-utility
  * theme: blyss-design (light cream + burnt orange #C2410C accent)
@@ -9,14 +9,14 @@
  * the marketplace surface.
  */
 
-import { schemas } from '@/lib/api'
-import { FiArrowRight, FiUser } from 'react-icons/fi'
-import OrganizationMPesaSettings from '@/components/Settings/OrganizationMPesaSettings'
+import { schemas } from "@/lib/api";
+import { FiArrowRight, FiUser } from "react-icons/fi";
+import OrganizationMPesaSettings from "@/components/Settings/OrganizationMPesaSettings";
 
 interface AccountStepProps {
-  organization: schemas['Organization']
-  isNotAdmin: boolean
-  onSkipAccountSetup?: () => void
+  organization: schemas["Organization"];
+  isNotAdmin: boolean;
+  onSkipAccountSetup?: () => void;
 }
 
 export default function AccountStep({
@@ -40,8 +40,8 @@ export default function AccountStep({
               Account setup restricted
             </h4>
             <p className="mt-2 max-w-[44ch] font-sans text-[14px] leading-[1.55] text-[var(--text-secondary)]">
-              You aren&rsquo;t the admin of this organization. Only the
-              account admin can set up payouts.
+              You aren&rsquo;t the owner of this shop. Only the account admin
+              can set up payouts.
             </p>
           </div>
           {onSkipAccountSetup && (
@@ -56,12 +56,12 @@ export default function AccountStep({
           )}
         </div>
       </div>
-    )
+    );
   }
 
   return (
     <div className="rounded-md border border-[var(--border)] bg-[var(--surface)] p-6 md:p-8">
       <OrganizationMPesaSettings organization={organization} />
     </div>
-  )
+  );
 }

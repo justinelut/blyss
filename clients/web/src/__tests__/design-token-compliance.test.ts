@@ -1,6 +1,6 @@
-import { describe, test, expect } from 'vitest'
-import { readFileSync } from 'fs'
-import { join } from 'path'
+import { describe, test, expect } from "vitest";
+import { readFileSync } from "fs";
+import { join } from "path";
 
 /**
  * Design-token compliance (plan §3.2).
@@ -14,31 +14,31 @@ import { join } from 'path'
  * duplicate matchers flagging the live surface.
  */
 
-describe('tokens.css is light-dominant burnt orange (§3.2)', () => {
+describe("tokens.css is light-dominant ink and oxblood", () => {
   const tokens = readFileSync(
-    join(process.cwd(), 'src/design/tokens.css'),
-    'utf8',
-  )
-  const rootStart = tokens.indexOf(':root {')
-  const darkStart = tokens.indexOf("[data-theme='dark']", rootStart)
-  const rootBlock = tokens.slice(rootStart, darkStart)
+    join(process.cwd(), "src/design/tokens.css"),
+    "utf8",
+  );
+  const rootStart = tokens.indexOf(":root {");
+  const darkStart = tokens.indexOf("[data-theme='dark']", rootStart);
+  const rootBlock = tokens.slice(rootStart, darkStart);
 
-  test('light is the :root default with #FAFAF7 background', () => {
-    expect(rootBlock).toMatch(/--background:\s*#FAFAF7/i)
-  })
+  test("light is the :root default with #FAFAF7 background", () => {
+    expect(rootBlock).toMatch(/--background:\s*#FAFAF7/i);
+  });
 
-  test('default accent is burnt orange #C2410C (not #F97316)', () => {
-    expect(rootBlock).toMatch(/--accent:\s*#C2410C/i)
-    expect(rootBlock).not.toMatch(/--accent:\s*#F97316/i)
-  })
+  test("default accent is oxblood #9B352F and actions are ink", () => {
+    expect(rootBlock).toMatch(/--accent:\s*#9B352F/i);
+    expect(rootBlock).toMatch(/--action:\s*#1A1A17/i);
+  });
 
-  test('default text-primary is warm near-black, never pure #000000', () => {
-    expect(rootBlock).toMatch(/--text-primary:\s*#1A1A17/i)
-    expect(rootBlock).not.toMatch(/--text-primary:\s*#000000/i)
-  })
+  test("default text-primary is warm near-black, never pure #000000", () => {
+    expect(rootBlock).toMatch(/--text-primary:\s*#1A1A17/i);
+    expect(rootBlock).not.toMatch(/--text-primary:\s*#000000/i);
+  });
 
-  test('dark palette is scoped to opt-in accent selectors', () => {
-    expect(tokens).toMatch(/\[data-theme='dark'\],?\s*\n?\s*\.dark/)
-    expect(tokens).not.toMatch(/Light mode was deprecated/i)
-  })
-})
+  test("dark palette is scoped to opt-in accent selectors", () => {
+    expect(tokens).toMatch(/\[data-theme=["']dark["']\],?\s*\n?\s*\.dark/);
+    expect(tokens).not.toMatch(/Light mode was deprecated/i);
+  });
+});

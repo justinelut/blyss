@@ -1,6 +1,6 @@
-@import 'tailwindcss';
-@import 'tw-animate-css';
-@import '../design/tokens.css';
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "../design/tokens.css";
 @stylex;
 
 @source '../../../../packages/ui/src';
@@ -15,36 +15,36 @@
    Blue is forbidden by the Blyss palette (§3.2). Neutralize the plugin's
    default ring color so focused inputs use the brand accent, not blue. */
 @layer base {
-  [type='text'],
-  [type='email'],
-  [type='url'],
-  [type='password'],
-  [type='number'],
-  [type='date'],
-  [type='datetime-local'],
-  [type='month'],
-  [type='search'],
-  [type='tel'],
-  [type='time'],
-  [type='week'],
+  [type="text"],
+  [type="email"],
+  [type="url"],
+  [type="password"],
+  [type="number"],
+  [type="date"],
+  [type="datetime-local"],
+  [type="month"],
+  [type="search"],
+  [type="tel"],
+  [type="time"],
+  [type="week"],
   [multiple],
   textarea,
   select {
     --tw-ring-color: var(--accent);
   }
 
-  [type='text']:focus,
-  [type='email']:focus,
-  [type='url']:focus,
-  [type='password']:focus,
-  [type='number']:focus,
-  [type='date']:focus,
-  [type='datetime-local']:focus,
-  [type='month']:focus,
-  [type='search']:focus,
-  [type='tel']:focus,
-  [type='time']:focus,
-  [type='week']:focus,
+  [type="text"]:focus,
+  [type="email"]:focus,
+  [type="url"]:focus,
+  [type="password"]:focus,
+  [type="number"]:focus,
+  [type="date"]:focus,
+  [type="datetime-local"]:focus,
+  [type="month"]:focus,
+  [type="search"]:focus,
+  [type="tel"]:focus,
+  [type="time"]:focus,
+  [type="week"]:focus,
   [multiple]:focus,
   textarea:focus,
   select:focus {
@@ -66,8 +66,8 @@
   --font-display: var(--display), sans-serif;
   --font-mono: var(--font-geist-mono), monospace;
   --font-louize: var(--louize), serif;
-  --font-epilogue: 'Epilogue', var(--display), sans-serif;
-  --font-inter: 'Inter', var(--sans), sans-serif;
+  --font-epilogue: "Epilogue", var(--display), sans-serif;
+  --font-inter: "Inter", var(--sans), sans-serif;
 
   --text-xxs: 0.65rem;
 
@@ -140,7 +140,7 @@
 
   /* NOTE: a former off-brand marketplace orange ramp and the teal ramp were
    * removed (0 usages, off-palette per §3.2). The Blyss brand orange is the
-   * --color-primary ramp below (burnt orange #C2410C). amber/blue/green ramps
+   * --color-primary ramp below (oxblood #9B352F). amber/blue/green ramps
    * are retained because the dashboard/charts depend on them. */
 
   --color-amber-50: #fffbeb;
@@ -155,40 +155,39 @@
   --color-amber-900: #78350f;
 
   /* Editorial Design System — Blyss palette
-   * Tokens come from src/design/tokens.css (imported above).
-   * Tailwind picks up these --color-* names as utilities (bg-primary, text-primary, etc.) */
-  --color-primary: #C2410C;
-  --color-primary-50: #FFF4ED;
-  --color-primary-100: #FFE3D1;
-  --color-primary-200: #FFC2A3;
-  --color-primary-300: #FF9A6A;
-  --color-primary-400: #FB6F30;
-  --color-primary-500: #DD5818;
-  --color-primary-600: #C2410C;
-  --color-primary-700: #9A2F08;
-  --color-primary-800: #7A2407;
-  --color-primary-900: #631E07;
-  --color-primary-950: #380E04;
+   * Ink owns structural actions; oxblood is the restrained commerce accent. */
+  --color-primary: #9b352f;
+  --color-primary-50: #fcf5f4;
+  --color-primary-100: #f7e5e2;
+  --color-primary-200: #edc8c3;
+  --color-primary-300: #dfa097;
+  --color-primary-400: #c96d63;
+  --color-primary-500: #b34b43;
+  --color-primary-600: #9b352f;
+  --color-primary-700: #842b27;
+  --color-primary-800: #6b2522;
+  --color-primary-900: #592321;
+  --color-primary-950: #301010;
 
-  --color-secondary: #1A1A17;
-  --color-secondary-50: #F0EADC;
-  --color-secondary-100: #E6DDC9;
-  --color-secondary-200: #D5CDB9;
-  --color-secondary-300: #B7A98D;
-  --color-secondary-400: #88857C;
-  --color-secondary-500: #4A4842;
+  --color-secondary: #1a1a17;
+  --color-secondary-50: #f0eadc;
+  --color-secondary-100: #e6ddc9;
+  --color-secondary-200: #d5cdb9;
+  --color-secondary-300: #b7a98d;
+  --color-secondary-400: #88857c;
+  --color-secondary-500: #4a4842;
   --color-secondary-600: #393730;
-  --color-secondary-700: #2B2925;
-  --color-secondary-800: #1F1E1B;
-  --color-secondary-900: #1A1A17;
-  --color-secondary-950: #0F0E0C;
+  --color-secondary-700: #2b2925;
+  --color-secondary-800: #1f1e1b;
+  --color-secondary-900: #1a1a17;
+  --color-secondary-950: #0f0e0c;
 
-  --color-tertiary: #15803D;          /* used only for --success */
-  --color-tertiary-50: #F0FDF4;
-  --color-tertiary-500: #15803D;
+  --color-tertiary: #15803d; /* used only for --success */
+  --color-tertiary-50: #f0fdf4;
+  --color-tertiary-500: #15803d;
   --color-tertiary-700: #166534;
-  --color-tertiary-900: #14532D;
-  --color-tertiary-950: #052E16;
+  --color-tertiary-900: #14532d;
+  --color-tertiary-950: #052e16;
 
   /* Surface hierarchy — bridges Polar legacy names to Blyss tokens */
   --color-surface: var(--background);
@@ -247,13 +246,13 @@
       height: 0;
     }
     100% {
-      height: 'var(--radix-accordion-content-height)';
+      height: "var(--radix-accordion-content-height)";
     }
   }
 
   @keyframes accordion-up {
     0% {
-      height: 'var(--radix-accordion-content-height)';
+      height: "var(--radix-accordion-content-height)";
     }
     100% {
       height: 0;
@@ -284,8 +283,8 @@
 }
 
 @media (prefers-color-scheme: light) {
-  img[src$='#gh-dark-mode-only'],
-  img[src$='#only-dark'] {
+  img[src$="#gh-dark-mode-only"],
+  img[src$="#only-dark"] {
     display: none;
   }
 }
@@ -327,15 +326,15 @@
 
     --sidebar-background: var(--surface);
     --sidebar-foreground: var(--text-primary);
-    --sidebar-primary: var(--accent);
-    --sidebar-primary-foreground: var(--accent-foreground);
+    --sidebar-primary: var(--action);
+    --sidebar-primary-foreground: var(--action-foreground);
     --sidebar-border: var(--border);
     --sidebar-accent: var(--surface-sunken);
     --sidebar-accent-foreground: var(--text-primary);
     --sidebar-ring: var(--border-strong);
 
-    --primary: var(--accent);
-    --primary-foreground: var(--accent-foreground);
+    --primary: var(--action);
+    --primary-foreground: var(--action-foreground);
 
     --secondary: var(--surface-sunken);
     --secondary-foreground: var(--text-primary);
@@ -343,8 +342,8 @@
     --muted: var(--surface-sunken);
     --muted-foreground: var(--text-muted);
 
-    /* shadcn `accent` is hover/active surface, NOT our brand accent.
-     * Brand accent is mapped to --primary above. */
+    /* shadcn `accent` is a hover/active surface, not Blyss's editorial
+     * oxblood. Structural shadcn actions map to --primary above. */
     --accent: var(--surface-sunken);
     --accent-foreground: var(--text-primary);
 
@@ -367,15 +366,15 @@
 
     --sidebar-background: var(--surface);
     --sidebar-foreground: var(--text-primary);
-    --sidebar-primary: var(--accent);
-    --sidebar-primary-foreground: var(--accent-foreground);
+    --sidebar-primary: var(--action);
+    --sidebar-primary-foreground: var(--action-foreground);
     --sidebar-border: var(--border);
     --sidebar-accent: var(--surface-sunken);
     --sidebar-accent-foreground: var(--text-primary);
     --sidebar-ring: var(--border-strong);
 
-    --primary: var(--accent);
-    --primary-foreground: var(--accent-foreground);
+    --primary: var(--action);
+    --primary-foreground: var(--action-foreground);
 
     --secondary: var(--surface-sunken);
     --secondary-foreground: var(--text-primary);

@@ -1,6 +1,6 @@
-import { describe, test, expect } from 'vitest'
-import { readFileSync, readdirSync, statSync } from 'fs'
-import { join } from 'path'
+import { describe, test, expect } from "vitest";
+import { readFileSync, readdirSync, statSync } from "fs";
+import { join } from "path";
 
 /**
  * Forbidden-color gate (plan/04-ui-direction.md §3.2).
@@ -18,13 +18,13 @@ import { join } from 'path'
  *     the only allowed source there.
  */
 
-const GLOBALS = join(process.cwd(), 'src/styles/globals.css')
+const GLOBALS = join(process.cwd(), "src/styles/globals.css");
 
 const MARKETPLACE_DIRS = [
-  'src/components/Marketplace',
-  'src/components/CreatorStorefront',
-  'src/components/ProductDetail',
-]
+  "src/components/Marketplace",
+  "src/components/CreatorStorefront",
+  "src/components/ProductDetail",
+];
 
 /**
  * Dead legacy components left on disk (no file/dependency removal per project
@@ -34,14 +34,14 @@ const MARKETPLACE_DIRS = [
  * to spec.
  */
 const LEGACY_EXCLUDED = new Set([
-  'src/components/Marketplace/SearchBar.tsx',
-  'src/components/Marketplace/FilterSidebar.tsx',
-  'src/components/Marketplace/ProductGrid.tsx',
-  'src/components/Marketplace/ProductCard.tsx',
-  'src/components/Marketplace/CreatorCard.tsx',
-  'src/components/Marketplace/HeroSection.tsx',
-  'src/components/Marketplace/CurrencyDemo.tsx',
-])
+  "src/components/Marketplace/SearchBar.tsx",
+  "src/components/Marketplace/FilterSidebar.tsx",
+  "src/components/Marketplace/ProductGrid.tsx",
+  "src/components/Marketplace/ProductCard.tsx",
+  "src/components/Marketplace/CreatorCard.tsx",
+  "src/components/Marketplace/HeroSection.tsx",
+  "src/components/Marketplace/CurrencyDemo.tsx",
+]);
 
 const FORBIDDEN_UTILITIES = [
   /\b(?:bg|text|border|ring|from|to|via|fill|stroke)-blue-\d/,
@@ -52,64 +52,64 @@ const FORBIDDEN_UTILITIES = [
   /\b(?:bg|text|border|ring|from|to|via|fill|stroke)-indigo-\d/,
   /\b(?:bg|text|border|ring|from|to|via|fill|stroke)-green-\d/,
   /\bbg-gradient-to-/,
-]
+];
 
 function collectFiles(dir: string): string[] {
-  const abs = join(process.cwd(), dir)
-  const out: string[] = []
+  const abs = join(process.cwd(), dir);
+  const out: string[] = [];
   try {
     for (const entry of readdirSync(abs)) {
-      const full = join(abs, entry)
+      const full = join(abs, entry);
       if (statSync(full).isDirectory()) {
-        out.push(...collectFiles(join(dir, entry)))
-      } else if (/\.(tsx?|jsx?)$/.test(entry) && !entry.includes('.test.')) {
-        out.push(full)
+        out.push(...collectFiles(join(dir, entry)));
+      } else if (/\.(tsx?|jsx?)$/.test(entry) && !entry.includes(".test.")) {
+        out.push(full);
       }
     }
   } catch {
     /* dir may not exist */
   }
-  return out
+  return out;
 }
 
-describe('Forbidden colors — globals.css @theme', () => {
-  const css = readFileSync(GLOBALS, 'utf8')
+describe("Forbidden colors — globals.css @theme", () => {
+  const css = readFileSync(GLOBALS, "utf8");
 
   test('no "Etsy Marketplace Colors" comment', () => {
-    expect(css).not.toMatch(/Etsy Marketplace Colors/i)
-  })
+    expect(css).not.toMatch(/Etsy Marketplace Colors/i);
+  });
 
-  test('no off-brand --color-orange-* ramp (brand orange is --color-primary)', () => {
-    expect(css).not.toMatch(/--color-orange-\d/)
-  })
+  test("no off-brand --color-orange-* ramp (brand orange is --color-primary)", () => {
+    expect(css).not.toMatch(/--color-orange-\d/);
+  });
 
-  test('no --color-teal-* ramp', () => {
-    expect(css).not.toMatch(/--color-teal-\d/)
-  })
+  test("no --color-teal-* ramp", () => {
+    expect(css).not.toMatch(/--color-teal-\d/);
+  });
 
-  test('brand primary ramp is burnt orange #C2410C', () => {
-    expect(css).toMatch(/--color-primary:\s*#C2410C/i)
-  })
-})
+  test("brand primary ramp is oxblood #9B352F", () => {
+    expect(css).toMatch(/--color-primary:\s*#9B352F/i);
+  });
+});
 
-describe('Forbidden colors — marketplace surface', () => {
+describe("Forbidden colors — marketplace surface", () => {
   const files = MARKETPLACE_DIRS.flatMap(collectFiles).filter(
-    (f) => !LEGACY_EXCLUDED.has(f.replace(process.cwd() + '/', '')),
-  )
+    (f) => !LEGACY_EXCLUDED.has(f.replace(process.cwd() + "/", "")),
+  );
 
-  test('marketplace component files exist', () => {
-    expect(files.length).toBeGreaterThan(0)
-  })
+  test("marketplace component files exist", () => {
+    expect(files.length).toBeGreaterThan(0);
+  });
 
   for (const file of files) {
-    const rel = file.replace(process.cwd() + '/', '')
+    const rel = file.replace(process.cwd() + "/", "");
     test(`${rel} uses no forbidden color utilities`, () => {
-      const content = readFileSync(file, 'utf8')
+      const content = readFileSync(file, "utf8");
       const hits = FORBIDDEN_UTILITIES.flatMap((p) => {
-        const m = content.match(p)
-        return m ? [`${m[0]} (${p})`] : []
-      })
-      expect(hits, hits.join('\n')).toHaveLength(0)
-    })
+        const m = content.match(p);
+        return m ? [`${m[0]} (${p})`] : [];
+      });
+      expect(hits, hits.join("\n")).toHaveLength(0);
+    });
   }
-})
+});
