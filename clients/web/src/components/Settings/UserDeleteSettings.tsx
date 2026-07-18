@@ -1,54 +1,54 @@
-'use client'
+"use client";
 
-import { useDeleteUser } from '@/hooks/queries'
-import { CONFIG } from '@/utils/config'
-import Button from '@/components/atoms/Button'
-import { useCallback, useState } from 'react'
-import { ConfirmModal } from '../Modal/ConfirmModal'
-import { toast } from '../Toast/use-toast'
-import { SettingsGroup, SettingsGroupItem } from './SettingsGroup'
+import { useDeleteUser } from "@/hooks/queries";
+import { CONFIG } from "@/utils/config";
+import Button from "@/components/atoms/Button";
+import { useCallback, useState } from "react";
+import { ConfirmModal } from "../Modal/ConfirmModal";
+import { toast } from "../Toast/use-toast";
+import { SettingsGroup, SettingsGroupItem } from "./SettingsGroup";
 
-const TOAST_LONG_DURATION = 8000
+const TOAST_LONG_DURATION = 8000;
 
 export default function UserDeleteSettings() {
-  const deleteUser = useDeleteUser()
-  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const deleteUser = useDeleteUser();
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const handleDelete = useCallback(async () => {
-    const { data, error } = await deleteUser.mutateAsync()
+    const { data, error } = await deleteUser.mutateAsync();
 
     if (error) {
       toast({
-        title: 'Deletion Failed',
+        title: "Deletion Failed",
         description: (
           <>An error occurred while trying to delete your account.</>
         ),
-        variant: 'error',
+        variant: "error",
         duration: TOAST_LONG_DURATION,
-      })
-      return
+      });
+      return;
     }
 
     if (data.deleted) {
       toast({
-        title: 'Account Deleted',
-        description: 'Your account has been successfully deleted.',
-        variant: 'success',
+        title: "Account Deleted",
+        description: "Your account has been successfully deleted.",
+        variant: "success",
         duration: TOAST_LONG_DURATION,
-      })
-      window.location.href = `${CONFIG.BASE_URL}/v1/auth/logout`
+      });
+      window.location.href = `${CONFIG.BASE_URL}/v1/auth/logout`;
     } else {
-      const organizations = data.blocking_organizations ?? []
-      const orgNames = organizations.map((o) => o.name).join(', ')
+      const organizations = data.blocking_organizations ?? [];
+      const orgNames = organizations.map((o) => o.name).join(", ");
       toast({
-        title: 'Deletion Blocked',
-        description: `You must delete all your organizations before deleting your account.${orgNames ? ` Blocking organizations: ${orgNames}.` : ''}`,
-        variant: 'error',
+        title: "Deletion Blocked",
+        description: `You must delete all your shops before deleting your account.${orgNames ? ` Blocking shops: ${orgNames}.` : ""}`,
+        variant: "error",
         duration: TOAST_LONG_DURATION,
-      })
-      setShowDeleteModal(false)
+      });
+      setShowDeleteModal(false);
     }
-  }, [deleteUser])
+  }, [deleteUser]);
 
   return (
     <>
@@ -79,8 +79,8 @@ export default function UserDeleteSettings() {
               <li>Your email and personal data will be anonymized</li>
               <li>Your OAuth connections will be deleted</li>
               <li>
-                All your organizations must be deleted before your account can
-                be removed
+                All your shops must be deleted before your account can be
+                removed
               </li>
             </ul>
           </div>
@@ -90,5 +90,5 @@ export default function UserDeleteSettings() {
         destructiveText="Delete"
       />
     </>
-  )
+  );
 }

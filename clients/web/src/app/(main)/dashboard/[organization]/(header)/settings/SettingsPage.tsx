@@ -1,24 +1,24 @@
-'use client'
+"use client";
 
-import { DashboardBody } from '@/components/Layout/DashboardLayout'
-import FeatureSettings from '@/components/Settings/FeatureSettings'
-import OrganizationDeleteSettings from '@/components/Settings/OrganizationDeleteSettings'
-import OrganizationMPesaSettings from '@/components/Settings/OrganizationMPesaSettings'
-import OrganizationNotificationSettings from '@/components/Settings/OrganizationNotificationSettings'
-import OrganizationProfileSettings from '@/components/Settings/OrganizationProfileSettings'
-import { Section, SectionDescription } from '@/components/Settings/Section'
-import { StorefrontBioFields } from '@/components/Settings/StorefrontBioFields'
-import { schemas } from '@/lib/api'
+import { DashboardBody } from "@/components/Layout/DashboardLayout";
+import FeatureSettings from "@/components/Settings/FeatureSettings";
+import OrganizationDeleteSettings from "@/components/Settings/OrganizationDeleteSettings";
+import OrganizationMPesaSettings from "@/components/Settings/OrganizationMPesaSettings";
+import OrganizationNotificationSettings from "@/components/Settings/OrganizationNotificationSettings";
+import OrganizationProfileSettings from "@/components/Settings/OrganizationProfileSettings";
+import { Section, SectionDescription } from "@/components/Settings/Section";
+import { StorefrontBioFields } from "@/components/Settings/StorefrontBioFields";
+import { schemas } from "@/lib/api";
 
 export default function ClientPage({
   organization: org,
 }: {
-  organization: schemas['Organization']
+  organization: schemas["Organization"];
 }) {
   return (
     <DashboardBody
       wrapperClassName="max-w-(--breakpoint-sm)!"
-      title="Organization Settings"
+      title="Shop settings"
     >
       <div className="flex flex-col gap-y-12">
         {/* Bio + creator category — drives what shows on the public
@@ -36,7 +36,7 @@ export default function ClientPage({
         </Section>
 
         <Section id="profile">
-          <SectionDescription title="Profile" />
+          <SectionDescription title="Shop profile" />
           <OrganizationProfileSettings organization={org} />
         </Section>
 
@@ -56,7 +56,7 @@ export default function ClientPage({
         <Section id="features">
           <SectionDescription
             title="Features"
-            description="Manage alpha & beta features for your organization"
+            description="Manage alpha & beta features for your shop"
           />
           <FeatureSettings organization={org} />
         </Section>
@@ -64,11 +64,11 @@ export default function ClientPage({
         <Section id="danger">
           <SectionDescription
             title="Danger Zone"
-            description="Irreversible actions for this organization"
+            description="Irreversible actions for this shop"
           />
           <OrganizationDeleteSettings organization={org} />
         </Section>
       </div>
     </DashboardBody>
-  )
+  );
 }

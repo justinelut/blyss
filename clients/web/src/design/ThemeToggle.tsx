@@ -1,69 +1,44 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
-import { Moon, Sun } from 'lucide-react'
-import { motion, useReducedMotion, AnimatePresence } from 'motion/react'
-import { cn } from '@/lib/utils'
-
-const STORAGE_KEY = 'blyss-theme'
-type Theme = 'light' | 'dark'
+import { useEffect, useState } from "react";
+import { Moon, Sun } from "lucide-react";
+import { motion, useReducedMotion, AnimatePresence } from "motion/react";
+import { useTheme } from "next-themes";
+import { cn } from "@/lib/utils";
 
 /**
- * ThemeToggle — light/dark mode switch with motion.
- *
- * Persists to localStorage. Sets `data-theme` on <html> so the CSS variables
- * in design/tokens.css switch palettes. Respects prefers-color-scheme on
- * first visit when no preference is stored.
+ * ThemeToggle — an explicit light/dark switch backed by the single
+ * next-themes provider. First visits stay light regardless of OS preference;
+ * an explicit choice persists under the provider's `blyss-theme` storage key.
  */
 export const ThemeToggle = ({ className }: { className?: string }) => {
-  const [mounted, setMounted] = useState(false)
-  const [theme, setTheme] = useState<Theme>('light')
-  const reduce = useReducedMotion()
+  const [mounted, setMounted] = useState(false);
+  const { resolvedTheme, setTheme } = useTheme();
+  const reduce = useReducedMotion();
 
-  // Hydration-safe init
-  useEffect(() => {
-    setMounted(true)
-    const stored = (typeof window !== 'undefined'
-      ? localStorage.getItem(STORAGE_KEY)
-      : null) as Theme | null
-    if (stored === 'light' || stored === 'dark') {
-      setTheme(stored)
-      applyTheme(stored)
-      return
-    }
-    const prefersDark = window.matchMedia(
-      '(prefers-color-scheme: dark)',
-    ).matches
-    const initial: Theme = prefersDark ? 'dark' : 'light'
-    setTheme(initial)
-    applyTheme(initial)
-  }, [])
+  useEffect(() => setMounted(true), []);
 
-  const toggle = () => {
-    const next: Theme = theme === 'light' ? 'dark' : 'light'
-    setTheme(next)
-    applyTheme(next)
-    localStorage.setItem(STORAGE_KEY, next)
-  }
+  const theme = resolvedTheme === "dark" ? "dark" : "light";
+  const toggle = () => setTheme(theme === "light" ? "dark" : "light");
 
   if (!mounted) {
-    // Prevent hydration mismatch — render a transparent placeholder of the
-    // same dimensions so layout doesn't shift.
-    return <div className={cn('h-10 w-10', className)} aria-hidden="true" />
+    return <div className={cn("h-10 w-10", className)} aria-hidden="true" />;
   }
 
   return (
     <button
       type="button"
       onClick={toggle}
-      aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+      aria-label={
+        theme === "light" ? "Switch to dark mode" : "Switch to light mode"
+      }
       className={cn(
-        'relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-md text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-sunken)] hover:text-[var(--text-primary)]',
+        "relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-md text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-sunken)] hover:text-[var(--text-primary)]",
         className,
       )}
     >
       <AnimatePresence mode="wait" initial={false}>
-        {theme === 'light' ? (
+        {theme === "light" ? (
           <motion.span
             key="moon"
             initial={reduce ? false : { rotate: -90, opacity: 0, scale: 0.5 }}
@@ -88,16 +63,5 @@ export const ThemeToggle = ({ className }: { className?: string }) => {
         )}
       </AnimatePresence>
     </button>
-  )
-}
-
-function applyTheme(theme: Theme) {
-  const html = document.documentElement
-  if (theme === 'dark') {
-    html.setAttribute('data-theme', 'dark')
-    html.classList.add('dark')
-  } else {
-    html.removeAttribute('data-theme')
-    html.classList.remove('dark')
-  }
-}
+  );
+};

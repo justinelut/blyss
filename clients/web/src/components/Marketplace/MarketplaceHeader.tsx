@@ -1,7 +1,7 @@
-'use client'
+"use client";
 
 /* Hallmark · component: nav · archetype: N9 edge-aligned minimal
- * theme: blyss-design (light cream + burnt orange #C2410C accent)
+ * theme: Blyss ink + oxblood
  * states: default (transparent) · scrolled (backdrop-blur) · hover · focus-
  *         visible · mobile-drawer
  * contrast: pass · slop: pass (gates 51, 60)
@@ -14,28 +14,29 @@
  * the hero so the marquee imagery breathes.
  */
 
-import { FiSearch, FiUser, FiMenu, FiX, FiHeart } from 'react-icons/fi'
-import { FiGrid, FiLogOut, FiMoon, FiSun } from 'react-icons/fi'
-import Link from 'next/link'
-import { useEffect, useRef, useState } from 'react'
-import { motion, useReducedMotion } from 'motion/react'
-import { BlyssLogo } from '@/design'
-import { CartButton } from '@/components/Cart/CartButton'
-import { CountrySwitcher } from './CountrySwitcher'
-import { useAuth } from '@/hooks'
-import { cn } from '@/lib/utils'
-import { CONFIG } from '@/utils/config'
+import { FiSearch, FiUser, FiMenu, FiX, FiHeart } from "react-icons/fi";
+import { FiGrid, FiLogOut, FiMoon, FiSun } from "react-icons/fi";
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
+import { motion, useReducedMotion } from "motion/react";
+import { BlyssLogo } from "@/design";
+import { CartButton } from "@/components/Cart/CartButton";
+import { CountrySwitcher } from "./CountrySwitcher";
+import { useAuth } from "@/hooks";
+import { cn } from "@/lib/utils";
+import { CONFIG } from "@/utils/config";
+import { useTheme } from "next-themes";
 
 const navLinks = [
-  { href: '/marketplace', label: 'Browse' },
-  { href: '/creators', label: 'Creators' },
-  { href: '/marketplace?type=subscription', label: 'Subscriptions' },
-  { href: '/help', label: 'Help' },
-]
+  { href: "/marketplace", label: "Browse" },
+  { href: "/creators", label: "Creators" },
+  { href: "/marketplace?type=subscription", label: "Subscriptions" },
+  { href: "/help", label: "Help" },
+];
 
 interface MarketplaceHeaderProps {
   /** Override transparency on scroll for hero pages where we want it always blurred */
-  alwaysBlurred?: boolean
+  alwaysBlurred?: boolean;
 }
 
 /**
@@ -49,38 +50,40 @@ interface MarketplaceHeaderProps {
  * - Right: search, cart (with count), avatar dropdown OR "Sign in" + "Start selling"
  * - Mobile: hamburger drawer, full-screen takeover
  */
-export const MarketplaceHeader = ({ alwaysBlurred = false }: MarketplaceHeaderProps) => {
-  const [scrolled, setScrolled] = useState(alwaysBlurred)
-  const [mobileOpen, setMobileOpen] = useState(false)
-  const reduce = useReducedMotion()
-  const { currentUser, authenticated, userOrganizations } = useAuth()
+export const MarketplaceHeader = ({
+  alwaysBlurred = false,
+}: MarketplaceHeaderProps) => {
+  const [scrolled, setScrolled] = useState(alwaysBlurred);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const reduce = useReducedMotion();
+  const { currentUser, authenticated, userOrganizations } = useAuth();
 
   // Track scroll for blur transition
   useEffect(() => {
-    if (alwaysBlurred) return
-    const onScroll = () => setScrolled(window.scrollY > 8)
-    window.addEventListener('scroll', onScroll, { passive: true })
-    onScroll()
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [alwaysBlurred])
+    if (alwaysBlurred) return;
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [alwaysBlurred]);
 
   // Lock body scroll when mobile drawer open
   useEffect(() => {
-    document.body.style.overflow = mobileOpen ? 'hidden' : ''
+    document.body.style.overflow = mobileOpen ? "hidden" : "";
     return () => {
-      document.body.style.overflow = ''
-    }
-  }, [mobileOpen])
+      document.body.style.overflow = "";
+    };
+  }, [mobileOpen]);
 
   return (
     <>
       <header
         className={cn(
-          'fixed top-0 z-50 w-full transition-colors',
-          reduce ? 'transition-none' : 'duration-300',
+          "fixed top-0 z-50 w-full transition-colors",
+          reduce ? "transition-none" : "duration-300",
           scrolled
-            ? 'bg-[var(--background)]/90 backdrop-blur-xl'
-            : 'bg-transparent',
+            ? "bg-[var(--background)]/90 backdrop-blur-xl"
+            : "bg-transparent",
         )}
       >
         <div className="mx-auto flex h-20 max-w-[1280px] items-center justify-between px-6 md:px-16">
@@ -161,7 +164,7 @@ export const MarketplaceHeader = ({ alwaysBlurred = false }: MarketplaceHeaderPr
             <button
               type="button"
               onClick={() => setMobileOpen((v) => !v)}
-              aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+              aria-label={mobileOpen ? "Close menu" : "Open menu"}
               aria-expanded={mobileOpen}
               className="flex h-10 w-10 items-center justify-center rounded-md text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-sunken)] hover:text-[var(--text-primary)] md:hidden"
             >
@@ -247,8 +250,8 @@ export const MarketplaceHeader = ({ alwaysBlurred = false }: MarketplaceHeaderPr
         </motion.div>
       )}
     </>
-  )
-}
+  );
+};
 
 /**
  * MobileThemeToggle — large tap-friendly version of ThemeToggleRow,
@@ -256,61 +259,36 @@ export const MarketplaceHeader = ({ alwaysBlurred = false }: MarketplaceHeaderPr
  * localStorage mechanism as the desktop dropdown row, sized to match
  * the mobile drawer's display-3xl link rhythm.
  */
+function useHeaderTheme() {
+  const [mounted, setMounted] = useState(false);
+  const { resolvedTheme, setTheme } = useTheme();
+
+  useEffect(() => setMounted(true), []);
+
+  const theme = resolvedTheme === "dark" ? "dark" : "light";
+  return {
+    mounted,
+    theme,
+    toggle: () => setTheme(theme === "light" ? "dark" : "light"),
+  };
+}
+
 function MobileThemeToggle() {
-  const STORAGE_KEY = 'blyss-theme'
-  const [mounted, setMounted] = useState(false)
-  const [theme, setThemeState] = useState<'light' | 'dark'>('light')
+  const { mounted, theme, toggle } = useHeaderTheme();
 
-  useEffect(() => {
-    setMounted(true)
-    if (typeof window === 'undefined') return
-    const stored = localStorage.getItem(STORAGE_KEY) as
-      | 'light'
-      | 'dark'
-      | null
-    if (stored === 'light' || stored === 'dark') {
-      setThemeState(stored)
-      return
-    }
-    const prefersDark = window.matchMedia(
-      '(prefers-color-scheme: dark)',
-    ).matches
-    setThemeState(prefersDark ? 'dark' : 'light')
-  }, [])
-
-  const toggle = () => {
-    const next = theme === 'light' ? 'dark' : 'light'
-    setThemeState(next)
-    if (typeof document !== 'undefined') {
-      const html = document.documentElement
-      if (next === 'dark') {
-        html.setAttribute('data-theme', 'dark')
-        html.classList.add('dark')
-      } else {
-        html.removeAttribute('data-theme')
-        html.classList.remove('dark')
-      }
-    }
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(STORAGE_KEY, next)
-    }
-  }
-
-  if (!mounted) {
-    return <div className="h-12" aria-hidden="true" />
-  }
+  if (!mounted) return <div className="h-12" aria-hidden="true" />;
 
   return (
     <button
       type="button"
       onClick={toggle}
       aria-label={
-        theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'
+        theme === "light" ? "Switch to dark mode" : "Switch to light mode"
       }
       className="flex items-center justify-between gap-3 font-display text-3xl font-medium text-[var(--text-primary)]"
     >
       <span className="flex items-center gap-3">
-        {theme === 'light' ? (
+        {theme === "light" ? (
           <FiMoon size={20} className="text-[var(--text-muted)]" />
         ) : (
           <FiSun size={20} className="text-[var(--text-muted)]" />
@@ -318,10 +296,10 @@ function MobileThemeToggle() {
         Theme
       </span>
       <span className="font-sans text-[14px] text-[var(--text-muted)]">
-        {theme === 'light' ? 'Light' : 'Dark'}
+        {theme === "light" ? "Light" : "Dark"}
       </span>
     </button>
-  )
+  );
 }
 
 /**
@@ -340,37 +318,35 @@ function MobileThemeToggle() {
  * to native focus order on the inline links.
  */
 function AccountMenu() {
-  const { currentUser, userOrganizations } = useAuth()
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement | null>(null)
+  const { currentUser, userOrganizations } = useAuth();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
 
   // Close on outside click and on route change. setOpen(false) on
   // currentUser change is defensive: if the user signs out elsewhere
   // (e.g. a customer-portal magic link expires), the dropdown closes.
   useEffect(() => {
-    if (!open) return
+    if (!open) return;
     const onClick = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false)
+        setOpen(false);
       }
-    }
+    };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false)
-    }
-    document.addEventListener('mousedown', onClick)
-    document.addEventListener('keydown', onKey)
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
     return () => {
-      document.removeEventListener('mousedown', onClick)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [open])
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
 
   // Pick the creator's primary org for the Dashboard link. If the user
   // has no creator orgs (pure customer), Dashboard hides entirely.
-  const primaryOrg = userOrganizations[0]
-  const dashboardHref = primaryOrg
-    ? `/dashboard/${primaryOrg.slug}`
-    : null
+  const primaryOrg = userOrganizations[0];
+  const dashboardHref = primaryOrg ? `/dashboard/${primaryOrg.slug}` : null;
 
   return (
     <div ref={ref} className="relative hidden md:block">
@@ -439,7 +415,7 @@ function AccountMenu() {
         </div>
       )}
     </div>
-  )
+  );
 }
 
 /**
@@ -450,53 +426,10 @@ function AccountMenu() {
  * Dashboard / Wishlist / Sign out items.
  */
 function ThemeToggleRow() {
-  const STORAGE_KEY = 'blyss-theme'
-  const [mounted, setMounted] = useState(false)
-  const [theme, setThemeState] = useState<'light' | 'dark'>('light')
+  const { mounted, theme, toggle } = useHeaderTheme();
 
-  useEffect(() => {
-    setMounted(true)
-    if (typeof window === 'undefined') return
-    const stored = localStorage.getItem(STORAGE_KEY) as
-      | 'light'
-      | 'dark'
-      | null
-    if (stored === 'light' || stored === 'dark') {
-      setThemeState(stored)
-      return
-    }
-    const prefersDark = window.matchMedia(
-      '(prefers-color-scheme: dark)',
-    ).matches
-    setThemeState(prefersDark ? 'dark' : 'light')
-  }, [])
-
-  const toggle = () => {
-    const next = theme === 'light' ? 'dark' : 'light'
-    setThemeState(next)
-    if (typeof document !== 'undefined') {
-      const html = document.documentElement
-      if (next === 'dark') {
-        html.setAttribute('data-theme', 'dark')
-        html.classList.add('dark')
-      } else {
-        html.removeAttribute('data-theme')
-        html.classList.remove('dark')
-      }
-    }
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(STORAGE_KEY, next)
-    }
-  }
-
-  // Render a placeholder until mounted to avoid hydration mismatch.
   if (!mounted) {
-    return (
-      <div
-        className="flex h-10 items-center px-4"
-        aria-hidden="true"
-      />
-    )
+    return <div className="flex h-10 items-center px-4" aria-hidden="true" />;
   }
 
   return (
@@ -505,10 +438,12 @@ function ThemeToggleRow() {
       role="menuitem"
       onClick={toggle}
       className="flex w-full items-center justify-between gap-3 px-4 py-2.5 font-sans text-[14px] text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-sunken)]"
-      aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+      aria-label={
+        theme === "light" ? "Switch to dark mode" : "Switch to light mode"
+      }
     >
       <span className="flex items-center gap-3">
-        {theme === 'light' ? (
+        {theme === "light" ? (
           <FiMoon size={16} className="text-[var(--text-muted)]" />
         ) : (
           <FiSun size={16} className="text-[var(--text-muted)]" />
@@ -516,8 +451,8 @@ function ThemeToggleRow() {
         Theme
       </span>
       <span className="font-sans text-[12px] text-[var(--text-muted)]">
-        {theme === 'light' ? 'Light' : 'Dark'}
+        {theme === "light" ? "Light" : "Dark"}
       </span>
     </button>
-  )
+  );
 }

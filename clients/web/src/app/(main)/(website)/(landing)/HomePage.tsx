@@ -1,5 +1,5 @@
 /* Hallmark · macrostructure: Marquee Hero + Long Document · genre: editorial
- * theme: blyss-design (light cream + burnt orange #C2410C accent)
+ * theme: Blyss ink + oxblood
  * sections: Marquee · Editorial letter · Trending · Categories · Creators
  *           · Subscriptions · Process · Closing dark band
  * nav: N5 floating-pill (inherited from MarketplaceShell)
@@ -11,31 +11,34 @@
  * (NoteFromMakers) sits between hero and product grid — the voice sets the
  * cadence before the catalog speaks.
  */
-import { schemas } from '@/lib/api'
-import { JsonLd } from '@/design'
-import { Hero } from '@/components/Marketplace/Hero'
-import { ContinueShopping } from '@/components/Marketplace/ContinueShopping'
-import { TrendingProducts } from '@/components/Marketplace/TrendingProducts'
-import { BrowseByCraft, type CategoryTile } from '@/components/Marketplace/BrowseByCraft'
-import { FeaturedCreators } from '@/components/Marketplace/FeaturedCreators'
-import { FeaturedSubscriptions } from '@/components/Marketplace/FeaturedSubscriptions'
-import { NoteFromMakers } from '@/components/Marketplace/NoteFromMakers'
-import { HowItWorks } from '@/components/Marketplace/HowItWorks'
-import { ClosingCtaBand } from '@/components/Marketplace/ClosingCtaBand'
+import { schemas } from "@/lib/api";
+import { JsonLd } from "@/design";
+import { Hero } from "@/components/Marketplace/Hero";
+import { ContinueShopping } from "@/components/Marketplace/ContinueShopping";
+import { TrendingProducts } from "@/components/Marketplace/TrendingProducts";
+import {
+  BrowseByCraft,
+  type CategoryTile,
+} from "@/components/Marketplace/BrowseByCraft";
+import { FeaturedCreators } from "@/components/Marketplace/FeaturedCreators";
+import { FeaturedSubscriptions } from "@/components/Marketplace/FeaturedSubscriptions";
+import { NoteFromMakers } from "@/components/Marketplace/NoteFromMakers";
+import { HowItWorks } from "@/components/Marketplace/HowItWorks";
+import { ClosingCtaBand } from "@/components/Marketplace/ClosingCtaBand";
 
 interface HomePageProps {
-  featuredProducts: schemas['Product'][]
-  featuredSubscriptions: schemas['Subscription'][]
-  trendingCreators: schemas['Organization'][]
-  categories: CategoryTile[]
+  featuredProducts: schemas["Product"][];
+  featuredSubscriptions: schemas["Subscription"][];
+  trendingCreators: schemas["Organization"][];
+  categories: CategoryTile[];
   stats: {
-    creators: number
-    products: number
-    total_paid_out: number
-  total_earned: number
-    total_paid_out_currency: string
-    settlements_count: number
-  } | null
+    creators: number;
+    products: number;
+    total_paid_out: number;
+    total_earned: number;
+    total_paid_out_currency: string;
+    settlements_count: number;
+  } | null;
 }
 
 /**
@@ -68,44 +71,44 @@ export default function HomePage({
   stats,
 }: HomePageProps) {
   // Real data only — no seed fallbacks. Sections handle empty states.
-  const products = featuredProducts ?? []
-  const subs = featuredSubscriptions ?? []
-  const creators = trendingCreators ?? []
-  const cats = categories ?? []
+  const products = featuredProducts ?? [];
+  const subs = featuredSubscriptions ?? [];
+  const creators = trendingCreators ?? [];
+  const cats = categories ?? [];
 
   return (
     <>
       {/* SEO structured data */}
       <JsonLd
         data={{
-          '@context': 'https://schema.org',
-          '@type': 'WebSite',
-          name: 'Blyss',
-          url: 'https://blyss.co.ke',
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          name: "Blyss",
+          url: "https://blyss.co.ke",
           potentialAction: {
-            '@type': 'SearchAction',
-            target: 'https://blyss.co.ke/search?q={search_term_string}',
-            'query-input': 'required name=search_term_string',
+            "@type": "SearchAction",
+            target: "https://blyss.co.ke/search?q={search_term_string}",
+            "query-input": "required name=search_term_string",
           },
         }}
       />
       <JsonLd
         data={{
-          '@context': 'https://schema.org',
-          '@type': 'Organization',
-          name: 'Blyss',
-          url: 'https://blyss.co.ke',
-          logo: 'https://cdn.blyss.co.ke/brand/og-default.png',
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          name: "Blyss",
+          url: "https://blyss.co.ke",
+          logo: "https://cdn.blyss.co.ke/brand/og-default.png",
           description:
-            'The modern modern marketplace for digital products. Sell digital products and subscriptions, paid via M-Pesa or card.',
+            "A marketplace for digital products from independent creators in Kenya and beyond. Browse templates, ebooks, beats, courses, and subscriptions.",
           address: {
-            '@type': 'PostalAddress',
-            addressLocality: 'Nairobi',
-            addressCountry: 'KE',
+            "@type": "PostalAddress",
+            addressLocality: "Nairobi",
+            addressCountry: "KE",
           },
           sameAs: [
-            'https://instagram.com/blyss.co.ke',
-            'https://x.com/blyss_co_ke',
+            "https://instagram.com/blyss.co.ke",
+            "https://x.com/blyss_co_ke",
           ],
         }}
       />
@@ -146,5 +149,5 @@ export default function HomePage({
       <HowItWorks />
       <ClosingCtaBand />
     </>
-  )
+  );
 }

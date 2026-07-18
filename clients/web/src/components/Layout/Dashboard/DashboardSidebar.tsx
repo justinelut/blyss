@@ -1,14 +1,14 @@
-import { NotificationsPopover } from '@/components/Notifications/NotificationsPopover'
-import { OmniSearch } from '@/components/Search/OmniSearch'
-import { useAuth } from '@/hooks'
-import { CONFIG } from '@/utils/config'
-import { isImpersonating } from '@/utils/impersonation'
-import ArrowOutwardOutlined from '@mui/icons-material/ArrowOutwardOutlined'
-import KeyboardArrowDown from '@mui/icons-material/KeyboardArrowDown'
-import Search from '@mui/icons-material/Search'
-import SupportIcon from '@mui/icons-material/Support'
-import { schemas } from '@/lib/api'
-import Avatar from '@/components/atoms/Avatar'
+import { NotificationsPopover } from "@/components/Notifications/NotificationsPopover";
+import { OmniSearch } from "@/components/Search/OmniSearch";
+import { useAuth } from "@/hooks";
+import { CONFIG } from "@/utils/config";
+import { isImpersonating } from "@/utils/impersonation";
+import ArrowOutwardOutlined from "@mui/icons-material/ArrowOutwardOutlined";
+import KeyboardArrowDown from "@mui/icons-material/KeyboardArrowDown";
+import Search from "@mui/icons-material/Search";
+import SupportIcon from "@mui/icons-material/Support";
+import { schemas } from "@/lib/api";
+import Avatar from "@/components/atoms/Avatar";
 import {
   Sidebar,
   SidebarContent,
@@ -19,84 +19,84 @@ import {
   SidebarMenuItem,
   SidebarTrigger,
   useSidebar,
-} from '@/components/atoms/Sidebar'
+} from "@/components/atoms/Sidebar";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Separator } from '@/components/ui/separator'
-import { motion } from 'motion/react'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
-import { twMerge } from 'tailwind-merge'
-import { BlyssLogo } from '@/design'
+} from "@/components/ui/dropdown-menu";
+import { Separator } from "@/components/ui/separator";
+import { motion } from "motion/react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { twMerge } from "tailwind-merge";
+import { BlyssLogo } from "@/design";
 import {
   AccountNavigation,
   OrganizationNavigation,
-} from './DashboardNavigation'
+} from "./DashboardNavigation";
 
 export const DashboardSidebar = ({
-  type = 'organization',
+  type = "organization",
   organization,
   organizations,
 }: {
-  type?: 'organization' | 'account'
-  organization?: schemas['Organization']
-  organizations: schemas['Organization'][]
+  type?: "organization" | "account";
+  organization?: schemas["Organization"];
+  organizations: schemas["Organization"][];
 }) => {
-  const router = useRouter()
-  const { state } = useSidebar()
+  const router = useRouter();
+  const { state } = useSidebar();
 
-  const { currentUser } = useAuth()
+  const { currentUser } = useAuth();
 
-  const isCollapsed = state === 'collapsed'
-  const [searchOpen, setSearchOpen] = useState(false)
+  const isCollapsed = state === "collapsed";
+  const [searchOpen, setSearchOpen] = useState(false);
 
-  const navigateToOrganization = (org: schemas['Organization']) => {
-    router.push(`/dashboard/${org.slug}`)
-  }
+  const navigateToOrganization = (org: schemas["Organization"]) => {
+    router.push(`/dashboard/${org.slug}`);
+  };
 
   // Annoying useEffect hack to allow access to client-side cookies from Server-Side component
-  const [_isImpersonating, setIsImpersonating] = useState(false)
+  const [_isImpersonating, setIsImpersonating] = useState(false);
   useEffect(() => {
-    setIsImpersonating(isImpersonating())
-  }, [])
-  const isTopBannerVisible = CONFIG.IS_SANDBOX || _isImpersonating
+    setIsImpersonating(isImpersonating());
+  }, []);
+  const isTopBannerVisible = CONFIG.IS_SANDBOX || _isImpersonating;
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault()
-        setSearchOpen(true)
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setSearchOpen(true);
       }
-    }
+    };
 
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [])
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   return (
     <Sidebar variant="inset" collapsible="icon">
       <SidebarHeader
         className={twMerge(
-          'flex md:pt-3.5',
-          isTopBannerVisible ? 'md:pt-10' : '',
+          "flex md:pt-3.5",
+          isTopBannerVisible ? "md:pt-10" : "",
           isCollapsed
-            ? 'flex-row items-center justify-between gap-y-4 md:flex-col md:items-start md:justify-start'
-            : 'flex-row items-center justify-between',
+            ? "flex-row items-center justify-between gap-y-4 md:flex-col md:items-start md:justify-start"
+            : "flex-row items-center justify-between",
         )}
       >
         <BlyssLogo
           size="md"
-          href={organization ? `/dashboard/${organization.slug}` : '/dashboard'}
+          href={organization ? `/dashboard/${organization.slug}` : "/dashboard"}
         />
         <motion.div
-          key={isCollapsed ? 'header-collapsed' : 'header-expanded'}
-          className={`flex ${isCollapsed ? 'flex-row md:flex-col-reverse' : 'flex-row'} items-center gap-2`}
+          key={isCollapsed ? "header-collapsed" : "header-expanded"}
+          className={`flex ${isCollapsed ? "flex-row md:flex-col-reverse" : "flex-row"} items-center gap-2`}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 1 }}
@@ -107,14 +107,14 @@ export const DashboardSidebar = ({
       </SidebarHeader>
 
       <SidebarContent className="gap-4 px-2 py-4">
-        {type === 'organization' && organization && (
+        {type === "organization" && organization && (
           <>
             <button
               onClick={() => setSearchOpen(true)}
               className={twMerge(
-                'flex cursor-pointer items-center gap-4 rounded-lg border px-2 py-2 text-sm transition-colors',
-                'dark:bg-polar-950 dark:border-polar-800 dark:hover:bg-polar-900 border-[var(--border)] bg-white hover:bg-[var(--surface)]',
-                isCollapsed && 'justify-center px-2',
+                "flex cursor-pointer items-center gap-4 rounded-lg border px-2 py-2 text-sm transition-colors",
+                "dark:bg-polar-950 dark:border-polar-800 dark:hover:bg-polar-900 border-[var(--border)] bg-white hover:bg-[var(--surface)]",
+                isCollapsed && "justify-center px-2",
               )}
             >
               <Search
@@ -140,14 +140,14 @@ export const DashboardSidebar = ({
           </>
         )}
         <motion.div
-          key={isCollapsed ? 'nav-collapsed' : 'nav-expanded'}
+          key={isCollapsed ? "nav-collapsed" : "nav-expanded"}
           className="flex flex-col items-center gap-2"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 1 }}
         >
-          {type === 'account' && <AccountNavigation />}
-          {type === 'organization' && organization && (
+          {type === "account" && <AccountNavigation />}
+          {type === "organization" && organization && (
             <OrganizationNavigation organization={organization} />
           )}
         </motion.div>
@@ -162,9 +162,9 @@ export const DashboardSidebar = ({
         <Link
           href="mailto:support@blyss.co.ke"
           className={twMerge(
-            'mt-2 flex cursor-pointer flex-row items-center rounded-lg border border-transparent px-2 text-sm transition-colors dark:border-transparent',
-            'dark:text-polar-500 dark:hover:text-polar-200 text-[var(--text-muted)] hover:text-black',
-            isCollapsed && '!dark:text-polar-600',
+            "mt-2 flex cursor-pointer flex-row items-center rounded-lg border border-transparent px-2 text-sm transition-colors dark:border-transparent",
+            "dark:text-polar-500 dark:hover:text-polar-200 text-[var(--text-muted)] hover:text-black",
+            isCollapsed && "!dark:text-polar-600",
           )}
         >
           <SupportIcon fontSize="inherit" />
@@ -172,9 +172,9 @@ export const DashboardSidebar = ({
         </Link>
         <Link
           className={twMerge(
-            'flex flex-row items-center rounded-lg border border-transparent text-sm transition-colors dark:border-transparent',
-            'dark:text-polar-500 dark:hover:text-polar-200 text-[var(--text-muted)] hover:text-black',
-            isCollapsed && '!dark:text-polar-600',
+            "flex flex-row items-center rounded-lg border border-transparent text-sm transition-colors dark:border-transparent",
+            "dark:text-polar-500 dark:hover:text-polar-200 text-[var(--text-muted)] hover:text-black",
+            isCollapsed && "!dark:text-polar-600",
           )}
           href="https://blyss.co.ke/help"
           target="_blank"
@@ -185,7 +185,7 @@ export const DashboardSidebar = ({
           )}
         </Link>
         <Separator />
-        {type === 'organization' && organization && (
+        {type === "organization" && organization && (
           <SidebarMenu>
             <SidebarMenuItem>
               <DropdownMenu>
@@ -211,7 +211,7 @@ export const DashboardSidebar = ({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   side="top"
-                  align={isCollapsed ? 'start' : 'center'}
+                  align={isCollapsed ? "start" : "center"}
                   className="w-(--radix-popper-anchor-width) min-w-[200px]"
                 >
                   {organizations.map((org) => (
@@ -231,13 +231,13 @@ export const DashboardSidebar = ({
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={() =>
-                      router.push('/dashboard/create?existing_org=true')
+                      router.push("/dashboard/create?existing_org=true")
                     }
                   >
-                    New Organization
+                    Add another shop
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => router.push('/dashboard/account')}
+                    onClick={() => router.push("/dashboard/account")}
                   >
                     Account Settings
                   </DropdownMenuItem>
@@ -256,5 +256,5 @@ export const DashboardSidebar = ({
         )}
       </SidebarFooter>
     </Sidebar>
-  )
-}
+  );
+};

@@ -1,21 +1,21 @@
-import ClearOutlined from '@mui/icons-material/ClearOutlined'
-import { enums, schemas } from '@/lib/api'
+import ClearOutlined from "@mui/icons-material/ClearOutlined";
+import { enums, schemas } from "@/lib/api";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from '@/components/atoms/Accordion'
-import Button from '@/components/atoms/Button'
-import Input from '@/components/atoms/Input'
+} from "@/components/atoms/Accordion";
+import Button from "@/components/atoms/Button";
+import Input from "@/components/atoms/Input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/atoms/Select'
-import Switch from '@/components/atoms/Switch'
+} from "@/components/atoms/Select";
+import Switch from "@/components/atoms/Switch";
 import {
   FormControl,
   FormDescription,
@@ -23,17 +23,17 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form'
-import React from 'react'
-import { useFieldArray, useFormContext } from 'react-hook-form'
-import CustomFieldTypeLabel from './CustomFieldTypeLabel'
+} from "@/components/ui/form";
+import React from "react";
+import { useFieldArray, useFormContext } from "react-hook-form";
+import CustomFieldTypeLabel from "./CustomFieldTypeLabel";
 
 const CustomFieldTextProperties = () => {
   const { control } = useFormContext<
-    (schemas['CustomFieldCreate'] | schemas['CustomFieldUpdate']) & {
-      type: 'text'
+    (schemas["CustomFieldCreate"] | schemas["CustomFieldUpdate"]) & {
+      type: "text";
     }
-  >()
+  >();
   return (
     <>
       <FormField
@@ -42,7 +42,7 @@ const CustomFieldTextProperties = () => {
         rules={{
           min: {
             value: 0,
-            message: 'This field must be a positive number',
+            message: "This field must be a positive number",
           },
         }}
         render={({ field }) => {
@@ -54,7 +54,7 @@ const CustomFieldTextProperties = () => {
               </FormControl>
               <FormMessage />
             </FormItem>
-          )
+          );
         }}
       />
       <FormField
@@ -63,7 +63,7 @@ const CustomFieldTextProperties = () => {
         rules={{
           min: {
             value: 0,
-            message: 'This field must be a positive number',
+            message: "This field must be a positive number",
           },
         }}
         render={({ field }) => {
@@ -75,21 +75,21 @@ const CustomFieldTextProperties = () => {
               </FormControl>
               <FormMessage />
             </FormItem>
-          )
+          );
         }}
       />
     </>
-  )
-}
+  );
+};
 
 const CustomFieldComparableProperties = () => {
   const { control, watch } = useFormContext<
-    (schemas['CustomFieldCreate'] | schemas['CustomFieldUpdate']) & {
-      type: 'number' | 'datetime'
+    (schemas["CustomFieldCreate"] | schemas["CustomFieldUpdate"]) & {
+      type: "number" | "datetime";
     }
-  >()
-  const geValue = watch('properties.ge')
-  const leValue = watch('properties.le')
+  >();
+  const geValue = watch("properties.ge");
+  const leValue = watch("properties.le");
 
   return (
     <>
@@ -100,28 +100,28 @@ const CustomFieldComparableProperties = () => {
           validate: {
             integer: (value) => {
               if (!value && value !== 0) {
-                return true
+                return true;
               }
-              const num = Number(value)
+              const num = Number(value);
               if (isNaN(num) || !Number.isInteger(num)) {
-                return 'Value must be a valid integer'
+                return "Value must be a valid integer";
               }
-              const INT32_MIN = -(2 ** 31)
-              const INT32_MAX = 2 ** 31 - 1
+              const INT32_MIN = -(2 ** 31);
+              const INT32_MAX = 2 ** 31 - 1;
               if (num < INT32_MIN || num > INT32_MAX) {
-                return 'Value is out of range'
+                return "Value is out of range";
               }
-              return true
+              return true;
             },
             leThanLe: (value) => {
               if ((value || value === 0) && (leValue || leValue === 0)) {
-                const ge = Number(value)
-                const le = Number(leValue)
+                const ge = Number(value);
+                const le = Number(leValue);
                 if (!isNaN(ge) && !isNaN(le) && ge > le) {
-                  return 'Must be less than or equal to "Less than or equal" value'
+                  return 'Must be less than or equal to "Less than or equal" value';
                 }
               }
-              return true
+              return true;
             },
           },
         }}
@@ -134,7 +134,7 @@ const CustomFieldComparableProperties = () => {
               </FormControl>
               <FormMessage />
             </FormItem>
-          )
+          );
         }}
       />
       <FormField
@@ -144,28 +144,28 @@ const CustomFieldComparableProperties = () => {
           validate: {
             integer: (value) => {
               if (!value && value !== 0) {
-                return true
+                return true;
               }
-              const num = Number(value)
+              const num = Number(value);
               if (isNaN(num) || !Number.isInteger(num)) {
-                return 'Value must be a valid integer'
+                return "Value must be a valid integer";
               }
-              const INT32_MIN = -(2 ** 31)
-              const INT32_MAX = 2 ** 31 - 1
+              const INT32_MIN = -(2 ** 31);
+              const INT32_MAX = 2 ** 31 - 1;
               if (num < INT32_MIN || num > INT32_MAX) {
-                return 'Value is out of range'
+                return "Value is out of range";
               }
-              return true
+              return true;
             },
             geThanGe: (value) => {
               if ((value || value === 0) && (geValue || geValue === 0)) {
-                const le = Number(value)
-                const ge = Number(geValue)
+                const le = Number(value);
+                const ge = Number(geValue);
                 if (!isNaN(le) && !isNaN(ge) && le < ge) {
-                  return 'Must be greater than or equal to "Greater than or equal" value'
+                  return 'Must be greater than or equal to "Greater than or equal" value';
                 }
               }
-              return true
+              return true;
             },
           },
         }}
@@ -178,26 +178,26 @@ const CustomFieldComparableProperties = () => {
               </FormControl>
               <FormMessage />
             </FormItem>
-          )
+          );
         }}
       />
     </>
-  )
-}
+  );
+};
 
 const CustomFieldSelectProperties = () => {
   const { control } = useFormContext<
-    (schemas['CustomFieldCreate'] | schemas['CustomFieldUpdate']) & {
-      type: 'select'
+    (schemas["CustomFieldCreate"] | schemas["CustomFieldUpdate"]) & {
+      type: "select";
     }
-  >()
+  >();
   const { fields, append, remove } = useFieldArray({
     control,
-    name: 'properties.options',
+    name: "properties.options",
     rules: {
       minLength: 1,
     },
-  })
+  });
   return (
     <FormItem>
       <FormLabel>Select options</FormLabel>
@@ -212,7 +212,7 @@ const CustomFieldSelectProperties = () => {
                   <FormControl>
                     <Input
                       {...field}
-                      value={field.value || ''}
+                      value={field.value || ""}
                       placeholder="Value"
                     />
                   </FormControl>
@@ -228,7 +228,7 @@ const CustomFieldSelectProperties = () => {
                   <FormControl>
                     <Input
                       {...field}
-                      value={field.value || ''}
+                      value={field.value || ""}
                       placeholder="Label"
                     />
                   </FormControl>
@@ -238,7 +238,7 @@ const CustomFieldSelectProperties = () => {
             />
             <Button
               className={
-                'border-none bg-transparent text-[16px] opacity-50 transition-opacity hover:opacity-100 dark:bg-transparent'
+                "border-none bg-transparent text-[16px] opacity-50 transition-opacity hover:opacity-100 dark:bg-transparent"
               }
               size="icon"
               variant="secondary"
@@ -255,25 +255,25 @@ const CustomFieldSelectProperties = () => {
           className="self-start"
           type="button"
           onClick={() => {
-            append({ value: '', label: '' })
+            append({ value: "", label: "" });
           }}
         >
           Add option
         </Button>
       </div>
     </FormItem>
-  )
-}
+  );
+};
 
 interface CustomFieldFormBaseProps {
-  update: boolean
+  update: boolean;
 }
 
 const CustomFieldForm: React.FC<CustomFieldFormBaseProps> = ({ update }) => {
   const { control, watch } = useFormContext<
-    schemas['CustomFieldCreate'] | schemas['CustomFieldUpdate']
-  >()
-  const type = watch('type')
+    schemas["CustomFieldCreate"] | schemas["CustomFieldUpdate"]
+  >();
+  const type = watch("type");
 
   return (
     <>
@@ -281,7 +281,7 @@ const CustomFieldForm: React.FC<CustomFieldFormBaseProps> = ({ update }) => {
         <FormField
           control={control}
           name="type"
-          rules={{ required: 'This field is required' }}
+          rules={{ required: "This field is required" }}
           render={({ field }) => (
             <FormItem>
               <FormLabel>Type</FormLabel>
@@ -308,25 +308,25 @@ const CustomFieldForm: React.FC<CustomFieldFormBaseProps> = ({ update }) => {
         rules={{
           minLength: {
             value: 1,
-            message: 'This field must not be empty',
+            message: "This field must not be empty",
           },
-          required: 'This field is required',
+          required: "This field is required",
         }}
         render={({ field }) => {
           return (
             <FormItem>
               <FormLabel>Slug</FormLabel>
               <FormControl>
-                <Input {...field} value={field.value || ''} />
+                <Input {...field} value={field.value || ""} />
               </FormControl>
               <FormMessage />
               <FormDescription>
                 Will be used as a key when storing the value. Must be unique
-                across your organization. It can only contain ASCII letters,
-                numbers and hyphens.
+                across your shop. It can only contain ASCII letters, numbers and
+                hyphens.
               </FormDescription>
             </FormItem>
-          )
+          );
         }}
       />
 
@@ -336,23 +336,23 @@ const CustomFieldForm: React.FC<CustomFieldFormBaseProps> = ({ update }) => {
         rules={{
           minLength: {
             value: 1,
-            message: 'This field must not be empty',
+            message: "This field must not be empty",
           },
-          required: 'This field is required',
+          required: "This field is required",
         }}
         render={({ field }) => {
           return (
             <FormItem>
               <FormLabel>Name</FormLabel>
               <FormControl>
-                <Input {...field} value={field.value || ''} />
+                <Input {...field} value={field.value || ""} />
               </FormControl>
               <FormMessage />
             </FormItem>
-          )
+          );
         }}
       />
-      {type === 'select' && <CustomFieldSelectProperties />}
+      {type === "select" && <CustomFieldSelectProperties />}
       <Accordion type="single" collapsible className="flex flex-col gap-y-6">
         <AccordionItem
           value="form-input-options"
@@ -362,7 +362,7 @@ const CustomFieldForm: React.FC<CustomFieldFormBaseProps> = ({ update }) => {
             Form input options
           </AccordionTrigger>
           <AccordionContent className="flex flex-col gap-y-6">
-            {type === 'text' && (
+            {type === "text" && (
               <FormField
                 control={control}
                 name="properties.textarea"
@@ -378,7 +378,7 @@ const CustomFieldForm: React.FC<CustomFieldFormBaseProps> = ({ update }) => {
                       <FormLabel>Textarea</FormLabel>
                       <FormMessage />
                     </FormItem>
-                  )
+                  );
                 }}
               />
             )}
@@ -388,7 +388,7 @@ const CustomFieldForm: React.FC<CustomFieldFormBaseProps> = ({ update }) => {
               rules={{
                 minLength: {
                   value: 1,
-                  message: 'This field must not be empty',
+                  message: "This field must not be empty",
                 },
               }}
               render={({ field }) => {
@@ -396,7 +396,7 @@ const CustomFieldForm: React.FC<CustomFieldFormBaseProps> = ({ update }) => {
                   <FormItem>
                     <FormLabel>Label</FormLabel>
                     <FormControl>
-                      <Input {...field} value={field.value || ''} />
+                      <Input {...field} value={field.value || ""} />
                     </FormControl>
                     <FormMessage />
                     <FormDescription>
@@ -404,7 +404,7 @@ const CustomFieldForm: React.FC<CustomFieldFormBaseProps> = ({ update }) => {
                       supported.
                     </FormDescription>
                   </FormItem>
-                )
+                );
               }}
             />
             <FormField
@@ -413,7 +413,7 @@ const CustomFieldForm: React.FC<CustomFieldFormBaseProps> = ({ update }) => {
               rules={{
                 minLength: {
                   value: 1,
-                  message: 'This field must not be empty',
+                  message: "This field must not be empty",
                 },
               }}
               render={({ field }) => {
@@ -421,14 +421,14 @@ const CustomFieldForm: React.FC<CustomFieldFormBaseProps> = ({ update }) => {
                   <FormItem>
                     <FormLabel>Help text</FormLabel>
                     <FormControl>
-                      <Input {...field} value={field.value || ''} />
+                      <Input {...field} value={field.value || ""} />
                     </FormControl>
                     <FormMessage />
                     <FormDescription>
                       Used on the checkout form. Markdown supported.
                     </FormDescription>
                   </FormItem>
-                )
+                );
               }}
             />
             <FormField
@@ -437,7 +437,7 @@ const CustomFieldForm: React.FC<CustomFieldFormBaseProps> = ({ update }) => {
               rules={{
                 minLength: {
                   value: 1,
-                  message: 'This field must not be empty',
+                  message: "This field must not be empty",
                 },
               }}
               render={({ field }) => {
@@ -445,19 +445,19 @@ const CustomFieldForm: React.FC<CustomFieldFormBaseProps> = ({ update }) => {
                   <FormItem>
                     <FormLabel>Placeholder</FormLabel>
                     <FormControl>
-                      <Input {...field} value={field.value || ''} />
+                      <Input {...field} value={field.value || ""} />
                     </FormControl>
                     <FormMessage />
                     <FormDescription>
                       Used on the checkout form.
                     </FormDescription>
                   </FormItem>
-                )
+                );
               }}
             />
           </AccordionContent>
         </AccordionItem>
-        {(type === 'text' || type === 'number' || type === 'date') && (
+        {(type === "text" || type === "number" || type === "date") && (
           <AccordionItem
             value="validation-constraints"
             className="dark:border-polar-700 rounded-xl border border-gray-200 px-4"
@@ -467,15 +467,15 @@ const CustomFieldForm: React.FC<CustomFieldFormBaseProps> = ({ update }) => {
             </AccordionTrigger>
 
             <AccordionContent className="flex flex-col gap-y-6">
-              {type === 'text' && <CustomFieldTextProperties />}
-              {type === 'number' && <CustomFieldComparableProperties />}
-              {type === 'date' && <CustomFieldComparableProperties />}
+              {type === "text" && <CustomFieldTextProperties />}
+              {type === "number" && <CustomFieldComparableProperties />}
+              {type === "date" && <CustomFieldComparableProperties />}
             </AccordionContent>
           </AccordionItem>
         )}
       </Accordion>
     </>
-  )
-}
+  );
+};
 
-export default CustomFieldForm
+export default CustomFieldForm;

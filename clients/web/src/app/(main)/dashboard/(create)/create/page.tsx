@@ -1,51 +1,51 @@
-import revalidate from '@/app/actions'
-import { getServerSideAPI } from '@/utils/client/serverside'
-import { getAuthenticatedUser } from '@/utils/user'
-import { schemas } from '@/lib/api'
-import { Metadata } from 'next'
-import { redirect } from 'next/navigation'
-import CreatePage from './CreatePage'
+import revalidate from "@/app/actions";
+import { getServerSideAPI } from "@/utils/client/serverside";
+import { getAuthenticatedUser } from "@/utils/user";
+import { schemas } from "@/lib/api";
+import { Metadata } from "next";
+import { redirect } from "next/navigation";
+import CreatePage from "./CreatePage";
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: 'Create Organization', // " | Polar is added by the template"
-  }
+    title: "Create your shop", // " | Polar is added by the template"
+  };
 }
 
 export default async function Page(props: {
   searchParams: Promise<{
-    slug?: string
-    auto?: string
-    existing_org?: boolean
-  }>
+    slug?: string;
+    auto?: string;
+    existing_org?: boolean;
+  }>;
 }) {
-  const searchParams = await props.searchParams
+  const searchParams = await props.searchParams;
 
-  const { slug, auto, existing_org } = searchParams
+  const { slug, auto, existing_org } = searchParams;
 
-  let validationErrors: schemas['ValidationError'][] = []
-  const error: string | undefined = undefined
+  let validationErrors: schemas["ValidationError"][] = [];
+  const error: string | undefined = undefined;
 
   // Create the organization automatically if the slug is provided and auto is true
-  if (auto === 'true' && slug) {
-    const api = await getServerSideAPI()
-    const { data: organization, error } = await api.POST('/v1/organizations/', {
+  if (auto === "true" && slug) {
+    const api = await getServerSideAPI();
+    const { data: organization, error } = await api.POST("/v1/organizations/", {
       body: {
         name: slug,
         slug,
-        default_presentment_currency: 'usd',
+        default_presentment_currency: "usd",
       },
-    })
+    });
     if (error && error.detail) {
-      validationErrors = error.detail
+      validationErrors = error.detail;
     }
     if (organization) {
-      await revalidate(`organizations:${organization.id}`)
-      await revalidate(`organizations:${organization.slug}`)
+      await revalidate(`organizations:${organization.id}`);
+      await revalidate(`organizations:${organization.slug}`);
 
-      const currentUser = await getAuthenticatedUser()
-      await revalidate(`users:${currentUser?.id}:organizations`, { expire: 0 })
-      return redirect(`/dashboard/${organization.slug}/onboarding/product`)
+      const currentUser = await getAuthenticatedUser();
+      await revalidate(`users:${currentUser?.id}:organizations`, { expire: 0 });
+      return redirect(`/dashboard/${organization.slug}/onboarding/product`);
     }
   }
 
@@ -55,5 +55,5 @@ export default async function Page(props: {
       validationErrors={validationErrors}
       error={error}
     />
-  )
+  );
 }

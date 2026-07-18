@@ -1,25 +1,25 @@
-'use client'
+"use client";
 
-import revalidate from '@/app/actions'
-import { useAuth, useOAuthAccounts, useOnboardingTracking } from '@/hooks'
-import { inferSignupMethod } from '@/hooks/onboarding'
-import { usePostHog } from '@/hooks/posthog'
-import { useCreateOrganization } from '@/hooks/queries'
-import { useCreatorCategories } from '@/hooks/queries/creators'
-import { api } from '@/utils/client'
-import { setValidationErrors } from '@/utils/api/errors'
-import { CONFIG } from '@/utils/config'
-import { schemas } from '@/lib/api'
-import Button from '@/components/atoms/Button'
-import Input from '@/components/atoms/Input'
+import revalidate from "@/app/actions";
+import { useAuth, useOAuthAccounts, useOnboardingTracking } from "@/hooks";
+import { inferSignupMethod } from "@/hooks/onboarding";
+import { usePostHog } from "@/hooks/posthog";
+import { useCreateOrganization } from "@/hooks/queries";
+import { useCreatorCategories } from "@/hooks/queries/creators";
+import { api } from "@/utils/client";
+import { setValidationErrors } from "@/utils/api/errors";
+import { CONFIG } from "@/utils/config";
+import { schemas } from "@/lib/api";
+import Button from "@/components/atoms/Button";
+import Input from "@/components/atoms/Input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/atoms/Select'
-import { Checkbox } from '@/components/ui/checkbox'
+} from "@/components/atoms/Select";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Form,
   FormControl,
@@ -28,32 +28,32 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form'
-import { motion } from 'motion/react'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
-import { useForm, useWatch } from 'react-hook-form'
-import slugify from 'slugify'
-import { FadeUp } from '../Animated/FadeUp'
-import LogoIcon from '../Brand/logos/LogoIcon'
-import { CurrencySelector } from '../CurrencySelector'
-import { getStatusRedirect } from '../Toast/utils'
-import SupportedUseCases from './components/SupportedUseCases'
+} from "@/components/ui/form";
+import { motion } from "motion/react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
+import slugify from "slugify";
+import { FadeUp } from "../Animated/FadeUp";
+import LogoIcon from "../Brand/logos/LogoIcon";
+import { CurrencySelector } from "../CurrencySelector";
+import { getStatusRedirect } from "../Toast/utils";
+import SupportedUseCases from "./components/SupportedUseCases";
 
 export interface OrganizationStepProps {
-  slug?: string
-  validationErrors?: schemas['ValidationError'][]
-  error?: string
-  hasExistingOrg: boolean
+  slug?: string;
+  validationErrors?: schemas["ValidationError"][];
+  error?: string;
+  hasExistingOrg: boolean;
 }
 
 type FormSchema = Pick<
-  schemas['OrganizationCreate'],
-  'name' | 'slug' | 'default_presentment_currency'
+  schemas["OrganizationCreate"],
+  "name" | "slug" | "default_presentment_currency"
 > & {
-  terms: boolean
-}
+  terms: boolean;
+};
 
 export const OrganizationStep = ({
   slug: initialSlug,
@@ -61,24 +61,24 @@ export const OrganizationStep = ({
   error,
   hasExistingOrg,
 }: OrganizationStepProps) => {
-  const posthog = usePostHog()
-  const { currentUser, setUserOrganizations } = useAuth()
-  const oauthAccounts = useOAuthAccounts()
+  const posthog = usePostHog();
+  const { currentUser, setUserOrganizations } = useAuth();
+  const oauthAccounts = useOAuthAccounts();
   const {
     startOnboarding,
     trackStepStarted,
     trackStepCompleted,
     experimentVariant,
-  } = useOnboardingTracking()
+  } = useOnboardingTracking();
 
   const form = useForm<FormSchema>({
     defaultValues: {
-      name: initialSlug || '',
-      slug: initialSlug || '',
-      default_presentment_currency: 'kes',
+      name: initialSlug || "",
+      slug: initialSlug || "",
+      default_presentment_currency: "kes",
       terms: false,
     },
-  })
+  });
 
   const {
     control,
@@ -88,21 +88,21 @@ export const OrganizationStep = ({
     clearErrors,
     setValue,
     formState: { errors },
-  } = form
-  const createOrganization = useCreateOrganization()
-  const { data: creatorCategories = [] } = useCreatorCategories()
-  const [selectedCategory, setSelectedCategory] = useState('')
-  const [editedSlug, setEditedSlug] = useState(false)
+  } = form;
+  const createOrganization = useCreateOrganization();
+  const { data: creatorCategories = [] } = useCreatorCategories();
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [editedSlug, setEditedSlug] = useState(false);
 
-  const router = useRouter()
+  const router = useRouter();
 
   useEffect(() => {
-    posthog.capture('dashboard:organizations:create:view')
+    posthog.capture("dashboard:organizations:create:view");
 
     if (!hasExistingOrg) {
-      const signupMethod = inferSignupMethod(oauthAccounts)
-      startOnboarding(signupMethod)
-      trackStepStarted('org')
+      const signupMethod = inferSignupMethod(oauthAccounts);
+      startOnboarding(signupMethod);
+      trackStepStarted("org");
     }
   }, [
     hasExistingOrg,
@@ -110,87 +110,87 @@ export const OrganizationStep = ({
     posthog,
     startOnboarding,
     trackStepStarted,
-  ])
+  ]);
 
   useEffect(() => {
     if (validationErrors) {
-      setValidationErrors(validationErrors, setError)
+      setValidationErrors(validationErrors, setError);
     }
     if (error) {
-      setError('root', { message: error })
+      setError("root", { message: error });
     } else {
-      clearErrors('root')
+      clearErrors("root");
     }
-  }, [validationErrors, error, setError, clearErrors])
+  }, [validationErrors, error, setError, clearErrors]);
 
   const { name, slug, terms } = useWatch({
     control,
-  })
+  });
 
   useEffect(() => {
     if (!editedSlug && name) {
-      setValue('slug', slugify(name, { lower: true, strict: true }))
+      setValue("slug", slugify(name, { lower: true, strict: true }));
     } else if (slug) {
       setValue(
-        'slug',
+        "slug",
         slugify(slug, { lower: true, trim: false, strict: true }),
-      )
+      );
     }
-  }, [name, editedSlug, slug, setValue])
+  }, [name, editedSlug, slug, setValue]);
 
   const onSubmit = async (data: FormSchema) => {
-    if (!data.terms) return
+    if (!data.terms) return;
 
     const params = {
       ...data,
       slug: slug as string,
-    }
-    posthog.capture('dashboard:organizations:create:submit', params)
+    };
+    posthog.capture("dashboard:organizations:create:submit", params);
     const { data: organization, error } =
-      await createOrganization.mutateAsync(params)
+      await createOrganization.mutateAsync(params);
 
     if (error) {
       if (error.detail) {
-        setValidationErrors(error.detail, setError)
+        setValidationErrors(error.detail, setError);
       }
-      return
+      return;
     }
 
-    await revalidate(`organizations:${organization.slug}`, { expire: 0 })
+    await revalidate(`organizations:${organization.slug}`, { expire: 0 });
     await revalidate(`users:${currentUser?.id}:organizations`, {
       expire: 0,
-    })
-    setUserOrganizations((orgs) => [...orgs, organization])
+    });
+    setUserOrganizations((orgs) => [...orgs, organization]);
 
     // Persist the chosen creator category (best-effort; non-blocking).
     if (selectedCategory) {
       try {
-        await (api as any).PATCH('/v1/organizations/{id}/profile', {
+        await (api as any).PATCH("/v1/organizations/{id}/profile", {
           params: { path: { id: organization.id } },
           body: { creator_category: selectedCategory },
-        })
+        });
       } catch {
         /* category can also be set later in settings */
       }
     }
 
     if (!hasExistingOrg) {
-      trackStepCompleted('org', organization.id)
+      trackStepCompleted("org", organization.id);
     }
 
-    let queryParams = ''
+    let queryParams = "";
     if (hasExistingOrg) {
-      queryParams = '?existing_org=true'
+      queryParams = "?existing_org=true";
     }
 
     router.push(
       getStatusRedirect(
         `/dashboard/${organization.slug}/onboarding/product${queryParams}`,
-        'Organization created',
-        'You can now create your first product',
+        "Shop created",
+        "You can now create your first product",
       ),
-    )
-  }
+    );
+  };
 
   return (
     <div className="dark:md:bg-polar-950 flex flex-col pt-16 md:items-center md:p-16">
@@ -204,13 +204,11 @@ export const OrganizationStep = ({
           <LogoIcon size={48} />
           <div className="flex flex-col items-center gap-y-4">
             <h1 className="text-3xl">
-              {hasExistingOrg
-                ? 'Create a new organization'
-                : "Let's get you started"}
+              {hasExistingOrg ? "Add another shop" : "Let's get you started"}
             </h1>
             <p className="dark:text-polar-400 text-lg text-gray-600">
               {hasExistingOrg ? (
-                'Follow the instructions below to create a new organization'
+                "Choose the shop name and address buyers will see"
               ) : (
                 <>You&rsquo;ll be up and running in no time</>
               )}
@@ -230,13 +228,13 @@ export const OrganizationStep = ({
                     control={control}
                     name="name"
                     rules={{
-                      required: 'This field is required',
+                      required: "This field is required",
                     }}
                     render={({ field }) => (
                       <FormItem className="w-full">
-                        <FormLabel htmlFor="name">Organization Name</FormLabel>
+                        <FormLabel htmlFor="name">Shop name</FormLabel>
                         <FormControl className="flex w-full flex-col gap-y-4">
-                          <Input {...field} placeholder="Acme Inc." />
+                          <Input {...field} placeholder="Amina Studio" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -247,17 +245,17 @@ export const OrganizationStep = ({
                     control={control}
                     name="slug"
                     rules={{
-                      required: 'Slug is required',
+                      required: "Slug is required",
                     }}
                     render={({ field }) => (
                       <FormItem className="w-full">
-                        <FormLabel htmlFor="slug">Organization Slug</FormLabel>
+                        <FormLabel htmlFor="slug">Shop address</FormLabel>
                         <FormControl className="flex w-full flex-col gap-y-4">
                           <Input
                             type="text"
                             {...field}
                             size={slug?.length || 1}
-                            placeholder="acme-inc"
+                            placeholder="amina-studio"
                             onFocus={() => setEditedSlug(true)}
                           />
                         </FormControl>
@@ -272,7 +270,7 @@ export const OrganizationStep = ({
                     control={control}
                     name="default_presentment_currency"
                     rules={{
-                      required: 'Currency is required',
+                      required: "Currency is required",
                     }}
                     render={({ field }) => (
                       <FormItem className="w-full">
@@ -282,7 +280,7 @@ export const OrganizationStep = ({
                         <FormControl className="flex w-full flex-col gap-y-4">
                           <CurrencySelector
                             value={
-                              field.value as schemas['PresentmentCurrency']
+                              field.value as schemas["PresentmentCurrency"]
                             }
                             onChange={field.onChange}
                           />
@@ -306,9 +304,9 @@ export const OrganizationStep = ({
                         Category
                       </label>
                       <Select
-                        value={selectedCategory || '__none__'}
+                        value={selectedCategory || "__none__"}
                         onValueChange={(v) =>
-                          setSelectedCategory(v === '__none__' ? '' : v)
+                          setSelectedCategory(v === "__none__" ? "" : v)
                         }
                       >
                         <SelectTrigger id="creator_category">
@@ -342,7 +340,7 @@ export const OrganizationStep = ({
                     control={control}
                     name="terms"
                     rules={{
-                      required: 'You must accept the terms to continue',
+                      required: "You must accept the terms to continue",
                     }}
                     render={({ field }) => {
                       return (
@@ -352,8 +350,8 @@ export const OrganizationStep = ({
                               id="terms"
                               checked={field.value}
                               onCheckedChange={(checked) => {
-                                const value = checked ? true : false
-                                setValue('terms', value)
+                                const value = checked ? true : false;
+                                setValue("terms", value);
                               }}
                               className="mt-1"
                             />
@@ -375,8 +373,8 @@ export const OrganizationStep = ({
                                   >
                                     Acceptable Use Policy
                                   </a>
-                                  {' — '}what creators can and can&apos;t sell on
-                                  Blyss
+                                  {" — "}what creators can and can&apos;t sell
+                                  on Blyss
                                 </li>
                                 <li>
                                   <a
@@ -403,7 +401,7 @@ export const OrganizationStep = ({
                           </div>
                           <FormMessage />
                         </FormItem>
-                      )
+                      );
                     }}
                   />
                 </FadeUp>
@@ -425,7 +423,7 @@ export const OrganizationStep = ({
                     !terms
                   }
                 >
-                  {experimentVariant === 'treatment' ? 'Continue' : 'Create'}
+                  {experimentVariant === "treatment" ? "Continue" : "Create"}
                 </Button>
                 {hasExistingOrg ? (
                   <Link href={`/dashboard`} className="w-full">
@@ -450,5 +448,5 @@ export const OrganizationStep = ({
         </div>
       </motion.div>
     </div>
-  )
-}
+  );
+};
