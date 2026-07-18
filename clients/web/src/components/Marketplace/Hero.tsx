@@ -2,7 +2,7 @@
 
 /* Buyer-first marketplace opening. Core copy and actions are visible in the
  * prerendered HTML; motion is limited to scroll parallax on the image mosaic. */
-import Link from "next/link";
+import Link from "./LocaleLink";
 import Image from "next/image";
 import {
   motion,

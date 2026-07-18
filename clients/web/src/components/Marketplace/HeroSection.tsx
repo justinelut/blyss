@@ -1,7 +1,7 @@
 'use client'
 
 import Button from '@/components/atoms/Button'
-import Link from 'next/link'
+import Link from './LocaleLink'
 
 interface HeroSectionProps {
   title: string

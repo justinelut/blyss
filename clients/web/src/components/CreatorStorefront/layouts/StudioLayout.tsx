@@ -13,7 +13,7 @@
  *     RSS / publication feel.
  */
 
-import Link from 'next/link'
+import Link from '@/components/Marketplace/LocaleLink'
 
 import { OptimizedImage } from '@/components/Image/OptimizedImage'
 import { Eyebrow, typography } from '@/design'

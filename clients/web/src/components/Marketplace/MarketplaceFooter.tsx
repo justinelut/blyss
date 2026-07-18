@@ -10,7 +10,7 @@
  * switcher in the bottom row mirrors Adele Dejak's pattern (header has the
  * primary control; footer surfaces it for SEO + secondary discoverability).
  */
-import Link from 'next/link'
+import Link from './LocaleLink'
 import { FiInstagram, FiTwitter } from 'react-icons/fi'
 import { CountrySwitcher } from './CountrySwitcher'
 import { NewsletterSignup } from './NewsletterSignup'

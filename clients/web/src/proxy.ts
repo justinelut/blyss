@@ -224,7 +224,7 @@ export async function proxy(request: NextRequest) {
   //  a) Pathname has a supported country prefix → REWRITE internally to the
   //     un-prefixed path so the existing route tree still matches; record the
   //     country/currency in headers.
-  //  b) Pathname is a public path with NO country prefix → 308-REDIRECT to
+  //  b) Pathname is a public path with NO country prefix → 307-REDIRECT to
   //     /{detected-country}/<path> so the URL bar reflects the region.
   //
   // The country segment is the URL's source of truth for currency; cookie
@@ -266,11 +266,29 @@ export async function proxy(request: NextRequest) {
       })
       return response
     } else {
-      // (b) Un-prefixed public path → redirect to /{detected-country}/<path>.
+      // (b) Un-prefixed public path → temporarily redirect to the detected
+      // country. This response varies by cookie, referrer, and edge geo, so it
+      // must never be a permanent/cacheable redirect: a cached US 308 would
+      // otherwise force Kenyan buyers onto USD product pages.
       const geo = resolveGeo(request)
       const url = request.nextUrl.clone()
       url.pathname = `/${geo.country}${pathname === '/' ? '' : pathname}`
-      return NextResponse.redirect(url, { status: 308 })
+      const response = NextResponse.redirect(url, { status: 307 })
+      response.headers.set('Cache-Control', 'private, no-store, max-age=0')
+      response.headers.set(
+        'Vary',
+        'Cookie, Referer, CF-IPCountry, X-Vercel-IP-Country',
+      )
+      if (geo.shouldSetCookie) {
+        response.cookies.set(COUNTRY_COOKIE, geo.country, {
+          maxAge: COOKIE_MAX_AGE,
+          httpOnly: false,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          path: '/',
+        })
+      }
+      return response
     }
   }
 

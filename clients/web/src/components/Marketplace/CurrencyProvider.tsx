@@ -13,6 +13,7 @@ import {
   DEFAULT_CURRENCY,
   currencyForCountry,
 } from '@/lib/geo'
+import { switchMarketplaceCountry } from '@/lib/geo/path'
 
 interface CurrencyContextValue {
   /** Currency to display + filter by (lowercase ISO, e.g. 'usd'). */
@@ -20,9 +21,8 @@ interface CurrencyContextValue {
   /** Detected/active country (lowercase ISO alpha-2, e.g. 'us'). */
   country: string
   /**
-   * Switch to a country: persist the cookie and reload so the server
-   * re-resolves the currency and re-filters the product grid (we filter
-   * server-side, so the visible products change — a soft reload is required).
+   * Switch to a country: persist the cookie and navigate to the equivalent
+   * locale-prefixed URL so the server re-resolves currency and product feeds.
    */
   setCountry: (country: string) => void
 }
@@ -59,8 +59,14 @@ export function CurrencyProvider({
           document.cookie = `${COUNTRY_COOKIE}=${c}; path=/; max-age=31536000; samesite=lax`
         }
         storeSetCurrency(currencyForCountry(c))
-        // Reload so middleware + SSR re-resolve and the grid re-filters.
-        if (typeof window !== 'undefined') window.location.reload()
+
+        // The locale segment is the server-side source of truth. Navigate to
+        // the equivalent path under the newly selected country rather than
+        // reloading the old segment (which would immediately restore it).
+        if (typeof window !== 'undefined') {
+          const currentHref = `${window.location.pathname}${window.location.search}${window.location.hash}`
+          window.location.assign(switchMarketplaceCountry(currentHref, c))
+        }
       },
     }),
     [currency, country, storeSetCurrency],

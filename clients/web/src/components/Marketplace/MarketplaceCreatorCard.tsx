@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import Link from './LocaleLink'
 import { useReducedMotion, motion } from 'motion/react'
 import { FiHeart } from 'react-icons/fi'
 import { schemas } from '@/lib/api'

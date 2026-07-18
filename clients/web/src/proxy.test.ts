@@ -220,13 +220,45 @@ describe('middleware function', () => {
     expect(response.headers.get('x-polar-user')).toBe(JSON.stringify(mockUser))
   })
 
-  it('should allow unauthenticated access to public routes', async () => {
+  it('temporarily redirects unprefixed public routes without caching geo', async () => {
     const request = new NextRequest('https://example.com/')
 
     const response = await proxy(request)
 
+    expect(response.status).toBe(307)
+    expect(response.headers.get('location')).toBe('https://example.com/us')
+    expect(response.headers.get('cache-control')).toContain('no-store')
+    expect(response.headers.get('vary')).toContain('Cookie')
+    expect(response.headers.get('location')).not.toContain('/login')
+  })
+
+  it('redirects an edge-detected Kenyan buyer to the Kenya product URL', async () => {
+    const request = new NextRequest(
+      'https://example.com/product/prod_123?from=home',
+      { headers: { 'cf-ipcountry': 'KE' } },
+    )
+
+    const response = await proxy(request)
+
+    expect(response.status).toBe(307)
+    expect(response.headers.get('location')).toBe(
+      'https://example.com/ke/product/prod_123?from=home',
+    )
+    expect(response.cookies.get('blyss-country')?.value).toBe('ke')
+  })
+
+  it('rewrites a localized Kenya product URL without changing country', async () => {
+    const request = new NextRequest(
+      'https://example.com/ke/product/prod_123',
+    )
+
+    const response = await proxy(request)
+
     expect(response.status).toBe(200)
-    expect(response.headers.get('x-polar-user')).toBeNull()
+    expect(response.headers.get('x-middleware-rewrite')).toBe(
+      'https://example.com/product/prod_123',
+    )
+    expect(response.cookies.get('blyss-country')?.value).toBe('ke')
   })
 
   it('should redirect to login with query params preserved', async () => {

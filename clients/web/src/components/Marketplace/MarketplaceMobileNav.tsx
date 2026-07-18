@@ -14,7 +14,7 @@
  * slot.
  */
 
-import Link from 'next/link'
+import Link from './LocaleLink'
 import { usePathname } from 'next/navigation'
 import { FiCompass, FiHeart, FiShoppingBag } from 'react-icons/fi'
 import { useAuth } from '@/hooks/auth'

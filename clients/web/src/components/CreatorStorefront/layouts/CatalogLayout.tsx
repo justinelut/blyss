@@ -12,7 +12,7 @@
  *   - Type-led, no large imagery in the hero.
  */
 
-import Link from 'next/link'
+import Link from '@/components/Marketplace/LocaleLink'
 
 import Avatar from '@/components/atoms/Avatar'
 import { OptimizedImage } from '@/components/Image/OptimizedImage'

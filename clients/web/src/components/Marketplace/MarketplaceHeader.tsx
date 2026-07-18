@@ -16,7 +16,7 @@
 
 import { FiSearch, FiUser, FiMenu, FiX, FiHeart } from "react-icons/fi";
 import { FiGrid, FiLogOut, FiMoon, FiSun } from "react-icons/fi";
-import Link from "next/link";
+import Link from "./LocaleLink";
 import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { BlyssLogo } from "@/design";
