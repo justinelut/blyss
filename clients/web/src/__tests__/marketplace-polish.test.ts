@@ -25,6 +25,19 @@ describe('Marketplace polish', () => {
     expect(chrome).toMatch(/<main[^>]*pt-20/)
   })
 
+  test('tablet header stays compact until the bottom navigation hides', () => {
+    const header = read('src/components/Marketplace/MarketplaceHeader.tsx')
+    const mobileNav = read(
+      'src/components/Marketplace/MarketplaceMobileNav.tsx',
+    )
+
+    expect(header).toContain('hidden items-center gap-10 lg:flex')
+    expect(header).toContain('relative hidden lg:block')
+    expect(header).not.toMatch(/gap-10 md:flex/)
+    expect(header).not.toMatch(/md:(?:inline-flex|inline-block)/)
+    expect(mobileNav).toContain('lg:hidden')
+  })
+
   test('Hero does not double the header clearance', () => {
     const hero = read('src/components/Marketplace/Hero.tsx')
     // The hero's own top padding must be modest, not header-sized.

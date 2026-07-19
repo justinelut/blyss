@@ -92,7 +92,7 @@ export const MarketplaceHeader = ({
 
           {/* Center nav — desktop only */}
           <nav
-            className="hidden items-center gap-10 md:flex"
+            className="hidden items-center gap-10 lg:flex"
             aria-label="Marketplace navigation"
           >
             {navLinks.map((link) => (
@@ -136,7 +136,7 @@ export const MarketplaceHeader = ({
               <Link
                 href="/wishlist"
                 aria-label="Wishlist"
-                className="hidden h-10 w-10 items-center justify-center rounded-md text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-sunken)] hover:text-[var(--text-primary)] md:flex"
+                className="hidden h-10 w-10 items-center justify-center rounded-md text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-sunken)] hover:text-[var(--text-primary)] lg:flex"
               >
                 <FiHeart size={18} aria-hidden="true" />
               </Link>
@@ -148,13 +148,13 @@ export const MarketplaceHeader = ({
               <>
                 <Link
                   href="/login"
-                  className="hidden font-sans text-sm font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--accent)] md:inline-block"
+                  className="hidden font-sans text-sm font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--accent)] lg:inline-block"
                 >
                   Sign in
                 </Link>
                 <Link
                   href="/start"
-                  className="hidden h-10 items-center justify-center rounded-md bg-[var(--accent)] px-5 font-sans text-sm font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)] md:inline-flex"
+                  className="hidden h-10 items-center justify-center rounded-md bg-[var(--accent)] px-5 font-sans text-sm font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)] lg:inline-flex"
                 >
                   Start selling
                 </Link>
@@ -166,7 +166,7 @@ export const MarketplaceHeader = ({
               onClick={() => setMobileOpen((v) => !v)}
               aria-label={mobileOpen ? "Close menu" : "Open menu"}
               aria-expanded={mobileOpen}
-              className="flex h-10 w-10 items-center justify-center rounded-md text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-sunken)] hover:text-[var(--text-primary)] md:hidden"
+              className="flex h-10 w-10 items-center justify-center rounded-md text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-sunken)] hover:text-[var(--text-primary)] lg:hidden"
             >
               {mobileOpen ? <FiX size={22} /> : <FiMenu size={22} />}
             </button>
@@ -181,7 +181,7 @@ export const MarketplaceHeader = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: reduce ? 0 : 0.2, ease: [0.32, 0.72, 0, 1] }}
-          className="fixed inset-0 top-20 z-40 flex flex-col bg-[var(--background)] md:hidden"
+          className="fixed inset-0 top-20 z-40 flex flex-col bg-[var(--background)] lg:hidden"
         >
           <nav
             className="flex flex-col gap-6 px-6 py-12"
@@ -349,7 +349,7 @@ function AccountMenu() {
   const dashboardHref = primaryOrg ? `/dashboard/${primaryOrg.slug}` : null;
 
   return (
-    <div ref={ref} className="relative hidden md:block">
+    <div ref={ref} className="relative hidden lg:block">
       <button
         type="button"
         aria-label="Account menu"
