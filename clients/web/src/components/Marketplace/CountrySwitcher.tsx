@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { FiChevronDown, FiGlobe } from 'react-icons/fi'
 import { cn } from '@/lib/utils'
 import {
@@ -37,49 +37,118 @@ export function CountrySwitcher({ className }: { className?: string }) {
   const { country, currency, setCountry } = useCurrencyControls()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const optionRefs = useRef<Array<HTMLButtonElement | null>>([])
+  const listboxId = useId()
+  const activeIndex = Math.max(0, SUPPORTED_COUNTRIES.indexOf(country))
+
+  const focusOption = useCallback((index: number) => {
+    const count = SUPPORTED_COUNTRIES.length
+    const wrappedIndex = ((index % count) + count) % count
+    optionRefs.current[wrappedIndex]?.focus()
+  }, [])
+
+  const closeAndFocusTrigger = useCallback(() => {
+    setOpen(false)
+    requestAnimationFrame(() => triggerRef.current?.focus())
+  }, [])
 
   useEffect(() => {
     if (!open) return
-    const onClick = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+
+    const focusFrame = requestAnimationFrame(() => focusOption(activeIndex))
+    const onClick = (event: MouseEvent) => {
+      if (ref.current && !ref.current.contains(event.target as Node)) {
+        setOpen(false)
+      }
     }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        closeAndFocusTrigger()
+      }
+    }
+
     document.addEventListener('mousedown', onClick)
-    return () => document.removeEventListener('mousedown', onClick)
-  }, [open])
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      cancelAnimationFrame(focusFrame)
+      document.removeEventListener('mousedown', onClick)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [activeIndex, closeAndFocusTrigger, focusOption, open])
 
   return (
     <div ref={ref} className={cn('relative', className)}>
       <button
+        ref={triggerRef}
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => setOpen((value) => !value)}
+        onKeyDown={(event) => {
+          if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault()
+            setOpen(true)
+          }
+        }}
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-controls={open ? listboxId : undefined}
         aria-label="Change country and currency"
         className="flex h-10 items-center gap-1.5 rounded-md px-2.5 font-sans text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-sunken)] hover:text-[var(--text-primary)]"
       >
         <FiGlobe size={18} />
         <span className="tabular-nums">
-          {(CURRENCY_LABELS[currency] ?? currency.toUpperCase())}
+          {CURRENCY_LABELS[currency] ?? currency.toUpperCase()}
         </span>
         <FiChevronDown size={14} />
       </button>
 
       {open && (
         <div
+          id={listboxId}
           role="listbox"
+          aria-label="Country and currency"
+          onKeyDown={(event) => {
+            const currentIndex = optionRefs.current.findIndex(
+              (option) => option === document.activeElement,
+            )
+
+            if (event.key === 'ArrowDown') {
+              event.preventDefault()
+              focusOption(currentIndex + 1)
+            } else if (event.key === 'ArrowUp') {
+              event.preventDefault()
+              focusOption(currentIndex - 1)
+            } else if (event.key === 'Home') {
+              event.preventDefault()
+              focusOption(0)
+            } else if (event.key === 'End') {
+              event.preventDefault()
+              focusOption(SUPPORTED_COUNTRIES.length - 1)
+            } else if (event.key === 'Escape') {
+              event.preventDefault()
+              event.stopPropagation()
+              closeAndFocusTrigger()
+            }
+          }}
           className="absolute right-0 z-50 mt-2 max-h-80 w-56 overflow-auto rounded-md border border-[var(--border)] bg-[var(--surface-elevated)] py-1"
         >
-          {SUPPORTED_COUNTRIES.map((c) => {
+          {SUPPORTED_COUNTRIES.map((c, index) => {
             const cur = currencyForCountry(c)
             const active = c === country
             return (
               <button
                 key={c}
+                ref={(node) => {
+                  optionRefs.current[index] = node
+                }}
                 type="button"
                 role="option"
+                tabIndex={-1}
                 aria-selected={active}
                 onClick={() => {
                   setOpen(false)
+                  requestAnimationFrame(() => triggerRef.current?.focus())
                   if (c !== country) setCountry(c)
                 }}
                 className={cn(

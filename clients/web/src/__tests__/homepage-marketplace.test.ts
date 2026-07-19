@@ -60,6 +60,22 @@ describe("Homepage responsive discovery surfaces", () => {
     expect(categories).toMatch(/break-words/);
   });
 
+  test("mobile drawer and country selector support keyboard dismissal", () => {
+    const header = read("src/components/Marketplace/MarketplaceHeader.tsx");
+    const country = read(
+      "src/components/Marketplace/CountrySwitcher.tsx",
+    );
+
+    expect(header).toMatch(/event\.key === ["']Escape["']/);
+    expect(header).toMatch(/mobileMenuButtonRef\.current\?\.focus/);
+    expect(header).toMatch(/aria-controls="marketplace-mobile-menu"/);
+    expect(country).toMatch(/ArrowDown/);
+    expect(country).toMatch(/ArrowUp/);
+    expect(country).toMatch(/event\.key === ["']Escape["']/);
+    expect(country).toMatch(/closeAndFocusTrigger/);
+    expect(country).toMatch(/tabIndex=\{-1\}/);
+  });
+
   test("fixed mobile navigation has footer safe-area clearance without a main gap", () => {
     const chrome = read("src/components/Marketplace/MarketplaceChrome.tsx");
     const footer = read("src/components/Marketplace/MarketplaceFooter.tsx");

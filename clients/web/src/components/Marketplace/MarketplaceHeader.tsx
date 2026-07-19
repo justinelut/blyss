@@ -55,6 +55,7 @@ export const MarketplaceHeader = ({
 }: MarketplaceHeaderProps) => {
   const [scrolled, setScrolled] = useState(alwaysBlurred);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const mobileMenuButtonRef = useRef<HTMLButtonElement>(null);
   const reduce = useReducedMotion();
   const { currentUser, authenticated, userOrganizations } = useAuth();
 
@@ -67,11 +68,26 @@ export const MarketplaceHeader = ({
     return () => window.removeEventListener("scroll", onScroll);
   }, [alwaysBlurred]);
 
-  // Lock body scroll when mobile drawer open
+  // Lock body scroll and support keyboard dismissal while the drawer is open.
   useEffect(() => {
-    document.body.style.overflow = mobileOpen ? "hidden" : "";
+    if (!mobileOpen) {
+      document.body.style.overflow = "";
+      return;
+    }
+
+    document.body.style.overflow = "hidden";
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setMobileOpen(false);
+        requestAnimationFrame(() => mobileMenuButtonRef.current?.focus());
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
     return () => {
       document.body.style.overflow = "";
+      document.removeEventListener("keydown", onKeyDown);
     };
   }, [mobileOpen]);
 
@@ -162,10 +178,12 @@ export const MarketplaceHeader = ({
             )}
             {/* Mobile hamburger */}
             <button
+              ref={mobileMenuButtonRef}
               type="button"
               onClick={() => setMobileOpen((v) => !v)}
               aria-label={mobileOpen ? "Close menu" : "Open menu"}
               aria-expanded={mobileOpen}
+              aria-controls="marketplace-mobile-menu"
               className="flex h-10 w-10 items-center justify-center rounded-md text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-sunken)] hover:text-[var(--text-primary)] lg:hidden"
             >
               {mobileOpen ? <FiX size={22} /> : <FiMenu size={22} />}
@@ -177,6 +195,7 @@ export const MarketplaceHeader = ({
       {/* Mobile drawer */}
       {mobileOpen && (
         <motion.div
+          id="marketplace-mobile-menu"
           initial={reduce ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
