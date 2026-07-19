@@ -275,19 +275,29 @@ describe('middleware function', () => {
   })
 
   it('should throw error on unexpected API response status', async () => {
-    createServerSideAPI.mockResolvedValue({
-      GET: vi.fn().mockResolvedValue({
-        data: undefined,
-        response: { ok: false, status: 500, headers: new Headers() },
-      }),
-    })
+    // Next patches console.error to read request AsyncLocalStorage, which is
+    // unavailable in Vitest and can mask the deliberate Proxy error below.
+    const consoleError = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined)
 
-    const request = new NextRequest('https://example.com/dashboard')
-    request.cookies.set('polar_session', 'valid-session-token')
+    try {
+      createServerSideAPI.mockResolvedValue({
+        GET: vi.fn().mockResolvedValue({
+          data: undefined,
+          response: { ok: false, status: 500, headers: new Headers() },
+        }),
+      })
 
-    await expect(proxy(request)).rejects.toThrow(
-      'Unexpected response status while fetching authenticated user',
-    )
+      const request = new NextRequest('https://example.com/dashboard')
+      request.cookies.set('polar_session', 'valid-session-token')
+
+      await expect(proxy(request)).rejects.toThrow(
+        'Unexpected response status while fetching authenticated user',
+      )
+    } finally {
+      consoleError.mockRestore()
+    }
   })
 
   it('should handle 401 responses gracefully', async () => {
