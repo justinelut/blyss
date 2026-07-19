@@ -1,15 +1,9 @@
-/* Hallmark · macrostructure: Marquee Hero + Long Document · genre: editorial
- * theme: Blyss ink + oxblood
- * sections: Marquee · Editorial letter · Trending · Categories · Creators
- *           · Subscriptions · Process · Closing dark band
- * nav: N5 floating-pill (inherited from MarketplaceShell)
- * footer: Ft5 statement (inherited)
- * contrast: pass · slop: pass (gates 1, 2, 7, 8, 51–55, 66, 67)
+/* Hallmark · genre: editorial · macrostructure: Ecosystem Index
+ * theme: Blyss light · enrichment: real marketplace media · nav: inherited
+ * footer: Ft1 mast-headed
  *
- * Reference DNA: Aimé Leon Dore (marquee + editorial cadence) + SSENSE
- * (editorial-first home, photography carries color). The editorial letter
- * (NoteFromMakers) sits between hero and product grid — the voice sets the
- * cadence before the catalog speaks.
+ * Structure: search-led opening · returning-buyer continuity · category index
+ * · featured catalogue · new arrivals · people · recurring access · buying help.
  */
 import { schemas } from "@/lib/api";
 import { JsonLd } from "@/design";
@@ -22,63 +16,44 @@ import {
 } from "@/components/Marketplace/BrowseByCraft";
 import { FeaturedCreators } from "@/components/Marketplace/FeaturedCreators";
 import { FeaturedSubscriptions } from "@/components/Marketplace/FeaturedSubscriptions";
-import { NoteFromMakers } from "@/components/Marketplace/NoteFromMakers";
 import { HowItWorks } from "@/components/Marketplace/HowItWorks";
 import { ClosingCtaBand } from "@/components/Marketplace/ClosingCtaBand";
 
 interface HomePageProps {
   featuredProducts: schemas["Product"][];
-  featuredSubscriptions: schemas["Subscription"][];
+  newestProducts: schemas["Product"][];
+  featuredSubscriptions: schemas["Product"][];
   trendingCreators: schemas["Organization"][];
   categories: CategoryTile[];
-  stats: {
-    creators: number;
-    products: number;
-    total_paid_out: number;
-    total_earned: number;
-    total_paid_out_currency: string;
-    settlements_count: number;
-  } | null;
 }
 
-/**
- * HomePage — server component composing all home sections per plan §6.1.
- *
- * Sections in order: Hero · TrendingProducts · BrowseByCraft · FeaturedCreators
- * · FeaturedSubscriptions · NoteFromMakers · HowItWorks · ClosingCtaBand.
- *
- * Production-grade content rules (no fake / seed fallbacks):
- * - Hero scales gracefully from 0 → 4+ products. The right-column showcase
- *   pulls in real creators when products are sparse.
- * - TrendingProducts hides itself when zero products exist.
- * - BrowseByCraft hides when no real categories are configured.
- * - FeaturedCreators hides when no creators exist.
- * - FeaturedSubscriptions hides when no recurring products exist.
- * - NoteFromMakers + HowItWorks + ClosingCtaBand always render — they are
- *   editorial about-Blyss copy, not catalog data.
- *
- * No `'use client'` directive — this is a pure RSC. Individual sections that
- * need motion are themselves client components.
- *
- * JSON-LD structured data for SEO injected here once at the page level
- * (WebSite + Organization). Per plan §8.3.
- */
 export default function HomePage({
   featuredProducts,
+  newestProducts,
   featuredSubscriptions,
   trendingCreators,
   categories,
-  stats,
 }: HomePageProps) {
-  // Real data only — no seed fallbacks. Sections handle empty states.
   const products = featuredProducts ?? [];
-  const subs = featuredSubscriptions ?? [];
+  const newest = newestProducts ?? [];
+  const subscriptions = featuredSubscriptions ?? [];
   const creators = trendingCreators ?? [];
-  const cats = categories ?? [];
+  const categoryRows = categories ?? [];
+
+  // The opening uses one product only. It is removed from every rail below so
+  // the first screen never repeats immediately in the catalogue.
+  const featuredProduct =
+    products.find((product) => product.medias?.[0]?.public_url) ?? products[0];
+  const featuredRail = products.filter(
+    (product) => product.id !== featuredProduct?.id,
+  );
+  const usedProductIds = new Set(products.map((product) => product.id));
+  const newArrivals = newest.filter(
+    (product) => !usedProductIds.has(product.id) && !product.is_recurring,
+  );
 
   return (
     <>
-      {/* SEO structured data */}
       <JsonLd
         data={{
           "@context": "https://schema.org",
@@ -100,7 +75,7 @@ export default function HomePage({
           url: "https://blyss.co.ke",
           logo: "https://cdn.blyss.co.ke/brand/og-default.png",
           description:
-            "A marketplace for digital products from independent creators in Kenya and beyond. Browse templates, ebooks, beats, courses, and subscriptions.",
+            "A marketplace for digital products from independent creators. Browse templates, ebooks, beats, courses, and subscriptions.",
           address: {
             "@type": "PostalAddress",
             addressLocality: "Nairobi",
@@ -113,39 +88,30 @@ export default function HomePage({
         }}
       />
 
-      <Hero
-        showcaseProducts={products.slice(0, 4)}
-        showcaseCreators={creators.slice(0, 4)}
-        totals={
-          stats
-            ? {
-                creators: stats.creators || undefined,
-                products: stats.products || undefined,
-                totalPaidOut: stats.total_paid_out || undefined,
-                totalEarned: stats.total_earned || undefined,
-                totalPaidOutCurrency: stats.total_paid_out_currency,
-              }
-            : undefined
-        }
-      />
-      {/* Long Document cadence (Hallmark macrostructure):
-          marquee → returning-buyer cart strip → product band (proves
-          breadth immediately for first-time visitors) → category band
-          → creator band → recurring band → editorial letter → process
-          steps → closing dark band.
-
-          Note: NoteFromMakers (the editorial italic letter) used to
-          sit immediately under the hero. That order works for an
-          identity site but underwhelms a marketplace landing — buyers
-          hit a paragraph instead of products. Moved below the catalog
-          surfaces so the page leads with proof of life and closes
-          with voice. */}
+      <Hero featuredProduct={featuredProduct} />
       <ContinueShopping />
-      {products.length > 0 && <TrendingProducts products={products} />}
-      {cats.length > 0 && <BrowseByCraft categories={cats} />}
+      {categoryRows.length > 0 && <BrowseByCraft categories={categoryRows} />}
+      {featuredRail.length > 0 && (
+        <TrendingProducts
+          products={featuredRail}
+          heading="Featured products"
+          description="A changing selection from shops across Blyss."
+          viewAllHref="/marketplace"
+        />
+      )}
+      {newArrivals.length > 0 && (
+        <TrendingProducts
+          products={newArrivals}
+          heading="New arrivals"
+          description="Recently published products from independent creators."
+          viewAllHref="/marketplace?sort=newest"
+          tone="elevated"
+        />
+      )}
       {creators.length > 0 && <FeaturedCreators creators={creators} />}
-      {subs.length > 0 && <FeaturedSubscriptions subscriptions={subs} />}
-      <NoteFromMakers />
+      {subscriptions.length > 0 && (
+        <FeaturedSubscriptions subscriptions={subscriptions} />
+      )}
       <HowItWorks />
       <ClosingCtaBand />
     </>

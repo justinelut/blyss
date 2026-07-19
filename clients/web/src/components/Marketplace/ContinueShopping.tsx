@@ -97,7 +97,11 @@ export const ContinueShopping = () => {
   if (!cartHasItems && recent.length === 0) return null
 
   return (
-    <SectionDivider tone="default" density="md">
+    <SectionDivider
+      tone="default"
+      density="md"
+      containerClassName="px-4 sm:px-6 md:px-8 lg:px-16"
+    >
       <div className="mb-8 flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
         <div>
           <Eyebrow>Pick up where you left off</Eyebrow>
@@ -175,7 +179,7 @@ export const ContinueShopping = () => {
                 <h3
                   className={cn(
                     typography.h4,
-                    'line-clamp-2 text-[14px] text-[var(--text-primary)] transition-colors group-hover:text-[var(--accent)]',
+                    'text-[14px] text-[var(--text-primary)] transition-colors group-hover:text-[var(--accent)]',
                   )}
                 >
                   {p.name}

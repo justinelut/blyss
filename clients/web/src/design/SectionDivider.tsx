@@ -1,61 +1,60 @@
-import { cn } from '@/lib/utils'
+import { cn } from "@/lib/utils";
 
 interface SectionDividerProps {
-  /**
-   * Surface tone of the section. Sets the background. Per plan §3.4 we use
-   * background tone shifts (NOT shadows or borders) to break sections.
-   */
-  tone?: 'default' | 'sunken' | 'elevated' | 'dark'
-  /** Vertical padding profile. Per plan §3.4: 96px desktop / 56px mobile. */
-  density?: 'sm' | 'md' | 'lg' | 'xl'
-  /** Stretch the inner block to full viewport width (skip the max-width container) */
-  fullBleed?: boolean
-  className?: string
-  children: React.ReactNode
+  /** Surface tone; sections are separated by tone rather than shadows. */
+  tone?: "default" | "sunken" | "elevated" | "dark";
+  /** Vertical padding profile. */
+  density?: "sm" | "md" | "lg" | "xl";
+  /** Skip the canonical max-width container. */
+  fullBleed?: boolean;
+  className?: string;
+  /** Optional responsive gutter override for a specific surface. */
+  containerClassName?: string;
+  children: React.ReactNode;
 }
 
-const toneStyles: Record<NonNullable<SectionDividerProps['tone']>, string> = {
-  default: 'bg-[var(--background)] text-[var(--text-primary)]',
-  sunken: 'bg-[var(--surface)] text-[var(--text-primary)]',
-  elevated: 'bg-[var(--surface-elevated)] text-[var(--text-primary)]',
-  // `dark` opts the section into the dark token palette (tokens.css cascades
-  // the dark --background / --text-primary / --accent to all descendants).
-  dark: 'dark bg-[var(--background)] text-[var(--text-primary)]',
-}
+const toneStyles: Record<NonNullable<SectionDividerProps["tone"]>, string> = {
+  default: "bg-[var(--background)] text-[var(--text-primary)]",
+  sunken: "bg-[var(--surface)] text-[var(--text-primary)]",
+  elevated: "bg-[var(--surface-elevated)] text-[var(--text-primary)]",
+  dark: "dark bg-[var(--background)] text-[var(--text-primary)]",
+};
 
-const densityStyles: Record<NonNullable<SectionDividerProps['density']>, string> = {
-  sm: 'py-12 md:py-16',
-  md: 'py-14 md:py-20',
-  lg: 'py-16 md:py-24', // ≈ 96px desktop
-  xl: 'py-20 md:py-32',
-}
+const densityStyles: Record<
+  NonNullable<SectionDividerProps["density"]>,
+  string
+> = {
+  sm: "py-10 md:py-14",
+  md: "py-12 md:py-18 lg:py-20",
+  lg: "py-14 md:py-20 lg:py-24",
+  xl: "py-18 md:py-24 lg:py-32",
+};
 
-/**
- * SectionDivider — the canonical way to break sections on a Blyss page.
- *
- * Use background tone shifts to separate sections, NEVER horizontal rules,
- * NEVER drop shadows. Wrapping `<section>` or `<div>` blocks in
- * `<SectionDivider tone="...">` produces the right visual rhythm.
- *
- *   <SectionDivider tone="default" density="lg">
- *     <Eyebrow>What's selling</Eyebrow>
- *     <h2>...</h2>
- *   </SectionDivider>
- */
+/** Canonical tonal section wrapper. */
 export const SectionDivider = ({
-  tone = 'default',
-  density = 'lg',
+  tone = "default",
+  density = "lg",
   fullBleed = false,
   className,
+  containerClassName,
   children,
 }: SectionDividerProps) => {
   return (
-    <section className={cn(toneStyles[tone], densityStyles[density], className)}>
+    <section
+      className={cn(toneStyles[tone], densityStyles[density], className)}
+    >
       {fullBleed ? (
         children
       ) : (
-        <div className="mx-auto max-w-[1280px] px-6 md:px-16">{children}</div>
+        <div
+          className={cn(
+            "mx-auto max-w-[1280px] px-6 md:px-16",
+            containerClassName,
+          )}
+        >
+          {children}
+        </div>
       )}
     </section>
-  )
-}
+  );
+};

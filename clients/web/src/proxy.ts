@@ -277,7 +277,7 @@ export async function proxy(request: NextRequest) {
       response.headers.set('Cache-Control', 'private, no-store, max-age=0')
       response.headers.set(
         'Vary',
-        'Cookie, Referer, CF-IPCountry, X-Vercel-IP-Country',
+        'Cookie, Referer, CF-IPCountry, X-Vercel-IP-Country, Accept-Language',
       )
       if (geo.shouldSetCookie) {
         response.cookies.set(COUNTRY_COOKIE, geo.country, {

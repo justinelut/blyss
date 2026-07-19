@@ -30,7 +30,7 @@ describe('Marketplace polish', () => {
     // The hero's own top padding must be modest, not header-sized.
     expect(hero).not.toMatch(/lg:pt-40/)
     expect(hero).not.toMatch(/md:pt-32/)
-    expect(hero).toMatch(/pt-10/)
+    expect(hero).toMatch(/py-10/)
   })
 
   test('USD prices are labelled unambiguously (US$, not bare $)', () => {

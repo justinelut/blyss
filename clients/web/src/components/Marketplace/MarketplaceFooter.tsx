@@ -1,152 +1,134 @@
 /* Hallmark · component: footer · archetype: Ft1 mast-headed
- * theme: blyss-design (warm aged-paper --surface tone)
- * sections: Brand mast (wordmark + tagline + social) · 3 link columns
- *           (Browse · Sell · Blyss) · Reach · Region switcher · copyright
- * contrast: pass · slop: pass (gates 52, 60)
- *
- * Reference DNA: Aimé Leon Dore + Adele Dejak — brand-led footer, NOT the
- * AI-default Ft3 (4-col link grid + tiny copyright). The brand mast carries
- * weight; link columns are minor citations underneath. Region/currency
- * switcher in the bottom row mirrors Adele Dejak's pattern (header has the
- * primary control; footer surfaces it for SEO + secondary discoverability).
+ * Brand mast followed by a real marketplace index. Intrinsic tracks prevent
+ * the 768px zero-width column and horizontal overflow from the old 12-column
+ * layout.
  */
-import Link from './LocaleLink'
-import { FiInstagram, FiTwitter } from 'react-icons/fi'
-import { CountrySwitcher } from './CountrySwitcher'
-import { NewsletterSignup } from './NewsletterSignup'
-import { BlyssLogo } from '@/design'
+import Link from "./LocaleLink";
+import { FiInstagram, FiTwitter } from "react-icons/fi";
+import { CountrySwitcher } from "./CountrySwitcher";
+import { NewsletterSignup } from "./NewsletterSignup";
+import { BlyssLogo } from "@/design";
 
 const footerColumns = [
   {
-    heading: 'Browse',
+    heading: "Browse",
     links: [
-      { href: '/marketplace', label: 'All products' },
-      { href: '/categories', label: 'Categories' },
-      { href: '/creators', label: 'Creators' },
-      { href: '/marketplace?type=subscription', label: 'Subscriptions' },
+      { href: "/marketplace", label: "All products" },
+      { href: "/categories", label: "Categories" },
+      { href: "/creators", label: "Creators" },
+      { href: "/marketplace?type=subscription", label: "Subscriptions" },
     ],
   },
   {
-    heading: 'Sell',
+    heading: "Sell",
     links: [
-      { href: '/start', label: 'Start selling' },
-      { href: '/help', label: 'Help center' },
-      { href: '/help#payouts', label: 'Payouts' },
-      { href: '/help#mpesa', label: 'M-Pesa setup' },
+      { href: "/start", label: "Start selling" },
+      { href: "/help", label: "Help center" },
+      { href: "/help#payouts", label: "Payouts" },
+      { href: "/help#mpesa", label: "M-Pesa setup" },
     ],
   },
   {
-    heading: 'Blyss',
+    heading: "Blyss",
     links: [
-      { href: '/about', label: 'About' },
-      { href: '/help', label: 'Help' },
-      { href: '/terms', label: 'Terms' },
-      { href: '/privacy', label: 'Privacy' },
-      { href: '/acceptable-use', label: 'Acceptable use' },
-      { href: '/refunds', label: 'Refunds' },
+      { href: "/about", label: "About" },
+      { href: "/help", label: "Help" },
+      { href: "/terms", label: "Terms" },
+      { href: "/privacy", label: "Privacy" },
+      { href: "/acceptable-use", label: "Acceptable use" },
+      { href: "/refunds", label: "Refunds" },
     ],
   },
-]
+];
 
 const socialLinks = [
-  { href: 'https://instagram.com/blyss.co.ke', label: 'Instagram', Icon: FiInstagram },
-  { href: 'https://x.com/blyss_co_ke', label: 'X / Twitter', Icon: FiTwitter },
-]
+  {
+    href: "https://instagram.com/blyss.co.ke",
+    label: "Instagram",
+    Icon: FiInstagram,
+  },
+  {
+    href: "https://x.com/blyss_co_ke",
+    label: "X / Twitter",
+    Icon: FiTwitter,
+  },
+];
 
-/**
- * MarketplaceFooter — footer for the public marketplace surface.
- *
- * Per plan §6.1 step 10: wordmark + tagline, three small link columns
- * (Browse · Sell · Blyss), social icons in muted accent, copyright in 12px
- * tracked uppercase.
- *
- * Background uses --surface (the warm aged-paper tone) so the footer sits
- * visually on a different layer than the page body.
- */
-export const MarketplaceFooter = () => {
-  return (
-    <footer className="bg-[var(--surface)] text-[var(--text-primary)]">
-      <div className="mx-auto max-w-[1280px] px-6 py-20 md:px-16 md:py-28">
-        {/* Top row: wordmark + tagline + nav columns */}
-        <div className="grid grid-cols-1 gap-12 md:grid-cols-12 md:gap-16">
-          {/* Brand column */}
-          <div className="md:col-span-5">
-            <BlyssLogo size="xl" />
-            <p className="mt-4 max-w-[28ch] text-[15px] leading-[1.5] text-[var(--text-secondary)]">
-              The modern marketplace for digital products. Templates, ebooks,
-              beats, courses, subscription tiers. Card or mobile money.
-            </p>
-            <div className="mt-8 flex items-center gap-4">
-              {socialLinks.map(({ href, label, Icon }) => (
-                <a
-                  key={href}
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={label}
-                  className="flex h-9 w-9 items-center justify-center rounded-md text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-sunken)] hover:text-[var(--accent)]"
-                >
-                  <Icon size={18} />
-                </a>
-              ))}
-            </div>
-            {/* Newsletter — Etsy classic. Posts to the public Loops
-                newsletter endpoint; idempotent upsert. */}
-            <NewsletterSignup className="mt-10" />
+export const MarketplaceFooter = () => (
+  <footer className="bg-[var(--surface)] text-[var(--text-primary)]">
+    <div className="mx-auto max-w-[1280px] px-4 pt-14 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:px-6 md:px-8 md:pt-18 lg:px-16 lg:py-24">
+      <div className="grid min-w-0 grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-4 md:gap-x-8 lg:grid-cols-[minmax(280px,2fr)_repeat(4,minmax(0,1fr))] lg:gap-x-10">
+        <div className="col-span-2 min-w-0 md:col-span-4 lg:col-span-1">
+          <BlyssLogo size="xl" />
+          <p className="mt-4 max-w-[34ch] font-sans text-[14px] leading-[1.55] text-[var(--text-secondary)]">
+            Digital products and ongoing access from independent creators. Pay
+            with the methods available in your region.
+          </p>
+          <div className="mt-6 flex items-center gap-2">
+            {socialLinks.map(({ href, label, Icon }) => (
+              <a
+                key={href}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={label}
+                className="flex h-10 w-10 items-center justify-center rounded-md text-[var(--text-muted)] hover:bg-[var(--surface-sunken)] hover:text-[var(--accent)]"
+              >
+                <Icon size={18} aria-hidden="true" />
+              </a>
+            ))}
           </div>
-
-          {/* Three nav columns */}
-          {footerColumns.map((col) => (
-            <div key={col.heading} className="md:col-span-2">
-              <h3 className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
-                {col.heading}
-              </h3>
-              <ul className="mt-5 space-y-3">
-                {col.links.map((link) => (
-                  <li key={link.href}>
-                    <Link
-                      href={link.href}
-                      className="font-sans text-[14px] text-[var(--text-secondary)] transition-colors hover:text-[var(--accent)]"
-                    >
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-
-          {/* Spacer + Reach column */}
-          <div className="md:col-span-1">
-            <h3 className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
-              Reach
-            </h3>
-            <ul className="mt-5 space-y-3">
-              <li>
-                <a
-                  href="mailto:hello@blyss.co.ke"
-                  className="font-sans text-[14px] text-[var(--text-secondary)] transition-colors hover:text-[var(--accent)]"
-                >
-                  Contact
-                </a>
-              </li>
-            </ul>
-          </div>
+          <NewsletterSignup className="mt-7 max-w-md" />
         </div>
 
-        {/* Bottom row: copyright + region switcher */}
-        <div className="mt-20 flex flex-col items-start justify-between gap-4 border-t border-[var(--border)] pt-8 md:flex-row md:items-center">
-          <span className="font-sans text-[11px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
-            © {new Date().getFullYear()} Blyss · Nairobi · Made in Kenya
+        {footerColumns.map((column) => (
+          <nav key={column.heading} aria-label={`${column.heading} links`}>
+            <h2 className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+              {column.heading}
+            </h2>
+            <ul className="mt-4 space-y-2.5">
+              {column.links.map((link) => (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    className="font-sans text-[14px] leading-[1.4] text-[var(--text-secondary)] hover:text-[var(--accent)]"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        ))}
+
+        <nav aria-label="Contact links">
+          <h2 className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+            Reach
+          </h2>
+          <ul className="mt-4 space-y-2.5">
+            <li>
+              <a
+                href="mailto:hello@blyss.co.ke"
+                className="font-sans text-[14px] text-[var(--text-secondary)] hover:text-[var(--accent)]"
+              >
+                Contact
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </div>
+
+      <div className="mt-12 flex flex-col items-start justify-between gap-5 border-t border-[var(--border)] pt-6 md:mt-16 md:flex-row md:items-center">
+        <span className="font-sans text-[10px] uppercase tracking-[0.13em] text-[var(--text-muted)] sm:text-[11px]">
+          © {new Date().getFullYear()} Blyss · Nairobi · Made in Kenya
+        </span>
+        <div className="flex items-center gap-3">
+          <span className="font-sans text-[10px] uppercase tracking-[0.13em] text-[var(--text-muted)] sm:text-[11px]">
+            Region
           </span>
-          <div className="flex items-center gap-3">
-            <span className="font-sans text-[11px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
-              Region
-            </span>
-            <CountrySwitcher />
-          </div>
+          <CountrySwitcher />
         </div>
       </div>
-    </footer>
-  )
-}
+    </div>
+  </footer>
+);
