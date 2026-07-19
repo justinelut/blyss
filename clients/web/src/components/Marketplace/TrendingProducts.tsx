@@ -1,55 +1,65 @@
-import Link from './LocaleLink'
-import { schemas } from '@/lib/api'
-import { Eyebrow, SectionDivider, typography } from '@/design'
-import { MarketplaceProductCard } from './MarketplaceProductCard'
-import { cn } from '@/lib/utils'
+import Link from "./LocaleLink";
+import { schemas } from "@/lib/api";
+import { SectionDivider } from "@/design";
+import { HomepageProductCard } from "./HomepageProductCard";
 
 interface TrendingProductsProps {
-  products: schemas['Product'][]
-  /** Override the eyebrow text */
-  eyebrow?: string
-  /** Override the heading */
-  heading?: string
-  /** Optional "View all" link target */
-  viewAllHref?: string
+  products: schemas["Product"][];
+  heading?: string;
+  description?: string;
+  viewAllHref?: string;
+  tone?: "default" | "sunken" | "elevated";
 }
 
-/**
- * TrendingProducts — 8-card grid (4×2 desktop / 2×4 tablet / 1-col mobile).
- *
- * Per plan §6.1 step 3: pulled from /v1/products/public?sort=trending&limit=8.
- * Card uses §3.4 imagery rules. No "Add to cart" on the card.
- */
+/** A homepage discovery surface, not the canonical marketplace grid. */
 export const TrendingProducts = ({
   products,
-  eyebrow = "What's selling",
-  heading = 'Trending now',
-  viewAllHref = '/marketplace?sort=trending',
+  heading = "Featured products",
+  description = "A selection from independent shops on Blyss.",
+  viewAllHref = "/marketplace",
+  tone = "default",
 }: TrendingProductsProps) => {
-  if (!products?.length) return null
+  if (!products?.length) return null;
 
   return (
-    <SectionDivider tone="default" density="lg">
-      <div className="mb-12 flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
-        <div>
-          <Eyebrow>{eyebrow}</Eyebrow>
-          <h2 className={cn(typography.h2, 'mt-3 text-[var(--text-primary)]')}>
+    <SectionDivider
+      tone={tone}
+      density="lg"
+      containerClassName="px-4 sm:px-6 md:px-8 lg:px-16"
+    >
+      <div className="mb-8 flex items-end justify-between gap-5 sm:mb-10">
+        <div className="min-w-0">
+          <h2 className="font-display text-[clamp(30px,4vw,48px)] font-semibold leading-[1.08] tracking-[-0.025em] text-[var(--text-primary)]">
             {heading}
           </h2>
+          <p className="mt-3 max-w-[46ch] font-sans text-[14px] leading-[1.55] text-[var(--text-secondary)] sm:text-[15px]">
+            {description}
+          </p>
         </div>
         <Link
           href={viewAllHref}
-          className="font-sans text-sm text-[var(--text-secondary)] underline-offset-4 transition-colors hover:text-[var(--accent)] hover:underline"
+          className="hidden shrink-0 whitespace-nowrap font-sans text-[14px] font-medium text-[var(--text-secondary)] underline-offset-4 hover:text-[var(--accent)] hover:underline sm:block"
         >
           See all →
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 gap-x-3 gap-y-10 sm:gap-x-6 sm:gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
-        {products.slice(0, 8).map((product) => (
-          <MarketplaceProductCard key={product.id} product={product} />
+      <div className="grid min-w-0 grid-cols-1 gap-y-6 sm:grid-cols-2 sm:gap-x-6 sm:gap-y-10 lg:grid-cols-4 lg:gap-x-5 xl:gap-x-6">
+        {products.slice(0, 8).map((product, index) => (
+          <HomepageProductCard
+            key={product.id}
+            product={product}
+            priority={index < 2}
+          />
         ))}
       </div>
+
+      <Link
+        href={viewAllHref}
+        className="mt-8 inline-flex h-11 items-center whitespace-nowrap rounded-md border border-[var(--border-strong)] px-5 font-sans text-[14px] font-medium text-[var(--text-primary)] hover:bg-[var(--surface-sunken)] sm:hidden"
+      >
+        See all products →
+      </Link>
     </SectionDivider>
-  )
-}
+  );
+};

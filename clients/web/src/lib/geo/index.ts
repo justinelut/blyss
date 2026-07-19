@@ -22,8 +22,15 @@
  * countries Paystack doesn't yet support locally.
  */
 
-export const DEFAULT_COUNTRY = 'us'
+export const DEFAULT_COUNTRY = 'ke'
 export const DEFAULT_CURRENCY = 'usd'
+
+/**
+ * Marks a country cookie as an explicit switcher choice. Automatic geo writes
+ * deliberately omit this marker so fresh Cloudflare geo can correct stale
+ * detection on later requests.
+ */
+export const COUNTRY_SOURCE_COOKIE = 'blyss-country-source'
 
 /** Opportunistic ISO 3166-1 alpha-2 (lowercase) → ISO 4217 currency
  *  (lowercase) map. Drives the visitor-currency header. Anything not

@@ -226,7 +226,7 @@ describe('middleware function', () => {
     const response = await proxy(request)
 
     expect(response.status).toBe(307)
-    expect(response.headers.get('location')).toBe('https://example.com/us')
+    expect(response.headers.get('location')).toBe('https://example.com/ke')
     expect(response.headers.get('cache-control')).toContain('no-store')
     expect(response.headers.get('vary')).toContain('Cookie')
     expect(response.headers.get('location')).not.toContain('/login')
