@@ -72,7 +72,7 @@ export const MarketplaceFooter = () => (
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={label}
-                className="flex h-10 w-10 items-center justify-center rounded-md text-[var(--text-muted)] hover:bg-[var(--surface-sunken)] hover:text-[var(--accent)]"
+                className="flex h-10 w-10 items-center justify-center rounded-md text-[var(--text-secondary)] hover:bg-[var(--surface-sunken)] hover:text-[var(--accent)]"
               >
                 <Icon size={18} aria-hidden="true" />
               </a>
@@ -83,7 +83,7 @@ export const MarketplaceFooter = () => (
 
         {footerColumns.map((column) => (
           <nav key={column.heading} aria-label={`${column.heading} links`}>
-            <h2 className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+            <h2 className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
               {column.heading}
             </h2>
             <ul className="mt-4 space-y-2.5">
@@ -102,28 +102,28 @@ export const MarketplaceFooter = () => (
         ))}
 
         <nav aria-label="Contact links">
-          <h2 className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+          <h2 className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
             Reach
           </h2>
           <ul className="mt-4 space-y-2.5">
             <li>
-              <a
-                href="mailto:hello@blyss.co.ke"
+              <Link
+                href="/help"
                 className="font-sans text-[14px] text-[var(--text-secondary)] hover:text-[var(--accent)]"
               >
                 Contact
-              </a>
+              </Link>
             </li>
           </ul>
         </nav>
       </div>
 
       <div className="mt-12 flex flex-col items-start justify-between gap-5 border-t border-[var(--border)] pt-6 md:mt-16 md:flex-row md:items-center">
-        <span className="font-sans text-[10px] uppercase tracking-[0.13em] text-[var(--text-muted)] sm:text-[11px]">
+        <span className="font-sans text-[10px] uppercase tracking-[0.13em] text-[var(--text-secondary)] sm:text-[11px]">
           © {new Date().getFullYear()} Blyss · Nairobi · Made in Kenya
         </span>
         <div className="flex items-center gap-3">
-          <span className="font-sans text-[10px] uppercase tracking-[0.13em] text-[var(--text-muted)] sm:text-[11px]">
+          <span className="font-sans text-[10px] uppercase tracking-[0.13em] text-[var(--text-secondary)] sm:text-[11px]">
             Region
           </span>
           <CountrySwitcher />

@@ -1,4 +1,4 @@
-'use client'
+"use client";
 
 /**
  * BlyssDialog — branded modal with motion animations.
@@ -24,35 +24,33 @@
  * card, motion uses cubic-bezier(0.32, 0.72, 0, 1).
  */
 
-import * as React from 'react'
-import { createPortal } from 'react-dom'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { FiX } from 'react-icons/fi'
-import { cn } from '@/lib/utils'
-import { easings } from './motion'
+import * as React from "react";
+import { createPortal } from "react-dom";
+import { FiX } from "react-icons/fi";
+import { cn } from "@/lib/utils";
 
 export interface BlyssDialogProps {
   /** Controlled open state. */
-  open: boolean
+  open: boolean;
   /** Called when the user dismisses (backdrop click / Escape / × button). */
-  onOpenChange: (open: boolean) => void
+  onOpenChange: (open: boolean) => void;
   /** Modal contents — `BlyssDialogHeader` + `BlyssDialogBody` typically. */
-  children: React.ReactNode
+  children: React.ReactNode;
   /** Width cap. Defaults to 640. */
-  maxWidth?: number
+  maxWidth?: number;
   /** Hide the close (×) button. Use only when the body has its own
    *  primary dismissal affordance. */
-  hideCloseButton?: boolean
+  hideCloseButton?: boolean;
   /** Optional accessible label for the modal — required if no
    *  `BlyssDialogTitle` is rendered inside. */
-  ariaLabel?: string
+  ariaLabel?: string;
   /** Optional id of the title element (used by aria-labelledby). When
    *  `BlyssDialogTitle` is used, set its `id` and pass the same id here. */
-  titleId?: string
+  titleId?: string;
   /** Optional id of the description element (aria-describedby). */
-  descriptionId?: string
+  descriptionId?: string;
   /** Extra className for the card. */
-  className?: string
+  className?: string;
 }
 
 export const BlyssDialog: React.FC<BlyssDialogProps> = ({
@@ -66,128 +64,98 @@ export const BlyssDialog: React.FC<BlyssDialogProps> = ({
   descriptionId,
   className,
 }) => {
-  const reduce = useReducedMotion()
-  const [mounted, setMounted] = React.useState(false)
+  const [mounted, setMounted] = React.useState(false);
 
   // SSR-safe portal: only render after mount so server output stays
   // clean and React doesn't hydrate a portal that didn't exist on the
   // server.
   React.useEffect(() => {
-    setMounted(true)
-  }, [])
+    setMounted(true);
+  }, []);
 
   // Escape closes. Listener attached only while open so we don't pay
   // for it the rest of the time.
   React.useEffect(() => {
-    if (!open) return
+    if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.stopPropagation()
-        onOpenChange(false)
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        onOpenChange(false);
       }
-    }
-    window.addEventListener('keydown', onKey, { capture: true })
-    return () => window.removeEventListener('keydown', onKey, { capture: true })
-  }, [open, onOpenChange])
+    };
+    window.addEventListener("keydown", onKey, { capture: true });
+    return () =>
+      window.removeEventListener("keydown", onKey, { capture: true });
+  }, [open, onOpenChange]);
 
   // Body scroll lock while open. Restores the previous overflow value
   // on unmount / close so we don't trample other scroll-lock callers.
   React.useEffect(() => {
-    if (!open) return
-    const previous = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
+    if (!open) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     return () => {
-      document.body.style.overflow = previous
-    }
-  }, [open])
+      document.body.style.overflow = previous;
+    };
+  }, [open]);
 
-  if (!mounted) return null
+  if (!mounted) return null;
 
-  const overlay = (
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{
-            duration: reduce ? 0 : 0.2,
-            ease: easings.smooth,
-          }}
-          className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center"
-          aria-hidden={false}
-        >
-          {/* Warm scrim — solid colour per §3.4 (no gradient).
+  const overlay = open ? (
+    <div
+      className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center"
+      aria-hidden={false}
+    >
+      {/* Warm scrim — solid colour per §3.4 (no gradient).
               Click closes. */}
-          <button
-            type="button"
-            aria-label="Close dialog"
-            onClick={() => onOpenChange(false)}
-            tabIndex={-1}
-            className="absolute inset-0 bg-[rgba(15,14,12,0.55)] backdrop-blur-[2px] sm:backdrop-blur-sm"
-          />
+      <button
+        type="button"
+        aria-label="Close dialog"
+        onClick={() => onOpenChange(false)}
+        tabIndex={-1}
+        className="absolute inset-0 bg-[rgba(15,14,12,0.55)] backdrop-blur-[2px] sm:backdrop-blur-sm"
+      />
 
-          {/* Card. Bottom-sheet on mobile (slides up), centered modal
+      {/* Card. Bottom-sheet on mobile (slides up), centered modal
               on sm+ (scales + fades). The two stages share the same
               motion config; the entry transform key swap is what
               changes. */}
-          <motion.div
-            role="dialog"
-            aria-modal="true"
-            aria-label={ariaLabel}
-            aria-labelledby={titleId}
-            aria-describedby={descriptionId}
-            initial={
-              reduce
-                ? { opacity: 0 }
-                : { opacity: 0, y: 24, scale: 0.97 }
-            }
-            animate={
-              reduce
-                ? { opacity: 1 }
-                : { opacity: 1, y: 0, scale: 1 }
-            }
-            exit={
-              reduce
-                ? { opacity: 0 }
-                : { opacity: 0, y: 16, scale: 0.98 }
-            }
-            transition={{
-              duration: reduce ? 0 : 0.35,
-              ease: easings.smooth,
-            }}
-            style={{ maxWidth }}
-            className={cn(
-              'relative z-[101] w-full overflow-hidden border-t border-[var(--border)] bg-[var(--background)] sm:rounded-lg sm:border',
-              // Bottom-sheet rounding on mobile: only the top corners
-              'rounded-t-2xl sm:rounded-t-lg',
-              // Cap height so very long bodies still scroll inside
-              // the card rather than blowing past the viewport.
-              'max-h-[88vh] sm:max-h-[80vh]',
-              'flex flex-col',
-              className,
-            )}
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={ariaLabel}
+        aria-labelledby={titleId}
+        aria-describedby={descriptionId}
+        style={{ maxWidth }}
+        className={cn(
+          "relative z-[101] w-full overflow-hidden border-t border-[var(--border)] bg-[var(--background)] sm:rounded-lg sm:border",
+          // Bottom-sheet rounding on mobile: only the top corners
+          "rounded-t-2xl sm:rounded-t-lg",
+          // Cap height so very long bodies still scroll inside
+          // the card rather than blowing past the viewport.
+          "max-h-[88vh] sm:max-h-[80vh]",
+          "flex flex-col",
+          className,
+        )}
+      >
+        {!hideCloseButton && (
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            aria-label="Close"
+            className="absolute right-4 top-4 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-sunken)] hover:text-[var(--text-primary)]"
           >
-            {!hideCloseButton && (
-              <button
-                type="button"
-                onClick={() => onOpenChange(false)}
-                aria-label="Close"
-                className="absolute right-4 top-4 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-sunken)] hover:text-[var(--text-primary)]"
-              >
-                <FiX size={18} aria-hidden="true" />
-              </button>
-            )}
+            <FiX size={18} aria-hidden="true" />
+          </button>
+        )}
 
-            {children}
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  )
+        {children}
+      </div>
+    </div>
+  ) : null;
 
-  return createPortal(overlay, document.body)
-}
+  return createPortal(overlay, document.body);
+};
 
 // ───────────────────────────────────────────────────────────────────
 // Sub-parts — Header / Title / Body for consistent typography +
@@ -199,18 +167,17 @@ export const BlyssDialogHeader: React.FC<
 > = ({ className, children, ...rest }) => (
   <div
     className={cn(
-      'shrink-0 px-6 pt-10 pb-4 text-left sm:px-10 sm:pt-12',
+      "shrink-0 px-6 pt-10 pb-4 text-left sm:px-10 sm:pt-12",
       className,
     )}
     {...rest}
   >
     {children}
   </div>
-)
+);
 
-export interface BlyssDialogEyebrowProps
-  extends React.HTMLAttributes<HTMLParagraphElement> {
-  children: React.ReactNode
+export interface BlyssDialogEyebrowProps extends React.HTMLAttributes<HTMLParagraphElement> {
+  children: React.ReactNode;
 }
 
 export const BlyssDialogEyebrow: React.FC<BlyssDialogEyebrowProps> = ({
@@ -220,39 +187,39 @@ export const BlyssDialogEyebrow: React.FC<BlyssDialogEyebrowProps> = ({
 }) => (
   <p
     className={cn(
-      'font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]',
+      "font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]",
       className,
     )}
     {...rest}
   >
     {children}
   </p>
-)
+);
 
 export const BlyssDialogTitle: React.FC<
   React.HTMLAttributes<HTMLHeadingElement>
 > = ({ className, children, ...rest }) => (
   <h2
     className={cn(
-      'mt-2 font-display text-[26px] font-semibold leading-[1.15] tracking-[-0.02em] text-[var(--text-primary)] sm:text-[28px]',
+      "mt-2 font-display text-[26px] font-semibold leading-[1.15] tracking-[-0.02em] text-[var(--text-primary)] sm:text-[28px]",
       className,
     )}
     {...rest}
   >
     {children}
   </h2>
-)
+);
 
 export const BlyssDialogBody: React.FC<
   React.HTMLAttributes<HTMLDivElement>
 > = ({ className, children, ...rest }) => (
   <div
     className={cn(
-      'flex-1 overflow-y-auto px-6 pb-8 pt-2 sm:px-10 sm:pb-12',
+      "flex-1 overflow-y-auto px-6 pb-8 pt-2 sm:px-10 sm:pb-12",
       className,
     )}
     {...rest}
   >
     {children}
   </div>
-)
+);

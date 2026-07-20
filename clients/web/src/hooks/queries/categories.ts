@@ -1,41 +1,56 @@
-import { api } from '@/utils/client'
-import { unwrap } from '@/lib/api'
-import { getQueryClient } from '@/utils/api/query'
-import {
-  keepPreviousData,
-  useMutation,
-  useQuery,
-} from '@tanstack/react-query'
-import { defaultRetry } from './retry'
+import { api } from "@/utils/client";
+import { unwrap } from "@/lib/api";
+import { getQueryClient } from "@/utils/api/query";
+import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
+import { defaultRetry } from "./retry";
 
 export interface Category {
-  id: string
-  name: string
-  slug: string
-  description: string | null
-  product_count: number
-  display_order: number
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  product_count: number;
+  display_order: number;
 }
 
 export interface CategoryWithProducts extends Category {
-  products: any[]
+  products: any[];
 }
 
-export const useCategories = () =>
+export const useCategories = (options?: {
+  initialData?: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    product_count?: number;
+    display_order?: number;
+  }>;
+}) =>
   useQuery({
-    queryKey: ['categories'],
-    queryFn: () => unwrap(api.GET('/v1/categories/')),
+    queryKey: ["categories"],
+    queryFn: () => unwrap(api.GET("/v1/categories/")),
     retry: defaultRetry,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
-  })
+    enabled: options?.initialData === undefined,
+    initialData:
+      options?.initialData === undefined
+        ? undefined
+        : ({
+            items: options.initialData,
+            pagination: {
+              total_count: options.initialData.length,
+              max_page: 1,
+            },
+          } as any),
+  });
 
 export const useCategoryBySlug = (slug: string) =>
   useQuery({
-    queryKey: ['categories', 'slug', slug],
+    queryKey: ["categories", "slug", slug],
     queryFn: () =>
       unwrap(
-        api.GET('/v1/categories/{slug}', {
+        api.GET("/v1/categories/{slug}", {
           params: { path: { slug } },
         }),
       ),
@@ -43,25 +58,25 @@ export const useCategoryBySlug = (slug: string) =>
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     enabled: !!slug,
-  })
+  });
 
 export interface UseCategoryProductsParams {
-  slug: string
-  page?: number
-  limit?: number
+  slug: string;
+  page?: number;
+  limit?: number;
 }
 
 export const useCategoryProducts = (
   parameters: UseCategoryProductsParams,
   options?: {
-    keepPreviousData?: boolean
+    keepPreviousData?: boolean;
   },
 ) =>
   useQuery({
-    queryKey: ['categories', 'products', parameters],
+    queryKey: ["categories", "products", parameters],
     queryFn: () =>
       unwrap(
-        api.GET('/v1/categories/{slug}/products', {
+        api.GET("/v1/categories/{slug}/products", {
           params: {
             path: { slug: parameters.slug },
             query: {
@@ -76,8 +91,7 @@ export const useCategoryProducts = (
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     enabled: !!parameters.slug,
-  })
-
+  });
 
 /**
  * Read the categories currently assigned to a product. The picker on
@@ -90,17 +104,17 @@ export const useCategoryProducts = (
  */
 export const useProductCategories = (productId: string | undefined) =>
   useQuery({
-    queryKey: ['categories', 'by-product', productId],
+    queryKey: ["categories", "by-product", productId],
     queryFn: () =>
       unwrap(
-        (api as any).GET('/v1/categories/by-product/{product_id}', {
+        (api as any).GET("/v1/categories/by-product/{product_id}", {
           params: { path: { product_id: productId } },
         }),
       ) as Promise<Category[]>,
     retry: defaultRetry,
     enabled: !!productId,
     staleTime: 30 * 1000,
-  })
+  });
 
 /**
  * Assign a product to a category. Used by the create + edit product
@@ -109,40 +123,40 @@ export const useProductCategories = (productId: string | undefined) =>
  * top of the many-to-many backend.
  */
 export const useAssignProductToCategory = () => {
-  const queryClient = getQueryClient()
+  const queryClient = getQueryClient();
   return useMutation({
     mutationFn: (vars: { product_id: string; category_id: string }) =>
       unwrap(
-        api.POST('/v1/categories/assignments', {
+        api.POST("/v1/categories/assignments", {
           body: vars,
         }),
       ),
     onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({
-        queryKey: ['categories', 'by-product', vars.product_id],
-      })
-      queryClient.invalidateQueries({ queryKey: ['categories'] })
+        queryKey: ["categories", "by-product", vars.product_id],
+      });
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
     },
-  })
-}
+  });
+};
 
 export const useUnassignProductFromCategory = () => {
-  const queryClient = getQueryClient()
+  const queryClient = getQueryClient();
   return useMutation({
     mutationFn: (vars: { product_id: string; category_id: string }) =>
       unwrap(
-        api.DELETE('/v1/categories/assignments/{product_id}/{category_id}', {
+        api.DELETE("/v1/categories/assignments/{product_id}/{category_id}", {
           params: { path: vars },
         }),
       ),
     onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({
-        queryKey: ['categories', 'by-product', vars.product_id],
-      })
-      queryClient.invalidateQueries({ queryKey: ['categories'] })
+        queryKey: ["categories", "by-product", vars.product_id],
+      });
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
     },
-  })
-}
+  });
+};
 
 /**
  * Backoffice CRUD mutations. List + read use useCategories /
@@ -150,60 +164,60 @@ export const useUnassignProductFromCategory = () => {
  * /backoffice/categories management surface.
  */
 export const useCreateCategory = () => {
-  const queryClient = getQueryClient()
+  const queryClient = getQueryClient();
   return useMutation({
     mutationFn: (vars: {
-      name: string
-      slug: string
-      description?: string | null
-      display_order?: number
+      name: string;
+      slug: string;
+      description?: string | null;
+      display_order?: number;
     }) =>
       unwrap(
-        api.POST('/v1/categories/', {
+        api.POST("/v1/categories/", {
           body: { display_order: 0, ...vars },
         }),
       ),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['categories'] })
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
     },
-  })
-}
+  });
+};
 
 export const useUpdateCategory = () => {
-  const queryClient = getQueryClient()
+  const queryClient = getQueryClient();
   return useMutation({
     mutationFn: (vars: {
-      id: string
-      name?: string | null
-      description?: string | null
-      display_order?: number | null
-      is_active?: boolean | null
+      id: string;
+      name?: string | null;
+      description?: string | null;
+      display_order?: number | null;
+      is_active?: boolean | null;
     }) => {
-      const { id, ...body } = vars
+      const { id, ...body } = vars;
       return unwrap(
-        api.PUT('/v1/categories/{id}', {
+        api.PUT("/v1/categories/{id}", {
           params: { path: { id } },
           body,
         }),
-      )
+      );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['categories'] })
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
     },
-  })
-}
+  });
+};
 
 export const useDeleteCategory = () => {
-  const queryClient = getQueryClient()
+  const queryClient = getQueryClient();
   return useMutation({
     mutationFn: (id: string) =>
       unwrap(
-        api.DELETE('/v1/categories/{id}', {
+        api.DELETE("/v1/categories/{id}", {
           params: { path: { id } },
         }),
       ),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['categories'] })
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
     },
-  })
-}
+  });
+};

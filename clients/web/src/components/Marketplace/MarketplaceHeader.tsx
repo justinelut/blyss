@@ -18,11 +18,10 @@ import { FiSearch, FiUser, FiMenu, FiX, FiHeart } from "react-icons/fi";
 import { FiGrid, FiLogOut, FiMoon, FiSun } from "react-icons/fi";
 import Link from "./LocaleLink";
 import { useEffect, useRef, useState } from "react";
-import { motion, useReducedMotion } from "motion/react";
 import { BlyssLogo } from "@/design";
 import { CartButton } from "@/components/Cart/CartButton";
 import { CountrySwitcher } from "./CountrySwitcher";
-import { useAuth } from "@/hooks";
+import { useAuth } from '@/hooks/auth'
 import { cn } from "@/lib/utils";
 import { CONFIG } from "@/utils/config";
 import { useTheme } from "next-themes";
@@ -56,7 +55,6 @@ export const MarketplaceHeader = ({
   const [scrolled, setScrolled] = useState(alwaysBlurred);
   const [mobileOpen, setMobileOpen] = useState(false);
   const mobileMenuButtonRef = useRef<HTMLButtonElement>(null);
-  const reduce = useReducedMotion();
   const { currentUser, authenticated, userOrganizations } = useAuth();
 
   // Track scroll for blur transition
@@ -95,8 +93,7 @@ export const MarketplaceHeader = ({
     <>
       <header
         className={cn(
-          "fixed top-0 z-50 w-full transition-colors",
-          reduce ? "transition-none" : "duration-300",
+          "fixed top-0 z-50 w-full transition-colors duration-300 motion-reduce:transition-none",
           scrolled
             ? "bg-[var(--background)]/90 backdrop-blur-xl"
             : "bg-transparent",
@@ -194,12 +191,8 @@ export const MarketplaceHeader = ({
 
       {/* Mobile drawer */}
       {mobileOpen && (
-        <motion.div
+        <div
           id="marketplace-mobile-menu"
-          initial={reduce ? false : { opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: reduce ? 0 : 0.2, ease: [0.32, 0.72, 0, 1] }}
           className="fixed inset-0 top-20 z-40 flex flex-col bg-[var(--background)] lg:hidden"
         >
           <nav
@@ -266,7 +259,7 @@ export const MarketplaceHeader = ({
             <div className="my-4 h-px bg-[var(--border)]" />
             <MobileThemeToggle />
           </nav>
-        </motion.div>
+        </div>
       )}
     </>
   );

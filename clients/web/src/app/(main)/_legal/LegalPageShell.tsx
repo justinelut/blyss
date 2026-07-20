@@ -1,33 +1,34 @@
-'use client'
+"use client";
 
-import { motion, useReducedMotion } from 'motion/react'
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { LegalDoc, Eyebrow, typography } from '@/design'
-import { cn } from '@/lib/utils'
+import { motion, useReducedMotion } from "motion/react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Eyebrow, typography } from "@/design";
+import { LegalDoc } from "@/design/LegalDoc";
+import { cn } from "@/lib/utils";
 
 interface LegalPageShellProps {
-  title: string
-  content: string
+  title: string;
+  content: string;
 }
 
 const LEGAL_NAV = [
-  { href: '/about', label: 'About' },
-  { href: '/help', label: 'Help' },
-  { href: '/terms', label: 'Terms' },
-  { href: '/privacy', label: 'Privacy' },
-  { href: '/acceptable-use', label: 'Acceptable use' },
-  { href: '/refunds', label: 'Refunds' },
-]
+  { href: "/about", label: "About" },
+  { href: "/help", label: "Help" },
+  { href: "/terms", label: "Terms" },
+  { href: "/privacy", label: "Privacy" },
+  { href: "/acceptable-use", label: "Acceptable use" },
+  { href: "/refunds", label: "Refunds" },
+];
 
 /**
  * LegalPageShell — modernizes static legal pages with editorial layout.
  * Sidebar nav (sticky) + main column with motion-driven entrance.
  */
 export const LegalPageShell = ({ title, content }: LegalPageShellProps) => {
-  const reduce = useReducedMotion()
-  const ease = [0.32, 0.72, 0, 1] as const
-  const pathname = usePathname()
+  const reduce = useReducedMotion();
+  const ease = [0.32, 0.72, 0, 1] as const;
+  const pathname = usePathname();
 
   return (
     <div className="bg-[var(--background)] text-[var(--text-primary)]">
@@ -43,16 +44,16 @@ export const LegalPageShell = ({ title, content }: LegalPageShellProps) => {
             <Eyebrow>Legal</Eyebrow>
             <nav className="mt-4 flex flex-col gap-2">
               {LEGAL_NAV.map((item) => {
-                const active = pathname === item.href
+                const active = pathname === item.href;
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      'group relative inline-flex items-center py-1.5 font-sans text-[14px] transition-colors',
+                      "group relative inline-flex items-center py-1.5 font-sans text-[14px] transition-colors",
                       active
-                        ? 'text-[var(--accent)]'
-                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
+                        ? "text-[var(--accent)]"
+                        : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
                     )}
                   >
                     {active && (
@@ -63,7 +64,7 @@ export const LegalPageShell = ({ title, content }: LegalPageShellProps) => {
                     )}
                     {item.label}
                   </Link>
-                )
+                );
               })}
             </nav>
           </motion.aside>
@@ -78,8 +79,8 @@ export const LegalPageShell = ({ title, content }: LegalPageShellProps) => {
             <Eyebrow accent>Legal</Eyebrow>
             <h1
               className={cn(
-                'mt-3 font-display font-semibold tracking-[-0.025em] leading-[1.05]',
-                'text-[clamp(36px,5vw,64px)] text-[var(--text-primary)]',
+                "mt-3 font-display font-semibold tracking-[-0.025em] leading-[1.05]",
+                "text-[clamp(36px,5vw,64px)] text-[var(--text-primary)]",
               )}
             >
               {title}
@@ -91,5 +92,5 @@ export const LegalPageShell = ({ title, content }: LegalPageShellProps) => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};

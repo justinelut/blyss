@@ -1,6 +1,6 @@
-import { describe, test, expect } from 'vitest'
-import { readFileSync } from 'fs'
-import { join } from 'path'
+import { describe, test, expect } from "vitest";
+import { readFileSync } from "fs";
+import { join } from "path";
 
 /**
  * Guest checkout-intent gate.
@@ -16,51 +16,58 @@ import { join } from 'path'
  *     authenticate and continue to purchase.
  */
 
-const read = (rel: string) => readFileSync(join(process.cwd(), rel), 'utf8')
+const read = (rel: string) => readFileSync(join(process.cwd(), rel), "utf8");
 
-describe('Guest checkout intent — sign-in instead of 401', () => {
-  test('useCart is gated on an enabled flag', () => {
-    const cart = read('src/hooks/queries/cart.ts')
-    expect(cart).toMatch(/export const useCart = \(enabled = true\)/)
-    expect(cart).toMatch(/enabled,/)
-  })
+describe("Guest checkout intent — sign-in instead of 401", () => {
+  test("useCart is gated on an enabled flag", () => {
+    const cart = read("src/hooks/queries/cart.ts");
+    expect(cart).toMatch(/export const useCart = \(enabled = true\)/);
+    expect(cart).toMatch(/enabled,/);
+  });
 
-  test('useIsInWishlist is gated on auth', () => {
-    const wl = read('src/hooks/queries/wishlist.ts')
-    expect(wl).toMatch(/useIsInWishlist = \(productId: string, enabled = true\)/)
-    expect(wl).toMatch(/enabled: !!productId && enabled/)
-  })
+  test("useIsInWishlist is gated on auth", () => {
+    const wl = read("src/hooks/queries/wishlist.ts");
+    expect(wl).toMatch(
+      /useIsInWishlist = \(productId: string, enabled = true\)/,
+    );
+    expect(wl).toMatch(/enabled: !!productId && enabled/);
+  });
 
-  test('Cart header components pass authentication into useCart', () => {
+  test("Cart header components gate cart queries on authentication", () => {
+    const button = read("src/components/Cart/CartButton.tsx");
+    const count = read("src/components/Cart/CartCount.tsx");
+    expect(button).toMatch(/useAuth/);
+    expect(button).toMatch(/authenticated &&\s*<CartCount/);
+    expect(button).toMatch(/import\(["']\.\/CartCount["']\)/);
+    expect(count).toMatch(/useCartGrouped\(scope === ["']marketplace["']\)/);
+    expect(count).toMatch(/useCartForOrganization\(/);
+
     for (const f of [
-      'src/components/Cart/CartButton.tsx',
-      'src/components/Cart/CartIcon.tsx',
-      'src/components/Cart/CartDrawer.tsx',
-      'src/components/Cart/BlyssCartPage.tsx',
+      "src/components/Cart/CartIcon.tsx",
+      "src/components/Cart/CartDrawer.tsx",
+      "src/components/Cart/BlyssCartPage.tsx",
     ]) {
-      const src = read(f)
-      expect(src).toMatch(/useAuth/)
+      const src = read(f);
+      expect(src).toMatch(/useAuth/);
       // Either the legacy flat hook (useCart) or the multi-cart
       // hooks (useCartGrouped, useCartForOrganization) — all gated
       // on the authenticated flag so guests don't poll the cart.
       expect(src).toMatch(
         /useCart\(authenticated\)|useCartGrouped\(\s*authenticated[\s\S]*?\)|useCartForOrganization\(/,
-      )
+      );
     }
-  })
+  });
 
-  test('Product detail shows the sign-in modal for guests, not a 401', () => {
-    const client = read(
-      'src/components/ProductDetail/ProductDetailClient.tsx',
-    )
-    expect(client).toContain('<AuthModal')
-    expect(client).toMatch(/setAuthModalOpen\(true\)/)
-    expect(client).toMatch(/useIsInWishlist\(product\.id, authenticated\)/)
-  })
+  test("Product detail shows the sign-in modal for guests, not a 401", () => {
+    const client = read("src/components/ProductDetail/ProductDetailClient.tsx");
+    expect(client).toContain("<AuthModal");
+    expect(client).toMatch(/setAuthModalOpen\(true\)/);
+    expect(client).toMatch(/useIsInWishlist\(product\.id, authenticated\)/);
+  });
 
-  test('Guest cart page prompts sign-in', () => {
-    const page = read('src/components/Cart/BlyssCartPage.tsx')
-    expect(page).toMatch(/if \(!authenticated\)/)
-    expect(page).toMatch(/Sign in to view your cart/)
-  })
-})
+  test("Guest cart page prompts sign-in", () => {
+    const page = read("src/components/Cart/BlyssCartPage.tsx");
+    expect(page).toMatch(/if \(!authenticated\)/);
+    expect(page).toMatch(/Sign in to view your cart/);
+  });
+});

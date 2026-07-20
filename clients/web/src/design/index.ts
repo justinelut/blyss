@@ -3,33 +3,21 @@
  *
  * Import design primitives via this barrel:
  *
- *   import { BlyssLogo, Eyebrow, SectionDivider, Skeleton, LegalDoc, JsonLd, typography, transitions, variants } from '@/design'
+ *   import { BlyssLogo, Eyebrow, SectionDivider, Skeleton, JsonLd, typography, transitions, variants } from '@/design'
+ *
+ * Dependency-heavy primitives (LegalDoc, Button, Input, ThemeToggle, and
+ * BlyssDialog) intentionally use direct imports so unrelated SDKs and renderers
+ * do not enter every public route through this barrel.
  */
 
-export { BlyssLogo } from './BlyssLogo'
-export { Button, buttonVariants, type ButtonProps } from './Button'
-export { Input, type InputProps } from './Input'
-export { Eyebrow } from './Eyebrow'
-export { SectionDivider } from './SectionDivider'
-export { Skeleton } from './Skeleton'
-export { LegalDoc } from './LegalDoc'
-export { JsonLd } from './JsonLd'
-export { ThemeToggle } from './ThemeToggle'
-export { PageEnter, StaggerList, StaggerItem, FadeIn } from './PageMotion'
-export {
-  BlyssDialog,
-  BlyssDialogHeader,
-  BlyssDialogEyebrow,
-  BlyssDialogTitle,
-  BlyssDialogBody,
-  type BlyssDialogProps,
-  type BlyssDialogEyebrowProps,
-} from './BlyssDialog'
+export { BlyssLogo } from "./BlyssLogo";
+export { Eyebrow } from "./Eyebrow";
+export { SectionDivider } from "./SectionDivider";
+export { Skeleton } from "./Skeleton";
+export { JsonLd } from "./JsonLd";
+export { PageEnter, StaggerList, StaggerItem, FadeIn } from "./PageMotion";
 
-export {
-  typography,
-  type TypographyKey,
-} from './typography'
+export { typography, type TypographyKey } from "./typography";
 
 export {
   easings,
@@ -37,4 +25,4 @@ export {
   transitions,
   variants,
   respectReducedMotion,
-} from './motion'
+} from "./motion";

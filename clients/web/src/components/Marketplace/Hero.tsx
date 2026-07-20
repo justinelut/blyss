@@ -1,17 +1,19 @@
 "use client";
 
 import Image from "next/image";
-import Link from "./LocaleLink";
+import Link from "next/link";
 import { FiArrowRight, FiSearch } from "react-icons/fi";
 import { schemas } from "@/lib/api";
 import { getFallbackPrice } from "@/lib/currency/marketplace";
 import { cn } from "@/lib/utils";
-import { useCurrencyControls } from "./CurrencyProvider";
+import { localizeMarketplaceHref } from "@/lib/geo/path";
 
 type Product = schemas["Product"];
 
 interface HeroProps {
   featuredProduct?: Product;
+  country: string;
+  currency: string;
 }
 
 const formatPrice = (product: Product, currency: string): string => {
@@ -27,8 +29,9 @@ const formatPrice = (product: Product, currency: string): string => {
   return `${code} ${amount.toLocaleString()}`;
 };
 
-export const Hero = ({ featuredProduct }: HeroProps) => {
-  const { country, currency } = useCurrencyControls();
+export const Hero = ({ featuredProduct, country, currency }: HeroProps) => {
+  const localizedHref = (href: string) =>
+    localizeMarketplaceHref(href, country);
   const image = featuredProduct?.medias?.[0]?.public_url;
   const creator = (featuredProduct as any)?.organization?.name as
     | string
@@ -54,12 +57,9 @@ export const Hero = ({ featuredProduct }: HeroProps) => {
         )}
       >
         <div className="min-w-0">
-          <p className="max-w-[44ch] font-sans text-[12px] font-semibold uppercase tracking-[0.13em] text-[var(--accent)]">
-            Templates · Ebooks · Beats · Presets · Courses
-          </p>
           <h1
             id="home-marketplace-heading"
-            className="mt-4 max-w-[12ch] break-words pb-2 font-display text-[clamp(42px,6vw,72px)] font-semibold leading-[1.06] tracking-[-0.035em]"
+            className="max-w-[12ch] break-words pb-2 font-display text-[clamp(42px,6vw,72px)] font-semibold leading-[1.06] tracking-[-0.035em]"
           >
             What are you looking for?
           </h1>
@@ -97,14 +97,14 @@ export const Hero = ({ featuredProduct }: HeroProps) => {
 
           <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-3">
             <Link
-              href="/marketplace"
+              href={localizedHref("/marketplace")}
               className="inline-flex h-11 items-center gap-2 whitespace-nowrap font-sans text-[14px] font-medium text-[var(--text-primary)] underline decoration-[var(--border-strong)] underline-offset-4 hover:text-[var(--accent)]"
             >
               Browse all products
               <FiArrowRight size={15} aria-hidden="true" />
             </Link>
             <Link
-              href="/creators"
+              href={localizedHref("/creators")}
               className="inline-flex h-11 items-center whitespace-nowrap font-sans text-[14px] text-[var(--text-secondary)] hover:text-[var(--accent)]"
             >
               Explore creators
@@ -119,14 +119,17 @@ export const Hero = ({ featuredProduct }: HeroProps) => {
                 Featured today
               </p>
               <Link
-                href={productHref}
+                href={localizedHref(productHref)}
                 className="whitespace-nowrap font-sans text-[13px] text-[var(--text-secondary)] hover:text-[var(--accent)]"
               >
                 View product →
               </Link>
             </div>
 
-            <Link href={productHref} className="group block min-w-0">
+            <Link
+              href={localizedHref(productHref)}
+              className="group block min-w-0"
+            >
               <div className="relative aspect-[16/10] min-w-0 overflow-hidden rounded-md bg-[var(--surface-sunken)]">
                 {image ? (
                   <Image

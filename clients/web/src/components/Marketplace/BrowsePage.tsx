@@ -1,4 +1,4 @@
-'use client'
+"use client";
 
 /* Hallmark · macrostructure: Catalogue · genre: editorial
  * theme: blyss-design (light cream + burnt orange #C2410C accent)
@@ -15,47 +15,51 @@
  * conversion); rail price input shows the active currency code as a label.
  */
 
-import { useEffect, useMemo, useState } from 'react'
+import dynamic from "next/dynamic";
+import { useEffect, useMemo, useState } from "react";
 import {
   parseAsInteger,
   parseAsString,
   parseAsStringEnum,
   useQueryStates,
-} from 'nuqs'
-import { schemas } from '@/lib/api'
-import { usePublicProducts } from '@/hooks/queries/products'
-import { initPerformanceMonitoring } from '@/utils/performance'
-import {
-  BrowseFilterRail,
-  type BrowseFilters,
-  type FilterCategory,
-} from '@/components/Marketplace/BrowseFilterRail'
-import { BrowseGrid } from '@/components/Marketplace/BrowseGrid'
-import { BrowseSearchBar } from '@/components/Marketplace/BrowseSearchBar'
-import { BrowseEmptyState } from '@/components/Marketplace/BrowseEmptyState'
-import { BrowseActiveChips } from '@/components/Marketplace/BrowseActiveChips'
-import { CategoryNavigation } from '@/components/Category/CategoryNavigation'
-import {
-  BrowseMobileFilters,
-  BrowseMobileFiltersTrigger,
-} from '@/components/Marketplace/BrowseMobileFilters'
-import { Eyebrow, typography, PageEnter } from '@/design'
-import { cn } from '@/lib/utils'
+} from "nuqs";
+import { schemas } from "@/lib/api";
+import { usePublicProducts } from "@/hooks/queries/public-products";
+import type {
+  BrowseFilters,
+  FilterCategory,
+} from "@/components/Marketplace/BrowseFilterRail";
+import { BrowseGrid } from "@/components/Marketplace/BrowseGrid";
+import { BrowseSearchBar } from "@/components/Marketplace/BrowseSearchBar";
+import { BrowseEmptyState } from "@/components/Marketplace/BrowseEmptyState";
+import { BrowseActiveChips } from "@/components/Marketplace/BrowseActiveChips";
+import { BrowseMobileFiltersTrigger } from "@/components/Marketplace/BrowseMobileFiltersTrigger";
+
+const BrowseFilterRail = dynamic(() =>
+  import("@/components/Marketplace/BrowseFilterRail").then(
+    (module) => module.BrowseFilterRail,
+  ),
+);
+const BrowseMobileFilters = dynamic(() =>
+  import("@/components/Marketplace/BrowseMobileFilters").then(
+    (module) => module.BrowseMobileFilters,
+  ),
+);
 
 interface BrowsePageProps {
-  initialProducts: schemas['Product'][]
-  initialTotalCount: number
-  categories: FilterCategory[]
+  initialProducts: schemas["Product"][];
+  initialTotalCount: number;
+  categories: FilterCategory[];
   initialFilters: {
-    search: string | null
-    category: string | null
-    min_price: number | null
-    max_price: number | null
-    type: BrowseFilters['type']
-    currency: BrowseFilters['currency']
-    sort: BrowseFilters['sort']
-    page: number
-  }
+    search: string | null;
+    category: string | null;
+    min_price: number | null;
+    max_price: number | null;
+    type: BrowseFilters["type"];
+    currency: BrowseFilters["currency"];
+    sort: BrowseFilters["sort"];
+    page: number;
+  };
 }
 
 const filterParsers = {
@@ -63,23 +67,23 @@ const filterParsers = {
   category: parseAsString,
   min_price: parseAsInteger,
   max_price: parseAsInteger,
-  type: parseAsStringEnum<BrowseFilters['type']>([
-    'all',
-    'one_time',
-    'subscription',
-  ]).withDefault('all'),
+  type: parseAsStringEnum<BrowseFilters["type"]>([
+    "all",
+    "one_time",
+    "subscription",
+  ]).withDefault("all"),
   // Currency is geo-resolved server-side and passed via initialFilters; the
   // URL only carries it when the user explicitly switches. No hardcoded KES
   // default here (that was the US-sees-KES bug).
   currency: parseAsString,
-  sort: parseAsStringEnum<BrowseFilters['sort']>([
-    'newest',
-    'trending',
-    'price_asc',
-    'price_desc',
-  ]).withDefault('newest'),
+  sort: parseAsStringEnum<BrowseFilters["sort"]>([
+    "newest",
+    "trending",
+    "price_asc",
+    "price_desc",
+  ]).withDefault("newest"),
   page: parseAsInteger.withDefault(1),
-}
+};
 
 /**
  * BrowsePage — client wrapper for /marketplace.
@@ -103,14 +107,18 @@ export function BrowsePage({
   initialFilters,
 }: BrowsePageProps) {
   const [filters, setFilters] = useQueryStates(filterParsers, {
-    history: 'push',
-  })
-  const [mobileOpen, setMobileOpen] = useState(false)
+    history: "push",
+  });
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
 
-  // Initialize web-vitals reporting
   useEffect(() => {
-    initPerformanceMonitoring()
-  }, [])
+    const query = window.matchMedia("(min-width: 1024px)");
+    const updateViewport = () => setIsDesktop(query.matches);
+    updateViewport();
+    query.addEventListener("change", updateViewport);
+    return () => query.removeEventListener("change", updateViewport);
+  }, []);
 
   // Bootstrap URL state from server props on first render if URL is empty
   useEffect(() => {
@@ -119,10 +127,10 @@ export function BrowsePage({
       filters.category === null &&
       filters.min_price === null &&
       filters.max_price === null &&
-      filters.type === 'all' &&
-      filters.sort === 'newest' &&
-      filters.page === 1
-    if (!isEmpty) return
+      filters.type === "all" &&
+      filters.sort === "newest" &&
+      filters.page === 1;
+    if (!isEmpty) return;
     setFilters(
       {
         search: initialFilters.search,
@@ -134,10 +142,10 @@ export function BrowsePage({
         sort: initialFilters.sort,
         page: initialFilters.page,
       },
-      { history: 'replace' },
-    )
+      { history: "replace" },
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, []);
 
   const browseFilters: BrowseFilters = useMemo(
     () => ({
@@ -149,45 +157,60 @@ export function BrowsePage({
       sort: filters.sort,
     }),
     [filters],
-  )
+  );
 
   const activeCount = useMemo(() => {
-    let n = 0
-    if (filters.category) n++
-    if (filters.type !== 'all') n++
-    if (filters.min_price != null || filters.max_price != null) n++
-    if (filters.sort !== 'newest') n++
-    if (filters.search) n++
-    return n
-  }, [filters])
+    let n = 0;
+    if (filters.category) n++;
+    if (filters.type !== "all") n++;
+    if (filters.min_price != null || filters.max_price != null) n++;
+    if (filters.sort !== "newest") n++;
+    if (filters.search) n++;
+    return n;
+  }, [filters]);
 
   // Fetch products via TanStack Query — hydrated by initialProducts on first render
-  const { data, isLoading, isFetching } = usePublicProducts({
-    search: filters.search || undefined,
-    category: filters.category || undefined,
-    minPrice: filters.min_price || undefined,
-    maxPrice: filters.max_price || undefined,
-    // Map the URL chip → API filter:
-    //   'subscription' → is_recurring=true
-    //   'one_time'     → is_recurring=false
-    //   'all'          → undefined (no filter)
-    isRecurring:
-      filters.type === 'subscription'
-        ? true
-        : filters.type === 'one_time'
-          ? false
+  const { data, isLoading, isFetching } = usePublicProducts(
+    {
+      search: filters.search || undefined,
+      category: filters.category || undefined,
+      minPrice: filters.min_price || undefined,
+      maxPrice: filters.max_price || undefined,
+      // Map the URL chip → API filter:
+      //   'subscription' → is_recurring=true
+      //   'one_time'     → is_recurring=false
+      //   'all'          → undefined (no filter)
+      isRecurring:
+        filters.type === "subscription"
+          ? true
+          : filters.type === "one_time"
+            ? false
+            : undefined,
+      sort:
+        filters.sort === "trending"
+          ? "newest" // backend doesn't support 'trending' yet — alias to newest
+          : filters.sort,
+      // Hard currency filter (geo): only products the creator priced in the
+      // visitor's currency. No conversion.
+      currency:
+        filters.currency || initialFilters.currency
+          ? String(filters.currency || initialFilters.currency).toLowerCase()
           : undefined,
-    sort:
-      filters.sort === 'trending'
-        ? 'newest' // backend doesn't support 'trending' yet — alias to newest
-        : filters.sort,
-    // Hard currency filter (geo): only products the creator priced in the
-    // visitor's currency. No conversion.
-    currency: (filters.currency || initialFilters.currency)
-      ? String(filters.currency || initialFilters.currency).toLowerCase()
-      : undefined,
-    page: filters.page,
-  })
+      page: filters.page,
+    },
+    {
+      // The server already fetched this exact first page. Seed TanStack Query
+      // so hydration does not immediately repeat the API request and replace
+      // the SSR grid with loading skeletons.
+      initialData: {
+        items: initialProducts,
+        pagination: {
+          total_count: initialTotalCount,
+          max_page: Math.max(1, Math.ceil(initialTotalCount / 24)),
+        },
+      },
+    },
+  );
 
   // Always coerce to an array — the SSR fallback can pass `undefined`
   // when the API call .catch'd, and TanStack Query's `data` may be
@@ -195,12 +218,16 @@ export function BrowsePage({
   // below don't blow up on an empty marketplace (e.g. when no creator
   // has activated payouts yet — a real user-facing case after the
   // active-subaccount filter shipped).
-  const products = (data?.items ?? initialProducts ?? []) as schemas['Product'][]
-  const totalCount = data?.pagination?.total_count ?? initialTotalCount ?? 0
+  const products = (data?.items ??
+    initialProducts ??
+    []) as schemas["Product"][];
+  const totalCount = data?.pagination?.total_count ?? initialTotalCount ?? 0;
 
-  const updateFilters = (next: Partial<BrowseFilters & { search: string | null; page: number }>) => {
-    setFilters({ ...next, page: 1 } as any)
-  }
+  const updateFilters = (
+    next: Partial<BrowseFilters & { search: string | null; page: number }>,
+  ) => {
+    setFilters({ ...next, page: 1 } as any);
+  };
 
   const clearAll = () => {
     setFilters({
@@ -208,48 +235,32 @@ export function BrowsePage({
       category: null,
       min_price: null,
       max_price: null,
-      type: 'all',
+      type: "all",
       // Reset to the geo-resolved currency, not a hardcoded KES.
       currency: initialFilters.currency,
-      sort: 'newest',
+      sort: "newest",
       page: 1,
-    })
-  }
+    });
+  };
 
-  const showEmpty = !isLoading && products.length === 0
+  const showEmpty = !isLoading && products.length === 0;
 
   return (
     <div className="bg-[var(--background)] text-[var(--text-primary)]">
-      {/* Page hero — small, no full-bleed image (this is a serious shopper page) */}
-      <header className="border-b border-[var(--border)]">
-        <div className="mx-auto max-w-[1280px] px-6 py-12 md:px-16 md:py-16">
-          <PageEnter>
-            <Eyebrow>The marketplace</Eyebrow>
-            <h1 className={cn(typography.h1, 'mt-4 max-w-[18ch] text-[var(--text-primary)]')}>
-              Find your next thing.
-            </h1>
-          </PageEnter>
-        </div>
-        {/* Category quick-strip — Etsy-style horizontal categories above the
-            grid. Backed by /v1/categories. The rail filter still owns the
-            authoritative state; this is a fast-switch shortcut. */}
-        <div className="mx-auto max-w-[1280px] px-6 pb-6 md:px-16">
-          <CategoryNavigation />
-        </div>
-      </header>
-
       <div className="mx-auto max-w-[1280px] px-6 py-10 md:px-16 md:py-12">
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-[240px_1fr] lg:gap-16">
           {/* Filter rail — desktop only */}
           <div className="hidden lg:block">
             <div className="sticky top-28">
-              <BrowseFilterRail
-                filters={browseFilters}
-                categories={categories}
-                onChange={updateFilters}
-                onClear={clearAll}
-                activeCount={activeCount}
-              />
+              {isDesktop && (
+                <BrowseFilterRail
+                  filters={browseFilters}
+                  categories={categories}
+                  onChange={updateFilters}
+                  onClear={clearAll}
+                  activeCount={activeCount}
+                />
+              )}
             </div>
           </div>
 
@@ -263,10 +274,8 @@ export function BrowsePage({
             <div className="sticky top-20 z-20 -mx-6 bg-[var(--background)]/90 px-6 py-3 backdrop-blur-xl md:-mx-16 md:px-16 lg:-mx-0 lg:px-0 lg:bg-transparent lg:py-0 lg:backdrop-blur-0">
               <div className="flex items-center gap-3">
                 <BrowseSearchBar
-                  value={filters.search ?? ''}
-                  onChange={(v) =>
-                    setFilters({ search: v || null, page: 1 })
-                  }
+                  value={filters.search ?? ""}
+                  onChange={(v) => setFilters({ search: v || null, page: 1 })}
                 />
                 {/* Mobile filters trigger */}
                 <BrowseMobileFiltersTrigger
@@ -286,10 +295,10 @@ export function BrowsePage({
 
             {/* Result count */}
             <div className="flex items-center justify-between">
-              <p className="font-sans text-[13px] text-[var(--text-muted)]">
+              <p className="font-sans text-[13px] text-[var(--text-secondary)]">
                 {isLoading
-                  ? 'Loading…'
-                  : `${totalCount.toLocaleString()} ${totalCount === 1 ? 'product' : 'products'}`}
+                  ? "Loading…"
+                  : `${totalCount.toLocaleString()} ${totalCount === 1 ? "product" : "products"}`}
               </p>
             </div>
 
@@ -309,16 +318,18 @@ export function BrowsePage({
         </div>
       </div>
 
-      {/* Mobile filter sheet (rendered at root for stacking context) */}
-      <BrowseMobileFilters
-        open={mobileOpen}
-        onOpenChange={setMobileOpen}
-        filters={browseFilters}
-        categories={categories}
-        onChange={updateFilters}
-        onClear={clearAll}
-        activeCount={activeCount}
-      />
+      {/* Mobile filter sheet is loaded only after the trigger is used. */}
+      {mobileOpen && (
+        <BrowseMobileFilters
+          open
+          onOpenChange={setMobileOpen}
+          filters={browseFilters}
+          categories={categories}
+          onChange={updateFilters}
+          onClear={clearAll}
+          activeCount={activeCount}
+        />
+      )}
     </div>
-  )
+  );
 }

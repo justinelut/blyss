@@ -2,7 +2,6 @@
 
 import * as React from 'react'
 import Link from './LocaleLink'
-import { useReducedMotion, motion } from 'motion/react'
 import { FiShoppingCart, FiStar } from 'react-icons/fi'
 import { schemas } from '@/lib/api'
 import { OptimizedImage } from '@/components/Image/OptimizedImage'
@@ -112,7 +111,6 @@ export const MarketplaceProductCard = ({
   hideAddToCart,
   className,
 }: MarketplaceProductCardProps) => {
-  const reduce = useReducedMotion()
   const displayCurrency = useDisplayCurrency()
   const router = useRouter()
   const { mutate: addToCart, isPending: isAddingToCart } = useAddToCart()
@@ -229,14 +227,7 @@ export const MarketplaceProductCard = ({
             <span>{buyBusy ? 'Adding…' : buyLabel}</span>
           </button>
         )}
-        <motion.div
-          initial={false}
-          whileHover={reduce ? undefined : { scale: 1.04 }}
-          transition={{
-            duration: reduce ? 0 : 0.5,
-            ease: [0.32, 0.72, 0, 1],
-          }}
-        >
+        <div className="transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-[1.04] motion-reduce:transform-none motion-reduce:transition-none">
           {productImage ? (
             <OptimizedImage
               src={productImage}
@@ -277,7 +268,7 @@ export const MarketplaceProductCard = ({
               )
             })()
           )}
-        </motion.div>
+        </div>
       </div>
 
       {/* Product info */}

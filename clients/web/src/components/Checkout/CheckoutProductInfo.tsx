@@ -1,14 +1,15 @@
-'use client'
+"use client";
 
-import { UploadImage } from '@/components/Image/Image'
-import { getResizedImage } from '@/utils/getResizedImage'
-import { markdownOptions } from '@/utils/markdown'
-import type { schemas } from '@/lib/api'
+import "@/styles/typography.css";
+import { UploadImage } from "@/components/Image/Image";
+import { getResizedImage } from "@/utils/getResizedImage";
+import { markdownOptions } from "@/utils/markdown";
+import type { schemas } from "@/lib/api";
 import {
   DEFAULT_LOCALE,
   useTranslations,
   type AcceptedLocale,
-} from '@/lib/i18n'
+} from "@/lib/i18n";
 import {
   Dialog,
   DialogContent,
@@ -16,38 +17,38 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog'
-import Markdown from 'markdown-to-jsx'
-import { useEffect, useRef, useState } from 'react'
-import { Slideshow } from '../Products/Slideshow'
+} from "@/components/ui/dialog";
+import Markdown from "markdown-to-jsx";
+import { useEffect, useRef, useState } from "react";
+import { Slideshow } from "../Products/Slideshow";
 
 const ExpandableDescription = ({
   description,
   locale = DEFAULT_LOCALE,
 }: {
-  description: string
-  productName: string
-  locale?: AcceptedLocale
+  description: string;
+  productName: string;
+  locale?: AcceptedLocale;
 }) => {
-  const t = useTranslations(locale)
-  const textRef = useRef<HTMLDivElement>(null)
-  const [isClamped, setIsClamped] = useState(false)
-  const [isExpanded, setIsExpanded] = useState(false)
+  const t = useTranslations(locale);
+  const textRef = useRef<HTMLDivElement>(null);
+  const [isClamped, setIsClamped] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(() => {
-    const el = textRef.current
-    if (!el) return
+    const el = textRef.current;
+    if (!el) return;
 
     requestAnimationFrame(() => {
-      setIsClamped(el.scrollHeight > el.clientHeight)
-    })
-  }, [description])
+      setIsClamped(el.scrollHeight > el.clientHeight);
+    });
+  }, [description]);
 
   return (
     <div className="flex flex-col gap-y-1">
       <div
         ref={textRef}
-        className={`prose dark:prose-invert prose-headings:mt-2 prose-headings:font-medium prose-headings:text-black prose-h1:text-sm prose-h2:text-sm prose-h3:text-sm dark:prose-headings:text-white dark:text-polar-400 max-w-none text-sm leading-normal text-gray-500 ${!isExpanded ? 'line-clamp-2' : ''}`}
+        className={`prose dark:prose-invert prose-headings:mt-2 prose-headings:font-medium prose-headings:text-black prose-h1:text-sm prose-h2:text-sm prose-h3:text-sm dark:prose-headings:text-white dark:text-polar-400 max-w-none text-sm leading-normal text-gray-500 ${!isExpanded ? "line-clamp-2" : ""}`}
       >
         <Markdown options={markdownOptions}>{description}</Markdown>
       </div>
@@ -57,23 +58,23 @@ const ExpandableDescription = ({
           className="dark:text-polar-300 cursor-pointer self-start text-xs text-gray-600 hover:underline"
         >
           {isExpanded
-            ? t('checkout.productDescription.readLess')
-            : t('checkout.productDescription.readMore')}
+            ? t("checkout.productDescription.readLess")
+            : t("checkout.productDescription.readMore")}
         </button>
       )}
     </div>
-  )
-}
+  );
+};
 
 interface CheckoutProductInfoProps {
-  organization: schemas['CheckoutOrganization']
-  product: schemas['CheckoutProduct']
-  locale?: AcceptedLocale
+  organization: schemas["CheckoutOrganization"];
+  product: schemas["CheckoutProduct"];
+  locale?: AcceptedLocale;
 }
 
 const CheckoutProductInfo = ({ product, locale }: CheckoutProductInfoProps) => {
-  const firstImage = product.medias[0]?.public_url
-  const additionalImages = product.medias.slice(1)
+  const firstImage = product.medias[0]?.public_url;
+  const additionalImages = product.medias.slice(1);
 
   return (
     <div className="contents">
@@ -83,7 +84,7 @@ const CheckoutProductInfo = ({ product, locale }: CheckoutProductInfoProps) => {
             <Dialog>
               <DialogTrigger asChild disabled={additionalImages.length === 0}>
                 <button
-                  className={`relative h-[70px] w-[70px] flex-shrink-0 ${additionalImages.length > 0 ? 'cursor-pointer' : 'cursor-default'}`}
+                  className={`relative h-[70px] w-[70px] flex-shrink-0 ${additionalImages.length > 0 ? "cursor-pointer" : "cursor-default"}`}
                 >
                   <UploadImage
                     src={firstImage}
@@ -130,7 +131,7 @@ const CheckoutProductInfo = ({ product, locale }: CheckoutProductInfoProps) => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default CheckoutProductInfo
+export default CheckoutProductInfo;

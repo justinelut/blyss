@@ -1,4 +1,4 @@
-'use client'
+"use client";
 
 /* Hallmark · component: footer/newsletter · genre: editorial
  * Inline 'Stay in touch' email field for the marketplace footer.
@@ -12,24 +12,24 @@
  * 'no-trust-strips' rule + we don't run discount codes).
  */
 
-import { useState } from 'react'
-import { FiArrowRight, FiCheck } from 'react-icons/fi'
-import { useToast } from '@/components/Toast/use-toast'
-import { CONFIG } from '@/utils/config'
-import { cn } from '@/lib/utils'
+import { useState } from "react";
+import { FiArrowRight, FiCheck } from "react-icons/fi";
+import { useToast } from "@/components/Toast/use-toast";
+import { CONFIG } from "@/utils/config";
+import { cn } from "@/lib/utils";
 
 export function NewsletterSignup({ className }: { className?: string }) {
-  const [email, setEmail] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [done, setDone] = useState(false)
-  const { toast } = useToast()
+  const [email, setEmail] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
+  const { toast } = useToast();
 
   const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    const trimmed = email.trim()
-    if (!trimmed) return
-    setSubmitting(true)
+    e.preventDefault();
+    e.stopPropagation();
+    const trimmed = email.trim();
+    if (!trimmed) return;
+    setSubmitting(true);
 
     // useToast can throw when Toaster isn't mounted yet (e.g. fast-render
     // route changes); the user shouldn't lose feedback because the
@@ -37,56 +37,57 @@ export function NewsletterSignup({ className }: { className?: string }) {
     // copy is the canonical signal.
     const safeToast = (args: Parameters<typeof toast>[0]) => {
       try {
-        toast(args)
+        toast(args);
       } catch {
         // ignored — `done` state below is the user-visible signal
       }
-    }
+    };
 
     try {
       const r = await fetch(
         `${CONFIG.BASE_URL}/v1/integrations/loops/newsletter`,
         {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email: trimmed }),
         },
-      )
-      if (!r.ok) throw new Error(`HTTP ${r.status}`)
-      setDone(true)
-      setEmail('')
+      );
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      setDone(true);
+      setEmail("");
       safeToast({
-        title: 'You’re on the list',
+        title: "You’re on the list",
         description:
-          'We’ll send the occasional editorial update — never spam, easy to unsubscribe.',
+          "We’ll send the occasional editorial update — never spam, easy to unsubscribe.",
         duration: 3500,
-      })
+      });
     } catch (err) {
       // Surface the failure inline AND in console so users + ops have
       // visibility. Common causes: API down, CORS misconfig, Loops
       // upstream 4xx. The form doesn't lock — user can retry.
       // eslint-disable-next-line no-console
-      console.error('[newsletter] submit failed', err)
+      console.error("[newsletter] submit failed", err);
       safeToast({
-        title: 'Could not subscribe',
-        description: 'Try again in a moment, or reach out at hello@blyss.co.ke.',
-        variant: 'error',
+        title: "Could not subscribe",
+        description:
+          "Try again in a moment, or reach out at hello@blyss.co.ke.",
+        variant: "error",
         duration: 4000,
-      })
+      });
     } finally {
-      setSubmitting(false)
+      setSubmitting(false);
     }
-  }
+  };
 
   return (
     <form
       onSubmit={onSubmit}
-      className={cn('flex max-w-[360px] flex-col gap-2', className)}
+      className={cn("flex max-w-[360px] flex-col gap-2", className)}
       aria-label="Subscribe to the Blyss newsletter"
     >
       <label
         htmlFor="newsletter-email"
-        className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]"
+        className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]"
       >
         Stay in touch
       </label>
@@ -101,7 +102,11 @@ export function NewsletterSignup({ className }: { className?: string }) {
           role="status"
           className="mt-2 inline-flex items-center gap-2 font-sans text-[13px] text-[var(--text-primary)]"
         >
-          <FiCheck size={16} className="text-[var(--accent)]" aria-hidden="true" />
+          <FiCheck
+            size={16}
+            className="text-[var(--accent)]"
+            aria-hidden="true"
+          />
           You’re on the list. Check your inbox for the welcome note.
         </p>
       ) : (
@@ -135,5 +140,5 @@ export function NewsletterSignup({ className }: { className?: string }) {
         </div>
       )}
     </form>
-  )
+  );
 }

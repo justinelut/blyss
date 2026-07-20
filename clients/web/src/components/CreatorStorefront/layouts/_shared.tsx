@@ -1,4 +1,4 @@
-'use client'
+"use client";
 
 /**
  * Shared bits for storefront layout heroes (gallery, catalog,
@@ -17,7 +17,7 @@
  * doesn't share the components.
  */
 
-import * as React from 'react'
+import * as React from "react";
 
 import {
   BlyssDialog,
@@ -25,8 +25,8 @@ import {
   BlyssDialogEyebrow,
   BlyssDialogHeader,
   BlyssDialogTitle,
-} from '@/design'
-import { cn } from '@/lib/utils'
+} from "@/design/BlyssDialog";
+import { cn } from "@/lib/utils";
 
 // ───────────────────────────────────────────────────────────────────
 // Stats formatters
@@ -34,33 +34,33 @@ import { cn } from '@/lib/utils'
 
 /** Compact human-readable count (12 → '12', 1500 → '1.5K', 2_000_000 → '2.0M'). */
 export const formatStatCount = (n: number): string => {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`
-  return String(n)
-}
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return String(n);
+};
 
 /** Compact KSh display from minor units (cents). 12700 → 'KSh 127',
  *  150000 → 'KSh 1.5K', 1_500_000 → 'KSh 15.0K' (stored as cents). */
 export const formatStatMoney = (minor: number): string => {
   // Settlements are KES today; FX-aware display lands when we expand
   // beyond Kenya.
-  const major = Math.round((minor || 0) / 100)
-  if (major >= 1_000_000) return `KSh ${(major / 1_000_000).toFixed(1)}M`
-  if (major >= 1_000) return `KSh ${(major / 1_000).toFixed(1)}K`
-  return `KSh ${major}`
-}
+  const major = Math.round((minor || 0) / 100);
+  if (major >= 1_000_000) return `KSh ${(major / 1_000_000).toFixed(1)}M`;
+  if (major >= 1_000) return `KSh ${(major / 1_000).toFixed(1)}K`;
+  return `KSh ${major}`;
+};
 
 // ───────────────────────────────────────────────────────────────────
 // HeroStatsLine — Products · Sold · Earned
 // ───────────────────────────────────────────────────────────────────
 
 export interface HeroStatsLineProps {
-  productsCount?: number
-  totalOrders?: number
-  totalEarned?: number
+  productsCount?: number;
+  totalOrders?: number;
+  totalEarned?: number;
   /** Defaults to var(--text-secondary). Pass a custom colour token when
    *  the hero sits over an image scrim. */
-  className?: string
+  className?: string;
 }
 
 export const HeroStatsLine: React.FC<HeroStatsLineProps> = ({
@@ -69,30 +69,30 @@ export const HeroStatsLine: React.FC<HeroStatsLineProps> = ({
   totalEarned = 0,
   className,
 }) => {
-  const fragments: string[] = []
+  const fragments: string[] = [];
   if (productsCount > 0) {
     fragments.push(
-      `${productsCount} ${productsCount === 1 ? 'product' : 'products'}`,
-    )
+      `${productsCount} ${productsCount === 1 ? "product" : "products"}`,
+    );
   }
   if (totalOrders > 0) {
-    fragments.push(`${formatStatCount(totalOrders)} sold`)
+    fragments.push(`${formatStatCount(totalOrders)} sold`);
   }
   if (totalEarned > 0) {
-    fragments.push(`${formatStatMoney(totalEarned)} earned`)
+    fragments.push(`${formatStatMoney(totalEarned)} earned`);
   }
-  if (fragments.length === 0) return null
+  if (fragments.length === 0) return null;
   return (
     <p
       className={cn(
-        'font-sans text-[12px] tabular-nums text-[var(--text-secondary)]',
+        "font-sans text-[12px] tabular-nums text-[var(--text-secondary)]",
         className,
       )}
     >
-      {fragments.join(' · ')}
+      {fragments.join(" · ")}
     </p>
-  )
-}
+  );
+};
 
 // ───────────────────────────────────────────────────────────────────
 // HeroBio — paragraph + 'Read more' (opens BlyssDialog)
@@ -100,20 +100,20 @@ export const HeroStatsLine: React.FC<HeroStatsLineProps> = ({
 
 export interface HeroBioProps {
   /** Full bio text. When falsy nothing renders. */
-  bio?: string | null
+  bio?: string | null;
   /** Creator name for the modal title. */
-  name: string
+  name: string;
   /** Soft length threshold above which the inline render truncates and
    *  shows a 'Read more' affordance. Inline copy is hard-clamped via
    *  CSS line-clamp; the threshold gates whether we even render the
    *  affordance. */
-  threshold?: number
+  threshold?: number;
   /** Number of CSS line-clamp lines for the inline render. */
-  clampLines?: 1 | 2 | 3
+  clampLines?: 1 | 2 | 3;
   /** Extra classes for the bio <p>. */
-  className?: string
+  className?: string;
   /** Extra classes for the 'Read more' button. */
-  buttonClassName?: string
+  buttonClassName?: string;
 }
 
 export const HeroBio: React.FC<HeroBioProps> = ({
@@ -124,24 +124,24 @@ export const HeroBio: React.FC<HeroBioProps> = ({
   className,
   buttonClassName,
 }) => {
-  const [open, setOpen] = React.useState(false)
-  if (!bio) return null
-  const isLong = bio.length > threshold
-  const titleId = React.useId()
+  const [open, setOpen] = React.useState(false);
+  if (!bio) return null;
+  const isLong = bio.length > threshold;
+  const titleId = React.useId();
 
   const clampClass =
     clampLines === 1
-      ? 'line-clamp-1'
+      ? "line-clamp-1"
       : clampLines === 3
-        ? 'line-clamp-3'
-        : 'line-clamp-2'
+        ? "line-clamp-3"
+        : "line-clamp-2";
 
   return (
     <>
       <div className="flex flex-col gap-2">
         <p
           className={cn(
-            'font-sans text-[14px] leading-[1.55] text-[var(--text-secondary)]',
+            "font-sans text-[14px] leading-[1.55] text-[var(--text-secondary)]",
             clampClass,
             className,
           )}
@@ -153,7 +153,7 @@ export const HeroBio: React.FC<HeroBioProps> = ({
             type="button"
             onClick={() => setOpen(true)}
             className={cn(
-              'self-start font-sans text-[12px] font-medium text-[var(--accent)] underline-offset-4 transition-colors hover:underline',
+              "self-start font-sans text-[12px] font-medium text-[var(--accent)] underline-offset-4 transition-colors hover:underline",
               buttonClassName,
             )}
           >
@@ -183,5 +183,5 @@ export const HeroBio: React.FC<HeroBioProps> = ({
         </BlyssDialogBody>
       </BlyssDialog>
     </>
-  )
-}
+  );
+};

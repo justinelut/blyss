@@ -1,50 +1,50 @@
-'use client'
+"use client";
 
-import { motion, useReducedMotion } from 'motion/react'
-import { useState } from 'react'
-import Link from 'next/link'
-import { FiArrowLeft, FiHeart } from 'react-icons/fi'
-import { OptimizedImage } from '@/components/Image/OptimizedImage'
+import { motion, useReducedMotion } from "motion/react";
+import { useState } from "react";
+import Link from "next/link";
+import { FiArrowLeft, FiHeart } from "react-icons/fi";
+import { OptimizedImage } from "@/components/Image/OptimizedImage";
 import {
   BlyssDialog,
   BlyssDialogBody,
   BlyssDialogEyebrow,
   BlyssDialogHeader,
   BlyssDialogTitle,
-} from '@/design'
-import { cn } from '@/lib/utils'
+} from "@/design/BlyssDialog";
+import { cn } from "@/lib/utils";
 
 export interface StorefrontHeroProps {
   /** Creator display name */
-  name: string
+  name: string;
   /** URL slug — also used as the @handle */
-  slug: string
+  slug: string;
   /** Organization id — needed to scope the cart icon to this creator */
-  organizationId: string
+  organizationId: string;
   /** Single-line bio shown beneath the name */
-  bio?: string | null
+  bio?: string | null;
   /** Avatar (1:1) — 88px square */
-  avatarUrl?: string | null
+  avatarUrl?: string | null;
   /** Banner image (16:9 minimum 1920×1080). Falls back to a tonal block. */
-  bannerUrl?: string | null
+  bannerUrl?: string | null;
   /** City — falls back to "Nairobi" per Blyss's Kenyan voice */
-  city?: string | null
+  city?: string | null;
   /** Whether the creator has at least one subscription tier — shows the
    *  "Subscribe" CTA when true; hides it otherwise to avoid dead links. */
-  hasSubscriptions?: boolean
+  hasSubscriptions?: boolean;
   /** Tip / donation enabled — shows the "Tip" CTA. v1 always renders true to
    *  match §6.4 spec; donation modal wiring is a phase-7 task. */
-  tipEnabled?: boolean
+  tipEnabled?: boolean;
   /** Optional handler for "Subscribe" CTA — typically scrolls to subs tab */
-  onSubscribeClick?: () => void
+  onSubscribeClick?: () => void;
   /** Optional handler for "Tip" CTA — opens donation modal */
-  onTipClick?: () => void
+  onTipClick?: () => void;
   /** Per-creator card stats — same numbers shown on directory cards.
    *  Hidden when all three are zero so a fresh storefront doesn't
    *  read "0 sold · KSh 0 earned". */
-  productsCount?: number
-  totalOrders?: number
-  totalEarned?: number
+  productsCount?: number;
+  totalOrders?: number;
+  totalEarned?: number;
 }
 
 /**
@@ -81,9 +81,9 @@ export const StorefrontHero = ({
   totalOrders = 0,
   totalEarned = 0,
 }: StorefrontHeroProps) => {
-  const reduce = useReducedMotion()
-  const ease = [0.32, 0.72, 0, 1] as const
-  const [bioOpen, setBioOpen] = useState(false)
+  const reduce = useReducedMotion();
+  const ease = [0.32, 0.72, 0, 1] as const;
+  const [bioOpen, setBioOpen] = useState(false);
 
   // Bio is truncated to a single line in the hero. Long copy was
   // pushing the CTAs off the right and stacking the identity column
@@ -91,7 +91,7 @@ export const StorefrontHero = ({
   // the full copy through the 'Read more' modal. Threshold is low
   // (60 chars) — anything that's likely to ellipse in a 52ch column
   // gets the affordance so we don't silently hide useful copy.
-  const isLongBio = !!bio && bio.length > 60
+  const isLongBio = !!bio && bio.length > 60;
 
   // Reveal timing for hero overlay (matches Hero.tsx home pattern)
   const bgAnim = reduce
@@ -100,14 +100,14 @@ export const StorefrontHero = ({
         initial: { scale: 1.04 },
         animate: { scale: 1 },
         transition: { duration: 0.8, ease },
-      }
+      };
   const overlayAnim = reduce
     ? undefined
     : {
         initial: { opacity: 0, y: 16 },
         animate: { opacity: 1, y: 0 },
         transition: { duration: 0.7, ease, delay: 0.2 },
-      }
+      };
 
   return (
     <section
@@ -122,10 +122,10 @@ export const StorefrontHero = ({
       <Link
         href="/marketplace"
         className={cn(
-          'absolute left-4 top-4 z-20 inline-flex h-9 items-center gap-1.5 rounded-md px-3 font-sans text-[12px] font-medium uppercase tracking-[0.1em] transition-colors md:left-8 md:top-6',
+          "absolute left-4 top-4 z-20 inline-flex h-9 items-center gap-1.5 rounded-md px-3 font-sans text-[12px] font-medium uppercase tracking-[0.1em] transition-colors md:left-8 md:top-6",
           bannerUrl
-            ? 'bg-black/30 text-white/85 backdrop-blur-md hover:bg-black/45 hover:text-white'
-            : 'border border-[var(--border)] bg-[var(--background)]/80 text-[var(--text-secondary)] backdrop-blur hover:bg-[var(--surface-sunken)] hover:text-[var(--text-primary)]',
+            ? "bg-black/30 text-white/85 backdrop-blur-md hover:bg-black/45 hover:text-white"
+            : "border border-[var(--border)] bg-[var(--background)]/80 text-[var(--text-secondary)] backdrop-blur hover:bg-[var(--surface-sunken)] hover:text-[var(--text-primary)]",
         )}
         aria-label="Back to Blyss marketplace"
       >
@@ -192,9 +192,7 @@ export const StorefrontHero = ({
               {/* Avatar 56px mobile / 88px desktop. Smaller on mobile so
                   it sits visually below the 'Back to Blyss' pill without
                   competing with it for the top-of-page anchor. */}
-              <div
-                className="relative h-[56px] w-[56px] shrink-0 overflow-hidden rounded-full bg-[var(--surface-sunken)] ring-2 ring-[var(--background)] md:h-[88px] md:w-[88px]"
-              >
+              <div className="relative h-[56px] w-[56px] shrink-0 overflow-hidden rounded-full bg-[var(--surface-sunken)] ring-2 ring-[var(--background)] md:h-[88px] md:w-[88px]">
                 <OptimizedImage
                   src={avatarUrl ?? undefined}
                   alt={`${name} avatar`}
@@ -211,16 +209,16 @@ export const StorefrontHero = ({
                   narrow mobile viewports. */}
               <div
                 className={cn(
-                  'w-full min-w-0 pb-1',
-                  bannerUrl ? 'text-white' : 'text-[var(--text-primary)]',
+                  "w-full min-w-0 pb-1",
+                  bannerUrl ? "text-white" : "text-[var(--text-primary)]",
                 )}
               >
                 <div className="flex items-start gap-3">
                   <h1
                     id="storefront-name"
                     className={cn(
-                      'min-w-0 flex-1 break-words font-display font-semibold leading-[1.05] tracking-[-0.02em]',
-                      'text-[clamp(26px,4vw,48px)]',
+                      "min-w-0 flex-1 break-words font-display font-semibold leading-[1.05] tracking-[-0.02em]",
+                      "text-[clamp(26px,4vw,48px)]",
                     )}
                   >
                     {name}
@@ -235,10 +233,10 @@ export const StorefrontHero = ({
                       onClick={onTipClick}
                       aria-label={`Tip ${name}`}
                       className={cn(
-                        'mt-1 inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md px-3 font-sans text-[12px] font-medium uppercase tracking-[0.1em] transition-colors',
+                        "mt-1 inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md px-3 font-sans text-[12px] font-medium uppercase tracking-[0.1em] transition-colors",
                         bannerUrl
-                          ? 'bg-white/15 text-white backdrop-blur-md hover:bg-white/25'
-                          : 'border border-[var(--border-strong)] text-[var(--text-primary)] hover:bg-[var(--surface-sunken)]',
+                          ? "bg-white/15 text-white backdrop-blur-md hover:bg-white/25"
+                          : "border border-[var(--border-strong)] text-[var(--text-primary)] hover:bg-[var(--surface-sunken)]",
                       )}
                     >
                       <FiHeart size={13} aria-hidden="true" />
@@ -248,23 +246,30 @@ export const StorefrontHero = ({
                 </div>
                 <div
                   className={cn(
-                    'mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 font-sans text-[14px]',
-                    bannerUrl
-                      ? 'text-white/75'
-                      : 'text-[var(--text-muted)]',
+                    "mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 font-sans text-[14px]",
+                    bannerUrl ? "text-white/75" : "text-[var(--text-muted)]",
                   )}
                 >
                   <span
                     className={cn(
-                      'font-medium',
-                      bannerUrl ? 'text-white/85' : 'text-[var(--text-secondary)]',
+                      "font-medium",
+                      bannerUrl
+                        ? "text-white/85"
+                        : "text-[var(--text-secondary)]",
                     )}
                   >
                     @{slug}
                   </span>
                   {city && (
                     <>
-                      <span aria-hidden="true" className={bannerUrl ? 'text-white/40' : 'text-[var(--border-strong)]'}>
+                      <span
+                        aria-hidden="true"
+                        className={
+                          bannerUrl
+                            ? "text-white/40"
+                            : "text-[var(--border-strong)]"
+                        }
+                      >
                         ·
                       </span>
                       <span>{city}</span>
@@ -281,10 +286,10 @@ export const StorefrontHero = ({
                         // width to the parent column on mobile (where
                         // 52ch can be wider than the viewport) and
                         // caps at 52ch on desktop for readability.
-                        'min-w-0 flex-1 truncate font-sans text-[13px] leading-[1.5] md:text-[14px]',
+                        "min-w-0 flex-1 truncate font-sans text-[13px] leading-[1.5] md:text-[14px]",
                         bannerUrl
-                          ? 'text-white/80'
-                          : 'text-[var(--text-secondary)]',
+                          ? "text-white/80"
+                          : "text-[var(--text-secondary)]",
                       )}
                     >
                       {bio}
@@ -294,10 +299,10 @@ export const StorefrontHero = ({
                         type="button"
                         onClick={() => setBioOpen(true)}
                         className={cn(
-                          'shrink-0 font-sans text-[12px] font-medium underline-offset-4 hover:underline',
+                          "shrink-0 font-sans text-[12px] font-medium underline-offset-4 hover:underline",
                           bannerUrl
-                            ? 'text-white/85 hover:text-white'
-                            : 'text-[var(--accent)]',
+                            ? "text-white/85 hover:text-white"
+                            : "text-[var(--accent)]",
                         )}
                       >
                         Read more
@@ -309,31 +314,31 @@ export const StorefrontHero = ({
                     numerics, no badges, no stars. Hidden when all three
                     are zero so a fresh storefront stays clean. */}
                 {(() => {
-                  const fragments: string[] = []
+                  const fragments: string[] = [];
                   if (productsCount > 0) {
                     fragments.push(
-                      `${productsCount} ${productsCount === 1 ? 'product' : 'products'}`,
-                    )
+                      `${productsCount} ${productsCount === 1 ? "product" : "products"}`,
+                    );
                   }
                   if (totalOrders > 0) {
-                    fragments.push(`${formatStatCount(totalOrders)} sold`)
+                    fragments.push(`${formatStatCount(totalOrders)} sold`);
                   }
                   if (totalEarned > 0) {
-                    fragments.push(`${formatStatMoney(totalEarned)} earned`)
+                    fragments.push(`${formatStatMoney(totalEarned)} earned`);
                   }
-                  if (fragments.length === 0) return null
+                  if (fragments.length === 0) return null;
                   return (
                     <p
                       className={cn(
-                        'mt-2 font-sans text-[12px] tabular-nums',
+                        "mt-2 font-sans text-[12px] tabular-nums",
                         bannerUrl
-                          ? 'text-white/75'
-                          : 'text-[var(--text-secondary)]',
+                          ? "text-white/75"
+                          : "text-[var(--text-secondary)]",
                       )}
                     >
-                      {fragments.join(' · ')}
+                      {fragments.join(" · ")}
                     </p>
-                  )
+                  );
                 })()}
               </div>
             </div>
@@ -373,8 +378,8 @@ export const StorefrontHero = ({
         </BlyssDialog>
       )}
     </section>
-  )
-}
+  );
+};
 
 // ───────────────────────────────────────────────────────────────────
 // Stat formatters — match the directory cards so a creator's
@@ -383,16 +388,16 @@ export const StorefrontHero = ({
 // ───────────────────────────────────────────────────────────────────
 
 const formatStatCount = (n: number): string => {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`
-  return String(n)
-}
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return String(n);
+};
 
 const formatStatMoney = (minor: number): string => {
   // Settlements are KES today; FX-aware display lands when we expand
   // beyond Kenya.
-  const major = Math.round((minor || 0) / 100)
-  if (major >= 1_000_000) return `KSh ${(major / 1_000_000).toFixed(1)}M`
-  if (major >= 1_000) return `KSh ${(major / 1_000).toFixed(1)}K`
-  return `KSh ${major}`
-}
+  const major = Math.round((minor || 0) / 100);
+  if (major >= 1_000_000) return `KSh ${(major / 1_000_000).toFixed(1)}M`;
+  if (major >= 1_000) return `KSh ${(major / 1_000).toFixed(1)}K`;
+  return `KSh ${major}`;
+};

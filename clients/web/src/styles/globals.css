@@ -9,7 +9,6 @@
 
 @plugin '@tailwindcss/forms';
 @plugin 'tailwindcss-radix';
-@plugin '@tailwindcss/typography';
 
 /* @tailwindcss/forms hardcodes a blue (#2563eb) focus ring on form controls.
    Blue is forbidden by the Blyss palette (§3.2). Neutralize the plugin's

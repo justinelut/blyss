@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { Moon, Sun } from "lucide-react";
-import { motion, useReducedMotion, AnimatePresence } from "motion/react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 
@@ -14,7 +13,6 @@ import { cn } from "@/lib/utils";
 export const ThemeToggle = ({ className }: { className?: string }) => {
   const [mounted, setMounted] = useState(false);
   const { resolvedTheme, setTheme } = useTheme();
-  const reduce = useReducedMotion();
 
   useEffect(() => setMounted(true), []);
 
@@ -37,31 +35,13 @@ export const ThemeToggle = ({ className }: { className?: string }) => {
         className,
       )}
     >
-      <AnimatePresence mode="wait" initial={false}>
+      <span className="absolute inset-0 flex items-center justify-center">
         {theme === "light" ? (
-          <motion.span
-            key="moon"
-            initial={reduce ? false : { rotate: -90, opacity: 0, scale: 0.5 }}
-            animate={{ rotate: 0, opacity: 1, scale: 1 }}
-            exit={reduce ? undefined : { rotate: 90, opacity: 0, scale: 0.5 }}
-            transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
-            className="absolute inset-0 flex items-center justify-center"
-          >
-            <Moon size={18} strokeWidth={1.75} />
-          </motion.span>
+          <Moon size={18} strokeWidth={1.75} />
         ) : (
-          <motion.span
-            key="sun"
-            initial={reduce ? false : { rotate: -90, opacity: 0, scale: 0.5 }}
-            animate={{ rotate: 0, opacity: 1, scale: 1 }}
-            exit={reduce ? undefined : { rotate: 90, opacity: 0, scale: 0.5 }}
-            transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
-            className="absolute inset-0 flex items-center justify-center"
-          >
-            <Sun size={18} strokeWidth={1.75} />
-          </motion.span>
+          <Sun size={18} strokeWidth={1.75} />
         )}
-      </AnimatePresence>
+      </span>
     </button>
   );
 };

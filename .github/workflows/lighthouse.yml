@@ -59,7 +59,6 @@ jobs:
 
       - name: Run Lighthouse CI
         uses: treosh/lighthouse-ci-action@v12
-        continue-on-error: true
         with:
           configPath: clients/web/lighthouserc.json
           uploadArtifacts: true

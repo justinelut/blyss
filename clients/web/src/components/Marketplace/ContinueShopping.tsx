@@ -23,7 +23,7 @@
  */
 
 import { Eyebrow, SectionDivider, typography } from '@/design'
-import { useAuth } from '@/hooks'
+import { useAuth } from '@/hooks/auth'
 import { useCart } from '@/hooks/queries/cart'
 import { useDisplayCurrency } from '@/components/Marketplace/CurrencyProvider'
 import { schemas } from '@/lib/api'

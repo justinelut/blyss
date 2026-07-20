@@ -4,11 +4,11 @@
       "startServerCommand": "pnpm --dir clients/web start",
       "startServerReadyPattern": "Ready in|started server on|Local:",
       "url": [
-        "http://localhost:3000/",
-        "http://localhost:3000/creators",
-        "http://localhost:3000/marketplace"
+        "http://localhost:3000/ke",
+        "http://localhost:3000/ke/creators",
+        "http://localhost:3000/ke/marketplace"
       ],
-      "numberOfRuns": 1
+      "numberOfRuns": 3
     },
     "assert": {
       "assertions": {

@@ -25,6 +25,8 @@ interface HomePageProps {
   featuredSubscriptions: schemas["Product"][];
   trendingCreators: schemas["Organization"][];
   categories: CategoryTile[];
+  country: string;
+  currency: string;
 }
 
 export default function HomePage({
@@ -33,6 +35,8 @@ export default function HomePage({
   featuredSubscriptions,
   trendingCreators,
   categories,
+  country,
+  currency,
 }: HomePageProps) {
   const products = featuredProducts ?? [];
   const newest = newestProducts ?? [];
@@ -88,7 +92,11 @@ export default function HomePage({
         }}
       />
 
-      <Hero featuredProduct={featuredProduct} />
+      <Hero
+        featuredProduct={featuredProduct}
+        country={country}
+        currency={currency}
+      />
       <ContinueShopping />
       {categoryRows.length > 0 && <BrowseByCraft categories={categoryRows} />}
       {featuredRail.length > 0 && (
