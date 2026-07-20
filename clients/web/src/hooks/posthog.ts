@@ -1,9 +1,9 @@
-'use client'
+"use client";
 
-import type { schemas } from '@/lib/api'
-import type { JsonType } from '@posthog/core'
-import { usePostHog as useOuterPostHog } from 'posthog-js/react'
-import { useCallback, useMemo } from 'react'
+import type { schemas } from "@/lib/api";
+import { PostHogClientContext } from "@/providers/posthog";
+import type { JsonType } from "@posthog/core";
+import { useCallback, useContext, useMemo } from "react";
 
 // https://posthog.com/product-engineers/5-ways-to-improve-analytics-data#suggested-naming-guide
 
@@ -12,92 +12,92 @@ import { useCallback, useMemo } from 'react'
 // ${Category}:${Noun}:${Verb}
 //
 type Surface =
-  | 'website'
-  | 'docs'
-  | 'dashboard'
-  | 'storefront'
+  | "website"
+  | "docs"
+  | "dashboard"
+  | "storefront"
   // For rare global(ish) events, e.g login, signup...
   // We can use properties to distinguish flywheel etc
-  | 'global'
+  | "global";
 
 type Category =
-  | 'benefits'
-  | 'checkout'
-  | 'subscriptions'
-  | 'user'
-  | 'organizations'
-  | 'issues'
+  | "benefits"
+  | "checkout"
+  | "subscriptions"
+  | "user"
+  | "organizations"
+  | "issues";
 
-type Noun = string
+type Noun = string;
 
 // Verbs in past tense
 type Verb =
-  | 'click'
-  | 'submit'
-  | 'create'
-  | 'view'
-  | 'add'
-  | 'invite'
-  | 'update'
-  | 'delete'
-  | 'remove'
-  | 'start'
-  | 'end'
-  | 'cancel'
-  | 'fail'
-  | 'generate'
-  | 'send'
-  | 'archive'
-  | 'done'
-  | 'open'
-  | 'close'
-  | 'complete'
+  | "click"
+  | "submit"
+  | "create"
+  | "view"
+  | "add"
+  | "invite"
+  | "update"
+  | "delete"
+  | "remove"
+  | "start"
+  | "end"
+  | "cancel"
+  | "fail"
+  | "generate"
+  | "send"
+  | "archive"
+  | "done"
+  | "open"
+  | "close"
+  | "complete";
 
-export type EventName = `${Surface}:${Category}:${Noun}:${Verb}`
+export type EventName = `${Surface}:${Category}:${Noun}:${Verb}`;
 
 export interface PolarHog {
   setPersistence: (
-    persistence: 'localStorage' | 'sessionStorage' | 'cookie' | 'memory',
-  ) => void
-  capture: (event: EventName, properties?: { [key: string]: JsonType }) => void
-  identify: (user: schemas['UserRead']) => void
-  logout: () => void
+    persistence: "localStorage" | "sessionStorage" | "cookie" | "memory",
+  ) => void;
+  capture: (event: EventName, properties?: { [key: string]: JsonType }) => void;
+  identify: (user: schemas["UserRead"]) => void;
+  logout: () => void;
 }
 
 export const usePostHog = (): PolarHog => {
-  const posthog = useOuterPostHog()
+  const posthog = useContext(PostHogClientContext);
 
   const setPersistence = useCallback(
-    (persistence: 'localStorage' | 'sessionStorage' | 'cookie' | 'memory') => {
-      posthog.set_config({ persistence })
+    (persistence: "localStorage" | "sessionStorage" | "cookie" | "memory") => {
+      posthog.set_config({ persistence });
     },
     [posthog],
-  )
+  );
 
-  const capture: PolarHog['capture'] = useCallback(
+  const capture: PolarHog["capture"] = useCallback(
     (event, properties) => {
-      posthog.capture(event, properties)
+      posthog.capture(event, properties);
     },
     [posthog],
-  )
+  );
 
-  const identify: PolarHog['identify'] = useCallback(
+  const identify: PolarHog["identify"] = useCallback(
     (user) => {
-      const posthogId = `user:${user.id}`
+      const posthogId = `user:${user.id}`;
 
       if (posthog.get_distinct_id() !== posthogId) {
         posthog.identify(posthogId, {
           email: user.email,
-        })
+        });
       }
     },
     [posthog],
-  )
+  );
 
-  const logout: PolarHog['logout'] = useCallback(() => {
-    capture('global:user:logout:done')
-    posthog?.reset()
-  }, [capture, posthog])
+  const logout: PolarHog["logout"] = useCallback(() => {
+    capture("global:user:logout:done");
+    posthog?.reset();
+  }, [capture, posthog]);
 
   const context = useMemo(
     () => ({
@@ -107,7 +107,7 @@ export const usePostHog = (): PolarHog => {
       logout,
     }),
     [setPersistence, capture, identify, logout],
-  )
+  );
 
-  return context
-}
+  return context;
+};

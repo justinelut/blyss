@@ -1,7 +1,6 @@
 'use client'
 
 import Link from './LocaleLink'
-import { useReducedMotion, motion } from 'motion/react'
 import { FiHeart } from 'react-icons/fi'
 import { schemas } from '@/lib/api'
 import { OptimizedImage } from '@/components/Image/OptimizedImage'
@@ -57,7 +56,6 @@ export const MarketplaceCreatorCard = ({
   className,
   onTip,
 }: MarketplaceCreatorCardProps) => {
-  const reduce = useReducedMotion()
   const avatar = (creator as any).avatar_url ?? undefined
   const banner = (creator as any).profile_settings?.cover_image_url ?? undefined
   const slug = (creator as any).slug ?? creator.id
@@ -99,12 +97,7 @@ export const MarketplaceCreatorCard = ({
         prefetch
         className={cn('group block', className)}
       >
-        <motion.div
-          initial={false}
-          whileHover={reduce ? undefined : { y: -2 }}
-          transition={{ duration: reduce ? 0 : 0.2, ease: [0.32, 0.72, 0, 1] }}
-          className="relative flex flex-col items-start gap-3 rounded-lg p-4 transition-colors hover:bg-[var(--surface-sunken)]"
-        >
+        <div className="relative flex flex-col items-start gap-3 rounded-lg p-4 transition-[color,transform] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-[var(--surface-sunken)] group-hover:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none">
           {showTip && <div className="absolute right-3 top-3 z-10">{TipButton}</div>}
           <div className="relative h-24 w-24 overflow-hidden rounded-full bg-[var(--surface-sunken)]">
             {avatar ? (
@@ -159,7 +152,7 @@ export const MarketplaceCreatorCard = ({
             )}
             <CreatorCardStats creator={creator} />
           </div>
-        </motion.div>
+        </div>
       </Link>
     )
   }
@@ -174,12 +167,7 @@ export const MarketplaceCreatorCard = ({
       prefetch
       className={cn('group block', className)}
     >
-      <motion.div
-        initial={false}
-        whileHover={reduce ? undefined : { y: -2 }}
-        transition={{ duration: reduce ? 0 : 0.25, ease: [0.32, 0.72, 0, 1] }}
-        className="relative flex flex-col"
-      >
+      <div className="relative flex flex-col transition-transform duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none">
         {/* Banner image (4:5 aspect) — typographic placeholder when no media */}
         <div className="relative w-full overflow-hidden rounded-md bg-[var(--surface-sunken)]">
           {showTip && <div className="absolute right-4 top-4 z-10">{TipButton}</div>}
@@ -266,7 +254,7 @@ export const MarketplaceCreatorCard = ({
           )}
           <CreatorCardStats creator={creator} />
         </div>
-      </motion.div>
+      </div>
     </Link>
   )
 }

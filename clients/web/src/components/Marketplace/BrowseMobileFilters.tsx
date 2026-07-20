@@ -1,55 +1,21 @@
-'use client'
+"use client";
 
-import { useEffect } from 'react'
-import { motion, useReducedMotion, AnimatePresence } from 'motion/react'
-import { FiSliders, FiX } from 'react-icons/fi'
+import { useEffect } from "react";
+import { FiX } from "react-icons/fi";
 import {
   BrowseFilterRail,
   type BrowseFilters,
   type FilterCategory,
-} from './BrowseFilterRail'
-import { cn } from '@/lib/utils'
+} from "./BrowseFilterRail";
 
 interface BrowseMobileFiltersProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  filters: BrowseFilters
-  categories: FilterCategory[]
-  onChange: (next: Partial<BrowseFilters>) => void
-  onClear: () => void
-  activeCount: number
-}
-
-/**
- * BrowseMobileFiltersTrigger — button shown on mobile that opens the sheet.
- */
-export const BrowseMobileFiltersTrigger = ({
-  onClick,
-  activeCount,
-  className,
-}: {
-  onClick: () => void
-  activeCount: number
-  className?: string
-}) => {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        'inline-flex h-11 items-center gap-2 rounded-md bg-[var(--surface-sunken)] px-4 font-sans text-[14px] text-[var(--text-primary)] transition-colors hover:bg-[var(--surface)]',
-        className,
-      )}
-    >
-      <FiSliders size={16} />
-      Filters
-      {activeCount > 0 && (
-        <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--accent)] px-1.5 font-sans text-[11px] font-semibold tabular-nums text-[var(--accent-foreground)]">
-          {activeCount}
-        </span>
-      )}
-    </button>
-  )
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  filters: BrowseFilters;
+  categories: FilterCategory[];
+  onChange: (next: Partial<BrowseFilters>) => void;
+  onClear: () => void;
+  activeCount: number;
 }
 
 /**
@@ -69,42 +35,29 @@ export const BrowseMobileFilters = ({
   onClear,
   activeCount,
 }: BrowseMobileFiltersProps) => {
-  const reduce = useReducedMotion()
-
   // Lock body scroll when open
   useEffect(() => {
-    document.body.style.overflow = open ? 'hidden' : ''
+    document.body.style.overflow = open ? "hidden" : "";
     return () => {
-      document.body.style.overflow = ''
-    }
-  }, [open])
+      document.body.style.overflow = "";
+    };
+  }, [open]);
 
   return (
-    <AnimatePresence>
+    <>
       {open && (
         <>
           {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: reduce ? 0 : 0.2 }}
+          <div
             onClick={() => onOpenChange(false)}
             className="fixed inset-0 z-40 bg-[rgba(15,14,12,0.5)] lg:hidden"
             aria-hidden="true"
           />
           {/* Sheet */}
-          <motion.div
+          <div
             role="dialog"
             aria-modal="true"
             aria-label="Filters"
-            initial={reduce ? false : { y: '100%' }}
-            animate={{ y: 0 }}
-            exit={reduce ? undefined : { y: '100%' }}
-            transition={{
-              duration: reduce ? 0 : 0.32,
-              ease: [0.32, 0.72, 0, 1],
-            }}
             className="fixed inset-x-0 bottom-0 z-50 flex max-h-[88vh] flex-col rounded-t-2xl bg-[var(--background)] lg:hidden"
           >
             {/* Header */}
@@ -143,9 +96,9 @@ export const BrowseMobileFilters = ({
                 Show results
               </button>
             </div>
-          </motion.div>
+          </div>
         </>
       )}
-    </AnimatePresence>
-  )
-}
+    </>
+  );
+};

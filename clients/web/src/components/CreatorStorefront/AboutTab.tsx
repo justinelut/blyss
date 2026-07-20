@@ -1,6 +1,6 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
+import { useState } from "react";
 import {
   FiCheck,
   FiCopy,
@@ -14,9 +14,10 @@ import {
   FiShare2,
   FiTwitter,
   FiYoutube,
-} from 'react-icons/fi'
-import { LegalDoc, typography } from '@/design'
-import { cn } from '@/lib/utils'
+} from "react-icons/fi";
+import { typography } from "@/design";
+import { LegalDoc } from "@/design/LegalDoc";
+import { cn } from "@/lib/utils";
 
 /**
  * Polar's native social platforms. Mirrors
@@ -24,50 +25,50 @@ import { cn } from '@/lib/utils'
  * Buyer-facing creator page renders one of these icons per entry.
  */
 type PolarSocialPlatform =
-  | 'x'
-  | 'twitter'
-  | 'instagram'
-  | 'facebook'
-  | 'youtube'
-  | 'linkedin'
-  | 'github'
-  | 'tiktok'
-  | 'website'
-  | 'other'
+  | "x"
+  | "twitter"
+  | "instagram"
+  | "facebook"
+  | "youtube"
+  | "linkedin"
+  | "github"
+  | "tiktok"
+  | "website"
+  | "other";
 
 export interface AboutTabSocialLinks {
   /** Polar's native socials list — preferred. Each entry is
    *  {platform, url}. The platform values match the dashboard
    *  editor's SOCIAL_PLATFORM_DOMAINS map. */
-  socials?: Array<{ platform: string; url: string }> | null
+  socials?: Array<{ platform: string; url: string }> | null;
 
   /** Legacy 3-field shape (twitter / instagram / website) — kept
    *  for backwards compatibility while older clients still pass
    *  this. New code should populate `socials`. */
-  twitter?: string | null
-  instagram?: string | null
-  website?: string | null
+  twitter?: string | null;
+  instagram?: string | null;
+  website?: string | null;
 }
 
 export interface AboutTabProps {
   /** Display name */
-  name: string
+  name: string;
   /** URL slug — used to build the canonical share link. */
-  slug?: string | null
+  slug?: string | null;
   /** Long-form bio. Up to ~1000 chars per spec. May contain markdown. */
-  bio?: string | null
+  bio?: string | null;
   /** Social handles — twitter / instagram / website */
-  socials?: AboutTabSocialLinks | null
+  socials?: AboutTabSocialLinks | null;
   /** Public email — only shown when the creator opted-in to make it public.
    *  We never derive this from the auth user object; pass null when the
    *  creator hasn't elected to expose it. */
-  email?: string | null
+  email?: string | null;
 }
 
 interface SocialItem {
-  href: string
-  label: string
-  Icon: typeof FiTwitter
+  href: string;
+  label: string;
+  Icon: typeof FiTwitter;
 }
 
 /**
@@ -81,7 +82,13 @@ interface SocialItem {
  * Layout: max 64ch column for the bio (matches §3.4 text column rule); social
  * links appear as a row below.
  */
-export const AboutTab = ({ name, slug, bio, socials, email }: AboutTabProps) => {
+export const AboutTab = ({
+  name,
+  slug,
+  bio,
+  socials,
+  email,
+}: AboutTabProps) => {
   // Build the social link list. Defensive trims + URL normalization. We do
   // NOT echo raw user-supplied URLs without scheme — coerce them through
   // `normalizeUrl` to avoid open-redirect-like surfaces and broken links.
@@ -89,112 +96,109 @@ export const AboutTab = ({ name, slug, bio, socials, email }: AboutTabProps) => 
   // Resolution order: prefer Polar's native `socials` list (covers all
   // 8+ platforms) when present; fall back to the legacy 3-field shape
   // (twitter/instagram/website) for backwards compatibility.
-  const items: SocialItem[] = []
+  const items: SocialItem[] = [];
 
   const platformIcon = (platform: string): typeof FiTwitter => {
     switch (platform.toLowerCase()) {
-      case 'x':
-      case 'twitter':
-        return FiTwitter
-      case 'instagram':
-        return FiInstagram
-      case 'facebook':
-        return FiFacebook
-      case 'youtube':
-        return FiYoutube
-      case 'linkedin':
-        return FiLinkedin
-      case 'github':
-        return FiGithub
-      case 'website':
-        return FiGlobe
+      case "x":
+      case "twitter":
+        return FiTwitter;
+      case "instagram":
+        return FiInstagram;
+      case "facebook":
+        return FiFacebook;
+      case "youtube":
+        return FiYoutube;
+      case "linkedin":
+        return FiLinkedin;
+      case "github":
+        return FiGithub;
+      case "website":
+        return FiGlobe;
       default:
-        return FiGlobe
+        return FiGlobe;
     }
-  }
+  };
   const platformLabel = (platform: string): string => {
     switch (platform.toLowerCase()) {
-      case 'x':
-        return 'X'
-      case 'twitter':
-        return 'Twitter'
-      case 'instagram':
-        return 'Instagram'
-      case 'facebook':
-        return 'Facebook'
-      case 'youtube':
-        return 'YouTube'
-      case 'linkedin':
-        return 'LinkedIn'
-      case 'github':
-        return 'GitHub'
-      case 'tiktok':
-        return 'TikTok'
-      case 'website':
-        return 'Website'
+      case "x":
+        return "X";
+      case "twitter":
+        return "Twitter";
+      case "instagram":
+        return "Instagram";
+      case "facebook":
+        return "Facebook";
+      case "youtube":
+        return "YouTube";
+      case "linkedin":
+        return "LinkedIn";
+      case "github":
+        return "GitHub";
+      case "tiktok":
+        return "TikTok";
+      case "website":
+        return "Website";
       default:
-        return 'Link'
+        return "Link";
     }
-  }
+  };
 
   if (socials?.socials && socials.socials.length > 0) {
     // Native Polar list path — preferred
     for (const entry of socials.socials) {
-      if (!entry?.url?.trim()) continue
+      if (!entry?.url?.trim()) continue;
       items.push({
-        href: normalizeUrl(entry.url, 'https://'),
-        label: platformLabel(entry.platform || 'other'),
-        Icon: platformIcon(entry.platform || 'other'),
-      })
+        href: normalizeUrl(entry.url, "https://"),
+        label: platformLabel(entry.platform || "other"),
+        Icon: platformIcon(entry.platform || "other"),
+      });
     }
   } else {
     // Legacy 3-field path
     if (socials?.twitter) {
       items.push({
-        href: normalizeUrl(socials.twitter, 'https://x.com/'),
-        label: 'X / Twitter',
+        href: normalizeUrl(socials.twitter, "https://x.com/"),
+        label: "X / Twitter",
         Icon: FiTwitter,
-      })
+      });
     }
     if (socials?.instagram) {
       items.push({
-        href: normalizeUrl(socials.instagram, 'https://instagram.com/'),
-        label: 'Instagram',
+        href: normalizeUrl(socials.instagram, "https://instagram.com/"),
+        label: "Instagram",
         Icon: FiInstagram,
-      })
+      });
     }
     if (socials?.website) {
       items.push({
-        href: normalizeUrl(socials.website, 'https://'),
-        label: 'Website',
+        href: normalizeUrl(socials.website, "https://"),
+        label: "Website",
         Icon: FiGlobe,
-      })
+      });
     }
   }
 
-  const hasBio = !!bio?.trim()
-  const hasContacts = items.length > 0 || !!email
-  const hasShare = !!slug
+  const hasBio = !!bio?.trim();
+  const hasContacts = items.length > 0 || !!email;
+  const hasShare = !!slug;
 
   if (!hasBio && !hasContacts && !hasShare) {
     return (
       <section className="mx-auto max-w-[1280px] px-6 py-16 md:px-16 md:py-24">
         <div className="max-w-[48ch]">
-          <h2 className={cn(typography.h3, 'text-[var(--text-primary)]')}>
+          <h2 className={cn(typography.h3, "text-[var(--text-primary)]")}>
             About {name}.
           </h2>
           <p
-            className={cn(
-              typography.body,
-              'mt-4 text-[var(--text-secondary)]',
-            )}
+            className={cn(typography.body, "mt-4 text-[var(--text-secondary)]")}
           >
             {name} hasn&rsquo;t added a bio yet. Their work speaks for itself in
             the meantime — head back to All work to see it.
           </p>
         </div>
       </section>
-    )
+    );
   }
 
   return (
@@ -205,7 +209,7 @@ export const AboutTab = ({ name, slug, bio, socials, email }: AboutTabProps) => 
           {hasBio && (
             <>
               <h2
-                className={cn(typography.h3, 'mb-6 text-[var(--text-primary)]')}
+                className={cn(typography.h3, "mb-6 text-[var(--text-primary)]")}
               >
                 About {name}.
               </h2>
@@ -227,40 +231,40 @@ export const AboutTab = ({ name, slug, bio, socials, email }: AboutTabProps) => 
                   Find them at
                 </h3>
                 <ul className="mt-5 flex flex-col gap-3">
-              {items.map(({ href, label, Icon }) => (
-                <li key={href}>
-                  <a
-                    href={href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="group inline-flex items-center gap-3 font-sans text-[15px] text-[var(--text-secondary)] transition-colors hover:text-[var(--accent)]"
-                  >
-                    <Icon
-                      size={18}
-                      strokeWidth={1.75}
-                      className="text-[var(--text-muted)] transition-colors group-hover:text-[var(--accent)]"
-                      aria-hidden="true"
-                    />
-                    <span>{label}</span>
-                  </a>
-                </li>
-              ))}
-              {email && (
-                <li>
-                  <a
-                    href={`mailto:${email}`}
-                    className="group inline-flex items-center gap-3 font-sans text-[15px] text-[var(--text-secondary)] transition-colors hover:text-[var(--accent)]"
-                  >
-                    <FiMail
-                      size={18}
-                      className="text-[var(--text-muted)] transition-colors group-hover:text-[var(--accent)]"
-                      aria-hidden="true"
-                    />
-                    <span>Email</span>
-                  </a>
-                </li>
-              )}
-            </ul>
+                  {items.map(({ href, label, Icon }) => (
+                    <li key={href}>
+                      <a
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group inline-flex items-center gap-3 font-sans text-[15px] text-[var(--text-secondary)] transition-colors hover:text-[var(--accent)]"
+                      >
+                        <Icon
+                          size={18}
+                          strokeWidth={1.75}
+                          className="text-[var(--text-muted)] transition-colors group-hover:text-[var(--accent)]"
+                          aria-hidden="true"
+                        />
+                        <span>{label}</span>
+                      </a>
+                    </li>
+                  ))}
+                  {email && (
+                    <li>
+                      <a
+                        href={`mailto:${email}`}
+                        className="group inline-flex items-center gap-3 font-sans text-[15px] text-[var(--text-secondary)] transition-colors hover:text-[var(--accent)]"
+                      >
+                        <FiMail
+                          size={18}
+                          className="text-[var(--text-muted)] transition-colors group-hover:text-[var(--accent)]"
+                          aria-hidden="true"
+                        />
+                        <span>Email</span>
+                      </a>
+                    </li>
+                  )}
+                </ul>
               </>
             )}
 
@@ -272,12 +276,12 @@ export const AboutTab = ({ name, slug, bio, socials, email }: AboutTabProps) => 
         )}
       </div>
     </section>
-  )
-}
+  );
+};
 
 interface ShareRowProps {
-  name: string
-  slug: string
+  name: string;
+  slug: string;
 }
 
 /**
@@ -289,63 +293,65 @@ interface ShareRowProps {
  * since the button is right there.
  */
 function ShareRow({ name, slug }: ShareRowProps) {
-  const url = `https://blyss.co.ke/creators/${slug}`
-  const text = `Check out ${name} on Blyss`
-  const [copied, setCopied] = useState(false)
+  const url = `https://blyss.co.ke/creators/${slug}`;
+  const text = `Check out ${name} on Blyss`;
+  const [copied, setCopied] = useState(false);
 
   const onCopy = async () => {
     try {
-      await navigator.clipboard.writeText(url)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch {
       // Browsers without clipboard API (rare) silently no-op.
     }
-  }
+  };
 
   const onNativeShare = async () => {
-    if (typeof navigator !== 'undefined' && 'share' in navigator) {
+    if (typeof navigator !== "undefined" && "share" in navigator) {
       try {
-        await (navigator as Navigator & {
-          share: (data: ShareData) => Promise<void>
-        }).share({ title: name, text, url })
+        await (
+          navigator as Navigator & {
+            share: (data: ShareData) => Promise<void>;
+          }
+        ).share({ title: name, text, url });
       } catch {
         // User cancelled — no-op.
       }
     }
-  }
+  };
 
   const targets: Array<{
-    href: string
-    label: string
-    Icon: typeof FiTwitter
+    href: string;
+    label: string;
+    Icon: typeof FiTwitter;
   }> = [
     {
       href: `https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`,
-      label: 'WhatsApp',
+      label: "WhatsApp",
       Icon: FiSend,
     },
     {
       href: `https://x.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
-      label: 'X',
+      label: "X",
       Icon: FiTwitter,
     },
     {
       href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
-      label: 'Facebook',
+      label: "Facebook",
       Icon: FiFacebook,
     },
     {
       href: `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`,
-      label: 'Telegram',
+      label: "Telegram",
       Icon: FiSend,
     },
     {
       href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`,
-      label: 'LinkedIn',
+      label: "LinkedIn",
       Icon: FiLinkedin,
     },
-  ]
+  ];
 
   return (
     <div className="mt-10 border-t border-[var(--border)] pt-6">
@@ -403,7 +409,7 @@ function ShareRow({ name, slug }: ShareRowProps) {
         </span>
       </button>
     </div>
-  )
+  );
 }
 
 /**
@@ -412,13 +418,13 @@ function ShareRow({ name, slug }: ShareRowProps) {
  * and prepends the platform's base URL when missing.
  */
 function normalizeUrl(value: string, fallbackBase: string): string {
-  const trimmed = value.trim()
-  if (/^https?:\/\//i.test(trimmed)) return trimmed
+  const trimmed = value.trim();
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
   // Bare handle — strip leading "@" and append to base
-  const withoutAt = trimmed.replace(/^@/, '')
+  const withoutAt = trimmed.replace(/^@/, "");
   // Bare domain — prepend https
-  if (/\./.test(withoutAt) && !withoutAt.includes(' ')) {
-    return `https://${withoutAt.replace(/^\/+/, '')}`
+  if (/\./.test(withoutAt) && !withoutAt.includes(" ")) {
+    return `https://${withoutAt.replace(/^\/+/, "")}`;
   }
-  return `${fallbackBase}${encodeURIComponent(withoutAt)}`
+  return `${fallbackBase}${encodeURIComponent(withoutAt)}`;
 }

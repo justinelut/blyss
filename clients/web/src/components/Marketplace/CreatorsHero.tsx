@@ -1,37 +1,36 @@
-'use client'
+"use client";
 
-import { useMemo } from 'react'
-import { Eyebrow, typography } from '@/design'
-import { cn } from '@/lib/utils'
+import { useMemo } from "react";
+import { cn } from "@/lib/utils";
 
 export type CreatorCategory =
-  | 'all'
-  | 'designers'
-  | 'writers'
-  | 'musicians'
-  | 'educators'
-  | 'photographers'
-  | 'developers'
+  | "all"
+  | "designers"
+  | "writers"
+  | "musicians"
+  | "educators"
+  | "photographers"
+  | "developers";
 
 interface CreatorsHeroProps {
   /** Currently selected creator-category filter (slug or "all") */
-  active: string
-  onChange: (next: string) => void
+  active: string;
+  onChange: (next: string) => void;
   /** Optional total creator count for the metadata line */
-  total?: number
+  total?: number;
   /** Backoffice-managed categories; "All" is prepended automatically. */
-  categories?: { slug: string; name: string }[]
+  categories?: { slug: string; name: string }[];
 }
 
 const FALLBACK_FILTERS: { id: string; label: string }[] = [
-  { id: 'all', label: 'All' },
-  { id: 'designers', label: 'Designers' },
-  { id: 'writers', label: 'Writers' },
-  { id: 'musicians', label: 'Musicians' },
-  { id: 'educators', label: 'Educators' },
-  { id: 'photographers', label: 'Photographers' },
-  { id: 'developers', label: 'Developers' },
-]
+  { id: "all", label: "All" },
+  { id: "designers", label: "Designers" },
+  { id: "writers", label: "Writers" },
+  { id: "musicians", label: "Musicians" },
+  { id: "educators", label: "Educators" },
+  { id: "photographers", label: "Photographers" },
+  { id: "developers", label: "Developers" },
+];
 
 /**
  * CreatorsHero — page intro for /creators.
@@ -50,39 +49,29 @@ export const CreatorsHero = ({
   const filters = useMemo(() => {
     if (categories && categories.length > 0) {
       return [
-        { id: 'all', label: 'All' },
+        { id: "all", label: "All" },
         ...categories.map((c) => ({ id: c.slug, label: c.name })),
-      ]
+      ];
     }
-    return FALLBACK_FILTERS
-  }, [categories])
+    return FALLBACK_FILTERS;
+  }, [categories]);
 
   const totalLabel = useMemo(() => {
-    if (total == null) return null
-    return `${total.toLocaleString()} ${total === 1 ? 'creator' : 'creators'}`
-  }, [total])
+    if (total == null) return null;
+    return `${total.toLocaleString()} ${total === 1 ? "creator" : "creators"}`;
+  }, [total]);
 
   return (
-    <header className="border-b border-[var(--border)]">
-      <div className="mx-auto max-w-[1280px] px-6 py-12 md:px-16 md:py-20">
-        <Eyebrow>Meet the makers</Eyebrow>
-        <h1
-          className={cn(
-            typography.h1,
-            'mt-4 max-w-[18ch] text-[var(--text-primary)]',
-          )}
-        >
-          Kenya&rsquo;s creative class, online.
-        </h1>
-
+    <div className="border-b border-[var(--border)]">
+      <div className="mx-auto max-w-[1280px] px-6 pt-10 pb-12 md:px-16 md:pb-20">
         {/* Filter strip — horizontal scroll on mobile, inline on desktop */}
         <nav
-          className="mt-10 -mx-6 overflow-x-auto px-6 md:mx-0 md:px-0"
+          className="-mx-6 overflow-x-auto px-6 md:mx-0 md:px-0"
           aria-label="Filter creators by craft"
         >
           <div className="flex min-w-max items-center gap-2">
             {filters.map((f) => {
-              const isActive = active === f.id
+              const isActive = active === f.id;
               return (
                 <button
                   key={f.id}
@@ -90,25 +79,25 @@ export const CreatorsHero = ({
                   onClick={() => onChange(f.id)}
                   aria-pressed={isActive}
                   className={cn(
-                    'inline-flex h-10 shrink-0 items-center justify-center rounded-full px-4 font-sans text-[13px] font-medium transition-colors',
+                    "inline-flex h-10 shrink-0 items-center justify-center rounded-full px-4 font-sans text-[13px] font-medium transition-colors",
                     isActive
-                      ? 'bg-[var(--accent)] text-[var(--accent-foreground)]'
-                      : 'bg-[var(--surface-sunken)] text-[var(--text-secondary)] hover:bg-[var(--surface)] hover:text-[var(--text-primary)]',
+                      ? "bg-[var(--accent)] text-[var(--accent-foreground)]"
+                      : "bg-[var(--surface-sunken)] text-[var(--text-secondary)] hover:bg-[var(--surface)] hover:text-[var(--text-primary)]",
                   )}
                 >
                   {f.label}
                 </button>
-              )
+              );
             })}
           </div>
         </nav>
 
         {totalLabel && (
-          <p className="mt-6 font-sans text-[13px] text-[var(--text-muted)]">
+          <p className="mt-6 font-sans text-[13px] text-[var(--text-secondary)]">
             {totalLabel}
           </p>
         )}
       </div>
-    </header>
-  )
-}
+    </div>
+  );
+};

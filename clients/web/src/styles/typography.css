@@ -1,0 +1,10 @@
+@import "tailwindcss" source(none);
+
+@source "../components/Checkout/Checkout.tsx";
+@source "../components/Checkout/CheckoutProductInfo.tsx";
+@source "../components/Layout/Public/ArticleLayout.tsx";
+@source "../components/Products/ProductForm/ProductPricingSection.tsx";
+@source "../components/Benefit/BenefitGrant.tsx";
+@source "../mdx-components.tsx";
+
+@plugin "@tailwindcss/typography";

@@ -1,11 +1,13 @@
-'use client'
+"use client";
 
-import * as Sentry from '@sentry/nextjs'
-import { inter } from '@/fonts/fonts'
-import { useEffect } from 'react'
+import { captureClientException } from "@/lib/monitoring/sentry-client";
+import { inter } from "@/fonts/fonts";
+import { useEffect } from "react";
 
 export default function GlobalError({ error }: { error: Error }) {
-  useEffect(() => { Sentry.captureException(error) }, [error])
+  useEffect(() => {
+    captureClientException(error);
+  }, [error]);
 
   return (
     <html className={`antialiased ${inter.variable}`}>
@@ -20,5 +22,5 @@ export default function GlobalError({ error }: { error: Error }) {
         </div>
       </body>
     </html>
-  )
+  );
 }

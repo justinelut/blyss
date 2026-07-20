@@ -1,45 +1,46 @@
-import { useCustomerBenefitGrantUpdate } from '@/hooks/queries'
-import { markdownOptions } from '@/utils/markdown'
-import { Client, schemas } from '@/lib/api'
+import "@/styles/typography.css";
+import { useCustomerBenefitGrantUpdate } from "@/hooks/queries";
+import { markdownOptions } from "@/utils/markdown";
+import { Client, schemas } from "@/lib/api";
 import {
   DEFAULT_LOCALE,
   useTranslations,
   type AcceptedLocale,
-} from '@/lib/i18n'
-import Button from '@/components/atoms/Button'
+} from "@/lib/i18n";
+import Button from "@/components/atoms/Button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/atoms/Select'
-import ShadowBox from '@/components/atoms/ShadowBox'
-import Markdown from 'markdown-to-jsx'
-import { usePathname, useSearchParams } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import DownloadablesBenefitGrant from './Downloadables/DownloadablesBenefitGrant'
-import { LicenseKeyBenefitGrant } from './LicenseKeys/LicenseKeyBenefitGrant'
-import { resolveBenefitIcon } from './utils'
+} from "@/components/atoms/Select";
+import ShadowBox from "@/components/atoms/ShadowBox";
+import Markdown from "markdown-to-jsx";
+import { usePathname, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import DownloadablesBenefitGrant from "./Downloadables/DownloadablesBenefitGrant";
+import { LicenseKeyBenefitGrant } from "./LicenseKeys/LicenseKeyBenefitGrant";
+import { resolveBenefitIcon } from "./utils";
 
 interface BenefitGrantProps {
-  api: Client
-  benefitGrant: schemas['CustomerBenefitGrant']
-  locale?: AcceptedLocale
+  api: Client;
+  benefitGrant: schemas["CustomerBenefitGrant"];
+  locale?: AcceptedLocale;
 }
 
 const BenefitGrantCustom = ({
   benefitGrant,
 }: {
-  benefitGrant: schemas['CustomerBenefitGrantCustom']
+  benefitGrant: schemas["CustomerBenefitGrantCustom"];
 }) => {
   const {
     benefit: {
       properties: { note },
     },
-  } = benefitGrant
+  } = benefitGrant;
   if (!note) {
-    return null
+    return null;
   }
   return (
     <ShadowBox className="dark:bg-polar-800 bg-white p-6 lg:rounded-3xl">
@@ -47,8 +48,8 @@ const BenefitGrantCustom = ({
         <Markdown options={markdownOptions}>{note}</Markdown>
       </div>
     </ShadowBox>
-  )
-}
+  );
+};
 
 const BenefitGrantOAuth = ({
   api,
@@ -60,71 +61,71 @@ const BenefitGrantOAuth = ({
   openButtonText,
   selectPlaceholder,
 }: {
-  api: Client
+  api: Client;
   benefitGrant:
-    | schemas['CustomerBenefitGrantGitHubRepository']
-    | schemas['CustomerBenefitGrantDiscord']
-  platform: 'github' | 'discord'
-  locale?: AcceptedLocale
-  openButtonText: string
-  openButtonUrl: string
-  connectButtonText: string
-  selectPlaceholder: string
+    | schemas["CustomerBenefitGrantGitHubRepository"]
+    | schemas["CustomerBenefitGrantDiscord"];
+  platform: "github" | "discord";
+  locale?: AcceptedLocale;
+  openButtonText: string;
+  openButtonUrl: string;
+  connectButtonText: string;
+  selectPlaceholder: string;
 }) => {
-  const t = useTranslations(locale)
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
+  const t = useTranslations(locale);
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const {
     customer,
     properties: { account_id },
     benefit: { type: benefitType },
     error: grantError,
-  } = benefitGrant
+  } = benefitGrant;
   const [showAccountSelector, setShowAccountSelector] = useState(
     !account_id || !!grantError,
-  )
-  const [retryCountdown, setRetryCountdown] = useState<number>(0)
-  const countdownRef = useRef<NodeJS.Timeout | null>(null)
+  );
+  const [retryCountdown, setRetryCountdown] = useState<number>(0);
+  const countdownRef = useRef<NodeJS.Timeout | null>(null);
 
-  const errorPlatform = searchParams.get('error_platform')
-  const error = errorPlatform === platform ? searchParams.get('error') : null
+  const errorPlatform = searchParams.get("error_platform");
+  const error = errorPlatform === platform ? searchParams.get("error") : null;
   const retryAfter =
-    errorPlatform === platform ? searchParams.get('error_retry_after') : null
+    errorPlatform === platform ? searchParams.get("error_retry_after") : null;
 
   // Start countdown timer for rate limit errors
   useEffect(() => {
     const bail = () => {
       if (countdownRef.current) {
-        clearInterval(countdownRef.current)
+        clearInterval(countdownRef.current);
       }
-    }
+    };
 
     if (!retryAfter) {
-      bail()
-      return
+      bail();
+      return;
     }
 
-    const seconds = Math.round(parseFloat(retryAfter))
+    const seconds = Math.round(parseFloat(retryAfter));
 
     if (isNaN(seconds) || seconds <= 0) {
-      bail()
-      return
+      bail();
+      return;
     }
 
-    setRetryCountdown(seconds)
+    setRetryCountdown(seconds);
 
     countdownRef.current = setInterval(() => {
       setRetryCountdown((prev) => {
         if (prev <= 1) {
-          clearInterval(countdownRef.current!)
-          return 0
+          clearInterval(countdownRef.current!);
+          return 0;
         }
-        return prev - 1
-      })
-    }, 1000)
+        return prev - 1;
+      });
+    }, 1000);
 
-    return bail
-  }, [retryAfter])
+    return bail;
+  }, [retryAfter]);
 
   const accounts = useMemo(
     () =>
@@ -134,11 +135,11 @@ const BenefitGrantOAuth = ({
             .map((key) => customer.oauth_accounts[key])
         : [],
     [customer, platform],
-  )
+  );
 
   const authorize = useCallback(async () => {
     const { data } = await api.GET(
-      '/v1/customer-portal/oauth-accounts/authorize',
+      "/v1/customer-portal/oauth-accounts/authorize",
       {
         params: {
           query: {
@@ -148,16 +149,16 @@ const BenefitGrantOAuth = ({
           },
         },
       },
-    )
+    );
     if (data) {
-      window.location.href = data.url
+      window.location.href = data.url;
     }
-  }, [customer, api, pathname, platform])
+  }, [customer, api, pathname, platform]);
 
-  const updateBenefitGrant = useCustomerBenefitGrantUpdate(api)
+  const updateBenefitGrant = useCustomerBenefitGrantUpdate(api);
   const [selectedAccountKey, setSelectedAccountKey] = useState<
     string | undefined
-  >(undefined)
+  >(undefined);
 
   const onAccountReset = useCallback(async () => {
     await updateBenefitGrant.mutateAsync({
@@ -168,13 +169,13 @@ const BenefitGrantOAuth = ({
           account_id: null,
         },
       },
-    })
-    setShowAccountSelector(true)
-  }, [updateBenefitGrant, benefitGrant.id, benefitType])
+    });
+    setShowAccountSelector(true);
+  }, [updateBenefitGrant, benefitGrant.id, benefitType]);
 
   const onAccountSubmit = useCallback(async () => {
     if (!selectedAccountKey) {
-      return
+      return;
     }
     await updateBenefitGrant.mutateAsync({
       id: benefitGrant.id,
@@ -184,9 +185,9 @@ const BenefitGrantOAuth = ({
           account_id: selectedAccountKey,
         },
       },
-    })
-    setShowAccountSelector(false)
-  }, [updateBenefitGrant, selectedAccountKey, benefitGrant.id, benefitType])
+    });
+    setShowAccountSelector(false);
+  }, [updateBenefitGrant, selectedAccountKey, benefitGrant.id, benefitType]);
 
   return (
     <div className="flex flex-col gap-2">
@@ -208,7 +209,7 @@ const BenefitGrantOAuth = ({
               variant="secondary"
               className="grow"
             >
-              {t('checkout.benefits.requestNewInvite')}
+              {t("checkout.benefits.requestNewInvite")}
             </Button>
           </>
         )}
@@ -223,17 +224,17 @@ const BenefitGrantOAuth = ({
                 disabled={retryCountdown > 0}
               >
                 {retryCountdown > 0
-                  ? t('checkout.benefits.retryIn', { count: retryCountdown })
+                  ? t("checkout.benefits.retryIn", { count: retryCountdown })
                   : connectButtonText}
               </Button>
             ) : (
               <>
                 <Select
                   onValueChange={(value) => {
-                    if (value === 'add') {
-                      authorize()
+                    if (value === "add") {
+                      authorize();
                     } else {
-                      setSelectedAccountKey(value)
+                      setSelectedAccountKey(value);
                     }
                   }}
                 >
@@ -250,7 +251,7 @@ const BenefitGrantOAuth = ({
                       </SelectItem>
                     ))}
                     <SelectItem value="add">
-                      {t('checkout.benefits.connectNewAccount')}
+                      {t("checkout.benefits.connectNewAccount")}
                     </SelectItem>
                   </SelectContent>
                 </Select>
@@ -260,7 +261,7 @@ const BenefitGrantOAuth = ({
                   fullWidth
                   variant="secondary"
                 >
-                  {t('checkout.benefits.requestMyInvite')}
+                  {t("checkout.benefits.requestMyInvite")}
                 </Button>
               </>
             )}
@@ -273,83 +274,83 @@ const BenefitGrantOAuth = ({
         </p>
       )}
     </div>
-  )
-}
+  );
+};
 
 const BenefitGrantGitHubRepository = ({
   api,
   benefitGrant,
   locale = DEFAULT_LOCALE,
 }: {
-  api: Client
-  benefitGrant: schemas['CustomerBenefitGrantGitHubRepository']
-  locale?: AcceptedLocale
+  api: Client;
+  benefitGrant: schemas["CustomerBenefitGrantGitHubRepository"];
+  locale?: AcceptedLocale;
 }) => {
-  const t = useTranslations(locale)
+  const t = useTranslations(locale);
   const {
     benefit: {
       properties: { repository_owner, repository_name },
     },
-  } = benefitGrant
+  } = benefitGrant;
   return (
     <BenefitGrantOAuth
       api={api}
       benefitGrant={benefitGrant}
       platform="github"
       locale={locale}
-      connectButtonText={t('checkout.benefits.github.connect')}
-      openButtonText={t('checkout.benefits.github.goTo', {
+      connectButtonText={t("checkout.benefits.github.connect")}
+      openButtonText={t("checkout.benefits.github.goTo", {
         repository: `${repository_owner}/${repository_name}`,
       })}
       openButtonUrl={`https://github.com/${repository_owner}/${repository_name}/invitations`}
-      selectPlaceholder={t('checkout.benefits.github.selectAccount')}
+      selectPlaceholder={t("checkout.benefits.github.selectAccount")}
     />
-  )
-}
+  );
+};
 
 const BenefitGrantDiscord = ({
   api,
   benefitGrant,
   locale = DEFAULT_LOCALE,
 }: {
-  api: Client
-  benefitGrant: schemas['CustomerBenefitGrantDiscord']
-  locale?: AcceptedLocale
+  api: Client;
+  benefitGrant: schemas["CustomerBenefitGrantDiscord"];
+  locale?: AcceptedLocale;
 }) => {
-  const t = useTranslations(locale)
+  const t = useTranslations(locale);
   const {
     benefit: {
       properties: { guild_id },
     },
-  } = benefitGrant
+  } = benefitGrant;
   return (
     <BenefitGrantOAuth
       api={api}
       benefitGrant={benefitGrant}
       platform="discord"
       locale={locale}
-      connectButtonText={t('checkout.benefits.discord.connect')}
-      openButtonText={t('checkout.benefits.discord.open')}
+      connectButtonText={t("checkout.benefits.discord.connect")}
+      openButtonText={t("checkout.benefits.discord.open")}
       openButtonUrl={`https://www.discord.com/channels/${guild_id}`}
-      selectPlaceholder={t('checkout.benefits.discord.selectAccount')}
+      selectPlaceholder={t("checkout.benefits.discord.selectAccount")}
     />
-  )
-}
+  );
+};
 
 export const BenefitGrant = ({
   api,
   benefitGrant,
   locale = DEFAULT_LOCALE,
 }: BenefitGrantProps) => {
-  const t = useTranslations(locale)
-  const { benefit } = benefitGrant
+  const t = useTranslations(locale);
+  const { benefit } = benefitGrant;
 
   return (
     <div className="flex w-full flex-col gap-4">
       <div className="flex flex-row items-center gap-x-4">
         <div className="flex flex-row items-center gap-x-2 text-xs text-gray-500 dark:text-white">
           <span className="dark:bg-polar-700 flex h-8 w-8 flex-row items-center justify-center rounded-full bg-gray-50 text-sm">
-            {resolveBenefitIcon(benefit.type, 'h-3 w-3')}
+            {resolveBenefitIcon(benefit.type, "h-3 w-3")}
           </span>
         </div>
         <div className="flex flex-col">
@@ -359,44 +360,44 @@ export const BenefitGrant = ({
           </p>
         </div>
       </div>
-      {benefit.type === 'custom' && (
+      {benefit.type === "custom" && (
         <BenefitGrantCustom
-          benefitGrant={benefitGrant as schemas['CustomerBenefitGrantCustom']}
+          benefitGrant={benefitGrant as schemas["CustomerBenefitGrantCustom"]}
         />
       )}
-      {benefit.type === 'downloadables' && (
+      {benefit.type === "downloadables" && (
         <DownloadablesBenefitGrant
           api={api}
           benefitGrant={
-            benefitGrant as schemas['CustomerBenefitGrantDownloadables']
+            benefitGrant as schemas["CustomerBenefitGrantDownloadables"]
           }
         />
       )}
-      {benefit.type === 'license_keys' && (
+      {benefit.type === "license_keys" && (
         <LicenseKeyBenefitGrant
           api={api}
           benefitGrant={
-            benefitGrant as schemas['CustomerBenefitGrantLicenseKeys']
+            benefitGrant as schemas["CustomerBenefitGrantLicenseKeys"]
           }
           locale={locale}
         />
       )}
-      {benefit.type === 'github_repository' && (
+      {benefit.type === "github_repository" && (
         <BenefitGrantGitHubRepository
           api={api}
           benefitGrant={
-            benefitGrant as schemas['CustomerBenefitGrantGitHubRepository']
+            benefitGrant as schemas["CustomerBenefitGrantGitHubRepository"]
           }
           locale={locale}
         />
       )}
-      {benefit.type === 'discord' && (
+      {benefit.type === "discord" && (
         <BenefitGrantDiscord
           api={api}
-          benefitGrant={benefitGrant as schemas['CustomerBenefitGrantDiscord']}
+          benefitGrant={benefitGrant as schemas["CustomerBenefitGrantDiscord"]}
           locale={locale}
         />
       )}
     </div>
-  )
-}
+  );
+};

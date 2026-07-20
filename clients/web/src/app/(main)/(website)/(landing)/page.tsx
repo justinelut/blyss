@@ -155,12 +155,14 @@ export default async function Page() {
     featuredSubscriptions,
     trendingCreators,
     categories,
+    geo,
   ] = await Promise.all([
     getFeaturedProducts(),
     getNewestProducts(),
     getFeaturedSubscriptions(),
     getTrendingCreators(),
     getCategories(),
+    getServerGeo(),
   ]);
 
   return (
@@ -170,6 +172,8 @@ export default async function Page() {
       featuredSubscriptions={featuredSubscriptions}
       trendingCreators={trendingCreators}
       categories={categories}
+      country={geo.country}
+      currency={geo.currency}
     />
   );
 }

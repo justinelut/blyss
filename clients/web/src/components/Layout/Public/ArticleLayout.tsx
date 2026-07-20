@@ -1,4 +1,5 @@
-import { PropsWithChildren } from 'react'
+import "@/styles/typography.css";
+import { PropsWithChildren } from "react";
 
 export function ArticleLayout({ children }: PropsWithChildren) {
   return (
@@ -7,5 +8,5 @@ export function ArticleLayout({ children }: PropsWithChildren) {
         {children}
       </main>
     </div>
-  )
+  );
 }

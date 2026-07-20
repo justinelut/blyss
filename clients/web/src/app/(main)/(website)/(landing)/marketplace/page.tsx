@@ -1,84 +1,88 @@
-import { Metadata } from 'next'
-import { api } from '@/utils/client'
-import { unwrap } from '@/lib/api'
-import { getServerCurrency } from '@/lib/geo/server'
-import { JsonLd } from '@/design'
-import { BrowsePage } from '@/components/Marketplace/BrowsePage'
-import type { FilterCategory } from '@/components/Marketplace/BrowseFilterRail'
+import { Metadata } from "next";
+import { api } from "@/utils/client";
+import { unwrap } from "@/lib/api";
+import { getServerCurrency } from "@/lib/geo/server";
+import { JsonLd } from "@/design";
+import { BrowsePage } from "@/components/Marketplace/BrowsePage";
+import { BrowsePageHeader } from "@/components/Marketplace/BrowsePageHeader";
+import type { FilterCategory } from "@/components/Marketplace/BrowseFilterRail";
 
 // ISR — regenerate the marketplace shell at most once per minute. Filtered
 // query results are fetched client-side via TanStack Query so paginated
 // requests don't go through ISR.
-export const dynamic = "force-dynamic"
-export const revalidate = 60
+export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export const metadata: Metadata = {
-  title: 'Browse digital products · Instant download · Blyss marketplace',
+  title: "Browse digital products · Instant download · Blyss marketplace",
   description:
-    'Browse templates, ebooks, beats, presets, courses, fonts, and stock assets from creators. Pay with M-Pesa, Visa, or Mastercard. Instant download after checkout.',
+    "Browse templates, ebooks, beats, presets, courses, fonts, and stock assets from creators. Pay with M-Pesa, Visa, or Mastercard. Instant download after checkout.",
   keywords:
-    'buy digital downloads, digital products marketplace, buy notion templates, buy lightroom presets, buy beats online, buy ebooks online, buy online courses, buy canva templates, buy fonts commercial use, royalty free music, instant download, digital products kenya, mpesa digital products',
-  alternates: { canonical: 'https://blyss.co.ke/marketplace' },
+    "buy digital downloads, digital products marketplace, buy notion templates, buy lightroom presets, buy beats online, buy ebooks online, buy online courses, buy canva templates, buy fonts commercial use, royalty free music, instant download, digital products kenya, mpesa digital products",
+  alternates: { canonical: "https://blyss.co.ke/marketplace" },
   openGraph: {
-    title: 'Browse digital products · Blyss marketplace',
+    title: "Browse digital products · Blyss marketplace",
     description:
-      'Templates, ebooks, beats, presets, courses, fonts. M-Pesa or card. Instant download.',
-    type: 'website',
-    locale: 'en_KE',
-    url: 'https://blyss.co.ke/marketplace',
+      "Templates, ebooks, beats, presets, courses, fonts. M-Pesa or card. Instant download.",
+    type: "website",
+    locale: "en_KE",
+    url: "https://blyss.co.ke/marketplace",
     images: [
       {
-        url: 'https://cdn.blyss.co.ke/brand/og-default.png',
+        url: "https://cdn.blyss.co.ke/brand/og-default.png",
         width: 1200,
         height: 630,
-        alt: 'Blyss marketplace',
+        alt: "Blyss marketplace",
       },
     ],
   },
   twitter: {
-    card: 'summary_large_image',
-    title: 'Browse digital products · Blyss',
+    card: "summary_large_image",
+    title: "Browse digital products · Blyss",
     description:
-      'Templates, ebooks, beats, presets, courses. Instant download.',
-    images: ['https://cdn.blyss.co.ke/brand/og-default.png'],
+      "Templates, ebooks, beats, presets, courses. Instant download.",
+    images: ["https://cdn.blyss.co.ke/brand/og-default.png"],
   },
-}
+};
 
 interface SearchParams {
-  search?: string
-  category?: string
-  min_price?: string
-  max_price?: string
-  type?: string
-  currency?: string
-  sort?: string
-  page?: string
+  search?: string;
+  category?: string;
+  min_price?: string;
+  max_price?: string;
+  type?: string;
+  currency?: string;
+  sort?: string;
+  page?: string;
 }
 
 export default async function MarketplacePage({
   searchParams,
 }: {
-  searchParams: Promise<SearchParams>
+  searchParams: Promise<SearchParams>;
 }) {
-  const params = await searchParams
-  const search = params.search || undefined
-  const category = params.category || undefined
-  const minPrice = params.min_price ? parseInt(params.min_price, 10) : undefined
-  const maxPrice = params.max_price ? parseInt(params.max_price, 10) : undefined
+  const params = await searchParams;
+  const search = params.search || undefined;
+  const category = params.category || undefined;
+  const minPrice = params.min_price
+    ? parseInt(params.min_price, 10)
+    : undefined;
+  const maxPrice = params.max_price
+    ? parseInt(params.max_price, 10)
+    : undefined;
   const sort =
-    (params.sort as 'newest' | 'price_asc' | 'price_desc' | 'trending') ||
-    'newest'
-  const type =
-    (params.type as 'all' | 'one_time' | 'subscription') || 'all'
+    (params.sort as "newest" | "price_asc" | "price_desc" | "trending") ||
+    "newest";
+  const type = (params.type as "all" | "one_time" | "subscription") || "all";
   // Currency follows geo (US→USD default, KE→KES) unless the URL/switcher
   // overrode it. We filter the grid to this currency (no FX conversion).
-  const geoCurrency = await getServerCurrency()
-  const currency = (params.currency as string) || geoCurrency.toUpperCase()
-  const page = params.page ? parseInt(params.page, 10) : 1
+  const geoCurrency = await getServerCurrency();
+  const currency = (params.currency as string) || geoCurrency.toUpperCase();
+  const page = params.page ? parseInt(params.page, 10) : 1;
 
   const [productsData, categoriesData] = await Promise.all([
     unwrap(
-      api.GET('/v1/products/public', {
+      api.GET("/v1/products/public", {
         params: {
           query: {
             search,
@@ -88,12 +92,12 @@ export default async function MarketplacePage({
             // Honor the type chip on first paint so the SSR'd grid already
             // matches the URL state (the client-side query then takes over).
             is_recurring:
-              type === 'subscription'
+              type === "subscription"
                 ? true
-                : type === 'one_time'
+                : type === "one_time"
                   ? false
                   : undefined,
-            sort: sort === 'trending' ? 'newest' : sort,
+            sort: sort === "trending" ? "newest" : sort,
             currency: currency.toLowerCase(),
             page,
             limit: 24,
@@ -105,9 +109,9 @@ export default async function MarketplacePage({
       pagination: { total_count: 0, max_page: 1 },
     })),
     unwrap(
-      api.GET('/v1/categories/', { params: { query: { limit: 50 } } }),
+      api.GET("/v1/categories/", { params: { query: { limit: 50 } } }),
     ).catch(() => ({ items: [] })),
-  ])
+  ]);
 
   const categories: FilterCategory[] = (categoriesData.items ?? []).map(
     (c: any) => ({
@@ -115,34 +119,45 @@ export default async function MarketplacePage({
       name: c.name,
       slug: c.slug,
       product_count: c.product_count,
+      display_order: c.display_order ?? 0,
     }),
-  )
+  );
 
   return (
     <>
       <JsonLd
         data={{
-          '@context': 'https://schema.org',
-          '@type': 'BreadcrumbList',
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
           itemListElement: [
-            { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://blyss.co.ke/' },
-            { '@type': 'ListItem', position: 2, name: 'Marketplace', item: 'https://blyss.co.ke/marketplace' },
+            {
+              "@type": "ListItem",
+              position: 1,
+              name: "Home",
+              item: "https://blyss.co.ke/",
+            },
+            {
+              "@type": "ListItem",
+              position: 2,
+              name: "Marketplace",
+              item: "https://blyss.co.ke/marketplace",
+            },
           ],
         }}
       />
       <JsonLd
         data={{
-          '@context': 'https://schema.org',
-          '@type': 'CollectionPage',
-          name: 'The Marketplace',
-          url: 'https://blyss.co.ke/marketplace',
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          name: "The Marketplace",
+          url: "https://blyss.co.ke/marketplace",
           mainEntity: {
-            '@type': 'ItemList',
+            "@type": "ItemList",
             numberOfItems: productsData.pagination?.total_count ?? 0,
             itemListElement: (productsData.items ?? [])
               .slice(0, 24)
               .map((p: any, i: number) => ({
-                '@type': 'ListItem',
+                "@type": "ListItem",
                 position: i + 1,
                 url: `https://blyss.co.ke/product/${p.id}`,
                 name: p.name,
@@ -150,6 +165,7 @@ export default async function MarketplacePage({
           },
         }}
       />
+      <BrowsePageHeader categories={categories} />
       <BrowsePage
         initialProducts={productsData.items ?? []}
         initialTotalCount={productsData.pagination?.total_count ?? 0}
@@ -166,5 +182,5 @@ export default async function MarketplacePage({
         }}
       />
     </>
-  )
+  );
 }

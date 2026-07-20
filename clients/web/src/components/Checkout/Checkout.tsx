@@ -1,15 +1,16 @@
-'use client'
+"use client";
 
-import { UploadImage } from '@/components/Image/Image'
-import { Modal } from '@/components/Modal'
-import { DISTINCT_ID_COOKIE } from '@/experiments/constants'
-import { useCheckoutConfirmedRedirect } from '@/hooks/checkout'
-import { usePostHog } from '@/hooks/posthog'
-import { useOrganizationPaymentStatus } from '@/hooks/queries/org'
-import { getServerURL } from '@/utils/api'
-import { getResizedImage } from '@/utils/getResizedImage'
-import { hasMarkdown, markdownOptions } from '@/utils/markdown'
-import ArrowBackOutlined from '@mui/icons-material/ArrowBackOutlined'
+import "@/styles/typography.css";
+import { UploadImage } from "@/components/Image/Image";
+import { Modal } from "@/components/Modal";
+import { DISTINCT_ID_COOKIE } from "@/experiments/constants";
+import { useCheckoutConfirmedRedirect } from "@/hooks/checkout";
+import { usePostHog } from "@/hooks/posthog";
+import { useOrganizationPaymentStatus } from "@/hooks/queries/org";
+import { getServerURL } from "@/utils/api";
+import { getResizedImage } from "@/utils/getResizedImage";
+import { hasMarkdown, markdownOptions } from "@/utils/markdown";
+import ArrowBackOutlined from "@mui/icons-material/ArrowBackOutlined";
 import {
   CheckoutForm,
   CheckoutHeroPrice,
@@ -17,18 +18,18 @@ import {
   CheckoutProductSwitcher,
   CheckoutPWYWForm,
   CheckoutSeatSelector,
-} from '@/components/Checkout/components'
+} from "@/components/Checkout/components";
 import {
   hasProductCheckout,
   type ProductCheckoutPublic,
-} from '@/components/Checkout/guards'
-import { useCheckoutFulfillmentListener } from '@/components/Checkout/hooks'
-import { useCheckout, useCheckoutForm } from '@/components/Checkout/providers'
-import { ClientResponseError, type schemas } from '@/lib/api'
-import { AcceptedLocale, useTranslations } from '@/lib/i18n'
-import Alert from '@/components/atoms/Alert'
-import Avatar from '@/components/atoms/Avatar'
-import ShadowBox from '@/components/atoms/ShadowBox'
+} from "@/components/Checkout/guards";
+import { useCheckoutFulfillmentListener } from "@/components/Checkout/hooks";
+import { useCheckout, useCheckoutForm } from "@/components/Checkout/providers";
+import { ClientResponseError, type schemas } from "@/lib/api";
+import { AcceptedLocale, useTranslations } from "@/lib/i18n";
+import Alert from "@/components/atoms/Alert";
+import Avatar from "@/components/atoms/Avatar";
+import ShadowBox from "@/components/atoms/ShadowBox";
 import {
   Dialog,
   DialogContent,
@@ -36,36 +37,36 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog'
-import { getThemePreset } from '@/components/ui/hooks/theming'
-import type { Stripe, StripeElements } from '@stripe/stripe-js'
-import Markdown from 'markdown-to-jsx'
-import { useTheme } from 'next-themes'
-import Link from 'next/link'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Slideshow } from '../Products/Slideshow'
-import { CheckoutDiscountInput } from './CheckoutDiscountInput'
+} from "@/components/ui/dialog";
+import { getThemePreset } from "@/components/ui/hooks/theming";
+import type { Stripe, StripeElements } from "@stripe/stripe-js";
+import Markdown from "markdown-to-jsx";
+import { useTheme } from "next-themes";
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Slideshow } from "../Products/Slideshow";
+import { CheckoutDiscountInput } from "./CheckoutDiscountInput";
 
 const TruncatedDescription = ({
   description,
   productName,
   readMoreLabel,
 }: {
-  description: string
-  productName: string
-  readMoreLabel: string
+  description: string;
+  productName: string;
+  readMoreLabel: string;
 }) => {
-  const textRef = useRef<HTMLDivElement>(null)
-  const [isClamped, setIsClamped] = useState(false)
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const textRef = useRef<HTMLDivElement>(null);
+  const [isClamped, setIsClamped] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
-    const el = textRef.current
-    if (!el) return
+    const el = textRef.current;
+    if (!el) return;
     requestAnimationFrame(() => {
-      setIsClamped(el.scrollHeight > el.clientHeight)
-    })
-  }, [description])
+      setIsClamped(el.scrollHeight > el.clientHeight);
+    });
+  }, [description]);
 
   return (
     <>
@@ -96,13 +97,13 @@ const TruncatedDescription = ({
         }
       />
     </>
-  )
-}
+  );
+};
 
 export interface CheckoutProps {
-  embed?: boolean
-  theme?: 'light' | 'dark'
-  locale?: AcceptedLocale
+  embed?: boolean;
+  theme?: "light" | "dark";
+  locale?: AcceptedLocale;
 }
 
 const Checkout = ({
@@ -110,7 +111,7 @@ const Checkout = ({
   theme: _theme,
   locale: _locale,
 }: CheckoutProps) => {
-  const { client } = useCheckout()
+  const { client } = useCheckout();
   const {
     checkout,
     form,
@@ -119,60 +120,60 @@ const Checkout = ({
     loading: confirmLoading,
     loadingLabel,
     isUpdatePending,
-  } = useCheckoutForm()
-  const embed = _embed === true
-  const { resolvedTheme } = useTheme()
-  const theme = _theme || (resolvedTheme as 'light' | 'dark')
-  const locale: AcceptedLocale = _locale || 'en'
-  const posthog = usePostHog()
-  const t = useTranslations(locale)
+  } = useCheckoutForm();
+  const embed = _embed === true;
+  const { resolvedTheme } = useTheme();
+  const theme = _theme || (resolvedTheme as "light" | "dark");
+  const locale: AcceptedLocale = _locale || "en";
+  const posthog = usePostHog();
+  const t = useTranslations(locale);
 
-  const openedTrackedRef = useRef(false)
+  const openedTrackedRef = useRef(false);
   useEffect(() => {
-    if (openedTrackedRef.current) return
-    openedTrackedRef.current = true
+    if (openedTrackedRef.current) return;
+    openedTrackedRef.current = true;
 
-    posthog.capture('storefront:checkout:page:view')
+    posthog.capture("storefront:checkout:page:view");
 
-    const cookies = document.cookie.split(';')
+    const cookies = document.cookie.split(";");
     const distinctIdCookie = cookies.find((c) =>
       c.trim().startsWith(`${DISTINCT_ID_COOKIE}=`),
-    )
-    const distinctId = distinctIdCookie?.split('=')[1]?.trim()
+    );
+    const distinctId = distinctIdCookie?.split("=")[1]?.trim();
 
     fetch(
       getServerURL(`/v1/checkouts/client/${checkout.client_secret}/opened`),
       {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ distinct_id: distinctId }),
       },
     ).catch(() => {
       // Silently ignore - don't affect checkout experience
-    })
-  }, [checkout.client_secret, posthog])
+    });
+  }, [checkout.client_secret, posthog]);
 
-  const themePreset = getThemePreset(theme)
+  const themePreset = getThemePreset(theme);
 
   // Check organization payment readiness (account verification only for checkout)
   const { data: paymentStatus } = useOrganizationPaymentStatus(
     checkout.organization.id,
     true, // enabled
     true, // accountVerificationOnly - avoid unnecessary product/token checks in checkout
-  )
+  );
 
-  const isPaymentReady = paymentStatus?.payment_ready ?? true // Default to true while loading
-  const isPaymentRequired = checkout.is_payment_required
-  const shouldBlockCheckout = !isPaymentReady && isPaymentRequired
+  const isPaymentReady = paymentStatus?.payment_ready ?? true; // Default to true while loading
+  const isPaymentRequired = checkout.is_payment_required;
+  const shouldBlockCheckout = !isPaymentReady && isPaymentRequired;
 
   // Track payment not ready state
   useEffect(() => {
     if (shouldBlockCheckout && paymentStatus) {
-      posthog.capture('storefront:subscriptions:payment_not_ready:view', {
+      posthog.capture("storefront:subscriptions:payment_not_ready:view", {
         organization_slug: checkout.organization.slug,
         organization_status: paymentStatus?.organization_status,
         product_id: checkout.product_id,
-      })
+      });
     }
   }, [
     paymentStatus,
@@ -181,12 +182,12 @@ const Checkout = ({
     paymentStatus?.organization_status,
     checkout.product_id,
     posthog,
-  ])
+  ]);
 
   const PaymentNotReadyBanner = () => {
-    if (!shouldBlockCheckout) return null
+    if (!shouldBlockCheckout) return null;
 
-    const isDenied = paymentStatus?.organization_status === 'denied'
+    const isDenied = paymentStatus?.organization_status === "denied";
 
     return (
       <Alert color="red">
@@ -199,75 +200,75 @@ const Checkout = ({
           </div>
         </div>
       </Alert>
-    )
-  }
+    );
+  };
 
-  const [fullLoading, setFullLoading] = useState(false)
+  const [fullLoading, setFullLoading] = useState(false);
   const loading = useMemo(
     () => confirmLoading || fullLoading,
     [confirmLoading, fullLoading],
-  )
+  );
   const [listenFulfillment, fullfillmentLabel] = useCheckoutFulfillmentListener(
     client,
     checkout,
-  )
+  );
   const label = useMemo(
     () => fullfillmentLabel || loadingLabel,
     [fullfillmentLabel, loadingLabel],
-  )
+  );
   const checkoutConfirmedRedirect = useCheckoutConfirmedRedirect(
     embed,
     theme,
     listenFulfillment,
-  )
+  );
 
   const update = useCallback(
-    async (data: schemas['CheckoutUpdatePublic']) => {
+    async (data: schemas["CheckoutUpdatePublic"]) => {
       try {
-        return await _update(data)
+        return await _update(data);
       } catch (error) {
         if (
           error instanceof ClientResponseError &&
           error.response.status === 410
         ) {
-          window.location.reload()
+          window.location.reload();
         }
-        throw error
+        throw error;
       }
     },
     [_update],
-  )
+  );
 
   const confirm = useCallback(
     async (
-      data: schemas['CheckoutConfirmStripe'],
+      data: schemas["CheckoutConfirmStripe"],
       stripe: Stripe | null,
       elements: StripeElements | null,
     ) => {
-      setFullLoading(true)
-      let confirmedCheckout: schemas['CheckoutPublicConfirmed']
+      setFullLoading(true);
+      let confirmedCheckout: schemas["CheckoutPublicConfirmed"];
       try {
-        confirmedCheckout = await _confirm(data, stripe, elements)
+        confirmedCheckout = await _confirm(data, stripe, elements);
       } catch (error) {
         if (
           error instanceof ClientResponseError &&
           error.response.status === 410
         ) {
-          window.location.reload()
+          window.location.reload();
         }
-        setFullLoading(false)
-        throw error
+        setFullLoading(false);
+        throw error;
       }
 
       await checkoutConfirmedRedirect(
         confirmedCheckout,
         confirmedCheckout.customer_session_token,
-      )
+      );
 
-      return confirmedCheckout
+      return confirmedCheckout;
     },
     [_confirm, checkoutConfirmedRedirect],
-  )
+  );
 
   if (embed) {
     return (
@@ -279,18 +280,18 @@ const Checkout = ({
               checkout={checkout}
               update={
                 update as (
-                  data: schemas['CheckoutUpdatePublic'],
+                  data: schemas["CheckoutUpdatePublic"],
                 ) => Promise<ProductCheckoutPublic>
               }
               themePreset={themePreset}
               locale={locale}
             />
-            {checkout.product_price.amount_type === 'custom' && (
+            {checkout.product_price.amount_type === "custom" && (
               <CheckoutPWYWForm
                 checkout={checkout}
                 update={update}
                 productPrice={
-                  checkout.product_price as schemas['ProductPriceCustom']
+                  checkout.product_price as schemas["ProductPriceCustom"]
                 }
                 themePreset={themePreset}
                 locale={locale}
@@ -313,7 +314,7 @@ const Checkout = ({
           beforeSubmit={
             hasProductCheckout(checkout) && !checkout.is_free_product_price ? (
               <div className="flex flex-col gap-4">
-                {checkout.product_price.amount_type === 'seat_based' && (
+                {checkout.product_price.amount_type === "seat_based" && (
                   <CheckoutSeatSelector
                     checkout={checkout}
                     update={update}
@@ -332,11 +333,11 @@ const Checkout = ({
           }
         />
       </ShadowBox>
-    )
+    );
   }
 
   const hasMedia =
-    hasProductCheckout(checkout) && checkout.product.medias.length > 0
+    hasProductCheckout(checkout) && checkout.product.medias.length > 0;
 
   const orgHeader = (
     <div className="flex flex-row items-center gap-x-4">
@@ -359,7 +360,7 @@ const Checkout = ({
         </span>
       </div>
     </div>
-  )
+  );
 
   return (
     <div className="md:grid md:min-h-screen md:grid-cols-2">
@@ -378,7 +379,7 @@ const Checkout = ({
                           disabled={checkout.product.medias.length <= 1}
                         >
                           <button
-                            className={`relative h-10 w-10 shrink-0 ${checkout.product.medias.length > 1 ? 'cursor-pointer' : 'cursor-default'}`}
+                            className={`relative h-10 w-10 shrink-0 ${checkout.product.medias.length > 1 ? "cursor-pointer" : "cursor-default"}`}
                           >
                             <UploadImage
                               src={checkout.product.medias[0].public_url}
@@ -418,7 +419,7 @@ const Checkout = ({
                             description={checkout.product.description}
                             productName={checkout.product.name}
                             readMoreLabel={t(
-                              'checkout.productDescription.readMore',
+                              "checkout.productDescription.readMore",
                             )}
                           />
                         )}
@@ -432,18 +433,18 @@ const Checkout = ({
                   checkout={checkout}
                   update={
                     update as (
-                      data: schemas['CheckoutUpdatePublic'],
+                      data: schemas["CheckoutUpdatePublic"],
                     ) => Promise<ProductCheckoutPublic>
                   }
                   themePreset={themePreset}
                   locale={locale}
                 />
-                {checkout.product_price.amount_type === 'custom' && (
+                {checkout.product_price.amount_type === "custom" && (
                   <CheckoutPWYWForm
                     checkout={checkout}
                     update={update}
                     productPrice={
-                      checkout.product_price as schemas['ProductPriceCustom']
+                      checkout.product_price as schemas["ProductPriceCustom"]
                     }
                     themePreset={themePreset}
                     locale={locale}
@@ -451,7 +452,7 @@ const Checkout = ({
                 )}
                 {!checkout.is_free_product_price && (
                   <div className="flex flex-col gap-4 text-sm">
-                    {checkout.product_price.amount_type === 'seat_based' && (
+                    {checkout.product_price.amount_type === "seat_based" && (
                       <CheckoutSeatSelector
                         checkout={checkout}
                         update={update}
@@ -506,7 +507,7 @@ const Checkout = ({
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Checkout
+export default Checkout;
