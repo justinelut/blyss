@@ -65,6 +65,16 @@ describe("Guest checkout intent — sign-in instead of 401", () => {
     expect(client).toMatch(/useIsInWishlist\(product\.id, authenticated\)/);
   });
 
+  test("Marketplace cards send guests to localized sign-in before cart or checkout", () => {
+    const card = read("src/components/Marketplace/MarketplaceProductCard.tsx");
+    expect(card).toMatch(/const \{ authenticated \} = useAuth\(\)/);
+    expect(card).toMatch(/if \(!authenticated\)[\s\S]*?router\.push/);
+    expect(card).toMatch(/`\/\$\{country\}\/login\?return_to=/);
+    expect(card.indexOf("if (!authenticated)")).toBeLessThan(
+      card.indexOf("if (goesThroughCheckout)"),
+    );
+  });
+
   test("Guest cart page prompts sign-in", () => {
     const page = read("src/components/Cart/BlyssCartPage.tsx");
     expect(page).toMatch(/if \(!authenticated\)/);

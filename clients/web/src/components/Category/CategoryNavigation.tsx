@@ -2,7 +2,8 @@
 
 import { useCategories } from "@/hooks/queries/categories";
 import { cn } from "@/lib/utils";
-import Link from "next/link";
+import { countryFromPathname } from "@/lib/geo/path";
+import Link from "@/components/Marketplace/LocaleLink";
 import { usePathname } from "next/navigation";
 
 interface CategoryNavigationProps {
@@ -51,6 +52,10 @@ export function CategoryNavigation({
           }>
         | undefined) ?? []);
   const pathname = usePathname();
+  const country = countryFromPathname(pathname);
+  const routePathname = country
+    ? pathname.slice(country.length + 1) || "/"
+    : pathname;
 
   if (isLoading) {
     return (
@@ -96,7 +101,7 @@ export function CategoryNavigation({
         href="/marketplace"
         className={cn(
           "flex shrink-0 items-center justify-between rounded-md border px-3 py-2 font-sans text-sm font-medium whitespace-nowrap transition-colors sm:px-4",
-          pathname === "/marketplace"
+          routePathname === "/marketplace"
             ? "border-[var(--text-primary)] bg-[var(--surface-elevated)] text-[var(--text-primary)]"
             : "border-[var(--border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:bg-[var(--surface-sunken)] hover:text-[var(--text-primary)]",
         )}
@@ -110,7 +115,7 @@ export function CategoryNavigation({
       </Link>
 
       {sortedCategories.map((category) => {
-        const isActive = pathname === `/category/${category.slug}`;
+        const isActive = routePathname === `/category/${category.slug}`;
 
         return (
           <Link

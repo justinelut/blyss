@@ -11,7 +11,8 @@ import { useAddToCart } from '@/hooks/queries/cart'
 import { useCreateProductCheckout } from '@/hooks/queries/checkouts'
 import { useRouter } from 'next/navigation'
 import { toast } from '@/components/Toast/use-toast'
-import { useDisplayCurrency } from './CurrencyProvider'
+import { useAuth } from '@/hooks/auth'
+import { useCurrencyControls, useDisplayCurrency } from './CurrencyProvider'
 import { CardWishlistButton } from './CardWishlistButton'
 
 type Product = schemas['Product']
@@ -112,6 +113,8 @@ export const MarketplaceProductCard = ({
   className,
 }: MarketplaceProductCardProps) => {
   const displayCurrency = useDisplayCurrency()
+  const { country } = useCurrencyControls()
+  const { authenticated } = useAuth()
   const router = useRouter()
   const { mutate: addToCart, isPending: isAddingToCart } = useAddToCart()
   const { mutate: createCheckout, isPending: isCreatingCheckout } =
@@ -144,6 +147,13 @@ export const MarketplaceProductCard = ({
     e.preventDefault()
     e.stopPropagation()
     if (isSeed) return
+    if (!authenticated) {
+      const returnTo = `${window.location.pathname}${window.location.search}`
+      router.push(
+        `/${country}/login?return_to=${encodeURIComponent(returnTo)}`,
+      )
+      return
+    }
     if (goesThroughCheckout) {
       createCheckout(product.id, {
         onSuccess: ({ client_secret }) => {

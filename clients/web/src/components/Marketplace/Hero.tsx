@@ -138,7 +138,7 @@ export const Hero = ({ featuredProduct, country, currency }: HeroProps) => {
                     fill
                     priority
                     sizes="(max-width: 767px) calc(100vw - 32px), (max-width: 1023px) 54vw, 52vw"
-                    className="object-cover transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-[1.01]"
+                    className="object-contain transition-opacity duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:opacity-95"
                   />
                 ) : (
                   <div className="flex h-full w-full items-start justify-end p-6">
