@@ -31,6 +31,13 @@ describe("Homepage marketplace structure", () => {
     expect(hero).not.toMatch(/absolute right-3 bottom-3 left-3/);
   });
 
+  test("featured artwork preserves portrait and landscape information", () => {
+    const hero = read("src/components/Marketplace/Hero.tsx");
+    expect(hero).toMatch(/aspect-\[16\/10\]/);
+    expect(hero).toMatch(/object-contain/);
+    expect(hero).not.toMatch(/object-cover|group-hover:scale/);
+  });
+
   test("uses compact mobile gutters and overflow-safe hero tracks", () => {
     const hero = read("src/components/Marketplace/Hero.tsx");
     expect(hero).toMatch(/px-4/);
@@ -77,6 +84,16 @@ describe("Homepage responsive discovery surfaces", () => {
     expect(country).toMatch(/event\.key === ["']Escape["']/);
     expect(country).toMatch(/closeAndFocusTrigger/);
     expect(country).toMatch(/tabIndex=\{-1\}/);
+  });
+
+  test("category navigation stays locale-prefixed without redirect hops", () => {
+    const navigation = read("src/components/Category/CategoryNavigation.tsx");
+    expect(navigation).toMatch(
+      /import Link from ["']@\/components\/Marketplace\/LocaleLink["']/,
+    );
+    expect(navigation).toMatch(/countryFromPathname\(pathname\)/);
+    expect(navigation).toMatch(/routePathname === ["']\/marketplace["']/);
+    expect(navigation).toMatch(/href=\{`\/category\/\$\{category\.slug\}`\}/);
   });
 
   test("fixed mobile navigation has footer safe-area clearance without a main gap", () => {
