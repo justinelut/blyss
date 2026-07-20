@@ -16,13 +16,8 @@
  */
 
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useState } from "react";
-import {
-  parseAsInteger,
-  parseAsString,
-  parseAsStringEnum,
-  useQueryStates,
-} from "nuqs";
+import { usePathname, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { schemas } from "@/lib/api";
 import { usePublicProducts } from "@/hooks/queries/public-products";
 import type {
@@ -62,41 +57,35 @@ interface BrowsePageProps {
   };
 }
 
-const filterParsers = {
-  search: parseAsString,
-  category: parseAsString,
-  min_price: parseAsInteger,
-  max_price: parseAsInteger,
-  type: parseAsStringEnum<BrowseFilters["type"]>([
-    "all",
-    "one_time",
-    "subscription",
-  ]).withDefault("all"),
-  // Currency is geo-resolved server-side and passed via initialFilters; the
-  // URL only carries it when the user explicitly switches. No hardcoded KES
-  // default here (that was the US-sees-KES bug).
-  currency: parseAsString,
-  sort: parseAsStringEnum<BrowseFilters["sort"]>([
-    "newest",
-    "trending",
-    "price_asc",
-    "price_desc",
-  ]).withDefault("newest"),
-  page: parseAsInteger.withDefault(1),
+const productTypes = new Set<BrowseFilters["type"]>([
+  "all",
+  "one_time",
+  "subscription",
+]);
+const sortValues = new Set<BrowseFilters["sort"]>([
+  "newest",
+  "trending",
+  "price_asc",
+  "price_desc",
+]);
+
+const parseInteger = (value: string | null) => {
+  if (value === null || value.trim() === "") return null;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : null;
 };
 
 /**
  * BrowsePage — client wrapper for /marketplace.
  *
- * Owns filter state via nuqs (URL-driven). Hydrates from server-rendered
+ * Owns filter state through the native History API (URL-driven). Hydrates from server-rendered
  * initialProducts on first load; subsequent filter changes refetch via
- * TanStack Query. No useEffect chains — filter changes flip URL state which
- * the query hook subscribes to.
+ * TanStack Query. Filter changes update useSearchParams without a route fetch.
  *
  * Per plan §6.2:
  * - Two-column layout on desktop (240px filter rail + grid)
  * - Single column on mobile with bottom-sheet filters
- * - URL state via nuqs
+ * - URL state via Next.js native history integration
  * - Sticky search bar at top of right column
  * - Chip row showing active filters with X to remove each
  */
@@ -106,9 +95,48 @@ export function BrowsePage({
   categories,
   initialFilters,
 }: BrowsePageProps) {
-  const [filters, setFilters] = useQueryStates(filterParsers, {
-    history: "push",
-  });
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const filters = useMemo(() => {
+    const type = searchParams.get("type") as BrowseFilters["type"] | null;
+    const sort = searchParams.get("sort") as BrowseFilters["sort"] | null;
+    return {
+      search: searchParams.get("search"),
+      category: searchParams.get("category"),
+      min_price: parseInteger(searchParams.get("min_price")),
+      max_price: parseInteger(searchParams.get("max_price")),
+      type: type && productTypes.has(type) ? type : "all",
+      currency: searchParams.get("currency"),
+      sort: sort && sortValues.has(sort) ? sort : "newest",
+      page: Math.max(1, parseInteger(searchParams.get("page")) ?? 1),
+    };
+  }, [searchParams]);
+
+  const setFilters = useCallback(
+    (
+      next: Record<string, string | number | null | undefined>,
+      options?: { history?: "push" | "replace" },
+    ) => {
+      const params = new URLSearchParams(searchParams.toString());
+      for (const [key, value] of Object.entries(next)) {
+        const isDefault =
+          (key === "type" && value === "all") ||
+          (key === "sort" && value === "newest") ||
+          (key === "page" && value === 1) ||
+          (key === "currency" && value === initialFilters.currency);
+        if (value == null || value === "" || isDefault) {
+          params.delete(key);
+        } else {
+          params.set(key, String(value));
+        }
+      }
+      const query = params.toString();
+      window.history[
+        options?.history === "replace" ? "replaceState" : "pushState"
+      ](null, "", query ? `${pathname}?${query}` : pathname);
+    },
+    [initialFilters.currency, pathname, searchParams],
+  );
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
 
@@ -118,33 +146,6 @@ export function BrowsePage({
     updateViewport();
     query.addEventListener("change", updateViewport);
     return () => query.removeEventListener("change", updateViewport);
-  }, []);
-
-  // Bootstrap URL state from server props on first render if URL is empty
-  useEffect(() => {
-    const isEmpty =
-      filters.search === null &&
-      filters.category === null &&
-      filters.min_price === null &&
-      filters.max_price === null &&
-      filters.type === "all" &&
-      filters.sort === "newest" &&
-      filters.page === 1;
-    if (!isEmpty) return;
-    setFilters(
-      {
-        search: initialFilters.search,
-        category: initialFilters.category,
-        min_price: initialFilters.min_price,
-        max_price: initialFilters.max_price,
-        type: initialFilters.type,
-        currency: initialFilters.currency,
-        sort: initialFilters.sort,
-        page: initialFilters.page,
-      },
-      { history: "replace" },
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const browseFilters: BrowseFilters = useMemo(

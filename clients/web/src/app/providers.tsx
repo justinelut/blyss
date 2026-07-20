@@ -12,8 +12,7 @@ import { CONFIG } from "@/utils/config";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
 import { usePathname, useSearchParams } from "next/navigation";
-import { NuqsAdapter } from "nuqs/adapters/next/app";
-import { PropsWithChildren, useEffect, useMemo } from "react";
+import { useEffect, useMemo } from "react";
 
 export { NavigationHistoryProvider };
 
@@ -140,8 +139,4 @@ export function PolarQueryClientProvider({
   return (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
-}
-
-export function PolarNuqsProvider({ children }: PropsWithChildren) {
-  return <NuqsAdapter>{children}</NuqsAdapter>;
 }

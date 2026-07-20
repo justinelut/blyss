@@ -130,6 +130,9 @@ describe("Public marketplace performance contracts", () => {
     expect(fonts).not.toMatch(/Inter-Light\.woff2/);
     expect(fonts).not.toMatch(/\.\/Inter-(Regular|Medium|SemiBold)\.woff2/);
     expect(fonts).toMatch(/export const inter = Inter\(\{/);
+    expect(fonts).toMatch(
+      /export const spaceGrotesk = Space_Grotesk\(\{[\s\S]*?display: ["']optional["']/,
+    );
     for (const font of [
       "inter",
       "louize",
@@ -166,6 +169,7 @@ describe("Public marketplace performance contracts", () => {
     const continuity = read("src/components/Marketplace/ContinueShopping.tsx");
 
     expect(providers).not.toMatch(/import posthog from ["']posthog-js["']/);
+    expect(providers).not.toMatch(/NuqsAdapter|nuqs\/adapters/);
     expect(providers).toMatch(/import\(["']posthog-js["']\)/);
     expect(posthogHook).not.toMatch(/posthog-js\/react/);
     expect(header).toMatch(/from ["']@\/hooks\/auth["']/);
@@ -255,6 +259,9 @@ describe("Public marketplace performance contracts", () => {
 
     expect(browse).toMatch(/from ["']@\/hooks\/queries\/public-products["']/);
     expect(browse).toMatch(/initialData:\s*\{[\s\S]*items: initialProducts/);
+    expect(browse).not.toMatch(/from ["']nuqs["']|useQueryStates/);
+    expect(browse).toMatch(/window\.history\[/);
+    expect(browse).not.toMatch(/Bootstrap URL state|history: ["']replace["']/);
     expect(browse).toMatch(/const BrowseFilterRail = dynamic/);
     expect(browse).toMatch(/\{isDesktop && \(/);
     expect(browse).toMatch(/\{mobileOpen && \(/);

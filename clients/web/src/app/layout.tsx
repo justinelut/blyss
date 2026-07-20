@@ -17,7 +17,6 @@ import { PHASE_PRODUCTION_BUILD } from "next/constants";
 import { Metadata } from "next/types";
 import {
   NavigationHistoryProvider,
-  PolarNuqsProvider,
   PolarPostHogProvider,
   PolarQueryClientProvider,
 } from "./providers";
@@ -207,12 +206,10 @@ export default async function RootLayout({
           >
             <PolarPostHogProvider distinctId={distinctId}>
               <PolarQueryClientProvider>
-                <PolarNuqsProvider>
-                  <NavigationHistoryProvider>
-                    {CONFIG.IS_SANDBOX && <SandboxBanner />}
-                    {children}
-                  </NavigationHistoryProvider>
-                </PolarNuqsProvider>
+                <NavigationHistoryProvider>
+                  {CONFIG.IS_SANDBOX && <SandboxBanner />}
+                  {children}
+                </NavigationHistoryProvider>
               </PolarQueryClientProvider>
             </PolarPostHogProvider>
           </UserContextProvider>
