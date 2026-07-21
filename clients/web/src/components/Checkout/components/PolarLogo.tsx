@@ -35,7 +35,7 @@ const PolarLogo = ({
       >
         Blyss
       </text>
-      <circle cx="50" cy="28" r="1.4" fill="#9B352F" />
+      <circle cx="50" cy="28" r="1.4" fill="var(--accent)" />
     </svg>
   );
 };

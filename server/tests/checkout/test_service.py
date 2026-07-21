@@ -13,8 +13,10 @@ from pytest_mock import MockerFixture
 from sqlalchemy.orm import joinedload
 
 from polar.auth.models import Anonymous, AuthSubject
+from polar.cart.service import CartService
 from polar.checkout.guard import has_product_checkout
 from polar.checkout.schemas import (
+    CheckoutCartCreate,
     CheckoutConfirm,
     CheckoutConfirmStripe,
     CheckoutPriceCreate,
@@ -419,6 +421,59 @@ class TestCreate:
                 ),
                 auth_subject,
             )
+
+    @pytest.mark.auth(AuthSubjectFixture(subject="organization"))
+    @pytest.mark.parametrize(
+        ("currency", "expected_amount", "expected_price_index"),
+        [("kes", 125000, 1), ("usd", 1300, 0)],
+    )
+    async def test_cart_checkout_uses_requested_currency_for_every_product(
+        self,
+        session: AsyncSession,
+        save_fixture: SaveFixture,
+        auth_subject: AuthSubject[Organization],
+        organization: Organization,
+        user: User,
+        currency: str,
+        expected_amount: int,
+        expected_price_index: int,
+    ) -> None:
+        product_a = await create_product(
+            save_fixture,
+            organization=organization,
+            recurring_interval=None,
+            name="USD-first product A",
+            prices=[(500, "usd"), (50000, "kes")],
+        )
+        product_b = await create_product(
+            save_fixture,
+            organization=organization,
+            recurring_interval=None,
+            name="USD-first product B",
+            prices=[(800, "usd"), (75000, "kes")],
+        )
+
+        buyer_auth = AuthSubject(subject=user, scopes=set(), session=None)
+        cart_service = CartService()
+        item_a, _ = await cart_service.add_item(
+            session, buyer_auth, product_a.id
+        )
+        item_b, _ = await cart_service.add_item(
+            session, buyer_auth, product_b.id
+        )
+
+        checkout = await checkout_service.create(
+            session,
+            CheckoutCartCreate(
+                currency=currency,
+                cart_items=[item_a.id, item_b.id],
+            ),
+            auth_subject,
+        )
+
+        assert checkout.currency == currency
+        assert checkout.amount == expected_amount
+        assert checkout.product_price_id == product_a.prices[expected_price_index].id
 
     @pytest.mark.auth(
         AuthSubjectFixture(subject="user_second"),

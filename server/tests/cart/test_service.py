@@ -337,6 +337,7 @@ class TestCreateCheckoutFromCart:
         checkout = await cart_service.create_checkout_from_cart(
             session=session,
             auth_subject=auth_subject,
+            currency="KES",
         )
 
         assert checkout.client_secret == "polar_cs_test"
@@ -344,6 +345,7 @@ class TestCreateCheckoutFromCart:
         _, checkout_create, creator_auth, _ = create_mock.await_args.args
         assert isinstance(checkout_create, CheckoutCartCreate)
         assert checkout_create.cart_items == [item_a.id, item_b.id]
+        assert checkout_create.currency == "kes"
         assert creator_auth.subject.id == organization.id
         assert Scope.checkouts_write in creator_auth.scopes
 

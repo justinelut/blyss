@@ -28,9 +28,15 @@ export const useCart = (enabled = true) => {
 }
 
 export const useCheckoutCart = () => {
+  const currency = useDisplayCurrency()
+
   return useMutation({
     mutationFn: () =>
-      unwrap((api as any).POST('/v1/cart/checkout')) as Promise<{
+      unwrap(
+        (api as any).POST('/v1/cart/checkout', {
+          params: { query: { currency } },
+        }),
+      ) as Promise<{
         client_secret: string
         url: string
       }>,
@@ -357,12 +363,14 @@ export const useCartForOrganization = (
  * the buyer's cart for sequential per-creator checkouts. Pass the
  * organization_id whose section's "Pay" button was pressed.
  */
-export const useCheckoutCartForOrganization = () =>
-  useMutation({
+export const useCheckoutCartForOrganization = () => {
+  const currency = useDisplayCurrency()
+
+  return useMutation({
     mutationFn: (organizationId: string) =>
       unwrap(
         (api as any).POST('/v1/cart/checkout', {
-          params: { query: { organization_id: organizationId } },
+          params: { query: { organization_id: organizationId, currency } },
         }),
       ) as Promise<{ client_secret: string; url: string }>,
     onError: (error: any) => {
@@ -397,3 +405,4 @@ export const useCheckoutCartForOrganization = () =>
       })
     },
   })
+}

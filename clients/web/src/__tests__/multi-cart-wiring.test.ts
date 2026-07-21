@@ -116,3 +116,19 @@ describe("Multi-creator cart wiring", () => {
     expect(conf).toContain("SequentialCheckoutContinue");
   });
 });
+
+
+test("cart and direct-product checkout mutations forward display currency", () => {
+  const cartHooks = read("src/hooks/queries/cart.ts");
+  const checkoutHooks = read("src/hooks/queries/checkouts.ts");
+
+  expect(cartHooks).toMatch(
+    /useCheckoutCart[\s\S]*?useDisplayCurrency\(\)[\s\S]*?\/v1\/cart\/checkout[\s\S]*?query:\s*\{\s*currency\s*\}/,
+  );
+  expect(cartHooks).toMatch(
+    /useCheckoutCartForOrganization[\s\S]*?useDisplayCurrency\(\)[\s\S]*?organization_id:\s*organizationId,\s*currency/,
+  );
+  expect(checkoutHooks).toMatch(
+    /useCreateProductCheckout[\s\S]*?useDisplayCurrency\(\)[\s\S]*?\/v1\/cart\/checkout\/product[\s\S]*?query:\s*\{\s*currency\s*\}/,
+  );
+});

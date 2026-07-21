@@ -582,12 +582,14 @@ class OrderService:
                     product = cp.product
                     if product is None or not product.prices:
                         continue
-                    price = product.prices[0]
-                    if is_static_price(price):
-                        if is_fixed_price(price):
-                            item_amount = price.price_amount
-                            item = OrderItem.from_price(price, 0, item_amount)
-                            items.append(item)
+                    currency_prices = PriceSet.from_prices(
+                        product.prices, checkout.currency
+                    )
+                    price = currency_prices.get_default_price()
+                    if is_static_price(price) and is_fixed_price(price):
+                        item_amount = price.price_amount
+                        item = OrderItem.from_price(price, 0, item_amount)
+                        items.append(item)
             else:
                 # Regular single-product checkout
                 currency_prices = PriceSet.from_prices(

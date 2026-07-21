@@ -283,7 +283,9 @@ class TestCheckoutCart:
             ),
         )
 
-        response = await client.post("/v1/cart/checkout")
+        response = await client.post(
+            "/v1/cart/checkout", params={"currency": "KES"}
+        )
 
         assert response.status_code == 201
         assert response.json() == {
@@ -291,6 +293,42 @@ class TestCheckoutCart:
             "url": "/checkout/polar_cs_test",
         }
         create_checkout_mock.assert_awaited_once()
+        assert create_checkout_mock.await_args.kwargs["currency"] == "KES"
+
+
+@pytest.mark.asyncio
+class TestCheckoutProduct:
+    @pytest.mark.auth(AuthSubjectFixture(subject="user"))
+    async def test_forwards_requested_currency(
+        self,
+        client: AsyncClient,
+        mocker: MockerFixture,
+        save_fixture: SaveFixture,
+        organization: Organization,
+    ) -> None:
+        product = await create_product(
+            save_fixture,
+            organization=organization,
+            recurring_interval=None,
+            prices=[(500, "usd"), (50000, "kes")],
+        )
+        create_checkout_mock = mocker.patch(
+            "polar.checkout.service.checkout.create",
+            mocker.AsyncMock(
+                return_value=SimpleNamespace(client_secret="polar_cs_test")
+            ),
+        )
+
+        response = await client.post(
+            "/v1/cart/checkout/product",
+            params={"currency": "USD"},
+            json={"product_id": str(product.id)},
+        )
+
+        assert response.status_code == 201
+        _, checkout_create, _, _ = create_checkout_mock.await_args.args
+        assert checkout_create.product_id == product.id
+        assert checkout_create.currency == "usd"
 
 
 @pytest.mark.asyncio

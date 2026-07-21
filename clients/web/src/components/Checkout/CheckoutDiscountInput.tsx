@@ -95,6 +95,7 @@ export const CheckoutDiscountInput = ({
           variant="secondary"
           size="sm"
           onClick={() => setExpanded(true)}
+          className="!rounded-md !border !border-[var(--border-strong)] !bg-transparent !text-[var(--text-primary)] !shadow-none hover:!bg-[var(--surface-sunken)]"
         >
           {t('checkout.form.addDiscountCode')}
         </Button>
@@ -108,7 +109,7 @@ export const CheckoutDiscountInput = ({
         {!collapsible && (
           <label className="flex flex-row items-center justify-between text-sm">
             <span>{t('checkout.form.discountCode')}</span>
-            <span className="dark:text-polar-500 text-xs font-normal text-gray-500">
+            <span className="text-xs font-normal text-[var(--text-muted)]">
               {t('checkout.form.optional')}
             </span>
           </label>
@@ -129,6 +130,7 @@ export const CheckoutDiscountInput = ({
                     {...field}
                     value={field.value || ''}
                     disabled={hasDiscount}
+                    className="!rounded-md !border-0 !bg-[var(--surface-sunken)] !text-[var(--text-primary)] !shadow-none placeholder:!text-[var(--text-muted)] focus:!border-b focus:!border-[var(--border-strong)] focus:!ring-0"
                     onKeyDown={(e) => {
                       if (e.key !== 'Enter') return
                       e.preventDefault()

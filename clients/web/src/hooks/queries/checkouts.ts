@@ -3,6 +3,7 @@ import { operations, unwrap } from '@/lib/api'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { toast } from '@/components/Toast/use-toast'
 import { defaultRetry } from './retry'
+import { useDisplayCurrency } from '@/components/Marketplace/CurrencyProvider'
 
 export const useCheckouts = (
   organizationId: string,
@@ -35,11 +36,14 @@ export const useCheckouts = (
  * infinite loop that never created a checkout. This creates the real
  * session so the buyer lands on /checkout/{client_secret}.
  */
-export const useCreateProductCheckout = () =>
-  useMutation({
+export const useCreateProductCheckout = () => {
+  const currency = useDisplayCurrency()
+
+  return useMutation({
     mutationFn: (productId: string) =>
       unwrap(
         (api as any).POST('/v1/cart/checkout/product', {
+          params: { query: { currency } },
           body: { product_id: productId },
         }),
       ) as Promise<{ client_secret: string; url: string }>,
@@ -57,3 +61,4 @@ export const useCreateProductCheckout = () =>
       })
     },
   })
+}

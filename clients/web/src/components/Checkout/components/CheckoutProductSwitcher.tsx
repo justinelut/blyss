@@ -192,7 +192,7 @@ const CheckoutProductSwitcher = ({
   // bug.
   if ((checkout as { is_cart_checkout?: boolean }).is_cart_checkout) {
     return (
-      <div className="dark:border-polar-700 dark:divide-polar-700 flex flex-col divide-y divide-gray-200 overflow-hidden rounded-xl border border-gray-200">
+      <div className="flex flex-col divide-y divide-[var(--border)] overflow-hidden rounded-md border border-[var(--border)] bg-[var(--surface-elevated)]">
         {items.map((item) => (
           <div
             key={item.key}
@@ -200,11 +200,11 @@ const CheckoutProductSwitcher = ({
           >
             <div className="min-w-0 flex-1">
               <span className="line-clamp-2 text-sm">{item.productName}</span>
-              <span className="dark:text-polar-500 block text-xs text-gray-500">
+              <span className="block text-xs text-[var(--text-secondary)]">
                 {getDescription(item.product, item.price)}
               </span>
             </div>
-            <span className="dark:text-polar-400 shrink-0 text-sm text-gray-500">
+            <span className="shrink-0 text-sm text-[var(--text-secondary)] tabular-nums">
               <ProductPriceLabel
                 product={item.product}
                 price={item.price}
@@ -222,7 +222,7 @@ const CheckoutProductSwitcher = ({
     <RadioGroup
       value={`${selectedProduct.id}:${selectedPrice.id}`}
       onValueChange={selectProduct}
-      className="dark:border-polar-700 dark:divide-polar-700 gap-0 divide-y divide-gray-200 overflow-hidden rounded-xl border border-gray-200"
+      className="gap-0 divide-y divide-[var(--border)] overflow-hidden rounded-md border border-[var(--border)] bg-[var(--surface-elevated)]"
     >
       {items.map((item) => (
         <label
@@ -230,19 +230,19 @@ const CheckoutProductSwitcher = ({
           className={cn(
             'flex cursor-pointer items-center gap-x-3 px-4 py-3 transition-colors',
             item.isSelected
-              ? 'bg-blue-50/50 dark:bg-blue-950/20'
-              : 'dark:hover:bg-polar-800 hover:bg-gray-50',
+              ? 'bg-[var(--surface-sunken)]'
+              : 'hover:bg-[var(--surface)]',
           )}
           htmlFor={`product-${item.key}`}
         >
           <RadioGroupItem value={item.value} id={`product-${item.key}`} />
           <div className="min-w-0 flex-1">
             <span className="line-clamp-2 text-sm">{item.productName}</span>
-            <span className="dark:text-polar-500 block text-xs text-gray-500">
+            <span className="block text-xs text-[var(--text-secondary)]">
               {getDescription(item.product, item.price)}
             </span>
           </div>
-          <span className="dark:text-polar-400 shrink-0 text-sm text-gray-500">
+          <span className="shrink-0 text-sm text-[var(--text-secondary)]">
             <CheckoutProductSwitcherItemPrice
               isSelected={item.isSelected}
               product={item.product}

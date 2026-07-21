@@ -21,8 +21,11 @@ const CheckoutLayout = ({
   }
 
   return (
-    <PolarThemeProvider>
-      <div className="md:dark:bg-polar-950 dark:bg-polar-900 h-full min-h-screen bg-white md:bg-gray-50 dark:text-white">
+    <PolarThemeProvider forceTheme={theme ?? 'light'}>
+      <div
+        data-checkout-shell
+        className="min-h-screen bg-[var(--background)] text-[var(--text-primary)]"
+      >
         {children}
       </div>
     </PolarThemeProvider>
