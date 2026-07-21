@@ -35,6 +35,9 @@ describe("Homepage marketplace structure", () => {
     const hero = read("src/components/Marketplace/Hero.tsx");
     expect(hero).toMatch(/aspect-\[16\/10\]/);
     expect(hero).toMatch(/object-contain/);
+    expect(hero).toMatch(/loading="eager"/);
+    expect(hero).toMatch(/fetchPriority="high"/);
+    expect(hero).not.toMatch(/\spriority\s/);
     expect(hero).not.toMatch(/object-cover|group-hover:scale/);
   });
 
