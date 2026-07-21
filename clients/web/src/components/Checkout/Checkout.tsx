@@ -73,14 +73,14 @@ const TruncatedDescription = ({
       <div className="flex flex-col gap-y-1">
         <div
           ref={textRef}
-          className="prose dark:prose-invert prose-headings:text-xs prose-p:text-xs prose-ul:text-xs prose-ol:text-xs dark:text-polar-400 line-clamp-2 max-w-none text-left text-xs text-gray-600"
+          className="prose prose-headings:text-xs prose-p:text-xs prose-ul:text-xs prose-ol:text-xs line-clamp-2 max-w-none text-left text-xs text-[var(--text-secondary)]"
         >
           <Markdown options={markdownOptions}>{description}</Markdown>
         </div>
         {isClamped && (
           <button
             onClick={() => setIsModalOpen(true)}
-            className="dark:text-polar-300 dark:hover:text-polar-200 cursor-pointer self-start text-xs text-gray-500 hover:text-gray-700"
+            className="cursor-pointer self-start text-xs text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
           >
             {readMoreLabel}
           </button>
@@ -91,7 +91,7 @@ const TruncatedDescription = ({
         isShown={isModalOpen}
         hide={() => setIsModalOpen(false)}
         modalContent={
-          <div className="prose dark:prose-invert prose-headings:mt-4 prose-headings:font-medium prose-headings:text-black prose-h1:text-xl prose-h2:text-lg prose-h3:text-md dark:prose-headings:text-white dark:text-polar-300 p-6 leading-normal text-gray-800">
+          <div className="prose prose-headings:mt-4 prose-headings:font-medium prose-headings:text-[var(--text-primary)] prose-h1:text-xl prose-h2:text-lg prose-h3:text-md p-6 leading-normal text-[var(--text-secondary)]">
             <Markdown options={markdownOptions}>{description}</Markdown>
           </div>
         }
@@ -272,7 +272,7 @@ const Checkout = ({
 
   if (embed) {
     return (
-      <ShadowBox className="dark:md:bg-polar-900 flex flex-col gap-y-12 divide-gray-200 overflow-hidden rounded-3xl md:bg-white dark:divide-transparent">
+      <ShadowBox className="flex flex-col gap-y-12 divide-[var(--border)] overflow-hidden rounded-3xl bg-[var(--surface-elevated)] text-[var(--text-primary)]">
         <PaymentNotReadyBanner />
         {hasProductCheckout(checkout) && (
           <>
@@ -344,7 +344,7 @@ const Checkout = ({
       {checkout.return_url && (
         <Link
           href={checkout.return_url}
-          className="dark:text-polar-500 text-gray-600"
+          className="text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
         >
           <ArrowBackOutlined fontSize="small" />
         </Link>
@@ -355,7 +355,7 @@ const Checkout = ({
           name={checkout.organization.name}
           className="h-6 w-6"
         />
-        <span className="text-sm dark:text-white">
+        <span className="text-sm font-medium text-[var(--text-primary)]">
           {checkout.organization.name}
         </span>
       </div>
@@ -363,10 +363,18 @@ const Checkout = ({
   );
 
   return (
-    <div className="md:grid md:min-h-screen md:grid-cols-2">
-      <div className="md:flex md:justify-end">
-        <div className="mx-auto flex w-full max-w-[480px] flex-col gap-y-8 px-4 py-6 md:mx-0 md:py-12 md:pr-12 md:pl-4">
-          {orgHeader}
+    <div className="min-h-screen bg-[var(--background)] text-[var(--text-primary)] md:grid md:grid-cols-2">
+      <section className="bg-[var(--surface)] md:flex md:justify-end">
+        <div className="mx-auto flex w-full max-w-[560px] flex-col gap-y-10 px-6 py-8 md:mx-0 md:px-10 md:py-12 lg:px-14 lg:py-14">
+          <header className="flex items-center justify-between gap-6">
+            <Link
+              href="/"
+              className="font-display text-[22px] font-semibold tracking-[-0.03em] text-[var(--text-primary)]"
+            >
+              Blyss
+            </Link>
+            {orgHeader}
+          </header>
           <div className="flex flex-col gap-y-8 md:sticky md:top-8">
             {hasProductCheckout(checkout) && (
               <>
@@ -388,13 +396,13 @@ const Checkout = ({
                               className="h-10 w-10 rounded-lg object-cover"
                             />
                             {checkout.product.medias.length > 1 && (
-                              <span className="absolute right-0 bottom-0 rounded bg-black/60 px-1 py-0.5 text-[10px] leading-none font-medium text-white">
+                              <span className="absolute right-0 bottom-0 rounded bg-[var(--text-primary)] px-1 py-0.5 text-[10px] leading-none font-medium text-[var(--background)]">
                                 +{checkout.product.medias.length - 1}
                               </span>
                             )}
                           </button>
                         </DialogTrigger>
-                        <DialogContent className="dark:bg-polar-900 max-w-2xl">
+                        <DialogContent className="max-w-2xl bg-[var(--surface-elevated)] text-[var(--text-primary)]">
                           <DialogHeader>
                             <DialogTitle>{checkout.product.name}</DialogTitle>
                             <DialogDescription className="sr-only">
@@ -410,9 +418,9 @@ const Checkout = ({
                       </Dialog>
                     )}
                     <div className="flex min-w-0 flex-col gap-y-1">
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">
+                      <h1 className="font-display text-[18px] font-semibold leading-[1.3] text-[var(--text-primary)]">
                         {checkout.product.name}
-                      </span>
+                      </h1>
                       {checkout.product.description &&
                         !hasMarkdown(checkout.product.description) && (
                           <TruncatedDescription
@@ -425,7 +433,7 @@ const Checkout = ({
                         )}
                     </div>
                   </div>
-                  <span className="text-3xl font-medium">
+                  <span className="font-display text-[clamp(32px,4vw,48px)] font-semibold tracking-[-0.025em] text-[var(--text-primary)] tabular-nums">
                     <CheckoutHeroPrice checkout={checkout} locale={locale} />
                   </span>
                 </div>
@@ -476,7 +484,7 @@ const Checkout = ({
                   hasMarkdown(checkout.product.description) && (
                     <div
                       id="description"
-                      className="prose dark:prose-invert prose-headings:mt-4 prose-headings:font-medium prose-headings:text-black prose-h1:text-xl prose-h2:text-lg prose-h3:text-md dark:prose-headings:text-white dark:text-polar-300 leading-normal text-gray-800"
+                      className="prose prose-headings:mt-4 prose-headings:font-medium prose-headings:text-[var(--text-primary)] prose-h1:text-xl prose-h2:text-lg prose-h3:text-md leading-normal text-[var(--text-secondary)]"
                     >
                       <Markdown options={markdownOptions}>
                         {checkout.product.description}
@@ -487,9 +495,17 @@ const Checkout = ({
             )}
           </div>
         </div>
-      </div>
-      <div className="dark:md:bg-polar-900 md:bg-white">
-        <div className="mx-auto flex w-full max-w-[480px] flex-col gap-y-8 px-4 py-6 md:mx-0 md:py-12 md:pr-4 md:pl-12">
+      </section>
+      <section className="bg-[var(--background)] md:flex md:justify-start">
+        <div className="mx-auto flex w-full max-w-[560px] flex-col gap-y-8 px-6 py-8 md:mx-0 md:px-10 md:py-12 lg:px-14 lg:py-14">
+          <header>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
+              Payment
+            </p>
+            <h2 className="mt-2 font-display text-[clamp(28px,3vw,40px)] font-semibold leading-[1.08] tracking-[-0.02em] text-[var(--text-primary)]">
+              Complete your purchase.
+            </h2>
+          </header>
           <PaymentNotReadyBanner />
           <CheckoutForm
             form={form}
@@ -505,7 +521,7 @@ const Checkout = ({
             locale={locale}
           />
         </div>
-      </div>
+      </section>
     </div>
   );
 };

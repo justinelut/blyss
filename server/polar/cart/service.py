@@ -527,6 +527,7 @@ class CartService:
         auth_subject: AuthSubject[User | Anonymous],
         ip_geolocation_client: object | None = None,
         organization_id: UUID | None = None,
+        currency: str | None = None,
     ) -> "Checkout":
         """Create a hosted Polar checkout session from the buyer's cart.
 
@@ -606,6 +607,7 @@ class CartService:
 
         create_payload = CheckoutCartCreate(
             cart_items=[ci.id for ci in cart_items],
+            currency=currency.lower() if currency else None,
         )
 
         return await checkout_service.create(

@@ -275,14 +275,14 @@ const BaseCheckoutForm = ({
   }, [checkout, interval, t])
 
   return (
-    <div className="flex flex-col justify-between gap-y-24">
-      <div className="flex flex-col gap-y-12">
+    <div className="flex flex-col justify-between gap-y-12 text-[var(--text-primary)] [&_input]:!h-12 [&_input]:!rounded-md [&_input]:!border-0 [&_input]:!bg-[var(--surface-sunken)] [&_input]:!text-[var(--text-primary)] [&_input]:!shadow-none [&_input]:placeholder:!text-[var(--text-muted)] [&_input:focus]:!border-b [&_input:focus]:!border-[var(--border-strong)] [&_input:focus]:!ring-0 [&_label]:!text-[var(--text-primary)] [&_[role=combobox]]:!h-12 [&_[role=combobox]]:!rounded-md [&_[role=combobox]]:!border-0 [&_[role=combobox]]:!bg-[var(--surface-sunken)] [&_[role=combobox]]:!text-[var(--text-primary)] [&_[role=combobox]]:!shadow-none">
+      <div className="flex flex-col gap-y-10">
         <Form {...form}>
           <form
             onSubmit={handleSubmit(onSubmit)}
-            className="flex flex-col gap-y-12"
+            className="flex flex-col gap-y-8"
           >
-            <div className="flex flex-col gap-y-6">
+            <div className="flex flex-col gap-y-5">
               <FormField
                 control={control}
                 name="customer_email"
@@ -558,8 +558,8 @@ const BaseCheckoutForm = ({
                           <FormControl>
                             <Checkbox
                               className={cn(
-                                'dark:border-polar-600 cursor-pointer border-gray-300',
-                                field.value ? 'border-primary' : '',
+                                'cursor-pointer border-[var(--border-strong)]',
+                                field.value ? 'border-[var(--accent)]' : '',
                               )}
                               checked={field.value ? field.value : false}
                               onCheckedChange={(checked) => {
@@ -579,7 +579,7 @@ const BaseCheckoutForm = ({
                   />
 
                   {isBusinessCustomer && (
-                    <div className="dark:border-polar-700 flex flex-col gap-y-4 rounded-2xl border border-gray-200 p-4">
+                    <div className="flex flex-col gap-y-4 rounded-md border border-[var(--border)] p-4">
                       <span className="text-sm font-medium">
                         {t('checkout.form.billingDetails')}
                       </span>
@@ -681,24 +681,24 @@ const BaseCheckoutForm = ({
                 type="submit"
                 size="lg"
                 wrapperClassNames="text-base"
-                className="w-full"
+                className="!h-12 w-full !rounded-md !bg-[var(--accent)] !text-[var(--accent-foreground)] !shadow-none hover:!bg-[var(--accent-hover)]"
                 disabled={disabled || isUpdatePending}
                 loading={loading}
               >
                 {checkoutLabel}
               </Button>
               {loading && loadingLabel && (
-                <p className="dark:text-polar-500 text-sm text-gray-500">
+                <p className="text-sm text-[var(--text-muted)]">
                   {loadingLabel}
                 </p>
               )}
               {disabled && !loading && (
-                <p className="text-sm text-red-500 dark:text-red-500">
+                <p className="text-sm text-[var(--danger)]">
                   {t('checkout.cta.paymentsUnavailable')}
                 </p>
               )}
               {errors.root && (
-                <p className="text-destructive-foreground text-sm">
+                <p className="text-sm text-[var(--danger)]">
                   {errors.root.message}
                 </p>
               )}
@@ -706,7 +706,7 @@ const BaseCheckoutForm = ({
           </form>
         </Form>
         <div>
-          <p className="dark:text-polar-500 text-center text-xs text-gray-500">
+          <p className="text-center text-xs leading-relaxed text-[var(--text-secondary)]">
             {checkout.is_payment_form_required
               ? checkout.active_trial_interval
                 ? t('checkout.footer.mandateSubscriptionTrial')
@@ -719,7 +719,7 @@ const BaseCheckoutForm = ({
       </div>
       <a
         href="https://blyss.co.ke?utm_source=checkout"
-        className="dark:text-polar-600 flex w-full flex-row items-center justify-center gap-x-3 text-sm text-gray-400"
+        className="flex w-full flex-row items-center justify-center gap-x-3 text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
         target="_blank"
       >
         <span>{t('checkout.footer.poweredBy')}</span>

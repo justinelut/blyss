@@ -217,6 +217,15 @@ async def checkout_cart(
     auth_subject: CartWrite,
     ip_geolocation_client: ip_geolocation.IPGeolocationClient,
     organization_id: UUID | None = None,
+    currency: str | None = Query(
+        None,
+        min_length=3,
+        max_length=3,
+        description=(
+            "Buyer-selected ISO 4217 currency. Every cart product must have "
+            "a price in this currency."
+        ),
+    ),
     session: AsyncSession = Depends(get_db_session),
 ) -> CartCheckoutResponse:
     """Create a hosted Polar checkout session for one creator's cart slice.
@@ -239,6 +248,7 @@ async def checkout_cart(
         auth_subject=auth_subject,
         ip_geolocation_client=ip_geolocation_client,
         organization_id=organization_id,
+        currency=currency,
     )
 
     return CartCheckoutResponse(
@@ -262,6 +272,12 @@ async def checkout_product(
     body: ProductCheckoutRequest,
     auth_subject: CartWrite,
     ip_geolocation_client: ip_geolocation.IPGeolocationClient,
+    currency: str | None = Query(
+        None,
+        min_length=3,
+        max_length=3,
+        description="Buyer-selected ISO 4217 currency for this product.",
+    ),
     session: AsyncSession = Depends(get_db_session),
 ) -> CartCheckoutResponse:
     """Create a hosted checkout session for a single product (including
@@ -300,7 +316,10 @@ async def checkout_product(
         session=None,
     )
 
-    create_payload = CheckoutProductCreate(product_id=body.product_id)
+    create_payload = CheckoutProductCreate(
+        product_id=body.product_id,
+        currency=currency.lower() if currency else None,
+    )
     checkout = await checkout_service.create(
         session, create_payload, creator_auth, ip_geolocation_client
     )

@@ -334,17 +334,6 @@ class CheckoutService:
             )
             product = products[0]
 
-            # Calculate combined subtotal from all cart items
-            combined_subtotal = 0
-            for cart_item in cart_items:
-                item_product = cart_item.product
-                if item_product.prices:
-                    item_price = item_product.prices[0]
-                    if is_fixed_price(item_price):
-                        combined_subtotal += (
-                            item_price.price_amount * cart_item.quantity
-                        )
-
             # Use the first product's organization and currency settings
             currencies = self._get_currencies(
                 checkout_create.currency, product, product.organization, ip_country
@@ -514,14 +503,34 @@ class CheckoutService:
 
         amount = checkout_create.amount
         if isinstance(checkout_create, CheckoutCartCreate):
-            # For cart checkout, calculate combined amount from all cart items
+            # Resolve every row against the checkout's selected currency.
+            # Never use product.prices[0]: catalog ordering is unrelated to
+            # the buyer's region and previously turned KES carts into USD
+            # sessions (or mixed USD amounts into a KES checkout).
             amount = 0
-            for cart_item in cart_items:
+            for index, cart_item in enumerate(cart_items):
                 item_product = cart_item.product
-                if item_product.prices:
-                    item_price = item_product.prices[0]
-                    if is_fixed_price(item_price):
-                        amount += item_price.price_amount * cart_item.quantity
+                try:
+                    item_price = PriceSet.from_product(
+                        item_product, currency
+                    ).get_default_price()
+                except NoPricesForCurrencies as e:
+                    raise PolarRequestValidationError(
+                        [
+                            {
+                                "type": "value_error",
+                                "loc": ("body", "cart_items", index),
+                                "msg": (
+                                    f"Product {item_product.id} is not available "
+                                    f"in {currency.upper()}."
+                                ),
+                                "input": str(cart_item.id),
+                            }
+                        ]
+                    ) from e
+
+                if is_fixed_price(item_price):
+                    amount += item_price.price_amount * cart_item.quantity
         elif is_fixed_price(price):
             amount = price.price_amount
         elif is_custom_price(price):

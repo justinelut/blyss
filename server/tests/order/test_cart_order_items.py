@@ -45,34 +45,44 @@ async def test_cart_checkout_creates_one_order_item_per_product(
     save_fixture: SaveFixture,
     session,
     organization: Organization,
-    product_one_time: Product,
     customer: Customer,
 ) -> None:
-    # Two distinct FIXED-price products in the cart.
+    # USD intentionally appears first. A KES checkout must persist the KES
+    # price IDs and amounts for every order line, independent of list order.
+    product_a = await create_product(
+        save_fixture,
+        organization=organization,
+        recurring_interval=None,
+        name="First Product",
+        prices=[(500, "usd"), (50000, "kes")],
+    )
     product_b = await create_product(
         save_fixture,
         organization=organization,
         recurring_interval=None,
         name="Second Product",
-        prices=[(1500, "usd")],
+        prices=[(800, "usd"), (75000, "kes")],
     )
-    item_a = await _make_cart_item(save_fixture, product_one_time)
+    item_a = await _make_cart_item(save_fixture, product_a)
     item_b = await _make_cart_item(save_fixture, product_b)
 
-    # Cart checkout: checkout_products has ALL products from the cart.
-    # product = first (display), user_metadata has cart_item_ids for compat.
     checkout = await create_checkout(
         save_fixture,
-        products=[product_one_time, product_b],
+        products=[product_a, product_b],
         status=CheckoutStatus.confirmed,
         customer=customer,
+        currency="kes",
         user_metadata={"cart_item_ids": f"{item_a.id},{item_b.id}"},
     )
 
     order = await order_service.create_from_checkout_one_time(session, checkout)
 
-    # The order must have one item per product in checkout_products.
     assert len(order.items) == 2
+    assert {item.amount for item in order.items} == {50000, 75000}
+    assert {item.product_price_id for item in order.items} == {
+        product_a.prices[1].id,
+        product_b.prices[1].id,
+    }
 
 
 async def test_cart_order_serializes_through_schema(

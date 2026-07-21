@@ -32,7 +32,7 @@ const DetailRow = ({
       data-testid={`detail-row-${title}`}
       className={cn(
         'flex flex-row items-start justify-between gap-x-8',
-        emphasis ? 'font-medium' : 'dark:text-polar-500 text-gray-500',
+        emphasis ? 'font-medium text-[var(--text-primary)]' : 'text-[var(--text-secondary)]',
         className,
       )}
     >
@@ -140,7 +140,7 @@ const CheckoutPricingBreakdown = ({
         <>
           <DetailRow
             title={t('checkout.pricing.subtotal')}
-            className="text-gray-600"
+            className="text-[var(--text-secondary)]"
           >
             <AmountLabel
               amount={checkout.amount}
@@ -156,7 +156,7 @@ const CheckoutPricingBreakdown = ({
             <>
               <DetailRow
                 title={`${checkout.discount.name}${checkout.discount.type === 'percentage' ? ` (${getDiscountDisplay(checkout.discount, locale)})` : ''}`}
-                className="text-gray-600"
+                className="text-[var(--text-secondary)]"
               >
                 {formatCurrency('standard', locale)(
                   -checkout.discount_amount,
@@ -165,7 +165,7 @@ const CheckoutPricingBreakdown = ({
               </DetailRow>
               <DetailRow
                 title={t('checkout.pricing.taxableAmount')}
-                className="text-gray-600"
+                className="text-[var(--text-secondary)]"
               >
                 {formatCurrency('standard', locale)(
                   checkout.net_amount,
@@ -177,7 +177,7 @@ const CheckoutPricingBreakdown = ({
 
           <DetailRow
             title={t('checkout.pricing.taxes')}
-            className="text-gray-600"
+            className="text-[var(--text-secondary)]"
           >
             {checkout.tax_amount !== null
               ? formatCurrency('standard', locale)(
@@ -200,8 +200,8 @@ const CheckoutPricingBreakdown = ({
               {formattedDiscountDuration && (
                 <span
                   className={cn(
-                    'text-xs font-normal text-gray-500',
-                    'text-gray-600',
+                    'text-xs font-normal text-[var(--text-muted)]',
+                    'text-[var(--text-secondary)]',
                   )}
                 >
                   {formattedDiscountDuration}
@@ -219,7 +219,7 @@ const CheckoutPricingBreakdown = ({
             <DetailRow
               title={meteredPrice.meter.name}
               key={meteredPrice.id}
-              className="text-gray-600"
+              className="text-[var(--text-secondary)]"
             >
               <MeteredPriceLabel price={meteredPrice} locale={locale} />
             </DetailRow>
@@ -231,7 +231,7 @@ const CheckoutPricingBreakdown = ({
       {(checkout.trial_end ||
         (checkout.active_trial_interval &&
           checkout.active_trial_interval_count)) && (
-        <div className="dark:border-polar-700 mt-3 border-t border-gray-300 pt-4">
+        <div className="mt-3 border-t border-[var(--border)] pt-4">
           {checkout.active_trial_interval &&
             checkout.active_trial_interval_count && (
               <DetailRow
@@ -260,8 +260,8 @@ const CheckoutPricingBreakdown = ({
           {checkout.trial_end && (
             <span
               className={cn(
-                'dark:text-polar-500 text-sm text-gray-500',
-                'text-gray-600',
+                'dark:text-polar-500 text-sm text-[var(--text-muted)]',
+                'text-[var(--text-secondary)]',
               )}
             >
               {t('checkout.trial.ends', {
