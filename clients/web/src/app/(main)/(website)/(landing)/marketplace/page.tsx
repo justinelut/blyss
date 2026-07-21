@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 60;
 
 export const metadata: Metadata = {
-  title: "Browse digital products · Instant download · Blyss marketplace",
+  title: "Digital products marketplace Kenya · Instant downloads",
   description:
     "Browse templates, ebooks, beats, presets, courses, fonts, and stock assets from creators. Pay with M-Pesa, Visa, or Mastercard. Instant download after checkout.",
   keywords:

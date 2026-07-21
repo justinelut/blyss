@@ -11,10 +11,10 @@ export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: {
-    absolute: "Blyss — Templates, Ebooks, Beats from Independent Creators",
+    absolute: "Blyss | Digital Products Marketplace for Kenyan Creators",
   },
   description:
-    "Templates, ebooks, beats, presets, courses, and subscription tiers from independent creators. Instant download. Creators paid within 24 hours.",
+    "Buy digital products from Kenyan creators or open your own Blyss storefront. Templates, ebooks, beats, presets, and courses with M-Pesa or card payments.",
   keywords:
     "digital products marketplace, buy templates online, buy ebooks online, buy beats online, buy presets online, creator marketplace, independent creators, instant download, blyss.co.ke",
   alternates: { canonical: "https://blyss.co.ke" },

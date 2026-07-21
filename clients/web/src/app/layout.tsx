@@ -77,6 +77,9 @@ export async function generateMetadata(): Promise<Metadata> {
     ],
     authors: [{ name: "Blyss", url: "https://blyss.co.ke" }],
     publisher: "Blyss",
+    verification: {
+      google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || undefined,
+    },
     openGraph: {
       images: "https://blyss.co.ke/og-image.png",
       type: "website",

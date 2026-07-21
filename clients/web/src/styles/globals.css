@@ -202,38 +202,43 @@
   /* Editorial Shadow — used only for dropdowns/modals/sticky-bars per §3.4 */
   --shadow-editorial: 0 12px 32px rgba(26, 26, 23, 0.06);
 
-  /* shadcn */
+  /* shadcn utilities map directly to the Blyss palette. Keep these aliases in
+   * Tailwind's namespace instead of redefining core custom properties such as
+   * --border or --accent below: those properties are also consumed directly
+   * throughout the dashboard and storefront. */
   --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
+  --color-input: var(--border);
+  --color-ring: var(--accent);
   --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-sidebar: var(--sidebar-background);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
+  --color-foreground: var(--text-primary);
+  --color-primary: var(--action);
+  --color-primary-foreground: var(--action-foreground);
+  --color-secondary: var(--surface-sunken);
+  --color-secondary-foreground: var(--text-primary);
+  --color-destructive: var(--danger);
+  --color-destructive-foreground: var(--accent-foreground);
+  --color-muted: var(--surface-sunken);
+  --color-muted-foreground: var(--text-muted);
+  /* shadcn `accent` means a hover/active surface. Editorial brand accents use
+   * `var(--accent)` directly. */
+  --color-accent: var(--surface-sunken);
+  --color-accent-foreground: var(--text-primary);
+  --color-popover: var(--surface-elevated);
+  --color-popover-foreground: var(--text-primary);
+  --color-card: var(--surface-elevated);
+  --color-card-foreground: var(--text-primary);
+  --color-sidebar: var(--surface);
+  --color-sidebar-foreground: var(--text-primary);
+  --color-sidebar-primary: var(--action);
+  --color-sidebar-primary-foreground: var(--action-foreground);
+  --color-sidebar-accent: var(--surface-sunken);
+  --color-sidebar-accent-foreground: var(--text-primary);
+  --color-sidebar-border: var(--border);
+  --color-sidebar-ring: var(--border-strong);
 
-  --radius-lg: var(--radius);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-sm: calc(var(--radius) - 4px);
+  --radius-lg: 0.5rem;
+  --radius-md: 0.375rem;
+  --radius-sm: 0.25rem;
   --radius-4xl: 2rem;
 
   /* Editorial Spacing */
@@ -309,87 +314,6 @@
     --orbit-text-subtle: var(--color-on-surface-variant, #d4c3bb);
     --orbit-text-disabled: hsl(24, 8%, 46%);
     --orbit-destructive: var(--color-red-600);
-  }
-}
-
-/* shadcn/ui — pointed at Blyss design tokens */
-
-@layer base {
-  :root {
-    /* background + foreground come from src/design/tokens.css */
-    --card: var(--surface-elevated);
-    --card-foreground: var(--text-primary);
-
-    --popover: var(--surface-elevated);
-    --popover-foreground: var(--text-primary);
-
-    --sidebar-background: var(--surface);
-    --sidebar-foreground: var(--text-primary);
-    --sidebar-primary: var(--action);
-    --sidebar-primary-foreground: var(--action-foreground);
-    --sidebar-border: var(--border);
-    --sidebar-accent: var(--surface-sunken);
-    --sidebar-accent-foreground: var(--text-primary);
-    --sidebar-ring: var(--border-strong);
-
-    --primary: var(--action);
-    --primary-foreground: var(--action-foreground);
-
-    --secondary: var(--surface-sunken);
-    --secondary-foreground: var(--text-primary);
-
-    --muted: var(--surface-sunken);
-    --muted-foreground: var(--text-muted);
-
-    /* shadcn `accent` is a hover/active surface, not Blyss's editorial
-     * oxblood. Structural shadcn actions map to --primary above. */
-    --accent: var(--surface-sunken);
-    --accent-foreground: var(--text-primary);
-
-    --destructive: var(--danger);
-    --destructive-foreground: var(--accent-foreground);
-
-    --border: var(--border);
-    --input: var(--border);
-    --ring: var(--accent);
-    --radius: 0.5rem;
-  }
-
-  :root.dark {
-    /* background + foreground come from .dark in src/design/tokens.css */
-    --card: var(--surface-elevated);
-    --card-foreground: var(--text-primary);
-
-    --popover: var(--surface-elevated);
-    --popover-foreground: var(--text-primary);
-
-    --sidebar-background: var(--surface);
-    --sidebar-foreground: var(--text-primary);
-    --sidebar-primary: var(--action);
-    --sidebar-primary-foreground: var(--action-foreground);
-    --sidebar-border: var(--border);
-    --sidebar-accent: var(--surface-sunken);
-    --sidebar-accent-foreground: var(--text-primary);
-    --sidebar-ring: var(--border-strong);
-
-    --primary: var(--action);
-    --primary-foreground: var(--action-foreground);
-
-    --secondary: var(--surface-sunken);
-    --secondary-foreground: var(--text-primary);
-
-    --muted: var(--surface-sunken);
-    --muted-foreground: var(--text-muted);
-
-    --accent: var(--surface-sunken);
-    --accent-foreground: var(--text-primary);
-
-    --destructive: var(--danger);
-    --destructive-foreground: var(--accent-foreground);
-
-    --border: var(--border);
-    --input: var(--border);
-    --ring: var(--accent);
   }
 }
 

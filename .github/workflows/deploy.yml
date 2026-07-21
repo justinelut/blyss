@@ -48,6 +48,8 @@ jobs:
             NEXT_PUBLIC_API_URL=https://api.blyss.co.ke
             NEXT_PUBLIC_FRONTEND_BASE_URL=https://blyss.co.ke
             NEXT_PUBLIC_CHECKOUT_BASE_URL=https://buy.blyss.co.ke
+            NEXT_PUBLIC_GOOGLE_ANALYTICS_ID=${{ vars.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID }}
+            NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION=${{ vars.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION }}
           tags: |
             ghcr.io/${{ github.repository_owner }}/blyss-web:${{ steps.tag.outputs.tag }}
             ghcr.io/${{ github.repository_owner }}/blyss-web:latest
@@ -100,7 +102,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: read   # mints GITHUB_TOKEN with GHCR pull rights
+      packages: read # mints GITHUB_TOKEN with GHCR pull rights
     steps:
       - uses: actions/checkout@v4
 

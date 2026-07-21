@@ -22,11 +22,11 @@
  * - Already in package.json (@next/third-parties@16.2.0).
  */
 
-import { GoogleAnalytics } from '@next/third-parties/google'
-import { CONFIG } from '@/utils/config'
+import { GoogleAnalytics } from "@next/third-parties/google";
+import { CONFIG } from "@/utils/config";
 
 interface AnalyticsConfig {
-  measurement_id: string
+  measurement_id: string;
 }
 
 async function fetchMeasurementId(): Promise<string> {
@@ -42,22 +42,23 @@ async function fetchMeasurementId(): Promise<string> {
         // backoffice-driven measurement-ID changes within minutes.
         next: { revalidate: 300 },
       },
-    )
-    if (!res.ok) return ''
-    const data = (await res.json()) as AnalyticsConfig
-    return (data.measurement_id || '').trim()
+    );
+    if (!res.ok) return "";
+    const data = (await res.json()) as AnalyticsConfig;
+    return (data.measurement_id || "").trim();
   } catch {
     // Layout must never crash because analytics is unavailable.
-    return ''
+    return "";
   }
 }
 
 export async function AnalyticsTag() {
   // Skip in sandbox to keep staging tracking out of the live property.
-  if (CONFIG.IS_SANDBOX) return null
+  if (CONFIG.IS_SANDBOX) return null;
 
-  const gaId = await fetchMeasurementId()
-  if (!gaId) return null
+  const gaId =
+    CONFIG.GOOGLE_ANALYTICS_ID?.trim() || (await fetchMeasurementId());
+  if (!gaId) return null;
 
-  return <GoogleAnalytics gaId={gaId} />
+  return <GoogleAnalytics gaId={gaId} />;
 }

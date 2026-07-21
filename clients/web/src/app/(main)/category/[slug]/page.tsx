@@ -1,17 +1,15 @@
-import { Metadata } from 'next'
-import { unwrap } from '@/lib/api'
-import { JsonLd } from '@/design'
-import { getServerSideAPI } from '@/utils/client/serverside'
-import { CategoryPageClient } from './CategoryPageClient'
-import {
-  getCategoryIntro,
-  type CategoryIntro,
-} from '@/lib/seo/category-copy'
+import { Metadata } from "next";
+import { unwrap } from "@/lib/api";
+import { notFound } from "next/navigation";
+import { JsonLd } from "@/design";
+import { getServerSideAPI } from "@/utils/client/serverside";
+import { CategoryPageClient } from "./CategoryPageClient";
+import { getCategoryIntro, type CategoryIntro } from "@/lib/seo/category-copy";
 
-const SITE = 'https://blyss.co.ke'
+const SITE = "https://blyss.co.ke";
 
 interface Props {
-  params: Promise<{ slug: string }>
+  params: Promise<{ slug: string }>;
 }
 
 /**
@@ -28,65 +26,66 @@ interface Props {
  */
 async function fetchCategory(slug: string) {
   try {
-    const api = await getServerSideAPI()
+    const api = await getServerSideAPI();
     return await unwrap(
-      api.GET('/v1/categories/{slug}', { params: { path: { slug } } }),
-    )
+      api.GET("/v1/categories/{slug}", { params: { path: { slug } } }),
+    );
   } catch {
-    return null
+    return null;
   }
 }
 
 async function fetchCategoryProducts(slug: string) {
   try {
-    const api = await getServerSideAPI()
+    const api = await getServerSideAPI();
     return await unwrap(
-      api.GET('/v1/categories/{slug}/products', {
+      api.GET("/v1/categories/{slug}/products", {
         params: { path: { slug }, query: { page: 1, limit: 24 } },
       }),
-    )
+    );
   } catch {
-    return null
+    return null;
   }
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug } = await params
-  const category = await fetchCategory(slug)
-  const intro = getCategoryIntro(slug)
+  const { slug } = await params;
+  const category = await fetchCategory(slug);
+  const intro = getCategoryIntro(slug);
 
   if (!category) {
     return {
-      title: 'Category not found',
+      title: "Category not found",
       robots: { index: false, follow: true },
-    }
+    };
   }
 
-  // Prefer the curated SEO copy when we have one (top categories);
-  // fall back to the category description (creator-edited in the
-  // backoffice) or a generated default.
-  const title =
-    intro?.title ?? `Buy ${category.name} · Instant download · Blyss`
+  // The root layout appends the Blyss suffix. Curated titles written before
+  // that template existed are normalised here to avoid “Blyss · Blyss”.
+  const rawTitle = intro?.title ?? `Buy ${category.name} · Instant download`;
+  const title = rawTitle.replace(/\s*·\s*Blyss(?:\s+type marketplace)?$/i, "");
   const description =
     intro?.description ??
     category.description ??
-    `Buy ${category.name.toLowerCase()} from creators. Pay with M-Pesa, Visa, or Mastercard. Instant download after checkout.`
-  const url = `${SITE}/category/${slug}`
+    `Buy ${category.name.toLowerCase()} from creators. Pay with M-Pesa, Visa, or Mastercard. Instant download after checkout.`;
+  const url = `${SITE}/category/${slug}`;
+  const hasProducts = (category.product_count ?? 0) > 0;
 
   return {
     title,
     description,
     keywords: intro?.keywords,
     alternates: { canonical: url },
+    robots: { index: hasProducts || Boolean(intro), follow: true },
     openGraph: {
       title,
       description,
-      type: 'website',
-      locale: 'en_KE',
+      type: "website",
+      locale: "en_KE",
       url,
       images: [
         {
-          url: 'https://cdn.blyss.co.ke/brand/og-default.png',
+          url: "https://cdn.blyss.co.ke/brand/og-default.png",
           width: 1200,
           height: 630,
           alt: title,
@@ -94,39 +93,41 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       ],
     },
     twitter: {
-      card: 'summary_large_image',
+      card: "summary_large_image",
       title,
       description,
     },
-  }
+  };
 }
 
 export default async function CategoryRoute({ params }: Props) {
-  const { slug } = await params
+  const { slug } = await params;
   const [category, productsData] = await Promise.all([
     fetchCategory(slug),
     fetchCategoryProducts(slug),
-  ])
-  const intro = getCategoryIntro(slug)
+  ]);
+  const intro = getCategoryIntro(slug);
+
+  if (!category) notFound();
 
   // JSON-LD: BreadcrumbList + CollectionPage with the products as
   // ItemList. Google uses these to show "X has these products" rich
   // results under category-page hits.
   const breadcrumbLd = {
-    '@context': 'https://schema.org',
-    '@type': 'BreadcrumbList',
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
     itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Home', item: `${SITE}/` },
+      { "@type": "ListItem", position: 1, name: "Home", item: `${SITE}/` },
       {
-        '@type': 'ListItem',
+        "@type": "ListItem",
         position: 2,
-        name: 'Categories',
+        name: "Categories",
         item: `${SITE}/categories`,
       },
       ...(category
         ? [
             {
-              '@type': 'ListItem',
+              "@type": "ListItem",
               position: 3,
               name: category.name,
               item: `${SITE}/category/${slug}`,
@@ -134,31 +135,32 @@ export default async function CategoryRoute({ params }: Props) {
           ]
         : []),
     ],
-  }
+  };
 
   const products = (productsData?.items ?? []) as Array<{
-    id: string
-    name: string
-  }>
+    id: string;
+    name: string;
+  }>;
   const collectionLd = category
     ? {
-        '@context': 'https://schema.org',
-        '@type': 'CollectionPage',
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
         name: category.name,
         description: category.description ?? undefined,
         url: `${SITE}/category/${slug}`,
         mainEntity: {
-          '@type': 'ItemList',
-          numberOfItems: productsData?.pagination?.total_count ?? products.length,
+          "@type": "ItemList",
+          numberOfItems:
+            productsData?.pagination?.total_count ?? products.length,
           itemListElement: products.slice(0, 24).map((p, i) => ({
-            '@type': 'ListItem',
+            "@type": "ListItem",
             position: i + 1,
             url: `${SITE}/product/${p.id}`,
             name: p.name,
           })),
         },
       }
-    : null
+    : null;
 
   return (
     <>
@@ -171,12 +173,12 @@ export default async function CategoryRoute({ params }: Props) {
           + pagination. Categories without curated copy fall back to
           the database description (creator-edited). */}
       {intro && (
-        <CategoryIntroBlock intro={intro} categoryName={category?.name ?? ''} />
+        <CategoryIntroBlock intro={intro} categoryName={category?.name ?? ""} />
       )}
 
       <CategoryPageClient params={params} />
     </>
-  )
+  );
 }
 
 /**
@@ -192,8 +194,8 @@ function CategoryIntroBlock({
   intro,
   categoryName,
 }: {
-  intro: CategoryIntro
-  categoryName: string
+  intro: CategoryIntro;
+  categoryName: string;
 }) {
   return (
     <section className="mx-auto max-w-[1280px] px-6 pt-10 md:px-16 md:pt-12">
@@ -235,5 +237,5 @@ function CategoryIntroBlock({
         )}
       </div>
     </section>
-  )
+  );
 }

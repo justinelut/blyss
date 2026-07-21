@@ -1,69 +1,66 @@
-import { CONFIG } from '@/utils/config'
-import { MetadataRoute } from 'next'
+import type { MetadataRoute } from "next";
+import { headers } from "next/headers";
+import { CONFIG } from "@/utils/config";
 
-/**
- * Robots.
- *
- * Sandbox deploys are fully blocked (no public traffic).
- * Production allows everything except:
- *   - Auth + session surfaces (/login, /verify-email)
- *   - Authenticated dashboard (/dashboard/*)
- *   - Per-user state pages (/cart, /wishlist, /portal/*)
- *   - Internal API + Next.js paths (/api/*, /_next/*)
- *   - Search results (Q-strings, low-value pages)
- *   - The country-prefix redirect endpoints — search engines hit /ke
- *     directly and Google understands the canonical link header.
- *
- * Crawl-delay is intentionally not set; Googlebot ignores it and
- * Bing+Yandex behave fine with our edge cache.
- */
+const SITE = "https://blyss.co.ke";
 
-export default function robots(): MetadataRoute.Robots {
+export const dynamic = "force-dynamic";
+
+const privatePaths = [
+  "/dashboard/",
+  "/login/",
+  "/login",
+  "/verify-email/",
+  "/verify-email",
+  "/cart",
+  "/cart/",
+  "/wishlist",
+  "/wishlist/",
+  "/api/",
+  "/portal/",
+  "/*?currency=",
+  "/*?page=",
+];
+
+export default async function robots(): Promise<MetadataRoute.Robots> {
   if (CONFIG.IS_SANDBOX) {
+    return { rules: { userAgent: "*", disallow: "/*" } };
+  }
+
+  const host = (await headers()).get("host")?.split(":")[0].toLowerCase();
+
+  if (host === "buy.blyss.co.ke" || host === "my.blyss.co.ke") {
     return {
-      rules: {
-        userAgent: '*',
-        disallow: '/',
-      },
-    }
+      rules: { userAgent: "*", disallow: "/*" },
+      host: `https://${host}`,
+    };
   }
 
   return {
     rules: [
+      { userAgent: "*", allow: "/", disallow: privatePaths },
       {
-        userAgent: '*',
-        allow: '/',
-        disallow: [
-          '/dashboard/',
-          '/login/',
-          '/login',
-          '/verify-email/',
-          '/verify-email',
-          '/cart',
-          '/cart/',
-          '/wishlist',
-          '/wishlist/',
-          '/api/',
-          '/_next/',
-          '/portal/',
-          '/search', // Q-string results, low-value, dupes
-          '/*?currency=',
-          '/*?page=',
-        ],
-      },
-      // Politely throttle AI scrapers we don't want training on our pages
-      // (without blocking AI search agents that send user-driven traffic
-      // like PerplexityBot / ChatGPT-User / ClaudeBot).
-      {
-        userAgent: 'GPTBot',
-        disallow: '/dashboard/',
+        userAgent: "OAI-SearchBot",
+        allow: "/",
+        disallow: privatePaths,
       },
       {
-        userAgent: 'CCBot', // Common Crawl
-        disallow: '/dashboard/',
+        userAgent: "ChatGPT-User",
+        allow: "/",
+        disallow: privatePaths,
+      },
+      {
+        userAgent: "PerplexityBot",
+        allow: "/",
+        disallow: privatePaths,
+      },
+      {
+        userAgent: "Claude-SearchBot",
+        allow: "/",
+        disallow: privatePaths,
       },
     ],
-    sitemap: 'https://blyss.co.ke/sitemap.xml',
-    host: 'https://blyss.co.ke',
-  }
+    sitemap: `${SITE}/sitemap.xml`,
+    host: SITE,
+  };
 }
