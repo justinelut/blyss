@@ -117,7 +117,7 @@ export function PolarThemeProvider({
 
   return (
     <ThemeProvider
-      defaultTheme="light"
+      defaultTheme="dark"
       enableSystem={false}
       attribute="class"
       storageKey="blyss-theme"

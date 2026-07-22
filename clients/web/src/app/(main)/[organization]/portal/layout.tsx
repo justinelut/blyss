@@ -1,25 +1,30 @@
-import { Toaster } from '@/components/Toast/Toaster'
-import { getServerSideAPI } from '@/utils/client/serverside'
-import { getOrganizationOrNotFound } from '@/utils/customerPortal'
-import Avatar from '@/components/atoms/Avatar'
-import { CustomerPortalLayoutWrapper } from './CustomerPortalLayoutWrapper'
-import { Navigation } from './Navigation'
+import { Toaster } from "@/components/Toast/Toaster";
+import type { Metadata } from "next";
+import { getServerSideAPI } from "@/utils/client/serverside";
+import { getOrganizationOrNotFound } from "@/utils/customerPortal";
+import Avatar from "@/components/atoms/Avatar";
+import { CustomerPortalLayoutWrapper } from "./CustomerPortalLayoutWrapper";
+import { Navigation } from "./Navigation";
 
-export const dynamic = 'force-dynamic'
+export const metadata: Metadata = {
+  robots: { index: false, follow: false, noarchive: true },
+};
+
+export const dynamic = "force-dynamic";
 
 export default async function Layout(props: {
-  params: Promise<{ organization: string }>
-  children: React.ReactNode
+  params: Promise<{ organization: string }>;
+  children: React.ReactNode;
 }) {
-  const params = await props.params
+  const params = await props.params;
 
-  const { children } = props
+  const { children } = props;
 
-  const api = await getServerSideAPI()
+  const api = await getServerSideAPI();
   const { organization } = await getOrganizationOrNotFound(
     api,
     params.organization,
-  )
+  );
 
   return (
     <div className="flex min-h-screen grow flex-col">
@@ -40,5 +45,5 @@ export default async function Layout(props: {
       </CustomerPortalLayoutWrapper>
       <Toaster />
     </div>
-  )
+  );
 }

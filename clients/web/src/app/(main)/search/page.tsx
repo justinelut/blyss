@@ -1,14 +1,16 @@
-import { Metadata } from 'next'
-import { unwrap, schemas } from '@/lib/api'
-import { api } from '@/utils/client'
-import { getServerCurrency } from '@/lib/geo/server'
-import { SearchResults } from './SearchResults'
-import type { CategoryTile } from '@/components/Marketplace/BrowseByCraft'
+import { Metadata } from "next";
+import { unwrap, schemas } from "@/lib/api";
+import { api } from "@/utils/client";
+import { getServerCurrency } from "@/lib/geo/server";
+import { SearchResults } from "./SearchResults";
+import type { CategoryTile } from "@/components/Marketplace/BrowseByCraft";
 
 export const metadata: Metadata = {
-  title: 'Search',
-  description: 'Find digital products and creators.',
-}
+  title: "Search",
+  description: "Find digital products and creators.",
+  alternates: { canonical: "https://blyss.co.ke/search" },
+  robots: { index: false, follow: true },
+};
 
 /**
  * Catalogue + Discovery search.
@@ -23,45 +25,45 @@ export const metadata: Metadata = {
  * extra request waterfall on first paint.
  */
 async function getSearchHits(query: string, category: string | undefined) {
-  if (!query) return { items: [] as schemas['Product'][], totalCount: 0 }
+  if (!query) return { items: [] as schemas["Product"][], totalCount: 0 };
   try {
-    const currency = await getServerCurrency()
+    const currency = await getServerCurrency();
     const result = await unwrap(
-      api.GET('/v1/products/public', {
+      api.GET("/v1/products/public", {
         params: {
           query: { search: query, category, currency, limit: 24 },
         },
       }),
-    )
+    );
     return {
-      items: (result.items ?? []) as schemas['Product'][],
+      items: (result.items ?? []) as schemas["Product"][],
       totalCount: result.pagination?.total_count ?? result.items?.length ?? 0,
-    }
+    };
   } catch {
-    return { items: [] as schemas['Product'][], totalCount: 0 }
+    return { items: [] as schemas["Product"][], totalCount: 0 };
   }
 }
 
 async function getTrendingProducts() {
   try {
-    const currency = await getServerCurrency()
+    const currency = await getServerCurrency();
     // Featured first, fall back to most-recent. Same pattern as the home
     // page's featured-products fetch, deliberately limited to 8 so we can
     // render a clean 4×2 grid without the section feeling padded.
     const featured = await unwrap(
-      api.GET('/v1/products/public', {
+      api.GET("/v1/products/public", {
         params: { query: { is_featured: true, limit: 8, page: 1, currency } },
       }),
-    )
-    if (featured.items?.length) return featured.items as schemas['Product'][]
+    );
+    if (featured.items?.length) return featured.items as schemas["Product"][];
     const recent = await unwrap(
-      api.GET('/v1/products/public', {
-        params: { query: { sort: 'newest', limit: 8, page: 1, currency } },
+      api.GET("/v1/products/public", {
+        params: { query: { sort: "newest", limit: 8, page: 1, currency } },
       }),
-    )
-    return (recent.items ?? []) as schemas['Product'][]
+    );
+    return (recent.items ?? []) as schemas["Product"][];
   } catch {
-    return [] as schemas['Product'][]
+    return [] as schemas["Product"][];
   }
 }
 
@@ -71,29 +73,31 @@ async function getFeaturedCreators() {
     // (No is_featured flag on this endpoint — the dashboard's featured
     //  toggle ships once we wire a `featured_creators` admin tool.)
     const directory = await unwrap(
-      api.GET('/v1/organizations/creators', {
+      api.GET("/v1/organizations/creators", {
         params: { query: { limit: 4 } },
       }),
-    )
+    );
     const items = Array.isArray(directory)
       ? directory
-      : ((directory as { items?: unknown[] }).items ?? [])
-    return items as schemas['Organization'][]
+      : ((directory as { items?: unknown[] }).items ?? []);
+    return items as schemas["Organization"][];
   } catch {
-    return [] as schemas['Organization'][]
+    return [] as schemas["Organization"][];
   }
 }
 
 async function getCategories(): Promise<CategoryTile[]> {
   try {
-    const result = await unwrap(api.GET('/v1/categories/', {}))
-    return ((result.items ?? []) as Array<{
-      id: string
-      name: string
-      slug: string
-      cover_image_url?: string | null
-      product_count?: number
-    }>)
+    const result = await unwrap(api.GET("/v1/categories/", {}));
+    return (
+      (result.items ?? []) as Array<{
+        id: string;
+        name: string;
+        slug: string;
+        cover_image_url?: string | null;
+        product_count?: number;
+      }>
+    )
       .slice(0, 6)
       .map((c) => ({
         id: c.id,
@@ -101,19 +105,19 @@ async function getCategories(): Promise<CategoryTile[]> {
         slug: c.slug,
         cover_image_url: c.cover_image_url ?? null,
         product_count: c.product_count,
-      }))
+      }));
   } catch {
-    return []
+    return [];
   }
 }
 
 export default async function SearchPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; category?: string }>
+  searchParams: Promise<{ q?: string; category?: string }>;
 }) {
-  const { q, category } = await searchParams
-  const query = q?.trim() || ''
+  const { q, category } = await searchParams;
+  const query = q?.trim() || "";
 
   const [hits, trendingProducts, featuredCreators, categories] =
     await Promise.all([
@@ -121,7 +125,7 @@ export default async function SearchPage({
       getTrendingProducts(),
       getFeaturedCreators(),
       getCategories(),
-    ])
+    ]);
 
   return (
     <SearchResults
@@ -133,5 +137,5 @@ export default async function SearchPage({
       featuredCreators={featuredCreators}
       categories={categories}
     />
-  )
+  );
 }

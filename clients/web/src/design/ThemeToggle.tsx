@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * ThemeToggle — an explicit light/dark switch backed by the single
- * next-themes provider. First visits stay light regardless of OS preference;
+ * next-themes provider. First visits stay dark regardless of OS preference;
  * an explicit choice persists under the provider's `blyss-theme` storage key.
  */
 export const ThemeToggle = ({ className }: { className?: string }) => {

@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 60;
 
 export const metadata: Metadata = {
-  title: "Creators · Kenyan + global makers on Blyss",
+  title: "Kenyan creators selling digital products",
   description:
     "Browse independent creators selling digital products on Blyss. Kenyan and global designers, writers, musicians, photographers, course teachers, and developers.",
   keywords:

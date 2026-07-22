@@ -1,20 +1,20 @@
-import { Input as ShadInput } from '@/components/ui/input'
-import { ComponentProps } from 'react'
-import { twMerge } from 'tailwind-merge'
+import { Input as ShadInput } from "@/components/ui/input";
+import { ComponentProps } from "react";
+import { twMerge } from "tailwind-merge";
 
 export type InputProps = ComponentProps<typeof ShadInput> & {
-  preSlot?: React.ReactNode
-  postSlot?: React.ReactNode
-}
+  preSlot?: React.ReactNode;
+  postSlot?: React.ReactNode;
+};
 
 const Input = ({ ref, preSlot, postSlot, className, ...props }: InputProps) => {
   return (
     <div className="relative flex flex-1 flex-row rounded-full">
       <ShadInput
         className={twMerge(
-          'dark:placeholder:text-polar-500 dark:border-polar-700 dark:bg-polar-800 h-10 rounded-xl border border-gray-200 bg-white px-3 py-2 text-base text-gray-950 shadow-xs outline-none placeholder:text-gray-400 focus:z-10 focus:border-blue-300 focus:ring-[3px] focus:ring-blue-100 focus-visible:ring-blue-100 md:text-sm dark:text-white dark:ring-offset-transparent dark:focus:border-blue-600 dark:focus:ring-blue-700/40',
-          preSlot ? 'pl-10' : '',
-          postSlot ? 'pr-10' : '',
+          "h-10 rounded-md border-0 border-b border-b-transparent bg-[var(--surface-sunken)] px-3 py-2 text-base text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)] transition-colors focus:z-10 focus:border-b-[var(--border-strong)] focus:ring-0 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+          preSlot ? "pl-10" : "",
+          postSlot ? "pr-10" : "",
           className,
         )}
         ref={ref}
@@ -31,9 +31,9 @@ const Input = ({ ref, preSlot, postSlot, className, ...props }: InputProps) => {
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-Input.displayName = 'Input'
+Input.displayName = "Input";
 
-export default Input
+export default Input;
