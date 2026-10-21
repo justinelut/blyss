@@ -1,351 +1,77 @@
-name: Diagnose K3s
+name: Server Inventory (read-only)
 
 on:
-  # Manual-dispatch only. Click "Run workflow" in the Actions tab to fire.
-  # Do NOT add push/pull_request triggers here — this dumps secrets-context
-  # data into logs and is only safe to run on demand.
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  diagnose:
+  inventory:
     runs-on: ubuntu-latest
     steps:
-      - name: SSH and dump everything
+      - name: Inventory server and all Kubernetes namespaces
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ubuntu
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          command_timeout: 5m
+          command_timeout: 10m
           script: |
+            set -eu
             export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
-            NS=blyss
-            echo "═══════════════════════════════════════"
-            echo " PODS"
-            echo "═══════════════════════════════════════"
-            sudo kubectl -n $NS get pods -o wide
-            echo ""
-            echo "═══════════════════════════════════════"
-            echo " SERVICES"
-            echo "═══════════════════════════════════════"
-            sudo kubectl -n $NS get svc
-            echo ""
-            echo "═══════════════════════════════════════"
-            echo " ENDPOINTS (= ready pod IPs)"
-            echo "═══════════════════════════════════════"
-            sudo kubectl -n $NS get endpoints
-            echo ""
-            echo "═══════════════════════════════════════"
-            echo " INGRESS"
-            echo "═══════════════════════════════════════"
-            sudo kubectl -n $NS get ingress
-            echo ""
-            echo "═══════════════════════════════════════"
-            echo " RECENT EVENTS"
-            echo "═══════════════════════════════════════"
-            sudo kubectl -n $NS get events --sort-by=.lastTimestamp 2>&1 | tail -25
-            echo ""
-            echo "═══════════════════════════════════════"
-            echo " API DEPLOYMENT DESCRIBE"
-            echo "═══════════════════════════════════════"
-            sudo kubectl -n $NS describe deployment/blyss-api 2>&1 | tail -50
-            echo ""
-            echo "═══════════════════════════════════════"
-            echo " API CONTAINER CMD (what's actually running)"
-            echo "═══════════════════════════════════════"
-            POD=$(sudo kubectl -n $NS get pods -l app=blyss-api -o jsonpath='{.items[0].metadata.name}')
-            sudo kubectl -n $NS get pod $POD -o jsonpath='{.spec.containers[0].image}{"\n"}'
-            echo "actual running command (from /proc):"
-            for pid in 1 2 3 4 5 6 7 8 9 10 11 12; do
-              sudo kubectl -n $NS exec $POD -- sh -c "test -r /proc/$pid/cmdline && cat /proc/$pid/cmdline | tr '\0' ' ' && echo" 2>/dev/null
-            done | grep -i uvicorn | head -1
-            echo "middleware Rule 3 present in running image?"
-            sudo kubectl -n $NS exec $POD -- sh -c "grep -c 'Rule 3' /app/server/polar/middlewares.py" 2>&1 || true
-            echo "POLAR_BASE_URL value seen by pod:"
-            sudo kubectl -n $NS exec $POD -- sh -c 'echo "  $POLAR_BASE_URL"' 2>&1 || true
-            echo
 
-            echo "═══════════════════════════════════════"
-            echo " PAYMENTS / EXTERNAL APIS PROBE"
-            echo "═══════════════════════════════════════"
-            echo "-- env keys present? (length only) --"
-            sudo kubectl -n $NS exec $POD -- sh -c 'echo "  paystack key len=${#POLAR_PAYSTACK_SECRET_KEY}"; echo "  google client_id len=${#POLAR_GOOGLE_CLIENT_ID}"; echo "  google client_secret len=${#POLAR_GOOGLE_CLIENT_SECRET}"' 2>&1 | head -5 || true
-            echo "-- cluster egress IP (this is what Paystack/Cloudflare sees) --"
-            sudo kubectl -n $NS exec $POD -- python3 -c 'import urllib.request;ip=urllib.request.urlopen("https://api.ipify.org",timeout=10).read().decode();print("  egress ip (split to evade GHA masking):"," | ".join(ip.split(".")))' 2>&1 | head -3 || true
-            sudo kubectl -n $NS exec $POD -- python3 -c 'import urllib.request,json;d=json.loads(urllib.request.urlopen("https://ipinfo.io/json",timeout=10).read());ip=d.get("ip","");print("  ipinfo:"," | ".join(ip.split(".")),d.get("org",""),d.get("country",""))' 2>&1 | head -3 || true
-            echo "-- paystack key auth (HTTP code) --"
-            sudo kubectl -n $NS exec $POD -- python3 -c 'import os,urllib.request,urllib.error;k=os.environ["POLAR_PAYSTACK_SECRET_KEY"];r=urllib.request.Request("https://api.paystack.co/transaction/verify/00000000",headers={"Authorization":"Bearer "+k});exec("try:\n  resp=urllib.request.urlopen(r,timeout=10);print(\"  HTTP\",resp.status)\nexcept urllib.error.HTTPError as e:\n  print(\"  HTTP\",e.code,\"(key valid: 401=invalid, 404=valid)\")\nexcept Exception as e:\n  print(\"  ERR\",e)")' 2>&1 | head -3 || true
-            echo "-- paystack /transaction list (better key test, 200=valid) + key prefix --"
-            sudo kubectl -n $NS exec $POD -- python3 -c 'import os,urllib.request,urllib.error;k=os.environ["POLAR_PAYSTACK_SECRET_KEY"];print("  prefix:",k[:8]);r=urllib.request.Request("https://api.paystack.co/transaction?perPage=1",headers={"Authorization":"Bearer "+k});exec("try:\n  resp=urllib.request.urlopen(r,timeout=10);print(\"  HTTP\",resp.status,\"(key valid)\")\nexcept urllib.error.HTTPError as e:\n  body=e.read()[:200];print(\"  HTTP\",e.code,\"body=\",body)\nexcept Exception as e:\n  print(\"  ERR\",e)")' 2>&1 | head -4 || true
-            echo "-- paystack with browser UA --"
-            sudo kubectl -n $NS exec $POD -- python3 -c 'import os,urllib.request,urllib.error;k=os.environ["POLAR_PAYSTACK_SECRET_KEY"];r=urllib.request.Request("https://api.paystack.co/transaction?perPage=1",headers={"Authorization":"Bearer "+k,"User-Agent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"});exec("try:\n  resp=urllib.request.urlopen(r,timeout=10);print(\"  HTTP\",resp.status,\"(key valid w/ browser UA)\")\nexcept urllib.error.HTTPError as e:\n  body=e.read()[:200];print(\"  HTTP\",e.code,\"body=\",body)\nexcept Exception as e:\n  print(\"  ERR\",e)")' 2>&1 | head -4 || true
-            echo "-- paystack via httpx (what Polar actually uses) --"
-            sudo kubectl -n $NS exec $POD -- python3 -c 'import os,httpx;k=os.environ["POLAR_PAYSTACK_SECRET_KEY"];r=httpx.get("https://api.paystack.co/transaction?perPage=1",headers={"Authorization":"Bearer "+k},timeout=10);print("  httpx HTTP",r.status_code,"body[:120]=",r.text[:120])' 2>&1 | head -4 || true
-            echo "-- LIVE /charge probe with mpesa lowercase from cluster --"
-            sudo kubectl -n $NS exec $POD -- python3 -c 'import os,httpx,json,time;k=os.environ["POLAR_PAYSTACK_SECRET_KEY"];r=httpx.post("https://api.paystack.co/charge",headers={"Authorization":"Bearer "+k},json={"email":"diag@blyss.co.ke","amount":10000,"currency":"KES","reference":f"diag_{int(time.time())}","mobile_money":{"phone":"+254712345671","provider":"mpesa"}},timeout=10);print("  HTTP",r.status_code,"body=",r.text[:300])' 2>&1 | head -3 || true
-            echo "-- LIVE /charge probe via Paystack subaccount list (existence check) --"
-            sudo kubectl -n $NS exec $POD -- python3 -c 'import os,httpx;k=os.environ["POLAR_PAYSTACK_SECRET_KEY"];r=httpx.get("https://api.paystack.co/subaccount?perPage=5",headers={"Authorization":"Bearer "+k},timeout=10);print("  HTTP",r.status_code,"body=",r.text[:400])' 2>&1 | head -4 || true
-            echo "-- recent paystack.charge logs (last 30 lines) --"
-            sudo kubectl -n $NS logs deployment/blyss-api --tail=2000 2>&1 | grep -E "paystack\.charge|paystack\..*failed|provider.*\"|Invalid provider|Invalid Subaccount" | tail -30 || echo "(no paystack charge events logged)"
-            echo "-- payment-status / handle_success / checkout flow logs --"
-            sudo kubectl -n $NS logs deployment/blyss-api --tail=3000 2>&1 | grep -E "payment_status|handle_success|checkout.payment_status|payment-status|checkout.*confirmed|checkout.*succeeded|order.*created.*from_checkout" | tail -40 || echo "(no flow events)"
-            echo "-- last 5 checkouts in DB --"
-            PG=$(sudo kubectl -n $NS get pods -l app=postgres -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select id, status, payment_processor, payment_processor_metadata->>'charge_reference' as charge_ref, payment_processor_metadata->>'charge_status' as charge_status, organization_id, created_at from checkouts where created_at > now() - interval '2 hours' order by created_at desc limit 10;\"" 2>&1 | head -25
-            echo "-- recent orders (ALL, last 24h): order, customer email, product --"
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select o.id, o.status, c.email as customer_email, o.customer_id, p.name as product_name, o.created_at from orders o join customers c on o.customer_id=c.id join products p on o.product_id=p.id where o.created_at > now() - interval '24 hours' order by o.created_at desc limit 12;\"" 2>&1 | head -20
-            echo "-- latest checkout user_metadata (cart_item_ids?) --"
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select id, user_metadata, product_id, amount from checkouts where created_at > now() - interval '24 hours' order by created_at desc limit 5;\"" 2>&1 | head -20
-            echo "-- order_items for latest order --"
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select oi.id, oi.order_id, oi.label, oi.amount, oi.product_price_id from order_items oi where oi.order_id in (select o.id from orders o where o.created_at > now() - interval '24 hours' order by o.created_at desc limit 3) order by oi.order_id, oi.id;\"" 2>&1 | head -20
-            echo "-- customers matching justinequartz (identity split check) --"
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select id, email, organization_id, created_at from customers where lower(email) like 'justinequartz%' order by created_at desc limit 10;\"" 2>&1 | head -15
-            echo "-- benefits attached to recent orders' products --"
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select pb.product_id, b.id as benefit_id, b.type, b.description from product_benefits pb join benefits b on pb.benefit_id=b.id where pb.product_id in (select o.product_id from orders o where o.created_at > now() - interval '24 hours');\"" 2>&1 | head -20
-            echo "-- benefit_grants for recent orders --"
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select bg.id, bg.benefit_id, bg.customer_id, bg.order_id, bg.granted_at, bg.revoked_at, b.type from benefit_grants bg join benefits b on bg.benefit_id=b.id where bg.order_id in (select o.id from orders o where o.created_at > now() - interval '24 hours') order by bg.granted_at desc nulls last limit 15;\"" 2>&1 | head -25
-            echo "-- ALL benefits in blyss-studio org --"
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select b.id, b.type, b.description, b.selectable, b.deleted_at from benefits b where b.organization_id='c2606553-9be0-4d3d-ba9a-02db9953da3b' order by b.created_at desc limit 20;\"" 2>&1 | head -25
-            echo "-- ALL product_benefits links in blyss-studio org --"
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select pb.product_id, p.name, pb.benefit_id, b.type from product_benefits pb join products p on pb.product_id=p.id join benefits b on pb.benefit_id=b.id where p.organization_id='c2606553-9be0-4d3d-ba9a-02db9953da3b' limit 30;\"" 2>&1 | head -35
-            echo "-- ALL products in blyss-studio + their benefit counts --"
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select p.id, p.name, p.is_archived, (select count(*) from product_benefits pb where pb.product_id = p.id) as benefit_count from products p where p.organization_id='c2606553-9be0-4d3d-ba9a-02db9953da3b' order by p.created_at desc;\"" 2>&1 | head -30
-            echo "-- downloadable files in blyss-studio org --"
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select id, name, is_uploaded, created_at from files where organization_id='c2606553-9be0-4d3d-ba9a-02db9953da3b' order by created_at desc limit 15;\"" 2>&1 | head -20
-            echo "-- downloadables benefit PROPERTIES (is files[] populated?) --"
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select id, description, properties from benefits where type='downloadables' and organization_id='c2606553-9be0-4d3d-ba9a-02db9953da3b' order by created_at desc limit 6;\"" 2>&1 | head -25
-            echo "-- benefit_grants properties (did grant create file refs?) --"
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select bg.id, bg.benefit_id, bg.properties, bg.is_granted from benefit_grants bg join benefits b on bg.benefit_id=b.id where b.type='downloadables' order by bg.created_at desc limit 6;\"" 2>&1 | head -20
-            echo "-- downloadables table rows (per-customer file grants) --"
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select id, file_id, customer_id, benefit_id, status from downloadables order by created_at desc limit 10;\"" 2>&1 | head -15
-            echo "-- worker logs for benefit grant tasks --"
-            sudo kubectl -n $NS logs deployment/blyss-worker --tail=2000 2>&1 | grep -E "benefit\.enqueue|benefit\.grant|benefit_grant\.|benefit\.create_for_order" | tail -30 || echo "(no worker benefit logs)"
-            echo "-- S3/download env probe --"
-            sudo kubectl -n $NS exec $POD -- sh -c 'echo "  AWS_ACCESS_KEY_ID set: $([ -n \"$AWS_ACCESS_KEY_ID\" ] && echo yes || echo no)"; echo "  POLAR_S3_FILES_BUCKET_NAME=$POLAR_S3_FILES_BUCKET_NAME"; echo "  POLAR_S3_ENDPOINT_URL=$POLAR_S3_ENDPOINT_URL"; echo "  POLAR_S3_FILES_PUBLIC_ENDPOINT_URL=$POLAR_S3_FILES_PUBLIC_ENDPOINT_URL"; echo "  POLAR_AWS_REGION=$POLAR_AWS_REGION"; echo "  POLAR_BASE_URL=$POLAR_BASE_URL"' 2>&1 | head -8 || true
-            echo "-- generate a real downloadable URL (presign probe) --"
-            DL_PATH=$(sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -tAc \"select f.path from downloadables d join files f on d.file_id=f.id where d.status='granted' order by d.created_at desc limit 1;\"" 2>&1 | tr -d '\r' | head -1)
-            DL_NAME=$(sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -tAc \"select f.name from downloadables d join files f on d.file_id=f.id where d.status='granted' order by d.created_at desc limit 1;\"" 2>&1 | tr -d '\r' | head -1)
-            DL_MIME=$(sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -tAc \"select f.mime_type from downloadables d join files f on d.file_id=f.id where d.status='granted' order by d.created_at desc limit 1;\"" 2>&1 | tr -d '\r' | head -1)
-            echo "  granted downloadable path=$DL_PATH name=$DL_NAME mime=$DL_MIME"
-            sudo kubectl -n $NS exec $POD -- python3 -c "from polar.file.s3 import S3_SERVICES; from polar.models.file import FileServiceTypes; u=S3_SERVICES[FileServiceTypes.downloadable].generate_presigned_download_url(path='$DL_PATH', filename='$DL_NAME', mime_type='$DL_MIME'); print('  presign host+path:', u[0].split('?')[0][:150]); print('  expires:', u[1])" 2>&1 | head -12 || echo "(probe failed)"
-            echo "-- payment_channels.py KES providers (deployed code) --"
-            sudo kubectl -n $NS exec $POD -- python3 -c 'from polar.checkout.payment_channels import get_channels_for_currency; ch=get_channels_for_currency("KES"); momo=next((c for c in ch if c.id=="mobile_money"), None); print("  momo providers:", momo.providers if momo else None)' 2>&1 | head -3 || true
-            echo "-- blyss-studio org row: subaccount + mpesa fields --"
-            PG=$(sudo kubectl -n $NS get pods -l app=postgres -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select slug, subaccount_status, subaccount_code, mpesa_number, mpesa_verified, payout_method, default_presentment_currency from organizations where slug='blyss-studio';\"" 2>&1 | head -10
-            echo "-- blyss-studio avatar + profile_settings (banner) --"
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select slug, avatar_url, profile_settings from organizations where slug='blyss-studio';\"" 2>&1 | head -10
-            echo "-- blyss-studio organization_review row --"
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select id, organization_id, verdict, appeal_decision, appeal_submitted_at, created_at, modified_at from organization_reviews where organization_id='c2606553-9be0-4d3d-ba9a-02db9953da3b' order by created_at desc limit 3;\"" 2>&1 | head -10
-            echo "-- blyss-studio org status (gates payment access) --"
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select slug, status, status_updated_at, details_submitted_at, account_id from organizations where slug='blyss-studio';\"" 2>&1 | head -8
-            echo "-- API errors in last 100 lines (storefront 500) --"
-            sudo kubectl -n $NS logs deployment/blyss-api --tail=200 2>&1 | grep -iE "error|exception|traceback|creator" | tail -20
-            echo "-- API access log: /v1/products/.*/benefits calls (last 24h) --"
-            sudo kubectl -n $NS logs deployment/blyss-api --tail=10000 2>&1 | grep -E "/v1/products/.*benefits" | tail -20 || echo "(none)"
-            echo "-- API access log: PATCH/POST /v1/products/ (recent product edits) --"
-            sudo kubectl -n $NS logs deployment/blyss-api --tail=10000 2>&1 | grep -E '"(PATCH|POST) /v1/products/' | tail -20 || echo "(none)"
-            echo "-- API errors mentioning /appeal --"
-            sudo kubectl -n $NS logs deployment/blyss-api --tail=400 2>&1 | grep -iE "appeal|submit_appeal" -A 20 | tail -60
-            echo "-- recent organization_review.run_agent task lifecycle --"
-            sudo kubectl -n $NS logs deployment/blyss-worker --tail=4000 2>&1 | grep -E "organization_review\.run_agent|organization_review\.task|organization_review\.threshold|run_organization_review" | tail -40
-            echo "-- last 10 organization details_submitted_at + has_review --"
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select o.slug, o.details_submitted_at, o.status, (select count(*) from organization_reviews r where r.organization_id=o.id) as has_review_rows, (select count(*) from organization_agent_reviews ar where ar.organization_id=o.id) as has_agent_rows from organizations o where o.details_submitted_at is not null order by o.details_submitted_at desc limit 10;\"" 2>&1 | head -25
-            echo "-- specifically: current-digital / current digital org row --"
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select id, slug, name, status, details_submitted_at, created_at, modified_at from organizations where slug ilike '%current%digital%' or name ilike '%current%digital%' order by created_at desc limit 5;\"" 2>&1 | head -10
-            echo "-- IS organization.details actually populated for this org? --"
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select id, slug, details is not null as has_details, jsonb_typeof(details) as details_type, jsonb_object_keys_count from (select id, slug, details, (select count(*) from jsonb_object_keys(details)) as jsonb_object_keys_count from organizations where slug ilike '%current%digital%') x;\"" 2>&1 | head -10
-            echo "-- ALL recent submitted-but-no-review orgs (the bug class) --"
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select o.id, o.slug, o.status, o.details_submitted_at, (o.details is not null) as has_details, (select count(*) from organization_reviews r where r.organization_id=o.id) as review_rows from organizations o where o.created_at > now() - interval '7 days' order by o.created_at desc limit 15;\"" 2>&1 | head -25
-            echo "-- review/agent rows for that org --"
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select r.id, r.organization_id, r.verdict, r.created_at from organization_reviews r join organizations o on o.id=r.organization_id where o.slug ilike '%current%digital%' or o.name ilike '%current%digital%' order by r.created_at desc limit 5;\"" 2>&1 | head -10
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select ar.id, ar.organization_id, ar.review_type, ar.created_at from organization_agent_reviews ar join organizations o on o.id=ar.organization_id where o.slug ilike '%current%digital%' or o.name ilike '%current%digital%' order by ar.created_at desc limit 5;\"" 2>&1 | head -10
-            echo "-- worker queue depth + dramatiq actor metrics --"
-            sudo kubectl -n $NS logs deployment/blyss-worker --tail=300 2>&1 | grep -E "queue\.depth|actor_name.*organization_review|enqueue.*organization_review|MessageEnqueued|Failed to process" | tail -30
-            echo "-- recent /v1/reviews/ POST tracebacks --"
-            sudo kubectl -n $NS logs deployment/blyss-api --tail=4000 2>&1 | grep -E '/v1/reviews/|review|Member|polar_mst_|allowed_subjects' -A 30 | tail -120
-            echo "-- creator_waitlist backoffice errors --"
-            sudo kubectl -n $NS logs deployment/blyss-api --tail=6000 2>&1 | grep -E "creator_waitlist|/backoffice/creator-waitlist|/backoffice/creator_waitlist" -A 20 | tail -80
-            echo "-- table check: creator_waitlist_entries exists + sample --"
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select count(*) from creator_waitlist_entries;\"" 2>&1 | head -5
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select id, email, country_code, source, created_at from creator_waitlist_entries order by created_at desc limit 5;\"" 2>&1 | head -10
-            echo "-- last review-related exception traceback (broad capture) --"
-            sudo kubectl -n $NS logs deployment/blyss-api --tail=6000 2>&1 | grep -B 2 -A 40 -E 'POST /v1/reviews|reviews\.endpoints|ReviewWriter|_resolve_user_id|reviews/.*500' | tail -200
-            echo "-- python discovery in API pod --"
-            sudo kubectl -n $NS exec $POD -- sh -c 'echo "  which python="; which python; echo "  which python3="; which python3; echo "  /app contents="; ls /app | head -20; echo "  pyproject?"; ls /app/pyproject.toml /app/uv.lock 2>&1 | head; echo "  venv probe="; ls /app/.venv/bin/python 2>&1; ls /opt/venv/bin/python 2>&1; echo "  PYTHONPATH=$PYTHONPATH"; python -c "import sqlalchemy; print(\"  sqlalchemy:\", sqlalchemy.__version__)" 2>&1 || true' 2>&1 | head -25
-            echo "-- email integration env probe --"
-            sudo kubectl -n $NS exec $POD -- sh -c 'echo "  POLAR_RESEND_API_KEY set: $([ -n \"$POLAR_RESEND_API_KEY\" ] && echo yes || echo no) (len=${#POLAR_RESEND_API_KEY})"; echo "  POLAR_LOOPS_API_KEY set: $([ -n \"$POLAR_LOOPS_API_KEY\" ] && echo yes || echo no) (len=${#POLAR_LOOPS_API_KEY})"; echo "  POLAR_PLAIN_TOKEN: $([ -n \"$POLAR_PLAIN_TOKEN\" ] && echo set || echo unset) (len=${#POLAR_PLAIN_TOKEN})"; echo "  POLAR_AI_PROVIDER=$POLAR_AI_PROVIDER"; echo "  POLAR_GOOGLE_AI_API_KEY set: $([ -n \"$POLAR_GOOGLE_AI_API_KEY\" ] && echo yes || echo no) (len=${#POLAR_GOOGLE_AI_API_KEY})"' 2>&1 | head -10
-            echo "-- worker logs (last 30 lines) --"
-            sudo kubectl -n $NS logs deployment/blyss-worker --tail=30 2>&1 | tail -20
-            echo ""
-            echo "═══════════════════════════════════════"
-            echo " DONATION / TIP EMAIL PROBE"
-            echo "═══════════════════════════════════════"
-            echo "-- ALL donations (last 7 days) --"
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select id, organization_id, amount, currency, payment_status, donor_email, created_at from donations order by created_at desc limit 10;\"" 2>&1 | head -20
-            echo "-- worker: donation actor activity (last 24h) --"
-            sudo kubectl -n $NS logs deployment/blyss-worker --tail=8000 2>&1 | grep -E "donation\.notify|donation\.send_confirmation|donation\.send_receipt|donation\.recorded|ActorNotFound.*donation" | tail -30 || echo "(no donation worker activity)"
-            echo "-- worker: paystack→donation chain --"
-            sudo kubectl -n $NS logs deployment/blyss-worker --tail=8000 2>&1 | grep -E "paystack\.webhook\.donation|donation_id|donation\.confirmation|donation\.receipt" | tail -30 || echo "(no donation chain logs)"
-            echo "-- API: /v1/donation/* requests (last 24h) --"
-            sudo kubectl -n $NS logs deployment/blyss-api --tail=8000 2>&1 | grep -E "/v1/donation/" | tail -20 || echo "(no donation API hits)"
-            echo "-- email_logs rows for donations (last 24h) --"
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select id, to_email_addr, subject, status, created_at from email_logs where created_at > now() - interval '24 hours' order by created_at desc limit 20;\"" 2>&1 | head -25
-            echo "-- email_logs failures only (status='failed', last 7d) --"
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select id, to_email_addr, subject, status, error, created_at from email_logs where status = 'failed' and created_at > now() - interval '7 days' order by created_at desc limit 15;\"" 2>&1 | head -20
-            echo "-- ANY ActorNotFound errors in worker (post-fix probe) --"
-            sudo kubectl -n $NS logs deployment/blyss-worker --tail=8000 2>&1 | grep -E "ActorNotFound" | tail -10 || echo "(no ActorNotFound — registration fix is live)"
-            echo "-- worker actors registered probe (live introspection from worker venv) --"
-            sudo kubectl -n $NS exec deployment/blyss-worker -- sh -c "cd /app/server && uv run python -c \"
-            import polar.tasks
-            import dramatiq
-            broker = dramatiq.get_broker()
-            for n in ['donation.notify','donation.send_confirmation','donation.send_receipt']:
-                print(f'  {n}:', 'REGISTERED' if n in broker.actors else 'MISSING')
-            \"" 2>&1 | tail -10 || echo "(introspection failed)"
-            echo "-- REPLAY: re-enqueue donation.notify for the stuck tip --"
-            echo "   donation_id=98f58647-907e-4f03-9383-2cc2f663f724 (KSh 50, current-digital-design-studios)"
-            sudo kubectl -n $NS exec deployment/blyss-api -- sh -c "cd /app/server && uv run python -c \"
-            import polar.tasks
-            import dramatiq, uuid
-            broker = dramatiq.get_broker()
-            actor = broker.actors.get('donation.notify')
-            print('  actor present:', actor is not None)
-            if actor:
-                msg = actor.send(uuid.UUID('98f58647-907e-4f03-9383-2cc2f663f724'))
-                print('  enqueued message_id:', msg.message_id)
-            \"" 2>&1 | tail -5 || echo "(replay failed)"
-            echo "-- worker logs RIGHT AFTER replay (10s window) --"
-            sleep 10
-            sudo kubectl -n $NS logs deployment/blyss-worker --since=15s 2>&1 | tail -40
+            echo '=== SERVER ==='
+            hostname
+            date -u
+            uptime
+            free -h
+            df -hT / /opt /srv /var/www /var/lib/rancher/k3s 2>/dev/null || true
 
-            echo
-            echo "-- worker PREVIOUS container exit logs (if crashed) --"
-            sudo kubectl -n $NS logs deployment/blyss-worker --tail=80 --previous 2>&1 | tail -50 || echo "(no previous container)"
+            echo '=== RUNNING SYSTEM SERVICES ==='
+            sudo systemctl list-units --type=service --state=running --no-legend --plain || true
 
-            echo
-            echo "-- web pod errors (Next.js SSR 500) --"
-            sudo kubectl -n $NS logs deployment/blyss-web --tail=200 2>&1 | grep -iE "error|exception|500|TypeError|cannot read|undefined|not a function" | tail -30 || echo "(no web errors)"
-            echo
-            echo "-- RESEND verified domains (what 'from' is allowed) --"
-            sudo kubectl -n $NS exec $POD -- sh -c 'k=$POLAR_RESEND_API_KEY; echo "  env key len=${#k}"; if [ -n "$k" ]; then curl -s -o /tmp/r -w "  /domains HTTP %{http_code}\n" -H "Authorization: Bearer $k" https://api.resend.com/domains; head -c 600 /tmp/r; echo; fi' 2>&1 | head -10 || true
-            echo "-- runtime_settings rows (key, status) — DB overlay that wins over env --"
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select key, status, last_verified_at, left(coalesce(last_error,''),60) as err from runtime_settings order by key;\"" 2>&1 | head -30
-            echo "-- effective from-address env --"
-            sudo kubectl -n $NS exec $POD -- sh -c 'echo "  EMAIL_FROM_LOCAL=$POLAR_EMAIL_FROM_LOCAL EMAIL_FROM_DOMAIN=$POLAR_EMAIL_FROM_DOMAIN"' 2>&1 | head -2
-            echo
-            echo "-- product_categories: count + active counts --"
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select count(*) as total, count(*) filter (where is_active) as active, count(*) filter (where is_active=false) as inactive from product_categories;\"" 2>&1 | head -8
-            echo "-- product_categories: all rows --"
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select id, name, slug, is_active, display_order from product_categories order by display_order, name limit 30;\"" 2>&1 | head -40
-            echo "-- ebooks category id + assignments + products --"
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select pc.id, pc.slug, pc.name, (select count(*) from product_category_assignments pca where pca.category_id=pc.id) as assignments_count, (select count(*) from product_category_assignments pca join products p on p.id=pca.product_id where pca.category_id=pc.id and p.is_archived=false) as not_archived_count, (select count(*) from product_category_assignments pca join products p on p.id=pca.product_id where pca.category_id=pc.id and p.is_archived=false and p.deleted_at is null) as live_count from product_categories pc where pc.slug='ebooks';\"" 2>&1 | head -10
-            echo "-- ALL product_category_assignments for ebooks (with product status) --"
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select pca.id, p.id as product_id, p.name, p.is_archived, p.deleted_at, p.organization_id from product_category_assignments pca join products p on p.id=pca.product_id where pca.category_id=(select id from product_categories where slug='ebooks');\"" 2>&1 | head -25
-            echo "-- direct test of /v1/categories/ebooks/products via the API container --"
-            sudo kubectl -n $NS exec $POD -- python3 -c 'import urllib.request,json;r=urllib.request.urlopen("http://localhost:10000/v1/categories/ebooks/products?page=1&limit=24",timeout=10);d=json.loads(r.read());print("HTTP",r.status,"items=",len(d.get("items",[])),"total=",d.get("pagination",{}).get("total_count"))' 2>&1 | head -3
-            echo
+            echo '=== PROJECT DIRECTORIES AND COMPOSE FILES ==='
+            for path in /opt /srv /var/www /home/ubuntu; do
+              if [ -d "$path" ]; then
+                echo "--- $path ---"
+                sudo find "$path" -mindepth 1 -maxdepth 3 -type d ! -path '*/.*' -print 2>/dev/null | sort
+                sudo find "$path" -maxdepth 5 \( -type d -name .git -o -type f \( -iname 'docker-compose.yml' -o -iname 'docker-compose.yaml' -o -iname 'compose.yml' -o -iname 'compose.yaml' \) \) -print 2>/dev/null | sort
+              fi
+            done
 
-            echo "═══════════════════════════════════════"
-            echo " S3 / MINIO PROBE"
-            echo "═══════════════════════════════════════"
-            echo "-- S3 env vars seen by API pod --"
-            sudo kubectl -n $NS exec $POD -- sh -c 'echo "  S3_ENDPOINT_URL=$POLAR_S3_ENDPOINT_URL"; echo "  S3_PUBLIC_ENDPOINT_URL=$POLAR_S3_PUBLIC_ENDPOINT_URL"; echo "  FILES_BUCKET=$POLAR_S3_FILES_BUCKET_NAME"; echo "  PUBLIC_BUCKET=$POLAR_S3_FILES_PUBLIC_BUCKET_NAME"' 2>&1 || true
-            echo "-- buckets that exist in MinIO --"
-            MINIO=$(sudo kubectl -n $NS get pods -l app=minio -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
-            sudo kubectl -n $NS exec $MINIO -- sh -c 'mc alias set loc http://127.0.0.1:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"; echo "exit=$?"; echo "--- bucket list ---"; mc ls loc/; echo "--- public bucket stat ---"; mc stat loc/blyss-public 2>&1 | head -3; echo "--- private bucket stat ---"; mc stat loc/blyss-private 2>&1 | head -3' 2>&1 | head -25
-            echo
+            echo '=== DOCKER CONTAINERS (if Docker is installed) ==='
+            if command -v docker >/dev/null 2>&1; then
+              sudo docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}' || true
+            else
+              echo 'Docker is not installed'
+            fi
 
-            echo "═══════════════════════════════════════"
-            echo " TRAEFIK CRD + FORWARDED-PROTO PROBE"
-            echo "═══════════════════════════════════════"
-            echo "-- available middleware CRD apiVersions --"
-            sudo kubectl api-resources 2>/dev/null | grep -i middleware || echo "  (no middleware CRD)"
-            echo "-- existing middlewares in ns --"
-            sudo kubectl -n $NS get middlewares.traefik.io 2>/dev/null || sudo kubectl -n $NS get middlewares.traefik.containo.us 2>/dev/null || echo "  (none)"
-            echo "-- what scheme/headers does the API see? (hit the echo via in-cluster + via public) --"
-            echo "  in-cluster (http expected):"
-            sudo kubectl -n $NS exec $POD -- python3 -c "import urllib.request as u; r=u.urlopen('http://localhost:10000/v1/integrations/google/login/authorize?return_to=/x', timeout=8); print('   ',r.headers.get('location','(no loc)')[:120])" 2>&1 | head -3 || true
-            echo
+            echo '=== KUBERNETES NODES ==='
+            sudo kubectl get nodes -o wide
 
-            echo "═══════════════════════════════════════"
-            echo " CREATOR-NOT-PUBLIC DIAGNOSE (status / subaccount / details)"
-            echo "═══════════════════════════════════════"
-            echo "-- Every org, with the four gates that decide public visibility --"
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select o.slug, o.name, o.status, o.subaccount_status, o.details_submitted_at is not null as details_done, o.subaccount_code is not null as has_subaccount, o.default_presentment_currency as currency, (select count(*) from products p where p.organization_id=o.id and p.is_archived=false and p.deleted_at is null) as live_products from organizations o where o.deleted_at is null and o.blocked_at is null order by o.created_at desc limit 25;\"" 2>&1 | head -40
-            echo
-            echo "-- Direct call to /v1/organizations/creators (what the front pages actually see) --"
-            sudo kubectl -n $NS exec $POD -- python3 -c 'import urllib.request,json;r=urllib.request.urlopen("http://localhost:10000/v1/organizations/creators?limit=50",timeout=10);body=r.read();d=json.loads(body);items=d if isinstance(d,list) else d.get("items",[]);print("HTTP",r.status,"shape=",type(d).__name__,"count=",len(items));[print("  ",i.get("slug"),"·",i.get("name"),"·",i.get("status",""),"·",len(i.get("products") or []),"products") for i in items[:25]]' 2>&1 | head -30
-            echo
-            echo "-- Direct call to /v1/organizations/public (homepage trending strip) --"
-            sudo kubectl -n $NS exec $POD -- python3 -c 'import urllib.request,json;r=urllib.request.urlopen("http://localhost:10000/v1/organizations/public?limit=50",timeout=10);body=r.read();d=json.loads(body);items=d if isinstance(d,list) else d.get("items",[]);print("HTTP",r.status,"shape=",type(d).__name__,"count=",len(items));[print("  ",i.get("slug"),"·",i.get("name"),"·",i.get("status","")) for i in items[:25]]' 2>&1 | head -30
-            echo
-            echo "-- Same query, with the exact public_organization_filters() --"
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select o.slug, o.status, o.subaccount_status from organizations o where o.deleted_at is null and o.blocked_at is null and o.status='active' and o.subaccount_status='active' order by o.created_at desc;\"" 2>&1 | head -25
-            echo
-            echo "-- Orgs that look ready EXCEPT for status (i.e. AI review didn't run) --"
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select o.slug, o.status, o.subaccount_status, o.details_submitted_at, (select count(*) from organization_reviews r where r.organization_id=o.id) as reviews from organizations o where o.deleted_at is null and o.blocked_at is null and o.subaccount_status='active' and o.status<>'active' order by o.created_at desc limit 15;\"" 2>&1 | head -25
-            echo
-            echo "-- Orgs that look ready EXCEPT for subaccount (creator skipped M-Pesa) --"
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select o.slug, o.status, o.subaccount_status, o.subaccount_code, o.details_submitted_at is not null as details_done from organizations o where o.deleted_at is null and o.blocked_at is null and o.status='active' and o.subaccount_status<>'active' order by o.created_at desc limit 15;\"" 2>&1 | head -25
-            echo
-            echo "-- Most recently created org full row (so we can eyeball every gate at once) --"
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select id, slug, name, status, subaccount_status, subaccount_code, details_submitted_at, default_presentment_currency, account_id, created_at, modified_at from organizations where deleted_at is null order by created_at desc limit 5;\"" 2>&1 | head -25
-            echo
-            echo "-- BACKFILL: orgs that are PASS-reviewed but stuck at status='created' --"
-            echo "   Reads-only preview of which orgs the auto-promote fix will sweep up:"
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select o.slug, o.status, o.subaccount_status, r.verdict, r.created_at as reviewed_at from organizations o join organization_reviews r on r.organization_id=o.id where o.deleted_at is null and o.blocked_at is null and o.status='created' and o.subaccount_status='active' and r.verdict='PASS' order by o.created_at desc limit 25;\"" 2>&1 | head -25
-            echo
-            echo "   Apply the backfill (status -> active, status_updated_at, initially_reviewed_at):"
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"update organizations o set status='active', status_updated_at=now(), initially_reviewed_at=coalesce(initially_reviewed_at, now()), modified_at=now() from organization_reviews r where r.organization_id=o.id and o.deleted_at is null and o.blocked_at is null and o.status='created' and o.subaccount_status='active' and r.verdict='PASS' returning o.slug, o.status as new_status;\"" 2>&1 | head -20
+            echo '=== KUBERNETES NAMESPACES ==='
+            sudo kubectl get namespaces --show-labels
 
-            echo
-            echo "═══════════════════════════════════════"
-            echo " CART-CHECKOUT CURRENCY DIAGNOSE"
-            echo "═══════════════════════════════════════"
-            echo "-- Every product with its price currencies and counts --"
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select p.id, p.name, p.organization_id, o.slug as creator, p.is_archived, count(pp.*) as price_count, string_agg(distinct pp.price_currency, ',') as currencies from products p left join product_prices pp on pp.product_id=p.id and pp.is_archived=false left join organizations o on o.id=p.organization_id where p.is_archived=false and p.deleted_at is null group by p.id, p.name, p.organization_id, o.slug, p.is_archived order by o.slug, p.name limit 30;\"" 2>&1 | head -40
-            echo
-            echo "-- Recent cart-checkout API calls + status codes --"
-            sudo kubectl -n $NS logs deployment/blyss-api --tail=4000 2>&1 | grep -E "/v1/cart/checkout|cart\.create_checkout|NoPricesForCurrencies|Products are not available" | tail -30
-            echo
-            echo "-- Cart items that exist + the implied currency-resolution mismatch --"
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select ci.id as cart_item_id, ci.user_id is not null as is_user_cart, ci.quantity, p.name as product, o.slug as creator, o.default_presentment_currency as creator_default, (select string_agg(pp.price_currency, ',') from product_prices pp where pp.product_id=p.id and pp.is_archived=false) as available_currencies from cart_items ci join products p on p.id=ci.product_id join organizations o on o.id=p.organization_id order by ci.created_at desc limit 15;\"" 2>&1 | head -25
-            echo
-            echo "-- Settings.PAYSTACK_SUPPORTED_CURRENCIES seen by the running pod --"
-            sudo kubectl -n $NS exec $POD -- sh -c 'echo "  raw env: $POLAR_PAYSTACK_SUPPORTED_CURRENCIES"' 2>&1 | head -2
-            echo "  deployed default in /app config.py:"
-            sudo kubectl -n $NS exec $POD -- sh -c 'grep -n "PAYSTACK_SUPPORTED_CURRENCIES: set\[str\]" /app/server/polar/config.py 2>/dev/null || grep -rn "PAYSTACK_SUPPORTED_CURRENCIES: set\[str\]" /app 2>/dev/null | head -3' 2>&1 | head -3
+            echo '=== PODS IN ALL NAMESPACES ==='
+            sudo kubectl get pods --all-namespaces -o custom-columns='NAMESPACE:.metadata.namespace,NAME:.metadata.name,READY:.status.containerStatuses[*].ready,PHASE:.status.phase,RESTARTS:.status.containerStatuses[*].restartCount,NODE:.spec.nodeName,IMAGES:.spec.containers[*].image' --sort-by=.metadata.namespace
 
-            echo
-            echo "═══════════════════════════════════════"
-            echo " /v1/reviews/ 500 DIAGNOSE"
-            echo "═══════════════════════════════════════"
-            echo "-- recent /v1/reviews/ access log entries (status codes) --"
-            sudo kubectl -n $NS logs deployment/blyss-api --tail=4000 2>&1 | grep -E "POST /v1/reviews/" | tail -10
-            echo
-            echo "-- recent unhandled exceptions / tracebacks --"
-            sudo kubectl -n $NS logs deployment/blyss-api --tail=4000 2>&1 | grep -B 2 -A 25 -E "/v1/reviews/.*500|Traceback|UnauthorizedReviewAccessError|review_service.create_review|exception" | tail -120
-            echo
-            echo "-- review_service.create_review path: orders this user could review --"
-            sudo kubectl -n $NS exec $PG -- sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"select o.id as order_id, o.product_id, p.name, o.customer_id, c.email as customer_email, o.status, o.created_at from orders o join products p on p.id=o.product_id join customers c on c.id=o.customer_id where o.created_at > now() - interval '14 days' and o.status='paid' order by o.created_at desc limit 10;\"" 2>&1 | head -20
+            echo '=== WORKLOADS IN ALL NAMESPACES ==='
+            sudo kubectl get deployments,statefulsets,daemonsets,jobs,cronjobs --all-namespaces -o wide
 
-            echo "═══════════════════════════════════════"
-            echo " API POD LOGS (current)"
-            echo "═══════════════════════════════════════"
-            sudo kubectl -n $NS logs deployment/blyss-api --tail=120 --all-containers=true 2>&1 || true
-            echo ""
-            echo "═══════════════════════════════════════"
-            echo " API POD LOGS (previous, if crashed)"
-            echo "═══════════════════════════════════════"
-            sudo kubectl -n $NS logs deployment/blyss-api --tail=120 --previous 2>&1 || true
-            echo ""
-            echo "═══════════════════════════════════════"
-            echo " POSTGRES POD LOGS"
-            echo "═══════════════════════════════════════"
-            sudo kubectl -n $NS logs statefulset/postgres --tail=40 2>&1 || true
-            echo ""
-            echo "═══════════════════════════════════════"
-            echo " WORKER POD LOGS"
-            echo "═══════════════════════════════════════"
-            sudo kubectl -n $NS logs deployment/blyss-worker --tail=60 2>&1 || true
+            echo '=== SERVICES AND STANDARD INGRESS ==='
+            sudo kubectl get services,ingresses --all-namespaces -o wide
+
+            echo '=== STORAGE ==='
+            sudo kubectl get persistentvolumeclaims --all-namespaces -o wide
+            sudo kubectl get persistentvolumes -o wide
+
+            echo '=== NETWORK AND RESOURCE POLICIES ==='
+            sudo kubectl get networkpolicies,resourcequotas,limitranges --all-namespaces -o wide
+
+            echo '=== TRAEFIK ROUTES (when installed) ==='
+            sudo kubectl get ingressroutes,middlewares --all-namespaces -o wide 2>/dev/null || echo 'Traefik route resources unavailable'
+
+            echo '=== LIVE NODE RESOURCE USAGE ==='
+            sudo kubectl top nodes 2>&1 || echo 'Node metrics unavailable'
+            sudo kubectl top pods --all-namespaces --containers 2>&1 || echo 'Pod metrics unavailable'
