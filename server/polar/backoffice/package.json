@@ -2,6 +2,7 @@
   "name": "backoffice",
   "private": true,
   "version": "1.0.0",
+  "packageManager": "pnpm@10.28.1",
   "scripts": {
     "build:css": "tailwindcss -i ./styles.css -o ./static/styles.css",
     "build:js": "esbuild scripts.mjs --bundle --minify --outfile=./static/scripts.js",
@@ -18,5 +19,11 @@
     "hyperscript.org": "^0.9.14",
     "lucide-static": "^0.552.0",
     "tailwindcss": "^4.1.17"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@parcel/watcher",
+      "esbuild"
+    ]
   }
 }
