@@ -3,7 +3,13 @@ name: Build & Deploy
 on:
   push:
     branches: [master]
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      build_api:
+        description: Build and deploy the API image as well
+        type: boolean
+        required: true
+        default: true
 
 concurrency:
   group: deploy-${{ github.ref }}
@@ -61,6 +67,7 @@ jobs:
   # ---------------------------------------------------------------------------
   build-api:
     name: Build API image
+    if: github.event_name != 'workflow_dispatch' || inputs.build_api
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -99,6 +106,7 @@ jobs:
   deploy:
     name: Deploy to K3s
     needs: [build-web, build-api]
+    if: always() && needs.build-web.result == 'success' && (needs.build-api.result == 'success' || needs.build-api.result == 'skipped')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -286,6 +294,10 @@ jobs:
             # to let it be recreated cleanly on every deploy.
             sudo kubectl delete job minio-init -n $NS --ignore-not-found
             for f in /opt/blyss/k8s/*.yaml; do
+              if [ -z "$API_TAG" ] && [[ "$f" == *"/blyss-api.yaml" ]]; then
+                echo "==> Skipping API manifest; retaining the running API"
+                continue
+              fi
               echo "==> kubectl apply -f $f"
               if [[ "$f" == *postgres* ]]; then
                 sudo kubectl apply -f "$f" 2>&1 || echo "  (postgres apply skipped — non-template fields immutable)"
@@ -300,14 +312,19 @@ jobs:
 
             # 7. Update images
             sudo kubectl set image deployment/blyss-web web=ghcr.io/$REPO_OWNER/blyss-web:${WEB_TAG} -n $NS 2>/dev/null || true
-            sudo kubectl set image deployment/blyss-api api=ghcr.io/$REPO_OWNER/blyss-api:${API_TAG} -n $NS 2>/dev/null || true
-            sudo kubectl set image deployment/blyss-worker worker=ghcr.io/$REPO_OWNER/blyss-api:${API_TAG} -n $NS 2>/dev/null || true
+            if [ -n "$API_TAG" ]; then
+              sudo kubectl set image deployment/blyss-api api=ghcr.io/$REPO_OWNER/blyss-api:${API_TAG} -n $NS 2>/dev/null || true
+              sudo kubectl set image deployment/blyss-worker worker=ghcr.io/$REPO_OWNER/blyss-api:${API_TAG} -n $NS 2>/dev/null || true
+            else
+              echo "Retaining existing API and worker images"
+            fi
 
             # 8. Wait for postgres + api
             sudo kubectl rollout status statefulset/postgres -n $NS --timeout=3m 2>/dev/null || true
-            sudo kubectl rollout status deployment/blyss-api -n $NS --timeout=5m 2>/dev/null || {
-              echo "API rollout pending; continuing"
-            }
+            if [ -n "$API_TAG" ]; then
+              sudo kubectl rollout status deployment/blyss-api -n $NS --timeout=5m 2>/dev/null || {
+                echo "API rollout pending; continuing"
+              }
 
             # 9. Run migrations
             # Wait for a fully READY api pod (phase=Running is not enough — the
@@ -345,6 +362,9 @@ jobs:
                 echo "⚠️  Admin seed failed (non-blocking)"
             else
               echo "⚠️  No running API pod; skipping migrations + seed"
+            fi
+            else
+              echo "Skipping API rollout, migrations, and seed"
             fi
 
             # 10. Web rollout
