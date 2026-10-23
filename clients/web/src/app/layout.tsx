@@ -188,9 +188,8 @@ export default async function RootLayout({
         />
         <link rel="dns-prefetch" href="https://cdn.blyss.co.ke" />
         <link rel="dns-prefetch" href="https://api.blyss.co.ke" />
-        {/* Light is the default, dominant mode (plan/04-ui-direction.md §3.2).
-            Dark is reserved for accent sections, opted into by wrapping the
-            section in `.dark`. No theme class on <html> = light by default. */}
+        {/* The shared theme provider defaults to dark and applies the user's
+            saved light/dark preference on <html>. */}
         {/* JSON-LD — Organization + WebSite schemas for Google rich results
             and AI search engines (Perplexity, Claude Search, ChatGPT Search,
             Google SGE). Static, site-wide. Per-page schemas (Product,

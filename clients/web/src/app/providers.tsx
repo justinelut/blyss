@@ -10,7 +10,7 @@ import {
 import { getQueryClient } from "@/utils/api/query";
 import { CONFIG } from "@/utils/config";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { ThemeProvider } from "next-themes";
+import { ThemeProvider, useTheme } from "next-themes";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useMemo } from "react";
 
@@ -118,15 +118,44 @@ export function PolarThemeProvider({
   return (
     <ThemeProvider
       defaultTheme="dark"
-      enableSystem={false}
+      enableSystem
       attribute="class"
       storageKey="blyss-theme"
       disableTransitionOnChange
       forcedTheme={requestedTheme ?? forcedTheme}
     >
+      <LegacyThemePreferenceMigration />
       {children}
     </ThemeProvider>
   );
+}
+
+/**
+ * The account preferences page previously stored the choice under `theme`
+ * and toggled the document class directly. Move existing choices into the
+ * shared next-themes preference once so all theme controls stay in sync.
+ */
+function LegacyThemePreferenceMigration() {
+  const { setTheme } = useTheme();
+
+  useEffect(() => {
+    const legacyTheme = window.localStorage.getItem("theme");
+    if (!legacyTheme) return;
+
+    const hasSharedPreference = window.localStorage.getItem("blyss-theme");
+    if (
+      !hasSharedPreference &&
+      (legacyTheme === "light" ||
+        legacyTheme === "dark" ||
+        legacyTheme === "system")
+    ) {
+      setTheme(legacyTheme);
+    }
+
+    window.localStorage.removeItem("theme");
+  }, [setTheme]);
+
+  return null;
 }
 
 export function PolarQueryClientProvider({

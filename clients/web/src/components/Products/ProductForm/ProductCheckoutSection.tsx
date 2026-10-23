@@ -33,7 +33,12 @@ export const ProductCheckoutSection = ({
   const isRecurring = !!watch('is_recurring' as any)
 
   return (
-    <div className={twMerge('flex flex-col gap-12 p-12', className)}>
+    <div
+      className={twMerge(
+        'flex flex-col gap-6 p-5 sm:gap-8 sm:p-8 md:gap-12 md:p-12',
+        className,
+      )}
+    >
       <Accordion type="single" collapsible>
         <AccordionItem value="checkout-page" className="border-none">
           <AccordionTrigger className="cursor-pointer hover:no-underline">

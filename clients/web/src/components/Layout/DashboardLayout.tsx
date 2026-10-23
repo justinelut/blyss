@@ -103,12 +103,12 @@ const MobileTopbar = ({
       {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
       <a
         href="/"
-        className="shrink-0 items-center font-semibold text-black dark:text-white"
+        className="flex shrink-0 items-center font-semibold text-black dark:text-white"
       >
         <Logo variant="icon" className="h-10 w-10" size="md" />
       </a>
 
-      <div className="flex flex-row items-center gap-x-4">
+      <div className="flex shrink-0 flex-row items-center gap-x-4">
         {storefrontHref && (
           <Link
             href={storefrontHref}
@@ -125,7 +125,7 @@ const MobileTopbar = ({
             <StorefrontOutlined fontSize="medium" />
           </Link>
         )}
-        <SidebarTrigger />
+        <SidebarTrigger className="shrink-0" />
       </div>
     </div>
   );
@@ -190,7 +190,7 @@ export const DashboardBody = ({
   return (
     <motion.div
       className={twMerge(
-        "flex h-full w-full flex-row gap-x-2",
+        "flex h-full w-full min-w-0 flex-row gap-x-2",
         contextViewPlacement === "left" ? "flex-row-reverse" : "",
       )}
       initial="initial"

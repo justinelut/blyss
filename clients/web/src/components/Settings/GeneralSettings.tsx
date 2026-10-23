@@ -9,7 +9,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback } from 'react'
+import { useTheme } from 'next-themes'
 import Spinner from '../Shared/Spinner'
 export type Theme = 'system' | 'light' | 'dark'
 
@@ -18,53 +19,12 @@ interface GeneralSettingsProps {
 }
 
 const GeneralSettings: React.FC<GeneralSettingsProps> = () => {
-  const [theme, setTheme] = useState<Theme | undefined>()
-  const didSetTheme = useRef(false)
+  const { theme, setTheme } = useTheme()
 
-  const onInitialLoad = () => {
-    if (didSetTheme.current) {
-      return
-    }
-    if (typeof localStorage === 'undefined') {
-      return
-    }
-
-    didSetTheme.current = true
-    const t = localStorage.getItem('theme')
-    if (t) {
-      setTheme(t as Theme)
-    } else {
-      setTheme('system')
-    }
-  }
-  useEffect(onInitialLoad, [])
-
-  const handleThemeChange = useCallback((theme: Theme) => {
-    return () => {
-      switch (theme) {
-        case 'system':
-          localStorage.removeItem('theme')
-
-          if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            document.documentElement.classList.add('dark')
-          } else {
-            document.documentElement.classList.remove('dark')
-          }
-
-          break
-        case 'light':
-          localStorage.setItem('theme', 'light')
-          document.documentElement.classList.remove('dark')
-          break
-        case 'dark':
-          localStorage.setItem('theme', 'dark')
-          document.documentElement.classList.add('dark')
-          break
-      }
-
-      setTheme(theme)
-    }
-  }, [])
+  const handleThemeChange = useCallback(
+    (nextTheme: Theme) => () => setTheme(nextTheme),
+    [setTheme],
+  )
 
   return (
     <ShadowListGroup>

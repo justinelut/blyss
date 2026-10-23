@@ -109,6 +109,7 @@ export const CreateProductPage = ({
   const onSubmit = useCallback(
     async (productCreate: ProductEditOrCreateForm) => {
       setIsSubmitting(true)
+      let productCreated = false
       try {
         const { full_medias, metadata, category_id, ...productCreateRest } =
           productCreate as typeof productCreate & { category_id?: string }
@@ -134,9 +135,18 @@ export const CreateProductPage = ({
         if (error) {
           if (error.detail) {
             setProductValidationErrors(error.detail, setError)
+          } else {
+            toast({
+              title: 'Product could not be created',
+              description:
+                'Please try again. If the problem continues, contact support.',
+              variant: 'error',
+            })
           }
           return
         }
+
+        productCreated = true
 
         await updateBenefits.mutateAsync({
           id: product.id,
@@ -180,6 +190,20 @@ export const CreateProductPage = ({
             `Product ${product.name} was created successfully`,
           ),
         )
+      } catch (error) {
+        console.error('product.create.failed', error)
+        toast({
+          title: productCreated
+            ? 'Product created with incomplete settings'
+            : 'Product could not be created',
+          description: productCreated
+            ? 'The product was created, but some settings could not be saved. You can review it in your products list.'
+            : 'Please try again. If the problem continues, contact support.',
+          variant: 'error',
+        })
+        if (productCreated) {
+          router.push(`/dashboard/${organization.slug}/products`)
+        }
       } finally {
         setIsSubmitting(false)
       }
@@ -216,11 +240,11 @@ export const CreateProductPage = ({
       wrapperClassName="max-w-(--breakpoint-md)!"
       className="gap-y-16"
     >
-      <div className="dark:border-polar-700 dark:divide-polar-700 flex flex-col divide-y divide-gray-200 rounded-4xl border border-gray-200">
+      <div className="dark:border-polar-700 dark:divide-polar-700 flex min-w-0 flex-col divide-y divide-gray-200 rounded-4xl border border-gray-200">
         <Form {...form}>
           <form
             onSubmit={handleSubmit(onSubmit)}
-            className="flex flex-col gap-y-6"
+            className="flex min-w-0 flex-col gap-y-6"
           >
             <ProductForm
               organization={organization}

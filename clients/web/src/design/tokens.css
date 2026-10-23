@@ -1,11 +1,10 @@
 /**
  * Blyss design tokens — color palette (plan/04-ui-direction.md §3.2)
  *
- * Light is the DEFAULT and DOMINANT mode (:root). Dark is RESERVED for accent
- * sections only — hero CTA accent block, homepage closing CTA band,
- * post-purchase confirmation, creator earnings widget — applied by wrapping
- * that section in `.dark` (or `[data-theme='dark']`); CSS variables cascade so
- * descendants pick up the dark palette automatically.
+ * :root contains the light palette. Dark is available as a saved app
+ * preference and for contextual accent sections, applied by wrapping the
+ * relevant surface in `.dark` (or `[data-theme='dark']`); CSS variables
+ * cascade so descendants pick up the dark palette automatically.
  *
  * Forbidden in production: any blue, any green outside --success, any
  * teal/cyan, any purple/violet/indigo, pure black, pure white outside

@@ -20,7 +20,9 @@ export const Section = ({
     <div
       className={twMerge(
         'relative flex flex-col',
-        compact ? 'gap-6 p-8' : 'gap-8 p-12',
+        compact
+          ? 'gap-6 p-5 sm:p-8'
+          : 'gap-6 p-5 sm:gap-8 sm:p-8 md:gap-8 md:p-12',
         className,
       )}
     >
