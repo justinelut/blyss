@@ -1,6 +1,6 @@
 'use client'
 
-import { PolarEmbedCheckout } from '@/components/Checkout/embed'
+import { BlyssEmbedCheckout } from '@/components/Checkout/embed'
 import type { schemas } from '@/lib/api'
 import { X } from 'lucide-react'
 import { useCallback, useEffect } from 'react'
@@ -16,7 +16,7 @@ const CheckoutEmbedClose: React.FC<
     if (!checkout.embed_origin) {
       return
     }
-    PolarEmbedCheckout.postMessage({ event: 'close' }, checkout.embed_origin)
+    BlyssEmbedCheckout.postMessage({ event: 'close' }, checkout.embed_origin)
   }, [checkout])
 
   useEffect(() => {

@@ -57,14 +57,13 @@ export const CategoriesIndexPage: React.FC<Props> = ({ categories }) => {
           Every category on Blyss.
         </h1>
         <p className="mt-6 max-w-[58ch] font-sans text-[18px] leading-[1.55] text-[var(--text-secondary)]">
-          Pick a lane. Each one is a feed of independent creators selling
-          templates, beats, courses, presets, photography &mdash; whatever the
-          craft, you&rsquo;ll find someone making it well.
+          Browse categories with published products. Counts show the listings
+          currently available in each category.
         </p>
       </motion.header>
 
-      {/* Empty state — when ops haven't seeded categories yet. Real
-          behaviour during normal operation; keep editorial, not apologetic. */}
+      {/* Show the current catalogue state without implying that products
+          or categories are about to arrive. */}
       {categories.length === 0 ? (
         <motion.div
           initial={false}
@@ -73,13 +72,13 @@ export const CategoriesIndexPage: React.FC<Props> = ({ categories }) => {
           className="mt-16 max-w-[58ch] border-t border-[var(--border)] pt-10"
         >
           <h2 className={cn(typography.h3, "text-[var(--text-primary)]")}>
-            Categories coming soon.
+            No categories have published products yet.
           </h2>
           <p
             className={cn(typography.body, "mt-4 text-[var(--text-secondary)]")}
           >
-            We&rsquo;re seeding the first batch of categories with our launch
-            creators. Browse the marketplace directly while we get them ready.
+            Browse the marketplace or search for a product to see the current
+            listings.
           </p>
           <Link
             href="/marketplace"

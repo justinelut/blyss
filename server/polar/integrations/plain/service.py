@@ -1279,26 +1279,26 @@ class PlainService:
                 "Looping In with guidelines",
                 (
                     "I'm looping in the {organization_name} team to the conversation so that they can help you. "
-                    "Please allow them up to 48 hours to get back to you ([guidelines for merchants on Polar](https://polar.sh/docs/merchant-of-record/account-reviews#operational-guidelines))."
+                    "I'll share an update when I hear back from them."
                 ),
             ),
             (
                 "Cancellation Portal",
                 (
-                    "You can perform the cancellation on the following URL: https://polar.sh/{organization_slug}/portal\n"
+                    "You can manage your subscription from your Blyss portal: https://blyss.co.ke/{organization_slug}/portal\n"
                 ),
             ),
             (
                 "Invoice Generation",
                 (
-                    "You can generate the invoice on the following URL: https://polar.sh/{organization_slug}/portal\n"
+                    "You can view your order and available invoice options from your Blyss portal: https://blyss.co.ke/{organization_slug}/portal\n"
                 ),
             ),
             (
                 "Follow-up 48 hours",
                 (
                     "I'm looping in the {organization_name} team again to the conversation. "
-                    "Please allow them another 48 hours to get back to you before we [proceed with the documented resolution](https://polar.sh/docs/merchant-of-record/account-reviews#expected-responsiveness)."
+                    "I'll share an update when I hear back from them."
                 ),
             ),
             (
@@ -1525,11 +1525,11 @@ class PlainService:
     def _build_review_message(self, organization_name: str, issues: OrgIssues) -> str:
         """Build a friendly numbered message adapted to the org's specific issues."""
         lines: list[str] = [
-            f"Welcome to Polar! Your organization {organization_name} is currently being reviewed. "
-            "This is a standard step all new organizations go through so we can verify account details and ensure compliance with our policies.",
+            f"Welcome to Blyss! Your storefront {organization_name} is being reviewed. "
+            "We may review account and payout details as part of the setup process.",
             "",
-            "Reviews typically take up to 3 business days (occasionally up to 7). "
-            "You can keep using Polar in the mean time to set up your products and integration.",
+            "Timing depends on the information needed and any payment-provider checks. "
+            "The dashboard will show which setup steps are available while the review is in progress.",
             "",
         ]
 
@@ -1544,44 +1544,42 @@ class PlainService:
 
             if issues.missing_website:
                 lines.append(
-                    f"{item_num}. Please add your product's URL under Settings → General → Website."
+                    f"{item_num}. Add your website in Settings → Storefront → Website."
                 )
                 item_num += 1
 
             if issues.missing_socials:
                 lines.append(
-                    f"{item_num}. Please add your personal social links (not your product's) under Settings → General → Social links. "
-                    "These are never displayed publicly. We only use them to verify your identity to avoid people impersonating businesses they do not own."
+                    f"{item_num}. Add at least one social profile in Settings → Storefront → Social media. "
+                    "These links may appear on your public storefront, so review them before saving."
                 )
                 item_num += 1
 
             if issues.admin_not_verified:
                 lines.append(
-                    f"{item_num}. Verify your identity under Finance → Payout account. "
-                    "You'll need an ID document (driver's license, ID, passport, ...) and your phone. "
-                    "It's fully secure and only takes a few minutes."
+                    f"{item_num}. Complete the identity or payout details shown in your setup flow. "
+                    "Paystack may request additional information before activating a payout destination. Do not send identity documents by email."
                 )
 
             lines.append("")
 
         if has_action_items:
             lines.append(
-                "Once you've completed these steps, please reply to this email and we'll finalize your review."
+                "When you've completed these steps, reply to this email and we'll update you if anything else is needed."
             )
         else:
             lines.append(
-                "We'll let you know as soon as you're all set, or if we need anything from you."
+                "We'll update your status or contact you if we need more information."
             )
         lines.append("")
         lines.append(
-            "You can learn more about our review process on our website: "
-            "https://polar.sh/docs/merchant-of-record/account-reviews. "
+            "Please review the Blyss [Acceptable Use Policy](https://blyss.co.ke/acceptable-use). "
             "Any other questions? Just reply to this message."
         )
         lines.append("")
         lines.append("Cheers,")
         lines.append("")
-        lines.append("The customer success team at Polar")
+        lines.append("Blyss Support")
 
         return "\n".join(lines)
 

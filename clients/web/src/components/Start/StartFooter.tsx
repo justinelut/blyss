@@ -24,8 +24,9 @@ export const StartFooter = () => (
           Open your Blyss shop.
         </h2>
         <p className="mt-2 max-w-[44ch] font-sans text-[14px] leading-[1.55] text-[var(--text-secondary)]">
-          Independent creators across Africa price in their currency,
-          collect via M-Pesa or card, and get paid within 24 hours.
+          Set up a storefront for your digital products or subscriptions.
+          Buyers see the available payment methods at checkout, and settlement
+          timing depends on the payout provider and destination.
         </p>
       </div>
 

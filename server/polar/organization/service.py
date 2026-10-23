@@ -14,7 +14,9 @@ from sqlalchemy.orm import joinedload
 from polar.account.repository import AccountRepository
 from polar.account.service import account as account_service
 from polar.auth.models import AuthSubject
-from polar.checkout_link.repository import CheckoutLinkRepository  # noqa: F401  # kept solely to preserve the import path; no longer used here after dropping INTEGRATE_CHECKOUT.
+from polar.checkout_link.repository import (
+    CheckoutLinkRepository,  # noqa: F401  # kept solely to preserve the import path; no longer used here after dropping INTEGRATE_CHECKOUT.
+)
 from polar.config import Environment, settings
 from polar.customer.repository import CustomerRepository
 from polar.enums import InvoiceNumbering
@@ -44,7 +46,9 @@ from polar.models.organization_review import OrganizationReview
 from polar.models.transaction import TransactionType
 from polar.models.user import IdentityVerificationStatus
 from polar.models.webhook_endpoint import WebhookEventType
-from polar.organization_access_token.repository import OrganizationAccessTokenRepository  # noqa: F401  # kept solely to preserve the import path that test mocks reference; the repository is no longer used inside this module after dropping INTEGRATE_CHECKOUT.
+from polar.organization_access_token.repository import (
+    OrganizationAccessTokenRepository,  # noqa: F401  # kept solely to preserve the import path that test mocks reference; the repository is no longer used inside this module after dropping INTEGRATE_CHECKOUT.
+)
 from polar.organization_review.repository import (
     OrganizationReviewRepository as AgentReviewRepository,
 )
@@ -463,9 +467,7 @@ class OrganizationService:
                 and previous_details.get("creator_country")
             ):
                 submitted = {**previous_details, **submitted}
-                submitted["creator_country"] = previous_details[
-                    "creator_country"
-                ]
+                submitted["creator_country"] = previous_details["creator_country"]
             organization.details = submitted
             organization.details_submitted_at = datetime.now(UTC)
             enqueue_job(
@@ -735,9 +737,7 @@ class OrganizationService:
                 UserOrganization.organization_id == organization.id,
                 UserOrganization.is_deleted.is_(False),
             )
-            existing_count = (
-                await session.execute(existing_count_stmt)
-            ).scalar_one()
+            existing_count = (await session.execute(existing_count_stmt)).scalar_one()
             should_be_admin = existing_count == 0
 
             relation = UserOrganization(
@@ -1089,15 +1089,12 @@ class OrganizationService:
                 id=PaymentStepID.SETUP_ACCOUNT,
                 title="Set up M-Pesa payouts",
                 description=(
-                    "Verify your M-Pesa number or add a bank account so "
-                    "we can pay you within 24 hours of every sale."
+                    "Connect and verify your M-Pesa number or bank account "
+                    "through Paystack. Settlement timing follows the provider's schedule."
                 ),
-                completed=organization.subaccount_status
-                == SubaccountStatus.ACTIVE
+                completed=organization.subaccount_status == SubaccountStatus.ACTIVE
                 and bool(organization.subaccount_code)
-                and not (organization.subaccount_code or "").startswith(
-                    "ACCT_test_"
-                ),
+                and not (organization.subaccount_code or "").startswith("ACCT_test_"),
             )
         )
 
@@ -1338,10 +1335,10 @@ class OrganizationService:
 
         try:
             # Call PaystackService to create subaccount
-            # Configure with 20% platform fee (80% goes to creator)
+            # Use the same configured rate as the Paystack order ledger.
             subaccount_data = await paystack.create_subaccount(
                 business_name=organization.name,
-                percentage_charge=20.0,  # 20% platform fee
+                percentage_charge=settings.PLATFORM_FEE_BASIS_POINTS / 100,
                 session=session,
             )
 
@@ -1527,7 +1524,6 @@ class OrganizationService:
         from sqlalchemy import select
         from sqlalchemy.orm import selectinload
 
-        from polar.models import Product
         from polar.organization.visibility import public_organization_filters
 
         statement = (

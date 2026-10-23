@@ -10,22 +10,20 @@ export const dynamic = "force-dynamic";
 export const revalidate = 60;
 
 export const metadata: Metadata = {
-  title: "Kenyan creators selling digital products",
+  title: "Creator storefronts on Blyss",
   description:
-    "Browse independent creators selling digital products on Blyss. Kenyan and global designers, writers, musicians, photographers, course teachers, and developers.",
-  keywords:
-    "kenyan creators, kenyan designers, kenyan musicians, kenyan ebook authors, kenyan course creators, independent creators africa, kenyan music producers, top kenyan creators",
+    "Browse creator storefronts on Blyss. See each shop for its current products, subscriptions, prices, and creator details.",
   alternates: { canonical: "https://blyss.co.ke/creators" },
   openGraph: {
-    title: "Creators · Kenyan + global makers on Blyss",
+    title: "Creator storefronts on Blyss",
     description:
-      "Independent creators selling templates, ebooks, beats, presets, courses. Kenyan + global.",
+      "Browse current creator storefronts and the products available in each shop.",
     siteName: "Blyss",
     type: "website",
     locale: "en_KE",
     images: [
       {
-        url: "https://cdn.blyss.co.ke/brand/og-default.png",
+        url: "https://blyss.co.ke/blyss-og-image.png",
         width: 1200,
         height: 630,
         alt: "Blyss creators",
@@ -35,9 +33,8 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Creators on Blyss",
-    description:
-      "Kenyan + global designers, writers, musicians, photographers, course teachers.",
-    images: ["https://cdn.blyss.co.ke/brand/og-default.png"],
+    description: "Browse creator storefronts and current listings on Blyss.",
+    images: ["https://blyss.co.ke/blyss-og-image.png"],
   },
   robots: { index: true, follow: true },
 };

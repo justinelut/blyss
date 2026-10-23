@@ -1,4 +1,4 @@
-import { PolarThemeProvider } from '@/app/providers'
+import { BlyssThemeProvider } from '@/app/providers'
 import type { schemas } from '@/lib/api'
 import CheckoutEmbedLayout from './Embed/CheckoutEmbedLayout'
 
@@ -21,14 +21,14 @@ const CheckoutLayout = ({
   }
 
   return (
-    <PolarThemeProvider forceTheme={theme ?? 'light'}>
+    <BlyssThemeProvider forceTheme={theme ?? 'light'}>
       <div
         data-checkout-shell
         className="min-h-screen bg-[var(--background)] text-[var(--text-primary)]"
       >
         {children}
       </div>
-    </PolarThemeProvider>
+    </BlyssThemeProvider>
   )
 }
 

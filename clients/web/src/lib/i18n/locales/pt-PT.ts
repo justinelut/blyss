@@ -3,7 +3,7 @@ export default {
     footer: {
       poweredBy: 'Desenvolvido por',
       merchantOfRecord:
-        'Este pedido é processado pela Polar, nossa parceira de vendas online, responsável pela cobrança, suporte ao pedido e devoluções.',
+        'O pagamento é processado pelo fornecedor apresentado no checkout. Contacte o criador para questões sobre o produto e o apoio Blyss para questões de pagamento.',
       mandateSubscriptionTrial:
         'Ao clicar em "{buttonLabel}", autoriza a Blyss, nossa parceira de vendas online, a cobrar o método de pagamento selecionado pelo valor indicado acima no final do seu período experimental e em cada data de faturação subsequente até cancelar. Pode cancelar a qualquer momento antes do fim do período experimental para evitar a cobrança.',
       mandateSubscription:

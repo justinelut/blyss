@@ -56,7 +56,7 @@ export function PersonalAccessTokenLeaked({
         <Text className="m-0 text-sm text-gray-600">
           You can read more about why you received this alert in our{' '}
           <Link
-            href="https://blyss.co.ke/docs/documentation/integration-guides/authenticating-with-polar#security"
+            href="https://blyss.co.ke/help"
             className="text-blue-600 underline"
           >
             FAQ

@@ -114,7 +114,7 @@ async def index(
             with tag.p(classes="text-base-content/70"):
                 text(
                     "Push every existing Blyss user into Loops as a contact. "
-                    "Polar already auto-syncs new signups via the loops "
+                    "Blyss already syncs new signups via the Loops "
                     "integration — this page is for backfilling the existing "
                     "user base (e.g. after a migration)."
                 )

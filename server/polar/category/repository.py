@@ -8,6 +8,7 @@ from polar.kit.repository import RepositoryBase, RepositoryIDMixin
 from polar.models import (
     Organization,
     Product,
+    ProductVisibility,
     ProductCategory,
     ProductCategoryAssignment,
 )
@@ -38,6 +39,8 @@ class CategoryRepository(
             .join(Organization, Organization.id == Product.organization_id)
             .where(ProductCategoryAssignment.category_id == category_id)
             .where(Product.is_archived.is_(False))
+            .where(Product.is_deleted.is_(False))
+            .where(Product.visibility == ProductVisibility.public)
             # Org visibility gate — same filter the marketplace +
             # storefront use. Hides products from creators who haven't
             # passed AI review or whose Paystack subaccount isn't
@@ -79,6 +82,8 @@ class CategoryRepository(
             .join(Organization, Organization.id == Product.organization_id)
             .where(ProductCategoryAssignment.category_id == category_id)
             .where(Product.is_archived.is_(False))
+            .where(Product.is_deleted.is_(False))
+            .where(Product.visibility == ProductVisibility.public)
             # Mirror get_products_by_category — sidebar count and grid
             # contents must agree, otherwise users see "Ebooks (9)" but
             # zero products on the page (the bug we already chased once).

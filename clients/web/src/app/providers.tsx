@@ -38,7 +38,7 @@ const loadPostHog = (
   return postHogClientPromise;
 };
 
-export function PolarPostHogProvider({
+export function BlyssAnalyticsProvider({
   children,
   distinctId,
 }: {
@@ -94,7 +94,7 @@ export function PolarPostHogProvider({
   );
 }
 
-export function PolarThemeProvider({
+export function BlyssThemeProvider({
   children,
   forceTheme,
 }: {
@@ -158,7 +158,7 @@ function LegacyThemePreferenceMigration() {
   return null;
 }
 
-export function PolarQueryClientProvider({
+export function BlyssQueryClientProvider({
   children,
 }: {
   children: React.ReactNode;

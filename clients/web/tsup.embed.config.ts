@@ -37,7 +37,7 @@ export default defineConfig({
   entry: { embed: 'src/components/Checkout/embed.ts' },
   outDir: 'public/checkout',
   format: ['iife'],
-  globalName: 'PolarEmbedCheckout',
+  globalName: 'BlyssEmbedCheckout',
   // Single-file IIFE — no chunking, no .mjs sibling. Browsers load
   // it via a plain <script src>.
   splitting: false,

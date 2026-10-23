@@ -3,7 +3,7 @@ export default {
     footer: {
       poweredBy: 'Propulsé par',
       merchantOfRecord:
-        'Cette commande est traitée par notre revendeur en ligne et commerçant enregistré, Polar, qui gère également les demandes et les retours liés à la commande.',
+        'Le paiement est traité par le prestataire indiqué lors du paiement. Pour une question sur le produit, contactez le créateur ; pour une question de paiement, contactez le support Blyss.',
       mandateSubscriptionTrial:
         "En cliquant sur « {buttonLabel} », vous autorisez Blyss, notre revendeur en ligne et marchand officiel, à débiter votre moyen de paiement sélectionné du montant indiqué ci-dessus à la fin de votre période d'essai et à chaque date de facturation ultérieure jusqu'à annulation. Vous pouvez annuler à tout moment avant la fin de votre essai pour éviter d'être débité.",
       mandateSubscription:

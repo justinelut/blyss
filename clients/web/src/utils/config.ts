@@ -6,6 +6,13 @@ const stringToNumber = (
   return parseInt(value)
 }
 
+const configuredAuthCookieKey =
+  process.env.BLYSS_AUTH_COOKIE_KEY || process.env.POLAR_AUTH_COOKIE_KEY
+const authCookieKey =
+  configuredAuthCookieKey && configuredAuthCookieKey !== 'polar_session'
+    ? configuredAuthCookieKey
+    : 'blyss_session'
+
 const defaults = {
   ENVIRONMENT:
     process.env.NEXT_PUBLIC_ENVIRONMENT ||
@@ -15,7 +22,7 @@ const defaults = {
   FRONTEND_BASE_URL:
     process.env.NEXT_PUBLIC_FRONTEND_BASE_URL || 'http://127.0.0.1:3000',
   BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000',
-  AUTH_COOKIE_KEY: process.env.POLAR_AUTH_COOKIE_KEY || 'polar_session',
+  AUTH_COOKIE_KEY: authCookieKey,
   AUTH_MCP_COOKIE_KEY:
     process.env.POLAR_AUTH_MCP_COOKIE_KEY || 'polar_mcp_session',
   LOGIN_PATH: process.env.NEXT_PUBLIC_LOGIN_PATH || '/login',

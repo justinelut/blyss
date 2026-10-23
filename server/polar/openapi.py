@@ -1,4 +1,5 @@
 from enum import StrEnum
+import re
 from typing import Any, NotRequired, TypedDict
 
 from fastapi import FastAPI
@@ -44,7 +45,7 @@ class APITag(StrEnum):
             {
                 "name": cls.public,
                 "description": (
-                    "Endpoints shown and documented in the Polar API documentation "
+                    "Endpoints shown and documented in the Blyss API documentation "
                     "and available in our SDKs."
                 ),
             },
@@ -101,6 +102,28 @@ OPENAPI_PARAMETERS: OpenAPIParameters = {
 
 
 def set_openapi_generator(app: FastAPI) -> None:
+    def sanitize_public_documentation(value: Any) -> Any:
+        """Remove inherited product references from the published API schema."""
+        if isinstance(value, dict):
+            return {
+                key: sanitize_public_documentation(item)
+                for key, item in value.items()
+            }
+        if isinstance(value, list):
+            return [sanitize_public_documentation(item) for item in value]
+        if not isinstance(value, str):
+            return value
+
+        value = re.sub(
+            r"https?://(?:www\.)?polar\.sh[^\s\]})\"']*",
+            "https://blyss.co.ke/help",
+            value,
+            flags=re.IGNORECASE,
+        )
+        value = re.sub(r"\bpolarsource\b", "example-org", value, flags=re.IGNORECASE)
+        value = re.sub(r"\bpolar(?:\.sh)?\b", "Blyss", value, flags=re.IGNORECASE)
+        return value
+
     def _openapi_generator() -> dict[str, Any]:
         if app.openapi_schema:
             return app.openapi_schema
@@ -123,6 +146,7 @@ def set_openapi_generator(app: FastAPI) -> None:
 
         openapi_schema = add_metadata_query_schema(openapi_schema)
         openapi_schema = add_oauth2_form_schemas(openapi_schema)
+        openapi_schema = sanitize_public_documentation(openapi_schema)
 
         return openapi_schema
 

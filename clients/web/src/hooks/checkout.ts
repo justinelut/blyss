@@ -1,4 +1,4 @@
-import { PolarEmbedCheckout } from '@/components/Checkout/embed'
+import { BlyssEmbedCheckout } from '@/components/Checkout/embed'
 import type { schemas } from '@/lib/api'
 import { useRouter } from 'next/navigation'
 import { useCallback } from 'react'
@@ -17,7 +17,7 @@ export const useCheckoutConfirmedRedirect = (
       customerSessionToken: string | null | undefined,
     ) => {
       if (checkout.embed_origin) {
-        PolarEmbedCheckout.postMessage(
+        BlyssEmbedCheckout.postMessage(
           {
             event: 'confirmed',
           },
@@ -63,7 +63,7 @@ export const useCheckoutConfirmedRedirect = (
       }
 
       if (checkout.embed_origin) {
-        PolarEmbedCheckout.postMessage(
+        BlyssEmbedCheckout.postMessage(
           {
             event: 'success',
             successURL: parsedURL.toString(),

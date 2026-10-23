@@ -3,13 +3,13 @@ export default {
     footer: {
       poweredBy: 'Mogelijk gemaakt door',
       merchantOfRecord:
-        'Deze bestelling wordt verwerkt door onze online wederverkoper & Merchant of Record, Polar, die ook bestelgerelateerde vragen en terugbetalingen afhandelt.',
+        'De betaling wordt verwerkt via de betaalprovider die bij het afrekenen wordt getoond. Neem voor productvragen contact op met de maker en voor betalingsvragen met Blyss-support.',
       mandateSubscriptionTrial:
-        'Door op "{buttonLabel}" te klikken, machtigt u Blyss, onze online wederverkoper en merchant of record, om uw geselecteerde betaalmethode te belasten voor het hierboven getoonde bedrag aan het einde van uw proefperiode en op elke volgende factuurdatum totdat u opzegt. U kunt op elk moment vóór het einde van uw proefperiode opzeggen om kosten te voorkomen.',
+        'Door verder te gaan, machtigt u de betaalprovider die bij het afrekenen wordt getoond om het vermelde bedrag na de proefperiode en op elke volgende factuurdatum te innen totdat u opzegt.',
       mandateSubscription:
-        'Door op "{buttonLabel}" te klikken, machtigt u Blyss, onze online wederverkoper en merchant of record, om uw geselecteerde betaalmethode onmiddellijk te belasten voor het hierboven getoonde bedrag en om hetzelfde bedrag in rekening te brengen op elke volgende factuurdatum totdat u opzegt.',
+        'Door verder te gaan, machtigt u de betaalprovider die bij het afrekenen wordt getoond om het vermelde bedrag op elke factuurdatum te innen totdat u opzegt.',
       mandateOneTime:
-        'Door op "{buttonLabel}" te klikken, machtigt u Blyss, onze online wederverkoper en merchant of record, om uw geselecteerde betaalmethode te belasten voor het hierboven getoonde bedrag. Dit is een eenmalige betaling.',
+        'Door verder te gaan, machtigt u de betaalprovider die bij het afrekenen wordt getoond om een eenmalige betaling van het vermelde bedrag te verwerken.',
     },
     form: {
       email: 'E-mailadres',

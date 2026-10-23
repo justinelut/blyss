@@ -17,20 +17,16 @@ import { PHASE_PRODUCTION_BUILD } from "next/constants";
 import { Metadata } from "next/types";
 import {
   NavigationHistoryProvider,
-  PolarPostHogProvider,
-  PolarQueryClientProvider,
+  BlyssAnalyticsProvider,
+  BlyssQueryClientProvider,
 } from "./providers";
 
 export async function generateMetadata(): Promise<Metadata> {
   // Anti-slop SEO copy. Avoids the LLM tells flagged in
   // .kiro/skills/anti-slop-writing — no "seamless", "modern",
   // "powerful", "flexible", "discover" as promo verb. Concrete:
-  // names the product types ("templates, ebooks, beats, presets,
-  // courses"), the payment rail ("M-Pesa or card"), the city
-  // ("Nairobi"), and the actual creator-payout window ("24 hours").
-  // These specifics double as AI-search anchors — Perplexity,
-  // Claude Search, and Google SGE pull literal phrases like
-  // "creators" and "M-Pesa" from descriptions.
+  // names the marketplace and local payment options without promising
+  // availability or settlement timing that can vary by transaction.
   // Root metadata. The template `'%s · Blyss'` means every page-
   // level `title: 'Foo'` is rendered as `Foo · Blyss` in the browser
   // tab. Page-level titles must NOT include 'Blyss' themselves or
@@ -48,7 +44,7 @@ export async function generateMetadata(): Promise<Metadata> {
         "Blyss — Digital products from Kenyan creators · Templates, ebooks, beats, presets, courses",
     },
     description:
-      "Marketplace for Kenyan creators. Buy templates, ebooks, beats, presets, and courses with M-Pesa, Visa, or Mastercard. Instant download. Creators paid within 24 hours.",
+      "A Kenya-focused marketplace for digital products and subscriptions. Browse independent creators and pay with the methods shown at checkout, including M-Pesa and cards where available.",
     keywords: [
       // Kenyan-context (top autocomplete intents — research 2026-06-26)
       "digital products kenya",
@@ -81,22 +77,28 @@ export async function generateMetadata(): Promise<Metadata> {
       google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || undefined,
     },
     openGraph: {
-      images: "https://blyss.co.ke/og-image.png",
+      images: [
+        {
+          url: "https://blyss.co.ke/blyss-og-image.png",
+          width: 1200,
+          height: 630,
+          alt: "Blyss, a marketplace for Kenyan creators",
+        },
+      ],
       type: "website",
       siteName: "Blyss",
       title: "Blyss — Digital products from Kenyan creators",
       description:
-        "Templates, ebooks, beats, presets, courses. Pay with M-Pesa, Visa, or Mastercard. Instant download. Creators paid within 24 hours.",
+        "Browse digital products and subscriptions from independent creators. Available payment methods and delivery details are shown on each listing and at checkout.",
       url: "https://blyss.co.ke/",
       locale: "en_KE",
     },
     twitter: {
-      images: "https://blyss.co.ke/og-image.png",
+      images: ["https://blyss.co.ke/blyss-og-image.png"],
       card: "summary_large_image",
-      site: "@blyssmarket",
       title: "Blyss — Digital products from Kenyan creators",
       description:
-        "Templates, ebooks, beats, presets, courses. M-Pesa, Visa, Mastercard. Instant download.",
+        "Browse digital products and subscriptions from independent creators on Blyss.",
     },
     metadataBase: new URL("https://blyss.co.ke/"),
     alternates: {
@@ -206,14 +208,14 @@ export default async function RootLayout({
             user={authenticatedUser}
             userOrganizations={userOrganizations}
           >
-            <PolarPostHogProvider distinctId={distinctId}>
-              <PolarQueryClientProvider>
+            <BlyssAnalyticsProvider distinctId={distinctId}>
+              <BlyssQueryClientProvider>
                 <NavigationHistoryProvider>
                   {CONFIG.IS_SANDBOX && <SandboxBanner />}
                   {children}
                 </NavigationHistoryProvider>
-              </PolarQueryClientProvider>
-            </PolarPostHogProvider>
+              </BlyssQueryClientProvider>
+            </BlyssAnalyticsProvider>
           </UserContextProvider>
         </ExperimentProvider>
         {/* Google Analytics — server-rendered after the app tree so the

@@ -7,7 +7,7 @@ from typing import Annotated, Literal
 from urllib.parse import urlparse
 
 from annotated_types import Ge
-from pydantic import AfterValidator, DirectoryPath, Field, PostgresDsn
+from pydantic import AfterValidator, DirectoryPath, Field, PostgresDsn, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from polar.enums import EmailSender, TaxProcessor
@@ -119,11 +119,11 @@ class Settings(BaseSettings):
 
     # User session
     USER_SESSION_TTL: timedelta = timedelta(days=31)
-    USER_SESSION_COOKIE_KEY: str = "polar_session"
+    USER_SESSION_COOKIE_KEY: str = "blyss_session"
     USER_SESSION_COOKIE_DOMAIN: str = "127.0.0.1"
 
     # Guest session (for cart)
-    GUEST_SESSION_COOKIE_KEY: str = "polar_guest_session"
+    GUEST_SESSION_COOKIE_KEY: str = "blyss_guest_session"
 
     # Customer session
     CUSTOMER_SESSION_TTL: timedelta = timedelta(hours=1)
@@ -306,7 +306,7 @@ class Settings(BaseSettings):
     # Stripe webhook secrets
     STRIPE_WEBHOOK_SECRET: str = ""
     STRIPE_CONNECT_WEBHOOK_SECRET: str = ""
-    STRIPE_STATEMENT_DESCRIPTOR: str = "POLAR"
+    STRIPE_STATEMENT_DESCRIPTOR: str = "BLYSS"
 
     # Paystack
     PAYSTACK_SECRET_KEY: str = ""
@@ -337,7 +337,7 @@ class Settings(BaseSettings):
 
     # Discord
     FAVICON_URL: str = "https://cdn.blyss.co.ke/brand/favicon.png"
-    THUMBNAIL_URL: str = "https://cdn.blyss.co.ke/brand/og-default.png"
+    THUMBNAIL_URL: str = "https://blyss.co.ke/blyss-og-image.png"
 
     # Posthog
     POSTHOG_PROJECT_API_KEY: str = ""
@@ -425,7 +425,9 @@ class Settings(BaseSettings):
         state="KE-110",
         country=CountryAlpha2("KE"),
     )
-    INVOICES_ADDITIONAL_INFO: str | None = "[support@blyss.co.ke](mailto:support@blyss.co.ke)"
+    INVOICES_ADDITIONAL_INFO: str | None = (
+        "[support@blyss.co.ke](mailto:support@blyss.co.ke)"
+    )
     PAYOUT_INVOICES_PREFIX: str = "BLYSS-"
 
     # Application behaviours
@@ -468,7 +470,10 @@ class Settings(BaseSettings):
         # USD, default
         "usd": _DEFAULT_ACCOUNT_PAYOUT_MINIMUM_BALANCE,
     }
+    # Used by Paystack subaccount splits and their order ledger. The default is
+    # a 20% marketplace fee.
     PLATFORM_FEE_BASIS_POINTS: int = 2000
+    # Fixed component retained for legacy Stripe account fee calculations.
     PLATFORM_FEE_FIXED: int = 40
 
     # Default currency for the platform
@@ -524,6 +529,16 @@ class Settings(BaseSettings):
         env_file=env_file,
         extra="allow",
     )
+
+    @field_validator("USER_SESSION_COOKIE_KEY", mode="before")
+    @classmethod
+    def migrate_legacy_user_session_cookie_name(cls, value: str) -> str:
+        return "blyss_session" if value == "polar_session" else value
+
+    @field_validator("GUEST_SESSION_COOKIE_KEY", mode="before")
+    @classmethod
+    def migrate_legacy_guest_session_cookie_name(cls, value: str) -> str:
+        return "blyss_guest_session" if value == "polar_guest_session" else value
 
     @property
     def redis_url(self) -> str:
@@ -746,8 +761,7 @@ class Settings(BaseSettings):
             validate_email(full, check_deliverability=False)
         except EmailNotValidError as e:
             raise ValueError(
-                f"EMAIL_FROM_LOCAL@EMAIL_FROM_DOMAIN ({full!r}) "
-                f"failed validation: {e}"
+                f"EMAIL_FROM_LOCAL@EMAIL_FROM_DOMAIN ({full!r}) failed validation: {e}"
             ) from e
 
 

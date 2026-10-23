@@ -11,20 +11,20 @@ export const revalidate = 60;
 export const metadata: Metadata = {
   title: "Sell digital products in Kenya · M-Pesa payouts",
   description:
-    "Make money selling templates, ebooks, beats, presets, or courses to buyers across Kenya. M-Pesa or bank payouts within 24 hours. No setup fee, no monthly subscription.",
+    "Open a storefront for digital products and subscriptions. Buyers pay with the methods available at checkout; creators connect a Paystack payout destination.",
   keywords:
-    "sell digital products kenya, side hustle kenya 2026, make money online kenya, passive income kenya, sell ebook kenya, sell ebooks kenya, sell beats kenya, sell presets kenya, kenya creator economy, mpesa creator payouts, kenya online business, become a creator kenya, blyss storefront",
+    "sell digital products kenya, sell ebook kenya, sell ebooks kenya, sell beats kenya, sell presets kenya, kenya creator marketplace, mpesa creator payouts, kenya online business, blyss storefront",
   alternates: { canonical: "https://blyss.co.ke/start" },
   openGraph: {
     title: "Sell digital products in Kenya · Start selling on Blyss",
     description:
-      "Sell templates, ebooks, beats, presets, or courses. M-Pesa or bank payouts within 24 hours. No setup fee.",
+      "Create a storefront for digital products and subscriptions. Payment methods and prices are shown at checkout; payouts are handled through Paystack.",
     type: "website",
     locale: "en_KE",
     url: "https://blyss.co.ke/start",
     images: [
       {
-        url: "https://cdn.blyss.co.ke/brand/og-default.png",
+        url: "https://blyss.co.ke/blyss-og-image.png",
         width: 1200,
         height: 630,
         alt: "Start selling on Blyss",
@@ -35,8 +35,8 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Sell digital products in Kenya",
     description:
-      "Templates, ebooks, beats, presets, courses. M-Pesa or bank within 24 hours.",
-    images: ["https://cdn.blyss.co.ke/brand/og-default.png"],
+      "Sell digital products and subscriptions on Blyss. Connect a Paystack payout destination during setup.",
+    images: ["https://blyss.co.ke/blyss-og-image.png"],
   },
 };
 
@@ -102,83 +102,6 @@ export default async function Page() {
     fetchMarketplaceStats(),
   ]);
 
-  // FAQPage JSON-LD — answers the questions creators search before
-  // signing up. Rich-snippet eligibility on Google + cited verbatim by
-  // Perplexity / ChatGPT Search / Claude Search when asked "how to
-  // sell digital products in Kenya". Wording matches the
-  // anti-slop-writing skill (concrete numbers, named rails, no
-  // 'seamless'/'powerful'/'discover').
-  const faqLd = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: [
-      {
-        "@type": "Question",
-        name: "Can I sell digital products in Kenya with M-Pesa?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text: "Yes. Blyss accepts M-Pesa, Visa, and Mastercard at checkout. Creators receive payouts to their M-Pesa or bank account within 24 hours of a sale.",
-        },
-      },
-      {
-        "@type": "Question",
-        name: "What digital products can I sell on Blyss?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text: "Templates (Notion, Canva, Figma, resume), ebooks and PDFs, beats and music, Lightroom presets, online courses, photography, fonts, software, and stock assets. Creators upload the file and Blyss handles checkout, delivery, and refunds.",
-        },
-      },
-      {
-        "@type": "Question",
-        name: "How much does Blyss charge?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text: "There is no setup fee and no monthly subscription. Blyss takes a small platform fee per sale; you keep the rest. M-Pesa and card processing fees are also deducted before payout, as on every other Kenyan payment platform.",
-        },
-      },
-      {
-        "@type": "Question",
-        name: "How fast do creators get paid on Blyss?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text: "Within 24 hours of a confirmed sale. Funds settle to your linked Paystack subaccount and are released to your M-Pesa number or bank account daily.",
-        },
-      },
-      {
-        "@type": "Question",
-        name: "Do I need to be in Nairobi to sell on Blyss?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text: "No. Creators anywhere in Kenya can sell on Blyss. You only need an M-Pesa number or a Kenyan bank account to receive payouts, and a national ID for KYC.",
-        },
-      },
-      {
-        "@type": "Question",
-        name: "Can buyers outside Kenya purchase my products?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text: "Yes. Buyers anywhere can pay with Visa or Mastercard. If you set a price in USD as well as KES, your products show up to international buyers in their currency.",
-        },
-      },
-      {
-        "@type": "Question",
-        name: "How long does setup take?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text: "Most creators publish their first product in under 10 minutes after signing up. You will need your name, M-Pesa number (or bank account), national ID, and the file you are selling.",
-        },
-      },
-      {
-        "@type": "Question",
-        name: "Is Blyss a Gumroad or Selar alternative?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text: "Blyss is built for Kenyan creators specifically. Unlike Gumroad and Selar, Blyss accepts M-Pesa at checkout, pays out in KES within 24 hours, and is regulated under Kenyan tax rules. Both global tools still work — Blyss adds the local payment rail and faster payouts.",
-        },
-      },
-    ],
-  };
-
   const breadcrumbLd = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -200,7 +123,6 @@ export default async function Page() {
 
   return (
     <>
-      <JsonLd data={faqLd} />
       <JsonLd data={breadcrumbLd} />
       <StartLanding
         productCategories={productCategories}

@@ -3,13 +3,13 @@ export default {
     footer: {
       poweredBy: 'Bereitgestellt von',
       merchantOfRecord:
-        'Diese Bestellung wird von unserem Online-Reseller & Merchant of Record, Polar, bearbeitet, der auch Anfragen und Rücksendungen im Zusammenhang mit der Bestellung abwickelt.',
+        'Die Zahlung wird über den beim Bezahlvorgang angezeigten Zahlungsanbieter abgewickelt. Bei Fragen zum Produkt wenden Sie sich an den Creator, bei Zahlungsfragen an den Blyss-Support.',
       mandateSubscriptionTrial:
-        'Indem Sie auf "{buttonLabel}" klicken, ermächtigen Sie Blyss, unseren Online-Wiederverkäufer und Händler, Ihre gewählte Zahlungsmethode am Ende Ihres Testzeitraums und an jedem folgenden Abrechnungsdatum mit dem oben angezeigten Betrag zu belasten, bis Sie kündigen. Sie können jederzeit vor Ablauf des Testzeitraums kündigen, um eine Belastung zu vermeiden.',
+        'Wenn Sie fortfahren, berechtigen Sie den beim Bezahlvorgang angezeigten Zahlungsanbieter, den angezeigten Betrag nach dem Testzeitraum und an jedem folgenden Abrechnungstermin bis zur Kündigung abzubuchen.',
       mandateSubscription:
-        'Indem Sie auf "{buttonLabel}" klicken, ermächtigen Sie Blyss, unseren Online-Wiederverkäufer und Händler, Ihre gewählte Zahlungsmethode sofort mit dem oben angezeigten Betrag zu belasten und denselben Betrag an jedem folgenden Abrechnungsdatum abzubuchen, bis Sie kündigen.',
+        'Wenn Sie fortfahren, berechtigen Sie den beim Bezahlvorgang angezeigten Zahlungsanbieter, den angezeigten Betrag an jedem Abrechnungstermin bis zur Kündigung abzubuchen.',
       mandateOneTime:
-        'Indem Sie auf "{buttonLabel}" klicken, ermächtigen Sie Blyss, unseren Online-Wiederverkäufer und Händler, Ihre gewählte Zahlungsmethode mit dem oben angezeigten Betrag zu belasten. Dies ist eine einmalige Belastung.',
+        'Wenn Sie fortfahren, berechtigen Sie den beim Bezahlvorgang angezeigten Zahlungsanbieter, den angezeigten Betrag einmalig abzubuchen.',
     },
     form: {
       email: 'E-Mail',

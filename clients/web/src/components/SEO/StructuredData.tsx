@@ -5,9 +5,7 @@
  * ChatGPT Search, and Google SGE all read to populate rich results
  * and AI answer cards. Two schemas, both site-wide:
  *
- * 1. Organization — who Blyss is, where we operate, payment methods,
- *    contact. Sourced by AI when someone asks "what is Blyss" or
- *    "where do Kenyan creators sell digital products".
+ * 1. Organization — the marketplace name, site, and contact details.
  *
  * 2. WebSite — declares the site search action so Google can render
  *    a sitelinks search box for "blyss.co.ke" queries.
@@ -17,9 +15,7 @@
  * tags. JSON-LD must be raw script, and React allows dangerouslySetInnerHTML
  * for trusted, controlled JSON like this.
  *
- * Anti-slop: every claim is concrete. No "vibrant ecosystem" /
- * "thriving community". The description names the product types,
- * the city, and the payment rail.
+ * Keep claims aligned with the information shown in the product.
  */
 
 const ORIGIN = "https://blyss.co.ke";
@@ -31,34 +27,12 @@ const organizationSchema = {
   name: "Blyss",
   alternateName: "Blyss Marketplace",
   url: ORIGIN,
-  logo: `${ORIGIN}/og-image.png`,
-  image: `${ORIGIN}/og-image.png`,
+  logo: `${ORIGIN}/blyss-icon-512.png`,
+  image: `${ORIGIN}/blyss-og-image.png`,
   description:
-    "Marketplace for Kenyan creators selling templates, ebooks, beats, presets, and courses. Buyers pay with M-Pesa or card. Creators are paid within 24 hours.",
-  foundingLocation: {
-    "@type": "Place",
-    name: "Nairobi, Kenya",
-    address: {
-      "@type": "PostalAddress",
-      addressLocality: "Nairobi",
-      addressCountry: "KE",
-    },
-  },
-  address: {
-    "@type": "PostalAddress",
-    addressLocality: "Nairobi",
-    addressCountry: "KE",
-  },
-  areaServed: [
-    { "@type": "Country", name: "Kenya" },
-    { "@type": "Country", name: "Uganda" },
-    { "@type": "Country", name: "Tanzania" },
-    { "@type": "Country", name: "Nigeria" },
-    { "@type": "Country", name: "South Africa" },
-    { "@type": "Country", name: "United States" },
-    { "@type": "Country", name: "United Kingdom" },
-  ],
-  paymentAccepted: ["M-Pesa", "Visa", "Mastercard", "Apple Pay", "Google Pay"],
+    "A Kenya-focused marketplace where creators sell digital products and subscriptions through storefronts.",
+  areaServed: { "@type": "Country", name: "Kenya" },
+  paymentAccepted: ["M-Pesa", "Visa", "Mastercard"],
   currenciesAccepted: ["KES", "USD"],
   // Product and category pages emit their current ItemList data. The
   // site-wide schema links only to the live catalogue index so it cannot drift
@@ -68,10 +42,6 @@ const organizationSchema = {
     name: "Digital products",
     url: `${ORIGIN}/categories`,
   },
-  sameAs: [
-    "https://twitter.com/blyssmarket",
-    "https://instagram.com/blyssmarket",
-  ],
 };
 
 const websiteSchema = {

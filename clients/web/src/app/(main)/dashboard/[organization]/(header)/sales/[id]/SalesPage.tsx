@@ -248,17 +248,16 @@ const ClientPage: React.FC<ClientPageProps> = ({
               <>
                 <Separator className="dark:bg-polar-700 my-4 h-px bg-gray-300" />
                 <DetailRow
-                  label="Platform Fee (20%)"
+                  label="Platform Fee"
                   value={formatCurrency('accounting')(
                     order.platform_fee_amount,
                     order.platform_fee_currency || order.currency,
                   )}
                 />
                 <DetailRow
-                  label="Creator Payout (80%)"
+                  label="Creator Share"
                   value={formatCurrency('accounting')(
-                    order.creator_payout_amount ||
-                      order.total_amount - order.platform_fee_amount,
+                    order.total_amount - order.platform_fee_amount,
                     order.currency,
                   )}
                 />

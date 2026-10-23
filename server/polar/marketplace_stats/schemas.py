@@ -17,7 +17,7 @@ class MarketplaceStatsResponse(Schema):
 
     products: int = Field(
         description=(
-            "Total live public products (non-archived, non-deleted, "
+            "Total public products (public visibility, non-archived, non-deleted, "
             "owned by an active public creator)."
         )
     )
@@ -34,24 +34,17 @@ class MarketplaceStatsResponse(Schema):
     total_earned: int = Field(
         description=(
             "Sum (in minor units of `total_paid_out_currency`) of "
-            "creator earnings on PAID orders, regardless of whether "
-            "Paystack has settled them yet. Computed as "
-            "(subtotal - discount + tax - platform_fee - refunded) "
-            "summed across all paid orders. Useful as a fallback "
-            "metric on fresh deploys where no transfer.success "
-            "webhook has fired yet but money has flowed through "
-            "checkout: Paystack splits at charge time so the money "
-            "is already in creators' subaccounts, just not yet "
-            "transferred to their bank/M-Pesa accounts."
+            "Creator share recorded on paid KES orders, before settlement. "
+            "Computed as subtotal - discount + tax - platform fee - refunds. "
+            "This ledger amount is not a settlement total; successful "
+            "Paystack transfers are reported separately in `total_paid_out`."
         )
     )
 
     total_paid_out_currency: str = Field(
         description=(
-            "ISO 4217 lowercased. Currently always 'kes' since Blyss's "
-            "marketplace fee + Paystack settlements operate in KES; if "
-            "future settlements happen in USD/NGN/etc. this becomes a "
-            "weighted display unit."
+            "ISO 4217 lowercased. The public aggregate totals include only "
+            "KES orders and resolved KES settlements."
         )
     )
 

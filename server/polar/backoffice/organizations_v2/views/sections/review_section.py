@@ -251,7 +251,7 @@ class ReviewSection(ChecklistMixin):
         template_lines = [
             "Hi,",
             "",
-            "Thank you for setting up your account on Polar. Before we can approve your account, we need you to complete the following:",
+            "Thank you for setting up your account on Blyss. Before we can complete the review, please provide the following:",
             "",
         ]
         for item in missing:
@@ -262,7 +262,7 @@ class ReviewSection(ChecklistMixin):
                 "We'd also recommend creating a 100% discount code to test your checkout flow before going live.",
                 "",
                 "Best regards,",
-                "Polar Team",
+                "Blyss",
             ]
         )
         template_text = "\n".join(template_lines)

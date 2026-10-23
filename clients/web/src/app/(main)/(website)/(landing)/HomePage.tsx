@@ -6,7 +6,6 @@
  * · featured catalogue · new arrivals · people · recurring access · buying help.
  */
 import { schemas } from "@/lib/api";
-import { JsonLd } from "@/design";
 import { Hero } from "@/components/Marketplace/Hero";
 import { ContinueShopping } from "@/components/Marketplace/ContinueShopping";
 import { TrendingProducts } from "@/components/Marketplace/TrendingProducts";
@@ -58,40 +57,6 @@ export default function HomePage({
 
   return (
     <>
-      <JsonLd
-        data={{
-          "@context": "https://schema.org",
-          "@type": "WebSite",
-          name: "Blyss",
-          url: "https://blyss.co.ke",
-          potentialAction: {
-            "@type": "SearchAction",
-            target: "https://blyss.co.ke/search?q={search_term_string}",
-            "query-input": "required name=search_term_string",
-          },
-        }}
-      />
-      <JsonLd
-        data={{
-          "@context": "https://schema.org",
-          "@type": "Organization",
-          name: "Blyss",
-          url: "https://blyss.co.ke",
-          logo: "https://cdn.blyss.co.ke/brand/og-default.png",
-          description:
-            "A marketplace for digital products from independent creators. Browse templates, ebooks, beats, courses, and subscriptions.",
-          address: {
-            "@type": "PostalAddress",
-            addressLocality: "Nairobi",
-            addressCountry: "KE",
-          },
-          sameAs: [
-            "https://instagram.com/blyss.co.ke",
-            "https://x.com/blyss_co_ke",
-          ],
-        }}
-      />
-
       <Hero
         featuredProduct={featuredProduct}
         country={country}

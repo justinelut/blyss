@@ -1,6 +1,6 @@
 # Acceptable Use Policy
 
-*Last updated: 26 May 2026*
+*Last updated: 23 October 2026*
 
 Blyss is built for independent Kenyan creators selling **digital products and recurring subscriptions** to people who want to support and learn from them. This policy lays out what you can and can't sell on Blyss. Read it carefully — it's binding under our [Terms of Service](/terms).
 
@@ -83,19 +83,13 @@ Always include a clear disclaimer in your listing if your content touches these 
 
 ## Enforcement
 
-If we believe a listing or account violates this policy:
-
-1. **First-time minor issues** — we'll email you and give you a chance to fix the listing.
-2. **Repeated or clear violations** — we'll remove the listing and may suspend payouts.
-3. **Serious violations** (illegal content, fraud, harm) — we'll terminate the account immediately, refund affected Buyers, and report to authorities where required.
-
-We rarely give specific notice for category 3 because it would let bad actors run with the money. If your account is terminated and you believe it was a mistake, email **appeals@blyss.co.ke** with the details.
+If we believe a listing or account violates this policy, we may restrict or remove the content, limit account access, or take another step allowed by our Terms and applicable law. The action depends on the circumstances, safety concerns, and payment-provider requirements. Where appropriate, we will provide notice and a way to contact us. If you believe a decision was made in error, email **support@blyss.co.ke** with the listing or account details.
 
 ## Reporting violations
 
-If you see a listing or account that violates this policy, email **report@blyss.co.ke** with:
+If you see a listing or account that violates this policy, email **support@blyss.co.ke** with:
 - A link to the listing or store
 - A short description of what's wrong
 - Any evidence you have
 
-We review every report and respond within 5 business days.
+We review reports and may contact you if we need more information.

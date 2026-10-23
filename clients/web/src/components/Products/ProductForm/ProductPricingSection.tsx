@@ -551,7 +551,7 @@ export const ProductPricingSection = ({
           <div className="flex flex-col py-6">
             <ShadowBox className="dark:bg-polar-800 flex flex-col gap-2 rounded-2xl! border-none! p-4">
               <h3 className="text-sm font-medium">Updating pricing model</h3>
-              <p className="dark:text-polar-500 text-gray-5 00 text-sm">
+              <p className="dark:text-polar-500 text-gray-500 text-sm">
                 Changing pricing model on subscription products will only affect
                 new customers. Current customers will keep their original
                 pricing model.

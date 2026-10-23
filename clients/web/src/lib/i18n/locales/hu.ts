@@ -3,7 +3,7 @@ export default {
     footer: {
       poweredBy: 'Működteti',
       merchantOfRecord:
-        'Ezt a megrendelést online viszonteladónk és hivatalos kereskedőnk, a Polar dolgozza fel, aki a megrendeléssel kapcsolatos kérdéseket és visszaküldéseket is kezeli.',
+        'A fizetést a pénztárnál feltüntetett szolgáltató dolgozza fel. A termékkel kapcsolatos kérdéssel forduljon az alkotóhoz, fizetési kérdéssel pedig a Blyss ügyfélszolgálatához.',
       mandateSubscriptionTrial:
         'A(z) „{buttonLabel}” gombra kattintva Ön felhatalmazza a Blyss-et, online viszonteladónkat és hivatalos kereskedőnket, hogy a próbaidőszak végén, majd azt követően minden számlázási napon megterhelje a kiválasztott fizetési módot a fent feltüntetett összeggel, amíg le nem mondja az előfizetést. A terhelés elkerülése érdekében a próbaidőszak vége előtt bármikor lemondhatja a szolgáltatást.',
       mandateSubscription:

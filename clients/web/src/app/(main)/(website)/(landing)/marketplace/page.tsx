@@ -14,22 +14,20 @@ export const dynamic = "force-dynamic";
 export const revalidate = 60;
 
 export const metadata: Metadata = {
-  title: "Digital products marketplace Kenya · Instant downloads",
+  title: "Browse digital products from independent creators",
   description:
-    "Browse templates, ebooks, beats, presets, courses, fonts, and stock assets from creators. Pay with M-Pesa, Visa, or Mastercard. Instant download after checkout.",
-  keywords:
-    "buy digital downloads, digital products marketplace, buy notion templates, buy lightroom presets, buy beats online, buy ebooks online, buy online courses, buy canva templates, buy fonts commercial use, royalty free music, instant download, digital products kenya, mpesa digital products",
+    "Browse current products and subscriptions from independent creators. Listing details, prices, delivery terms, and available checkout methods vary by product and region.",
   alternates: { canonical: "https://blyss.co.ke/marketplace" },
   openGraph: {
-    title: "Browse digital products · Blyss marketplace",
+    title: "Browse digital products on Blyss",
     description:
-      "Templates, ebooks, beats, presets, courses, fonts. M-Pesa or card. Instant download.",
+      "See product details, prices, delivery terms, and checkout options on each listing.",
     type: "website",
     locale: "en_KE",
     url: "https://blyss.co.ke/marketplace",
     images: [
       {
-        url: "https://cdn.blyss.co.ke/brand/og-default.png",
+        url: "https://blyss.co.ke/blyss-og-image.png",
         width: 1200,
         height: 630,
         alt: "Blyss marketplace",
@@ -38,10 +36,10 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Browse digital products · Blyss",
+    title: "Browse digital products on Blyss",
     description:
-      "Templates, ebooks, beats, presets, courses. Instant download.",
-    images: ["https://cdn.blyss.co.ke/brand/og-default.png"],
+      "Current products and subscriptions from independent creators.",
+    images: ["https://blyss.co.ke/blyss-og-image.png"],
   },
 };
 

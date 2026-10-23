@@ -1,22 +1,23 @@
-import LogoIcon from '@/components/Brand/logos/LogoIcon'
-import { CONFIG } from '@/utils/config'
-import Button from '@/components/atoms/Button'
-import { Metadata } from 'next'
+import LogoIcon from "@/components/Brand/logos/LogoIcon";
+import { CONFIG } from "@/utils/config";
+import Button from "@/components/atoms/Button";
+import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: 'Email Update confirmation',
-}
+  title: "Email Update confirmation",
+  robots: { index: false, follow: false },
+};
 
 export default async function Page(props: {
-  searchParams: Promise<{ token: string; return_to?: string }>
+  searchParams: Promise<{ token: string; return_to?: string }>;
 }) {
-  const searchParams = await props.searchParams
+  const searchParams = await props.searchParams;
 
-  const { token, return_to } = searchParams
+  const { token, return_to } = searchParams;
 
   const urlSearchParams = new URLSearchParams({
     ...(return_to && { return_to }),
-  })
+  });
 
   return (
     <form
@@ -35,5 +36,5 @@ export default async function Page(props: {
         </Button>
       </div>
     </form>
-  )
+  );
 }

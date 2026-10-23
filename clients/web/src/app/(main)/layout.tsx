@@ -2,7 +2,7 @@ import { CookieConsent } from "@/components/Privacy/CookieConsent";
 import { MarketplaceShell } from "@/components/Marketplace/MarketplaceShell";
 import { headers } from "next/headers";
 import { PropsWithChildren } from "react";
-import { PolarThemeProvider } from "../providers";
+import { BlyssThemeProvider } from "../providers";
 
 export default async function Layout({ children }: PropsWithChildren) {
   const headersList = await headers();
@@ -12,9 +12,9 @@ export default async function Layout({ children }: PropsWithChildren) {
     headersList.get("x-vercel-ip-country");
 
   return (
-    <PolarThemeProvider>
+    <BlyssThemeProvider>
       <MarketplaceShell>{children}</MarketplaceShell>
       <CookieConsent countryCode={countryCode} />
-    </PolarThemeProvider>
+    </BlyssThemeProvider>
   );
 }

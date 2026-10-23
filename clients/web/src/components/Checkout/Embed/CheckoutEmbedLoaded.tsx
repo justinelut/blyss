@@ -1,6 +1,6 @@
 'use client'
 
-import { PolarEmbedCheckout } from '@/components/Checkout/embed'
+import { BlyssEmbedCheckout } from '@/components/Checkout/embed'
 import type { schemas } from '@/lib/api'
 import { useEffect } from 'react'
 
@@ -15,7 +15,7 @@ const CheckoutEmbedLoaded: React.FC<
     if (!checkout.embed_origin) {
       return
     }
-    PolarEmbedCheckout.postMessage({ event: 'loaded' }, checkout.embed_origin)
+    BlyssEmbedCheckout.postMessage({ event: 'loaded' }, checkout.embed_origin)
   }, [])
 
   return null

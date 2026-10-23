@@ -28,7 +28,7 @@ export const CheckoutLinkPage = ({ checkoutLink }: CheckoutLinkPageProps) => {
     const theme = darkmode ? 'dark' : 'light'
 
     return `
-<a href="${checkoutLink?.url}" data-polar-checkout data-polar-checkout-theme="${theme}">Purchase</a>
+<a href="${checkoutLink?.url}" data-blyss-checkout data-blyss-checkout-theme="${theme}">Purchase</a>
 <script src="${CONFIG.CHECKOUT_EMBED_SCRIPT_SRC}" defer data-auto-init></script>
   `.trim()
   }, [checkoutLink, darkmode])

@@ -17,8 +17,9 @@ export const AuthModal = ({
 
   const copy = isSignup ? (
     <p className="font-sans text-xl text-[var(--text-secondary)]">
-      Sell your digital products and subscriptions on Blyss. M-Pesa or card,
-      paid out within 24 hours.
+      Sell digital products and subscriptions on Blyss. Buyers see the payment
+      options available to them at checkout; settlement timing depends on the
+      payout provider and destination.
     </p>
   ) : null
 

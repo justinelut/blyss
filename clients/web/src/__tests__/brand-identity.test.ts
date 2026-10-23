@@ -23,22 +23,20 @@ const ROOT = process.cwd();
 const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
 
 describe("Brand identity", () => {
-  describe("Merchant-of-record copy says Blyss", () => {
+  describe("Payment copy identifies Paystack without claiming a merchant-of-record status", () => {
     const en = read("src/lib/i18n/locales/en.ts");
 
     test("en.ts no longer mentions Polar Software, Inc.", () => {
       expect(en).not.toContain("Polar Software, Inc.");
     });
 
-    test("en.ts merchantOfRecord names Blyss", () => {
-      expect(en).toMatch(/Merchant of Record,\s*Blyss/);
+    test("en.ts identifies Paystack as the payment processor", () => {
+      expect(en).toMatch(/Payment is processed by Paystack/);
     });
 
     test("all three mandate variants reference Paystack", () => {
-      // Mode A: Paystack handles the actual charge inside its
-      // popup, so the mandate copy now points at Paystack as the
-      // payment processor instead of describing Blyss as charging
-      // the buyer directly.
+      // Paystack handles all current checkouts, so each mandate states
+      // which payment provider processes the buyer's charge.
       const occurrences = en.match(/Secured by Paystack/g);
       expect(occurrences?.length ?? 0).toBe(3);
     });

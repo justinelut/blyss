@@ -14,10 +14,11 @@ def calculate_platform_fee(order_amount: int, currency: str = "KES") -> tuple[in
     Returns:
         Tuple of (platform_fee_amount, creator_payout_amount)
 
-    The platform fee is calculated as 20% (2000 basis points) of the order amount.
-    The creator payout is the remaining 80% of the order amount.
+    The platform fee uses the configured basis-point rate (currently 20%, or
+    2000 basis points by default). The creator payout is the order amount less
+    that fee. Integer division rounds the fee down to the smallest currency unit.
     """
-    # Calculate platform fee as 20% of order amount
+    # Apply the configured platform fee rate to the order amount.
     platform_fee_amount = (order_amount * settings.PLATFORM_FEE_BASIS_POINTS) // 10000
 
     # Creator payout is order amount minus platform fee

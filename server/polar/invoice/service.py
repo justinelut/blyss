@@ -98,13 +98,13 @@ class InvoiceService:
 
         items = [
             InvoiceItem(
-                description=f"Digital services and products resold by Polar.sh\nFrom {earliest.strftime('%Y-%m-%d')} to {latest.strftime('%Y-%m-%d')}",
+                description=f"Marketplace sales on Blyss\nFrom {earliest.strftime('%Y-%m-%d')} to {latest.strftime('%Y-%m-%d')}",
                 quantity=1,
                 unit_amount=gross_amount,
                 amount=gross_amount,
             ),
             InvoiceItem(
-                description="Polar revenue share",
+                description="Blyss platform fee",
                 quantity=1,
                 unit_amount=payment_fees_amount,
                 amount=payment_fees_amount,
@@ -143,11 +143,7 @@ class InvoiceService:
             currency=payout.currency,
             items=items,
             notes=(f"{account.billing_notes}\n\n" if account.billing_notes else "")
-            + (
-                "Polar Software, Inc. is the merchant of record reselling digital services.\n"
-                "Polar Software, Inc. captures and remits international sales tax from such sales – as needed.\n"
-                "Payouts (reverse invoices) are therefore without taxes."
-            ),
+            + "This document summarizes the amounts recorded for this payout. Tax treatment depends on the transaction and applicable requirements.",
             extra_heading_items=[
                 InvoiceHeadingItem(label="Paid at", value=payout.paid_at),
                 InvoiceHeadingItem(

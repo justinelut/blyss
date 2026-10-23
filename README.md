@@ -1,14 +1,12 @@
 # Blyss
 
-The modern marketplace for Kenyan creators.
-
-Sell digital products and recurring subscriptions. Get paid via M-Pesa or card (Paystack). Built on top of [Polar.sh](https://polar.sh) (Apache 2.0).
+A Kenya-focused marketplace where creators sell digital products and subscriptions through their own storefronts. Buyers can browse creator work and pay using the methods shown at checkout, including M-Pesa and cards where available.
 
 ## Repo layout
 
 ```
-clients/web/     Next.js 16 app — marketplace, dashboard, hosted checkout, customer portal
-server/          FastAPI + SQLAlchemy backend (Polar.sh fork)
+clients/web/     Next.js app — marketplace, dashboard, hosted checkout, customer portal
+server/          FastAPI + SQLAlchemy backend
 plan/            Production-grade build brief — read this first
 dev/             Local development tooling
 .github/         CI workflow + issue templates
@@ -37,7 +35,4 @@ pnpm run dev                      # http://localhost:3000
 
 ## License
 
-Apache 2.0. See [`LICENSE`](./LICENSE).
-
-Polar.sh upstream is © Polar Software, Inc. — Apache 2.0.
-Blyss modifications are © 2026 Blyss.
+This repository is distributed under Apache 2.0. See [`LICENSE`](./LICENSE) for the applicable terms and notices.

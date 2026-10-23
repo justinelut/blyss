@@ -11,7 +11,8 @@
  *   2. Click "Tip {creator}" → opens Paystack popup with config
  *      from /v1/donation/{slug}/popup-config
  *   3. Popup handles card / M-Pesa / 3DS / fraud — pays out to
- *      the creator's subaccount (90% creator / 10% Blyss split)
+ *      the creator's subaccount with a 0% Blyss platform split; the
+ *      creator's subaccount bears Paystack processing charges.
  *   4. onSuccess: charge.success webhook receives metadata
  *      {purpose: 'donation', donation_for_organization_id, donor_*}
  *      and inserts a Donation row idempotently.

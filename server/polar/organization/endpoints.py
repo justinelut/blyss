@@ -1137,7 +1137,7 @@ async def invite_member(
             )
         ),
         to_email_addr=email,
-        subject=f"You've been invited to {organization.name} on Polar",
+        subject=f"You've been invited to {organization.name} on Blyss",
     )
 
     # Get the user organization relationship to return

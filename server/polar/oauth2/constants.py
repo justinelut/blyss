@@ -16,8 +16,8 @@ REFRESH_TOKEN_PREFIX: dict[SubType, str] = {
 }
 WEBHOOK_SECRET_PREFIX = "polar_whs_"
 
-ISSUER = "https://polar.sh"
-SERVICE_DOCUMENTATION = "https://polar.sh/docs"
+ISSUER = "https://api.blyss.co.ke"
+SERVICE_DOCUMENTATION = "https://blyss.co.ke/help"
 SUBJECT_TYPES_SUPPORTED = ["public"]
 ID_TOKEN_SIGNING_ALG_VALUES_SUPPORTED = ["RS256"]
 CLAIMS_SUPPORTED = ["sub", "name", "email", "email_verified"]

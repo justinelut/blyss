@@ -1,5 +1,5 @@
 import { Metadata } from 'next'
-import { PolarNuqsProvider } from '@/providers/nuqs'
+import { BlyssNuqsProvider } from '@/providers/nuqs'
 import { notFound } from 'next/navigation'
 import { getServerSideAPI } from '@/utils/client/serverside'
 import { unwrap, schemas } from '@/lib/api'
@@ -306,7 +306,7 @@ export default async function Page({ params }: CreatorPageProps) {
   }
 
   return (
-    <PolarNuqsProvider>
+    <BlyssNuqsProvider>
       <JsonLd data={personLd} />
       <JsonLd data={breadcrumbLd} />
       <CreatorStorefrontPage
@@ -359,6 +359,6 @@ export default async function Page({ params }: CreatorPageProps) {
         reviewSummary={reviewSummary}
         recentReviews={recentReviews}
       />
-    </PolarNuqsProvider>
+    </BlyssNuqsProvider>
   )
 }

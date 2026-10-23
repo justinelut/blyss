@@ -19,6 +19,8 @@ from polar.postgres import AsyncSession
 log: Logger = structlog.get_logger()
 
 USER_SESSION_TOKEN_PREFIX = "polar_us_"
+LEGACY_USER_SESSION_COOKIE_KEY = "polar_session"
+LEGACY_GUEST_SESSION_COOKIE_KEY = "polar_guest_session"
 
 R = TypeVar("R", bound=Response)
 
@@ -89,19 +91,17 @@ class AuthService:
         request: Request,
         cookie: str = settings.USER_SESSION_COOKIE_KEY,
     ) -> UserSession | None:
-        token = request.cookies.get(cookie)
-        if token is None or not token.isascii():
-            return None
+        cookie_names = dict.fromkeys((cookie, LEGACY_USER_SESSION_COOKIE_KEY))
+        for cookie_name in cookie_names:
+            token = request.cookies.get(cookie_name)
+            if token is None or not token.isascii():
+                continue
 
-        user_session = await self._get_user_session_by_token(session, token)
+            user_session = await self._get_user_session_by_token(session, token)
+            if user_session is not None and user_session.user.can_authenticate:
+                return user_session
 
-        if user_session is None:
-            return None
-
-        if not user_session.user.can_authenticate:
-            return None
-
-        return user_session
+        return None
 
     async def delete_expired(self, session: AsyncSession) -> None:
         statement = delete(UserSession).where(UserSession.expires_at < utc_now())
@@ -181,11 +181,22 @@ class AuthService:
             httponly=True,
             samesite="lax",
         )
+        if settings.USER_SESSION_COOKIE_KEY != LEGACY_USER_SESSION_COOKIE_KEY:
+            response.delete_cookie(
+                LEGACY_USER_SESSION_COOKIE_KEY,
+                path="/",
+                domain=settings.USER_SESSION_COOKIE_DOMAIN,
+                secure=secure,
+                httponly=True,
+                samesite="lax",
+            )
         return response
 
     def _extract_guest_session_token(self, request: Request) -> str | None:
         """Extract guest session token from cookies."""
         token = request.cookies.get(settings.GUEST_SESSION_COOKIE_KEY)
+        if token is None:
+            token = request.cookies.get(LEGACY_GUEST_SESSION_COOKIE_KEY)
         if token and token.isascii():
             return token
         return None
@@ -204,6 +215,15 @@ class AuthService:
             httponly=True,
             samesite="lax",
         )
+        if settings.GUEST_SESSION_COOKIE_KEY != LEGACY_GUEST_SESSION_COOKIE_KEY:
+            response.delete_cookie(
+                LEGACY_GUEST_SESSION_COOKIE_KEY,
+                path="/",
+                domain=settings.USER_SESSION_COOKIE_DOMAIN,
+                secure=secure,
+                httponly=True,
+                samesite="lax",
+            )
         return response
 
 

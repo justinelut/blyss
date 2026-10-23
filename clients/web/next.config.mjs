@@ -3,8 +3,6 @@ import createMDX from '@next/mdx'
 import { withSentryConfig } from '@sentry/nextjs'
 import { themeConfig } from './shiki.config.mjs'
 
-const POLAR_AUTH_COOKIE_KEY =
-  process.env.POLAR_AUTH_COOKIE_KEY || 'polar_session'
 const ENVIRONMENT =
   process.env.VERCEL_ENV || process.env.NEXT_PUBLIC_VERCEL_ENV || 'development'
 const CODESPACES = process.env.CODESPACES === 'true'
@@ -32,7 +30,7 @@ const baseCSP = `
     frame-src 'self' https://*.js.stripe.com https://js.stripe.com https://hooks.stripe.com https://checkout.paystack.com https://standard.paystack.co https://*.paystack.com https://*.paystack.co https://customer-wl21dabnj6qtvcai.cloudflarestream.com videodelivery.net *.cloudflarestream.com;
     script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.js.stripe.com https://js.stripe.com https://js.paystack.co https://js.paystack.com https://maps.googleapis.com https://www.googletagmanager.com https://chat.cdn-plain.com https://embed.cloudflarestream.com https://static.cloudflareinsights.com;
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-    img-src 'self' blob: data: https://www.gravatar.com https://img.logo.dev https://lh3.googleusercontent.com https://avatars.githubusercontent.com ${S3_PUBLIC_IMAGES_BUCKET_ORIGIN} ${R2_ENDPOINT} ${MINIO_CDN} https://uploads.polar.sh https://prod-uk-services-workspac-workspacefilespublicbuck-vs4gjqpqjkh6.s3.amazonaws.com https://prod-uk-services-attachm-attachmentsbucket28b3ccf-uwfssb4vt2us.s3.eu-west-2.amazonaws.com https://i0.wp.com;
+    img-src 'self' blob: data: https://www.gravatar.com https://img.logo.dev https://lh3.googleusercontent.com https://avatars.githubusercontent.com ${S3_PUBLIC_IMAGES_BUCKET_ORIGIN} ${R2_ENDPOINT} ${MINIO_CDN} https://prod-uk-services-workspac-workspacefilespublicbuck-vs4gjqpqjkh6.s3.amazonaws.com https://prod-uk-services-attachm-attachmentsbucket28b3ccf-uwfssb4vt2us.s3.eu-west-2.amazonaws.com https://i0.wp.com;
     font-src 'self';
     object-src 'none';
     base-uri 'self';
@@ -50,12 +48,12 @@ const ALLOWED_FRAME_ANCESTORS =
 
 const nonEmbeddedCSP = `
   ${baseCSP}
-  form-action 'self' ${process.env.NEXT_PUBLIC_API_URL} polar:;
+  form-action 'self' ${process.env.NEXT_PUBLIC_API_URL};
   frame-ancestors ${ALLOWED_FRAME_ANCESTORS};
 `
 const embeddedCSP = `
   ${baseCSP}
-  form-action 'self' ${process.env.NEXT_PUBLIC_API_URL} polar:;
+  form-action 'self' ${process.env.NEXT_PUBLIC_API_URL};
   frame-ancestors *;
 
 `
@@ -76,23 +74,7 @@ const oauth2CSP = `
 // because 'self' is still in the list.
 const creatorStorefrontCSP = `
   ${baseCSP}
-  form-action 'self' ${process.env.NEXT_PUBLIC_API_URL} polar:;
-  frame-ancestors ${ALLOWED_FRAME_ANCESTORS};
-`
-
-// We rewrite Mintlify docs to polar.sh/docs, so we need a specific CSP for them
-// Ref: https://www.mintlify.com/docs/guides/csp-configuration#content-security-policy-csp-configuration
-const docsCSP = `
-  default-src 'self';
-  script-src 'self' 'unsafe-inline' 'unsafe-eval' cdn.jsdelivr.net www.googletagmanager.com cdn.segment.com plausible.io
-  us.posthog.com tag.clearbitscripts.com cdn.heapanalytics.com chat.cdn-plain.com chat-assets.frontapp.com
-  browser.sentry-cdn.com js.sentry-cdn.com;
-  style-src 'self' 'unsafe-inline' d4tuoctqmanu0.cloudfront.net fonts.googleapis.com;
-  font-src 'self' d4tuoctqmanu0.cloudfront.net fonts.googleapis.com;
-  img-src 'self' data: blob: d3gk2c5xim1je2.cloudfront.net mintcdn.com *.mintcdn.com cdn.jsdelivr.net mintlify.s3.us-west-1.amazonaws.com;
-  connect-src 'self' *.mintlify.dev *.mintlify.com d1ctpt7j8wusba.cloudfront.net mintcdn.com *.mintcdn.com
-  api.mintlifytrieve.com www.googletagmanager.com cdn.segment.com plausible.io us.posthog.com browser.sentry-cdn.com;
-  frame-src 'self' *.mintlify.dev https://polar-public-assets.s3.us-east-2.amazonaws.com;
+  form-action 'self' ${process.env.NEXT_PUBLIC_API_URL};
   frame-ancestors ${ALLOWED_FRAME_ANCESTORS};
 `
 
@@ -247,7 +229,7 @@ const nextConfig = {
       // logged-in users still see the marketplace at /; they go to /dashboard
       // when they want to manage their store.
 
-      // Redirect /maintainer to polar.sh if on a different domain name
+      // Preserve the legacy admin path as a Blyss dashboard redirect.
       {
         source: '/maintainer',
         destination: '/dashboard',
@@ -333,37 +315,41 @@ const nextConfig = {
         permanent: false,
       },
 
-      // Old blog redirects
+      // Legacy public routes point to current Blyss pages.
       {
         source: '/polarsource/posts',
-        destination: '/blog',
-        permanent: false,
+        destination: '/about',
+        permanent: true,
       },
       {
         source: '/polarsource/posts/:path(.*)',
-        destination: '/blog/:path*',
-        permanent: false,
+        destination: '/about',
+        permanent: true,
       },
-
-      // Fallback blog redirect
       {
-        source: '/:path*',
-        destination: 'https://polar.sh/polarsource',
-        has: [
-          {
-            type: 'host',
-            value: 'blog.polar.sh',
-          },
-        ],
-        permanent: false,
+        source: '/downloads',
+        destination: '/marketplace',
+        permanent: true,
       },
-
-      // CLI Install Script
+      {
+        source: '/:country/downloads',
+        destination: '/:country/marketplace',
+        permanent: true,
+      },
+      {
+        source: '/docs',
+        destination: '/help',
+        permanent: true,
+      },
+      {
+        source: '/docs/:path(.*)',
+        destination: '/help',
+        permanent: true,
+      },
       {
         source: '/install.sh',
-        destination:
-          'https://raw.githubusercontent.com/polarsource/cli/main/install.sh',
-        permanent: false,
+        destination: '/start',
+        permanent: true,
       },
 
       {
@@ -464,33 +450,6 @@ const nextConfig = {
             key: 'Permissions-Policy',
             value: `payment=*, publickey-credentials-get=*, camera=(), microphone=(), geolocation=()`,
           },
-          ...(ENVIRONMENT === 'sandbox'
-            ? [
-                {
-                  key: 'X-Robots-Tag',
-                  value:
-                    'noindex, nofollow, noarchive, nosnippet, noimageindex',
-                },
-              ]
-            : []),
-        ],
-      },
-      {
-        source: '/docs/:path*',
-        headers: [
-          {
-            key: 'Content-Security-Policy',
-            value: docsCSP.replace(/\n/g, ''),
-          },
-          {
-            key: 'Permissions-Policy',
-            value:
-              'payment=(), publickey-credentials-get=(), camera=(), microphone=(), geolocation=()',
-          },
-          // X-Frame-Options dropped — `frame-ancestors` in docsCSP
-          // (now scoped to ALLOWED_FRAME_ANCESTORS) is the modern
-          // equivalent and DENY would override it in legacy browsers,
-          // blocking studio.blyss.co.ke from previewing docs.
           ...(ENVIRONMENT === 'sandbox'
             ? [
                 {

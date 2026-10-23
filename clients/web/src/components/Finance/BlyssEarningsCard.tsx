@@ -4,52 +4,53 @@
  * BlyssEarningsCard — shown to creators with an active Paystack
  * subaccount on /finance/income and /finance/payouts.
  *
- * Why this exists: Paystack settles 80% of every sale directly into the
- * creator's M-Pesa wallet (or KE bank account) on a T+2 schedule. There's
- * no balance to "withdraw" — the funds flow through automatically. The
- * legacy Polar/Stripe AccountBalance + WithdrawModal pair only shows when
- * a Polar Account row exists, which Blyss creators never have, so without
- * this card they see an empty income page after activating payouts.
+ * Paystack splits the creator share into a linked subaccount. There is no
+ * Blyss withdrawal balance for creators to withdraw from. Settlement timing
+ * follows Paystack's schedule and can vary.
  *
- * The card explains the model in plain language and points at the
- * Paystack dashboard for the transaction history (until we wire a Blyss-
- * native one).
+ * The card explains the split and pairs order-derived totals with the
+ * settlement ledger below.
  */
-'use client'
+"use client";
 
-import { schemas } from '@/lib/api'
-import { useEarningsSummary } from '@/hooks/queries/orders'
-import { FiCheck } from 'react-icons/fi'
+import { schemas } from "@/lib/api";
+import { useEarningsSummary } from "@/hooks/queries/orders";
+import { FiCheck } from "react-icons/fi";
 
 interface BlyssEarningsCardProps {
-  organization: schemas['Organization']
+  organization: schemas["Organization"];
 }
 
 const formatMoney = (amountMinor: number, currency: string): string => {
-  const major = (amountMinor || 0) / 100
-  const cur = (currency || 'kes').toUpperCase()
-  if (cur === 'KES') return `KSh ${major.toLocaleString('en-KE')}`
-  if (cur === 'USD') return `US$ ${major.toLocaleString('en-US')}`
-  return `${cur} ${major.toLocaleString()}`
-}
+  const major = (amountMinor || 0) / 100;
+  const cur = (currency || "kes").toUpperCase();
+  if (cur === "KES") return `KSh ${major.toLocaleString("en-KE")}`;
+  if (cur === "USD") return `US$ ${major.toLocaleString("en-US")}`;
+  return `${cur} ${major.toLocaleString()}`;
+};
 
 export const BlyssEarningsCard: React.FC<BlyssEarningsCardProps> = ({
   organization,
 }) => {
-  const { data: earnings } = useEarningsSummary(organization.id)
+  const { data: earnings } = useEarningsSummary(organization.id);
   const payoutMethod = (organization as { payout_method?: string })
-    .payout_method
-  const mpesaNumber = (organization as { mpesa_number?: string }).mpesa_number
-  const bankAccountNumber = (
-    organization as { bank_account_number?: string }
-  ).bank_account_number
+    .payout_method;
+  const mpesaNumber = (organization as { mpesa_number?: string }).mpesa_number;
+  const bankAccountNumber = (organization as { bank_account_number?: string })
+    .bank_account_number;
+  const payoutReady =
+    (organization as { subaccount_status?: string }).subaccount_status ===
+      "active" &&
+    Boolean(
+      (organization as { subaccount_code?: string | null }).subaccount_code,
+    );
 
   const destination =
-    payoutMethod === 'mpesa' && mpesaNumber
+    payoutMethod === "mpesa" && mpesaNumber
       ? `M-Pesa ${mpesaNumber}`
-      : payoutMethod === 'bank' && bankAccountNumber
+      : payoutMethod === "bank" && bankAccountNumber
         ? `bank account ending ${String(bankAccountNumber).slice(-4)}`
-        : 'your payout account'
+        : "your payout account";
 
   return (
     <div className="rounded-md border border-[var(--border)] bg-[var(--surface)] p-6 md:p-8">
@@ -67,18 +68,20 @@ export const BlyssEarningsCard: React.FC<BlyssEarningsCardProps> = ({
               Earnings
             </p>
             <h2 className="mt-2 font-display text-[22px] font-semibold leading-[1.15] tracking-[-0.02em] text-[var(--text-primary)]">
-              Settle automatically to {destination}.
+              {payoutReady
+                ? `Creator shares settle through Paystack to ${destination}.`
+                : "Set up a Paystack payout account to receive creator shares."}
             </h2>
           </div>
 
-          {/* Actual earned figures — what the creator has taken home so
-              far across all paid orders (net of the marketplace fee +
-              refunds). Hidden until there's at least one order. */}
+          {/* Order-derived totals are not a confirmation of provider
+              settlement. The ledger below shows confirmed transfers where
+              Paystack events are available and labels estimates clearly. */}
           {earnings && earnings.orders_count > 0 && (
             <div className="grid grid-cols-2 gap-4 rounded-md border border-[var(--border)] bg-[var(--background)] p-4 sm:grid-cols-4">
               <div>
                 <p className="font-sans text-[11px] font-medium uppercase tracking-[0.1em] text-[var(--text-muted)]">
-                  Net earned
+                  Recorded creator share
                 </p>
                 <p className="mt-1 font-display text-[20px] font-semibold tabular-nums text-[var(--text-primary)]">
                   {formatMoney(earnings.net_amount, earnings.currency)}
@@ -111,14 +114,27 @@ export const BlyssEarningsCard: React.FC<BlyssEarningsCardProps> = ({
             </div>
           )}
           <p className="max-w-[60ch] font-sans text-[15px] leading-[1.55] text-[var(--text-secondary)]">
-            Paystack splits each sale at the moment of payment — you receive
-            80% directly into your{' '}
-            {payoutMethod === 'mpesa' ? 'M-Pesa wallet' : 'bank account'},
-            and Blyss keeps 20% as the marketplace fee. Each settlement
-            shows below as Paystack confirms it.
+            On a completed product sale, 20% is Blyss&apos;s platform fee and
+            the remaining 80% is your creator share.{" "}
+            {payoutReady ? (
+              <>
+                Paystack splits that share to your linked payout account and
+                charges its processing fee separately to Blyss&apos;s main
+                account. Paystack settles to your{" "}
+                {payoutMethod === "mpesa" ? "M-Pesa account" : "bank account"}{" "}
+                on its schedule. Confirmed settlement events appear below when
+                available; estimates are marked.
+              </>
+            ) : (
+              <>
+                Set up and activate a Paystack payout account to receive
+                automatic split settlements.
+              </>
+            )}{" "}
+            Refunds or reversals can change an order&apos;s final amounts.
           </p>
         </div>
       </div>
     </div>
-  )
-}
+  );
+};

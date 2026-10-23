@@ -29,12 +29,8 @@ export const StartStatsStrip = ({ stats }: Props) => {
   if (!stats) return null;
   const showCreators = stats.creators > 0;
   const showProducts = stats.products > 0;
-  // Prefer the confirmed-settlement number when we have it; fall
-  // back to total_earned (orders × creator share) when no
-  // transfer.success webhook has fired yet — the money has already
-  // moved to creators' Paystack subaccounts at charge time, just
-  // not yet settled to bank/M-Pesa. Showing earned-but-not-settled
-  // gives an honest live number on fresh deploys instead of "0".
+  // Keep confirmed settlements distinct from the creator share recorded
+  // on paid orders, which may not have reached a payout destination yet.
   const moneyValue =
     stats.total_paid_out > 0 ? stats.total_paid_out : stats.total_earned;
   const moneyLabel =
@@ -44,7 +40,7 @@ export const StartStatsStrip = ({ stats }: Props) => {
       ? `Across ${stats.settlements_count} settlement${
           stats.settlements_count === 1 ? "" : "s"
         }`
-      : "Settlements roll out on Paystack T+2";
+      : "Recorded on paid KES orders; settlement is shown separately";
   const showMoney = moneyValue > 0;
 
   // If the deploy is fresh and we'd show zero across the board, skip
@@ -80,7 +76,11 @@ export const StartStatsStrip = ({ stats }: Props) => {
               detail={moneyDetail}
             />
           )}
-          <Stat value="24h" label="Payout window" detail="M-Pesa or bank" />
+          <Stat
+            value="T+2"
+            label="Paystack settlement"
+            detail="Published Kenya schedule; timing can vary"
+          />
         </div>
       </div>
     </section>

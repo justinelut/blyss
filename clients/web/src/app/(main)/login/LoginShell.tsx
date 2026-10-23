@@ -45,8 +45,9 @@ export const LoginShell = ({ children }: { children: React.ReactNode }) => {
             <em className="not-italic text-[var(--accent)]">storefront</em>.
           </h1>
           <p className="mt-6 max-w-[44ch] font-sans text-[18px] leading-[1.55] text-[var(--text-secondary)]">
-            The modern modern marketplace for digital products. M-Pesa, card. Paid out
-            within 24 hours.
+            A marketplace for digital products and subscriptions. Payment
+            options are shown at checkout, and settlement timing depends on
+            Paystack and the linked payout destination.
           </p>
         </div>
 

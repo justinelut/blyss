@@ -15,7 +15,7 @@ interface BrowseEmptyStateProps {
  * Per plan §3.4 + §6.2: editorial copy, no cartoons, no animated emoji,
  * single primary CTA. Two variants:
  * - hasFilters=true: "no products match" + clear-filters action
- * - hasFilters=false: "marketplace coming soon" + become-a-creator CTA
+ * - hasFilters=false: catalogue empty + creator CTA
  */
 export const BrowseEmptyState = ({ hasFilters, onClear }: BrowseEmptyStateProps) => {
   if (hasFilters) {
@@ -25,7 +25,7 @@ export const BrowseEmptyState = ({ hasFilters, onClear }: BrowseEmptyStateProps)
           No products match these filters yet.
         </h2>
         <p className={cn(typography.body, 'mt-4 text-[var(--text-secondary)]')}>
-          Try widening your price range or clearing a category. New work is added every week — the catalogue keeps growing.
+          Try widening your price range or clearing a category to see more listings.
         </p>
         {onClear && (
           <button
@@ -43,10 +43,10 @@ export const BrowseEmptyState = ({ hasFilters, onClear }: BrowseEmptyStateProps)
   return (
     <div className="flex flex-col items-start py-24 max-w-[44ch]">
       <h2 className={cn(typography.h3, 'text-[var(--text-primary)]')}>
-        The marketplace is just getting started.
+        No products are available right now.
       </h2>
       <p className={cn(typography.body, 'mt-4 text-[var(--text-secondary)]')}>
-        We&rsquo;re onboarding the first wave of independent creators now. Check back tomorrow — or jump in and become one yourself.
+        Browse creator storefronts or search the catalogue. If you sell digital work, you can open a Blyss storefront.
       </p>
       <Link
         href="/start"

@@ -39,7 +39,7 @@ import { useDebouncedCallback } from '../hooks/debounce'
 import { isDisplayedField, isRequiredField } from '../utils/address'
 import { convertLocaleToStripeElementLocale } from '../utils/locale'
 import CustomFieldInput from './CustomFieldInput'
-import PolarLogo from './PolarLogo'
+import BlyssLogo from './BlyssLogo'
 import { usePaystackPublicKey } from '@/hooks/queries/paystackConfig'
 import {
   paystackPop,
@@ -723,7 +723,7 @@ const BaseCheckoutForm = ({
         target="_blank"
       >
         <span>{t('checkout.footer.poweredBy')}</span>
-        <PolarLogo className="h-5" />
+        <BlyssLogo className="h-5" />
       </a>
     </div>
   )

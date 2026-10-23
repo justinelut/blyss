@@ -1,4 +1,8 @@
 const POLAR_CHECKOUT_EVENT = 'POLAR_CHECKOUT'
+const BLYSS_CHECKOUT_ATTRIBUTE = 'data-blyss-checkout'
+const LEGACY_CHECKOUT_ATTRIBUTE = 'data-polar-checkout'
+const BLYSS_CHECKOUT_THEME_ATTRIBUTE = 'data-blyss-checkout-theme'
+const LEGACY_CHECKOUT_THEME_ATTRIBUTE = 'data-polar-checkout-theme'
 
 /**
  * Message sent to the parent window when the embedded checkout is fully loaded.
@@ -116,18 +120,18 @@ class EmbedCheckout {
 
     const styleSheet = document.createElement('style')
     styleSheet.innerText = `
-      .polar-loader-spinner {
+      .blyss-loader-spinner {
         width: 20px;
         aspect-ratio: 1;
         border-radius: 50%;
         background: ${options?.theme === 'dark' ? '#000' : '#fff'};
         box-shadow: 0 0 0 0 ${options?.theme === 'dark' ? '#fff' : '#000'};
-        animation: polar-loader-spinner-animation 1s infinite;
+        animation: blyss-loader-spinner-animation 1s infinite;
       }
-      @keyframes polar-loader-spinner-animation {
+      @keyframes blyss-loader-spinner-animation {
         100% {box-shadow: 0 0 0 30px #0000}
       }
-      body.polar-no-scroll {
+      body.blyss-no-scroll {
         overflow: hidden;
       }
     `
@@ -144,11 +148,11 @@ class EmbedCheckout {
 
     // Create spinning icon
     const spinner = document.createElement('div')
-    spinner.className = 'polar-loader-spinner'
+    spinner.className = 'blyss-loader-spinner'
     loader.appendChild(spinner)
 
     // Insert into the DOM
-    document.body.classList.add('polar-no-scroll')
+    document.body.classList.add('blyss-no-scroll')
     document.body.appendChild(loader)
 
     // Add query parameters to the Checkout Link
@@ -197,18 +201,20 @@ class EmbedCheckout {
   /**
    * Initialize embedded checkout triggers.
    *
-   * This method will add a click event listener to all elements with the `data-polar-checkout` attribute.
-   * The Checkout Link is either the `href` attribute for a link element or the value of `data-polar-checkout` attribute.
+   * This method adds a click listener to Blyss checkout links. The previous
+   * data-polar-checkout attribute remains supported for existing integrations.
    *
-   * The theme can be optionally set using the `data-polar-checkout-theme` attribute.
+   * The theme can be optionally set using the data-blyss-checkout-theme attribute.
    *
    * @example
    * ```html
-   * <a href="https://buy.blyss.co.ke/polar_cl_123" data-polar-checkout data-polar-checkout-theme="dark">Checkout</a>
+   * <a href="https://buy.blyss.co.ke/checkout-link" data-blyss-checkout data-blyss-checkout-theme="dark">Checkout</a>
    * ```
    */
   public static init(): void {
-    const checkoutElements = document.querySelectorAll('[data-polar-checkout]')
+    const checkoutElements = document.querySelectorAll(
+      `[${BLYSS_CHECKOUT_ATTRIBUTE}], [${LEGACY_CHECKOUT_ATTRIBUTE}]`,
+    )
     checkoutElements.forEach((checkoutElement) => {
       checkoutElement.removeEventListener(
         'click',
@@ -228,7 +234,7 @@ class EmbedCheckout {
     window.removeEventListener('message', this.windowMessageListener)
     if (document.body.contains(this.iframe))
       document.body.removeChild(this.iframe)
-    document.body.classList.remove('polar-no-scroll')
+    document.body.classList.remove('blyss-no-scroll')
   }
 
   /**
@@ -295,9 +301,12 @@ class EmbedCheckout {
     e.preventDefault()
     let checkoutElement = e.target as HTMLElement
 
-    // Find the closest parent element with the `data-polar-checkout` attribute,
+    // Find the closest parent element with a Blyss or legacy checkout attribute,
     // in case the checkout element has children triggering the event.
-    while (!checkoutElement.hasAttribute('data-polar-checkout')) {
+    while (
+      !checkoutElement.hasAttribute(BLYSS_CHECKOUT_ATTRIBUTE) &&
+      !checkoutElement.hasAttribute(LEGACY_CHECKOUT_ATTRIBUTE)
+    ) {
       if (!checkoutElement.parentElement) {
         return
       }
@@ -306,8 +315,12 @@ class EmbedCheckout {
 
     const url =
       checkoutElement.getAttribute('href') ||
-      (checkoutElement.getAttribute('data-polar-checkout') as string)
-    const theme = checkoutElement.getAttribute('data-polar-checkout-theme') as
+      (checkoutElement.getAttribute(BLYSS_CHECKOUT_ATTRIBUTE) ??
+        checkoutElement.getAttribute(LEGACY_CHECKOUT_ATTRIBUTE)) as string
+    const theme = (
+      checkoutElement.getAttribute(BLYSS_CHECKOUT_THEME_ATTRIBUTE) ??
+      checkoutElement.getAttribute(LEGACY_CHECKOUT_THEME_ATTRIBUTE)
+    ) as
       | 'light'
       | 'dark'
       | undefined
@@ -395,6 +408,10 @@ class EmbedCheckout {
 
 declare global {
   interface Window {
+    Blyss: {
+      EmbedCheckout: typeof EmbedCheckout
+    }
+    /** Backward compatibility for already installed checkout embeds. */
     Polar: {
       EmbedCheckout: typeof EmbedCheckout
     }
@@ -402,6 +419,11 @@ declare global {
 }
 
 if (typeof window !== 'undefined') {
+  window.Blyss = {
+    EmbedCheckout,
+  }
+  // Existing creator sites may still call this legacy public alias. New
+  // installation snippets use window.Blyss.
   window.Polar = {
     EmbedCheckout,
   }
@@ -416,4 +438,4 @@ if (typeof document !== 'undefined') {
   }
 }
 
-export { EmbedCheckout as PolarEmbedCheckout }
+export { EmbedCheckout as BlyssEmbedCheckout }

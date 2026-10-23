@@ -6,7 +6,7 @@ import ShoppingBagOutlined from '@mui/icons-material/ShoppingBagOutlined'
 import { schemas } from '@/lib/api'
 import { formatCurrency } from '@/lib/currency'
 import Button from '@/components/atoms/Button'
-import PolarTimeAgo from '@/components/atoms/PolarTimeAgo'
+import BlyssTimeAgo from '@/components/atoms/BlyssTimeAgo'
 import {
   Popover,
   PopoverContent,
@@ -151,7 +151,7 @@ const Item = ({
       <div>
         <div>{children.text}</div>
         <div className="dark:text-polar-300 text-gray-500">
-          <PolarTimeAgo date={new Date(n.created_at)} />
+          <BlyssTimeAgo date={new Date(n.created_at)} />
         </div>
       </div>
     </div>

@@ -1,130 +1,60 @@
 # Privacy Policy
 
-*Last updated: 26 May 2026*
+*Last updated: 23 October 2026*
 
-This Privacy Policy explains how Blyss Limited ("Blyss", "we") collects, uses, stores, and shares your personal information when you use blyss.co.ke and our related services. We've written it in plain English. If something here is unclear, email **privacy@blyss.co.ke** and we'll explain.
+This notice describes personal information used when you visit Blyss, create an account, sell or buy through the marketplace, or contact support. For privacy questions or requests, email **privacy@blyss.co.ke**.
 
-Blyss is operated from Nairobi, Kenya. We comply with the Kenya Data Protection Act, 2019, and where it applies, the EU GDPR.
+## Information used by Blyss
 
----
+Depending on how you use the service, Blyss may handle:
 
-## 1. What we collect
+- Account details such as your email address, name, profile information, and sign-in method. Sign-in uses email verification codes and, where available, Google.
+- Store, product, subscription, order, and support information you provide or create.
+- Information needed to record a payment and deliver a purchase, such as the order amount, currency, payment status, and provider reference. Card details are handled by the payment provider; Blyss does not receive full card numbers through its checkout integration.
+- Payout-account status and related details returned by Paystack. Paystack may request identity, business, or account information directly as part of its verification process.
+- Technical information such as browser and device details, pages requested, and error information used to operate and troubleshoot the service.
+- Information you send to Blyss in a support or privacy request.
 
-**When you create an account**, we collect:
-- Your email address
-- A name (yours or your store's)
-- A password hash if you use email + password (we never see your password)
-- OAuth profile info (name, email, avatar) if you sign in with Google
+## How information is used
 
-**When you list products as a Seller**, we collect:
-- Identity verification documents (national ID, KRA PIN, business registration where relevant)
-- Linked phone number for M-Pesa payouts
-- Bank account details if you payout via card networks
-- Tax information where required by law
+We use information to provide accounts, storefronts, checkout, order records, product access, subscription features, support, fraud prevention, and service reliability. We may also use it to meet legal or payment-provider requirements and to understand product usage where analytics is enabled.
 
-**When you make a purchase as a Buyer**, we collect:
-- Email address
-- Payment instrument metadata (last 4 digits of card, M-Pesa phone number, transaction reference) — we never store full card numbers; Paystack handles that
-- IP address and approximate location (for fraud prevention)
-- Order history
+## Sharing
 
-**Automatically when you visit the site**, we collect:
-- IP address, browser type, device type, referrer URL
-- Pages visited, time on page, clicks (via PostHog analytics)
-- Error and crash reports (via Sentry)
-- Cookies — see Section 5
+Information may be shared with service providers that help operate the platform, including Paystack for payment and payout services, Resend for email delivery, PostHog for product analytics, Sentry for error monitoring, and Cloudflare or Oracle Cloud Infrastructure for site and application hosting. The providers used for a particular feature may change.
 
-## 2. Why we collect it
+Creators may receive buyer information needed to fulfil or support an order. Blyss may disclose information to authorities where required by law or to respond to a valid legal request. Blyss does not sell personal information.
 
-We use your data to:
-- Operate the platform: authenticate you, take payments, deliver products
-- Comply with legal obligations (KYC, tax, anti-money laundering)
-- Detect and prevent fraud, spam, and abuse
-- Improve the product (anonymized analytics)
-- Send transactional emails (receipts, payout notifications, support replies)
-- Send product updates and marketing emails — only if you opt in, and you can unsubscribe at any time
+## Cookies and similar technologies
 
-We do **not** sell your personal information. Ever.
+The site uses a **`blyss_session`** HTTP-only cookie to keep a signed-in account authenticated and may use a **`blyss_guest_session`** cookie to preserve a guest shopping session. A browser-readable **`blyss_onboarding_session`** cookie stores progress through storefront setup for up to 24 hours; it does not contain sign-in credentials. The site may also store a country preference and analytics identifiers or browser storage, depending on your settings and location.
 
-## 3. Who we share it with
+The cookie-preferences control can be used where it is shown. Some storage is needed for core site functions.
 
-We share data only with:
+## Retention
 
-- **Payment processors** (Paystack, M-Pesa via Safaricom) to process transactions
-- **Email infrastructure** (Resend) to send transactional emails
-- **Analytics providers** (PostHog) to understand product usage in aggregate
-- **Error monitoring** (Sentry) to fix bugs
-- **Hosting** (Cloudflare, Oracle Cloud Infrastructure) for site delivery
-- **Government authorities and regulators** when legally required
+Information is kept for as long as needed to provide the service, maintain account and transaction records, handle support requests or disputes, prevent abuse, and meet legal or payment-provider obligations. Retention periods depend on the type of record and applicable requirements. Some transaction, payout, and dispute records may remain after account closure.
 
-Sellers and Buyers see each other's first name and store name in connection with a transaction. Buyers' email addresses are shared with the Seller they purchase from, so the Seller can fulfil and support the order.
+## Your choices and requests
 
-## 4. How long we keep it
+You can contact **privacy@blyss.co.ke** to ask about information connected to your account or to request correction or deletion. Some records may need to be retained for an order, dispute, security, or legal reason. Rights and response timelines depend on the laws that apply to your situation.
 
-- **Active account data**: as long as your account is open
-- **Transaction records**: 7 years after the transaction (tax law requirement)
-- **KYC documents**: 5 years after account closure
-- **Marketing email lists**: until you unsubscribe
-- **Server logs**: 30 days
-- **Backups**: rotated out within 90 days
+If you are in Kenya and believe a data-protection concern has not been addressed, information about the Office of the Data Protection Commissioner is available at [odpc.go.ke](https://www.odpc.go.ke/).
 
-You can request deletion of personal data that isn't required by law to retain — see Section 6.
+## Security and service providers
 
-## 5. Cookies
+Blyss uses operational and technical measures intended to protect information. No website or storage system can be guaranteed completely secure. Some providers may process information outside Kenya; the service provider and processing location depend on the feature being used.
 
-We use cookies for:
-- **Session management** (`polar_session`) — required to keep you logged in
-- **Analytics** (`distinct_id`) — anonymized PostHog ID, opt-out via cookie banner
-- **Cart state** — stores your local shopping cart
+For security reports, contact **security@blyss.co.ke**.
 
-Cookies marked "required" cannot be disabled because the site won't work without them. Optional analytics cookies can be declined via the cookie banner on first visit.
+## Children
 
-## 6. Your rights
+Blyss is intended for people who can use the service under the laws that apply to them. If you believe a child has provided personal information in a way that is not permitted, contact **privacy@blyss.co.ke**.
 
-If you're in Kenya or in a jurisdiction with comparable data protection law, you have the right to:
+## Changes
 
-- **Access** the personal data we hold about you
-- **Correct** anything that's wrong
-- **Delete** your data (subject to legal retention requirements)
-- **Port** your data to another service in a machine-readable format
-- **Object** to processing for marketing
-- **Withdraw consent** for any optional data use, at any time
-
-To exercise these rights, email **privacy@blyss.co.ke** from the address on your account. We respond within 30 days.
-
-If you're unhappy with how we handled your request, you can lodge a complaint with the Office of the Data Protection Commissioner in Kenya: **odpc.go.ke**.
-
-## 7. Security
-
-We protect your data with:
-- TLS 1.3 for all connections
-- Hashed passwords (bcrypt)
-- Encrypted database backups
-- 2FA available on all accounts (recommended for Sellers)
-- Regular dependency updates and security patches
-- Restricted internal access on a need-to-know basis
-
-No system is perfectly secure. If a breach affects you, we'll notify you within 72 hours of confirming it, as required by Kenyan law.
-
-## 8. Children
-
-Blyss is not intended for anyone under 18. We don't knowingly collect data from children. If you believe a minor has created an account, email **privacy@blyss.co.ke** and we'll remove it.
-
-## 9. Cross-border transfers
-
-Some of our service providers (Resend, Sentry, Cloudflare) operate from outside Kenya. When we send your data to them, we use providers with appropriate data protection commitments (Standard Contractual Clauses, certifications). Your data primarily stays on Oracle Cloud Infrastructure in Frankfurt or our Kenyan partners.
-
-## 10. Changes to this policy
-
-We may update this Privacy Policy as Blyss evolves. Material changes will be emailed to all account holders at least 14 days before they take effect.
-
----
+We may update this notice as the service or its providers change. The current version and revision date will appear on this page.
 
 ## Contact
 
-**privacy@blyss.co.ke** — Privacy questions and rights requests
-**security@blyss.co.ke** — Security issues and disclosures
-**support@blyss.co.ke** — General support
-
-Blyss Limited
-Nairobi, Kenya
+For privacy questions or requests, email **privacy@blyss.co.ke**. For general support, email **support@blyss.co.ke**.

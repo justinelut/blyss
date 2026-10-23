@@ -27,11 +27,11 @@ describe("Dashboard theme token boundary", () => {
     expect(shadInput).toContain("placeholder:text-[var(--text-secondary)]");
   });
 
-  test("defaults to dark without following the operating system", () => {
+  test("defaults to dark and supports the explicit system preference", () => {
     const providers = read("src/app/providers.tsx");
 
     expect(providers).toContain('defaultTheme="dark"');
-    expect(providers).toContain("enableSystem={false}");
+    expect(providers).toContain("enableSystem");
     expect(providers).toContain('storageKey="blyss-theme"');
   });
 });

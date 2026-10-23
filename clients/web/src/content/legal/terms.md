@@ -1,94 +1,61 @@
 # Terms of Service
 
-*Last updated: 26 May 2026*
+*Last updated: 23 October 2026*
 
-These Terms of Service ("Terms") govern your use of Blyss, a digital marketplace operated by Blyss Limited ("Blyss", "we", "us") from Nairobi, Kenya. By creating an account, listing a product, or making a purchase, you agree to these Terms.
+These Terms apply to your use of the Blyss marketplace at blyss.co.ke and related services. By creating an account, listing an item, or making a purchase, you agree to these Terms. If you do not agree, do not use Blyss.
 
-If you don't agree, don't use Blyss.
+## 1. Using Blyss
 
----
+You may use Blyss only if you can form a binding agreement under the laws that apply to you. If you use Blyss for an organization, you confirm that you are allowed to act for it.
 
-## 1. Who can use Blyss
+Keep your account information current, protect access to your email account, and contact support if you believe someone else has accessed your account.
 
-You must be at least 18 years old, or the age of majority in your country, whichever is greater. By using Blyss you confirm you meet this requirement.
+## 2. Marketplace listings
 
-If you sign up on behalf of an organization, you confirm you have authority to bind that organization to these Terms.
+Creators are responsible for the products and subscriptions they list, including their rights to the content, accurate descriptions, pricing, delivery details, and ongoing access. Do not list anything you are not authorized to sell or that violates the [Acceptable Use Policy](/acceptable-use).
 
-We may refuse service, suspend accounts, or remove content at our discretion if we believe you've violated these Terms or any applicable law.
+You give Blyss permission to host, display, and deliver your listing and product files as needed to operate the marketplace and complete purchases. This permission ends when the relevant content is removed, except where it must remain available for an order, dispute, or legal record.
 
-## 2. The Blyss platform
+Buyers should review a listing, its price and currency, and the delivery or subscription details before paying. The creator is responsible for the product and its description. Blyss provides the marketplace, checkout, and product-access features.
 
-Blyss is a marketplace where independent creators (we call them "Sellers") list and sell digital products to buyers (we call them "Buyers"). Blyss provides hosting, checkout, payment processing, and payout infrastructure. Blyss does not own, create, or sell the products listed on the platform — Sellers do.
+## 3. Fees and creator proceeds
 
-When a Buyer purchases from a Seller on Blyss, the contract for the product is between the Buyer and the Seller. Blyss is the payment facilitator and platform host.
+Blyss currently charges a platform fee of **20% of a completed product sale**. The remaining 80% is the creator's share. When a creator has an active Paystack subaccount, Paystack splits the payment to that account; without one, the payment is not automatically split to a payout account. Paystack's transaction-processing charge is separate from Blyss's platform fee and, for product split payments, is charged to Blyss's main account. Refunds or reversals may change the final amounts recorded for an order. We do not change historical order or payout records through these Terms.
 
-## 3. Seller agreement
+No setup or monthly platform fee is currently charged for opening a storefront or listing a product. The current Paystack checkout does not calculate a separate tax amount. Prices and available currencies are shown during checkout. Please seek independent advice about tax obligations that may apply to your sales or purchases.
 
-By listing a product on Blyss, you (the Seller):
+## 4. Payments and settlement
 
-- **Own the rights** to everything you sell, including any included assets, fonts, code, music, or imagery. You grant Blyss a limited, worldwide, non-exclusive license to host, display, and distribute your products to the buyers you sell to.
-- **Pay a 12% platform fee** on each completed sale, deducted automatically before payout. Paystack/M-Pesa processing fees are passed through at cost.
-- **Receive payouts** to your linked Paystack subaccount on a rolling basis. Payouts settle to your Kenyan bank or M-Pesa within 24–72 hours of a verified, non-disputed sale.
-- **Honour your descriptions.** What you describe in your listing is what Buyers expect to receive. Misleading descriptions may result in refunds, listing removal, or account closure.
-- **Respond to Buyer questions** in a reasonable time and address legitimate complaints.
-- **Comply with our [Acceptable Use Policy](/acceptable-use).** This is the most important section — read it.
+Payments are processed through the payment provider and methods shown at checkout. In Kenya, checkout may offer M-Pesa and card payments, subject to availability. Creators connect a payout destination through Paystack and may be asked by the provider to supply identity, business, or account details before it activates that destination.
 
-## 4. Buyer agreement
+Blyss records the creator share for each paid order. Paystack controls settlement timing to the linked bank or M-Pesa destination. Paystack publishes a two-working-day settlement schedule for Kenya, but actual timing may vary due to provider processing, verification, weekends, holidays, reviews, or holds. Blyss does not guarantee settlement within 24 hours.
 
-By purchasing on Blyss, you (the Buyer):
+## 5. Digital delivery, subscriptions, and refunds
 
-- Agree that all sales are **final at the point of delivery**, except where our [Refunds Policy](/refunds) specifically applies (broken downloads, undelivered files, or material misrepresentation).
-- Agree not to redistribute, resell, or share the digital products you purchase unless the Seller's licence explicitly allows it.
-- Agree that the Seller (not Blyss) is responsible for the product itself — including its quality, accuracy, and fitness for your intended use.
-- Agree that chargebacks and disputes will be reviewed by Blyss in good faith and may result in payout reversals from the Seller's account.
+Access to a digital product or subscription depends on the listing and the order status. Creators are responsible for providing the product or access they described. Access may end if a subscription expires, an order is refunded, or the creator or Blyss removes the relevant content.
 
-## 5. Payments and payouts
+Refund requests are handled under the [Refunds Policy](/refunds) and applicable law. Nothing in these Terms limits rights that cannot legally be limited.
 
-Payments on Blyss are processed via Paystack (card payments) and M-Pesa (mobile money). All transactions are denominated in Kenyan Shillings (KES) by default, with USD support for cross-border sales.
+## 6. Account access and service changes
 
-Sellers must complete identity verification (KYC) and link a Paystack subaccount before receiving payouts. Verification may include providing a national ID, business registration documents, and a phone number.
+We may restrict access to content or accounts when reasonably needed to address a suspected policy violation, fraud, security issue, legal requirement, or payment-provider instruction. Where appropriate, we will provide notice and a way to contact us. You can ask us to close your account through support. Closing an account does not erase transaction records that must be retained or remove obligations relating to existing orders.
 
-## 6. Account suspension and termination
+The marketplace and its features may change over time. We will take reasonable steps to keep order and subscription information available, but do not promise permanent or uninterrupted access to any particular feature or file.
 
-We may suspend or terminate your account if:
+## 7. Intellectual property reports
 
-- You materially breach these Terms or our Acceptable Use Policy.
-- We're required to by law, regulator, or payment processor.
-- You repeatedly receive valid complaints, refund requests, or chargebacks above industry-standard thresholds.
+If you believe a listing infringes your rights, contact **legal@blyss.co.ke** with the listing URL, a description of the work, your contact details, and the basis for your report. We may request further information before taking action.
 
-We'll notify you of suspensions and give you a reasonable opportunity to respond, except where law or fraud risk requires immediate action.
+## 8. Liability and legal rights
 
-You can close your account at any time from your dashboard settings. Pending payouts settle to your linked account and your products are removed from sale. Existing Buyer access to already-purchased products continues for as long as we can reasonably support it.
+These Terms do not exclude or limit liability where the law does not allow it. Nothing in these Terms removes consumer rights that apply to your purchase.
 
-## 7. Intellectual property and DMCA-style takedowns
+Contact **legal@blyss.co.ke** with questions about these Terms.
 
-If you believe content on Blyss infringes your copyright, trademark, or other rights, email **legal@blyss.co.ke** with: a description of the work, the URL of the infringing listing, your contact information, and a statement made in good faith. We respond to verified takedown requests within 5 business days.
+## 9. Changes
 
-Sellers who repeatedly receive valid takedown notices will have their accounts terminated.
-
-## 8. Limitation of liability
-
-To the maximum extent permitted by Kenyan law, Blyss is not liable for indirect, incidental, special, consequential, or punitive damages, including lost profits, lost data, or business interruption arising from your use of the platform.
-
-Our aggregate liability to you for any claim arising under these Terms is limited to the greater of: the total platform fees you paid Blyss in the 12 months prior to the claim, or KES 50,000.
-
-This section does not limit liability that cannot be limited under applicable law.
-
-## 9. Changes to these Terms
-
-We may update these Terms occasionally. Material changes will be announced by email and on the website at least 14 days before they take effect. Continued use of Blyss after changes take effect means you accept the new Terms.
-
-## 10. Governing law and disputes
-
-These Terms are governed by the laws of Kenya. Any dispute arising from your use of Blyss is subject to the exclusive jurisdiction of the courts of Nairobi, Kenya.
-
-If you have a problem, please email **support@blyss.co.ke** before escalating — we'd much rather solve it than litigate it.
-
----
+We may update these Terms as the service changes. The latest version will be posted on this page with its revision date. If a change materially affects existing users, we will use a reasonable way to notify them.
 
 ## Contact
 
-Blyss Limited
-Nairobi, Kenya
-**legal@blyss.co.ke** for legal matters
-**support@blyss.co.ke** for everything else
+For legal questions, contact **legal@blyss.co.ke**. For account or purchase support, contact **support@blyss.co.ke**.

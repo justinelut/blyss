@@ -4,7 +4,10 @@ import { notFound } from "next/navigation";
 import { JsonLd } from "@/design";
 import { getServerSideAPI } from "@/utils/client/serverside";
 import { CategoryPageClient } from "./CategoryPageClient";
-import { getCategoryIntro, type CategoryIntro } from "@/lib/seo/category-copy";
+import {
+  getCategoryDescription,
+  getCategoryTitle,
+} from "@/lib/seo/category-copy";
 
 const SITE = "https://blyss.co.ke";
 
@@ -18,8 +21,7 @@ interface Props {
  *
  *   - Generate accurate metadata (title, description, OG)
  *   - Emit BreadcrumbList + CollectionPage + ItemList JSON-LD
- *   - Render the long-form SEO intro copy in the initial HTML (Google
- *     can't index content rendered only on the client)
+ *   - Keep page metadata and structured data aligned with the live category
  *
  * Errors are swallowed (returns null) so the client island still
  * renders its own "Category not found" state.
@@ -51,7 +53,7 @@ async function fetchCategoryProducts(slug: string) {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const category = await fetchCategory(slug);
-  const intro = getCategoryIntro(slug);
+  const productsData = await fetchCategoryProducts(slug);
 
   if (!category) {
     return {
@@ -60,23 +62,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
   }
 
-  // The root layout appends the Blyss suffix. Curated titles written before
-  // that template existed are normalised here to avoid “Blyss · Blyss”.
-  const rawTitle = intro?.title ?? `Buy ${category.name} · Instant download`;
-  const title = rawTitle.replace(/\s*·\s*Blyss(?:\s+type marketplace)?$/i, "");
-  const description =
-    intro?.description ??
-    category.description ??
-    `Buy ${category.name.toLowerCase()} from creators. Pay with M-Pesa, Visa, or Mastercard. Instant download after checkout.`;
+  const title = getCategoryTitle(category.name);
+  const description = getCategoryDescription(category.name);
   const url = `${SITE}/category/${slug}`;
-  const hasProducts = (category.product_count ?? 0) > 0;
+  const hasProducts = (productsData?.pagination?.total_count ?? 0) > 0;
 
   return {
     title,
     description,
-    keywords: intro?.keywords,
     alternates: { canonical: url },
-    robots: { index: hasProducts || Boolean(intro), follow: true },
+    robots: { index: hasProducts, follow: true },
     openGraph: {
       title,
       description,
@@ -85,7 +80,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       url,
       images: [
         {
-          url: "https://cdn.blyss.co.ke/brand/og-default.png",
+          url: "https://blyss.co.ke/blyss-og-image.png",
           width: 1200,
           height: 630,
           alt: title,
@@ -106,8 +101,6 @@ export default async function CategoryRoute({ params }: Props) {
     fetchCategory(slug),
     fetchCategoryProducts(slug),
   ]);
-  const intro = getCategoryIntro(slug);
-
   if (!category) notFound();
 
   // JSON-LD: BreadcrumbList + CollectionPage with the products as
@@ -167,75 +160,7 @@ export default async function CategoryRoute({ params }: Props) {
       <JsonLd data={breadcrumbLd} />
       {collectionLd && <JsonLd data={collectionLd} />}
 
-      {/* Server-rendered long-form intro for SEO. Sits ABOVE the
-          interactive client grid so Google reads it first. The
-          client island then renders the filter rail + product grid
-          + pagination. Categories without curated copy fall back to
-          the database description (creator-edited). */}
-      {intro && (
-        <CategoryIntroBlock intro={intro} categoryName={category?.name ?? ""} />
-      )}
-
       <CategoryPageClient params={params} />
     </>
-  );
-}
-
-/**
- * Editorial intro block — long-form copy targeting the category's
- * top long-tail query. Only rendered for categories with curated
- * copy in `category-copy.ts`. Sits between the navigation strip
- * and the product grid.
- *
- * Per blyss-design §3.3: Inter Display H2 + Inter body. No emoji,
- * no shouted CTAs, no "discover" / "explore" filler verbs.
- */
-function CategoryIntroBlock({
-  intro,
-  categoryName,
-}: {
-  intro: CategoryIntro;
-  categoryName: string;
-}) {
-  return (
-    <section className="mx-auto max-w-[1280px] px-6 pt-10 md:px-16 md:pt-12">
-      <div className="max-w-[68ch]">
-        <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
-          {intro.eyebrow}
-        </p>
-        <h2 className="mt-2 font-display text-[clamp(24px,3vw,36px)] font-semibold leading-[1.1] tracking-[-0.02em] text-[var(--text-primary)]">
-          {intro.heading}
-        </h2>
-        {intro.paragraphs.map((p, i) => (
-          <p
-            key={i}
-            className="mt-4 font-sans text-[15px] leading-[1.6] text-[var(--text-secondary)]"
-          >
-            {p}
-          </p>
-        ))}
-        {intro.bulletHeading && intro.bullets && (
-          <>
-            <h3 className="mt-8 font-display text-[18px] font-semibold leading-[1.2] text-[var(--text-primary)]">
-              {intro.bulletHeading}
-            </h3>
-            <ul className="mt-3 flex flex-col gap-2">
-              {intro.bullets.map((b) => (
-                <li
-                  key={b}
-                  className="flex items-start gap-3 font-sans text-[14px] leading-[1.55] text-[var(--text-secondary)]"
-                >
-                  <span
-                    aria-hidden="true"
-                    className="mt-2 inline-block h-1 w-1 shrink-0 rounded-full bg-[var(--text-muted)]"
-                  />
-                  {b}
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-      </div>
-    </section>
   );
 }

@@ -51,8 +51,8 @@ export default function IdentityStep({
                     Identity Verification Pending
                   </h4>
                   <p className="dark:text-polar-400 mx-auto mb-6 max-w-md text-sm text-[var(--text-secondary)]">
-                    Your identity verification is being processed. This usually
-                    takes a few minutes but can take up to 24 hours.
+                    Your identity verification is being processed. The review
+                    time depends on the verification provider.
                   </p>
                   <div className="text-xs text-[var(--text-muted)]">
                     We&apos;ll notify you once verification is complete.

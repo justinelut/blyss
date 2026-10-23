@@ -16,10 +16,10 @@ from polar.exceptions import ResourceNotFound
 from polar.external_event.service import external_event as external_event_service
 from polar.models.external_event import ExternalEventSource
 from polar.models.organization import PayoutMethod
+from polar.order.schemas import Order as OrderSchema
 from polar.organization.repository import OrganizationRepository
 from polar.organization.schemas import Organization as OrganizationSchema
 from polar.organization.service import organization as organization_service
-from polar.order.schemas import Order as OrderSchema
 from polar.postgres import AsyncSession, get_db_session
 from polar.routing import APIRouter
 from polar.runtime_settings.service import runtime_settings
@@ -111,9 +111,7 @@ class PaystackWebhookEventGetter:
             return self.secret
         return cfg.PAYSTACK_SECRET_KEY
 
-    def _verify_signature(
-        self, payload: bytes, signature: str, secret: str
-    ) -> bool:
+    def _verify_signature(self, payload: bytes, signature: str, secret: str) -> bool:
         """Verify webhook signature using HMAC-SHA512."""
         if not signature:
             return False
@@ -145,9 +143,7 @@ class PaystackWebhookEventGetter:
             log.warning(
                 "paystack.webhook.signature_verification_failed",
                 signature_provided=bool(signature),
-                secret_source="runtime_settings"
-                if secret != self.secret
-                else "env",
+                secret_source="runtime_settings" if secret != self.secret else "env",
             )
             raise HTTPException(
                 status_code=HTTP_401_UNAUTHORIZED, detail="Invalid signature"
@@ -252,7 +248,8 @@ class MPesaFinalizeVerificationRequest(BaseModel):
     """Request schema for finalizing the M-Pesa verification charge."""
 
     reference: str = Field(
-        ..., min_length=4,
+        ...,
+        min_length=4,
         description="Paystack charge reference returned by initiate-verification.",
     )
 
@@ -370,9 +367,7 @@ async def _create_or_reactivate_mpesa_subaccount(
 
     # Drop synthetic test codes — they confuse the create/update branch.
     existing_subaccount_code = organization.subaccount_code
-    if existing_subaccount_code and existing_subaccount_code.startswith(
-        "ACCT_test_"
-    ):
+    if existing_subaccount_code and existing_subaccount_code.startswith("ACCT_test_"):
         existing_subaccount_code = None
 
     should_create_new = not existing_subaccount_code
@@ -383,9 +378,7 @@ async def _create_or_reactivate_mpesa_subaccount(
             existing_subaccount_code, session=session
         )
         existing_account_number = (
-            existing_subaccount.get("account_number")
-            if existing_subaccount
-            else None
+            existing_subaccount.get("account_number") if existing_subaccount else None
         )
         if existing_subaccount is None:
             should_create_new = True
@@ -402,7 +395,7 @@ async def _create_or_reactivate_mpesa_subaccount(
                         active=True,
                         session=session,
                     )
-                except Exception as e:  # noqa: BLE001
+                except Exception as e:
                     log.warning(
                         "paystack.mpesa.helper.reactivate_failed",
                         organization_id=str(organization.id),
@@ -427,7 +420,7 @@ async def _create_or_reactivate_mpesa_subaccount(
                 active=False,
                 session=session,
             )
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             log.warning(
                 "paystack.mpesa.helper.deactivate_old_failed",
                 organization_id=str(organization.id),
@@ -440,7 +433,7 @@ async def _create_or_reactivate_mpesa_subaccount(
             business_name=organization.name,
             settlement_bank="MPESA",
             account_number=mpesa_account_number,
-            percentage_charge=20.0,
+            percentage_charge=settings.PLATFORM_FEE_BASIS_POINTS / 100,
             description=f"Blyss creator payouts for {organization.name}",
             primary_contact_email=organization.email or None,
             primary_contact_name=organization.name,
@@ -473,7 +466,7 @@ async def _resolve_mpesa_verification_amount(session: AsyncSession) -> int:
     """
     try:
         raw = await runtime_settings.get(session, "MPESA_VERIFICATION_AMOUNT_KOBO")
-    except Exception as e:  # noqa: BLE001 — runtime_settings can raise if disabled
+    except Exception as e:
         log.warning(
             "paystack.mpesa.verification_amount.runtime_settings_unavailable",
             error=str(e),
@@ -742,9 +735,7 @@ async def mpesa_charge_status(
         raise ResourceNotFound("Organization not found")
 
     try:
-        verification = await paystack.verify_transaction(
-            reference, session=session
-        )
+        verification = await paystack.verify_transaction(reference, session=session)
     except Exception as e:
         # Network / upstream errors are transient — return pending so
         # the client keeps polling. Logging at warn so ops can see if
@@ -755,9 +746,7 @@ async def mpesa_charge_status(
             reference=reference,
             error=str(e),
         )
-        return MPesaChargeStatusResponse(
-            status="pending", gateway_response=None
-        )
+        return MPesaChargeStatusResponse(status="pending", gateway_response=None)
 
     return MPesaChargeStatusResponse(
         status=verification.get("status") or "pending",
@@ -859,9 +848,7 @@ async def finalize_mpesa_verification(
         # while '0712345678' creates the subaccount cleanly. Storage
         # stays in E.164 form (+254712345678) for our own UI; we
         # convert here at the boundary.
-        mpesa_account_number = _to_kenya_local_msisdn(
-            organization.mpesa_number
-        )
+        mpesa_account_number = _to_kenya_local_msisdn(organization.mpesa_number)
         # Synthetic codes ('ACCT_test_*') are leftovers from the old
         # test-mode bypass that mocked subaccount creation. Treat them
         # as no-existing-code so the CREATE path fires and we get a
@@ -923,7 +910,7 @@ async def finalize_mpesa_verification(
                             active=True,
                             session=session,
                         )
-                    except Exception as e:  # noqa: BLE001
+                    except Exception as e:
                         log.warning(
                             "paystack.mpesa.reactivate.failed",
                             organization_id=organization.id,
@@ -947,7 +934,7 @@ async def finalize_mpesa_verification(
                     organization_id=organization.id,
                     old_code=old_subaccount_to_deactivate,
                 )
-            except Exception as e:  # noqa: BLE001
+            except Exception as e:
                 # Non-fatal — the new subaccount creation below is
                 # what matters. Old one stays around but we'll
                 # overwrite organization.subaccount_code so it
@@ -964,7 +951,7 @@ async def finalize_mpesa_verification(
                 business_name=organization.name,
                 settlement_bank="MPESA",
                 account_number=mpesa_account_number,
-                percentage_charge=20.0,
+                percentage_charge=settings.PLATFORM_FEE_BASIS_POINTS / 100,
                 # Paystack's Kenya M-Pesa path frequently rejects
                 # bare-minimum payloads in live mode with
                 # 'Field validation failed' / 'Settlement account not
@@ -972,9 +959,7 @@ async def finalize_mpesa_verification(
                 # creator's contact + a short description gets us
                 # past that without requiring the creator to add
                 # extra info on the dashboard.
-                description=(
-                    f"Blyss creator payouts for {organization.name}"
-                ),
+                description=(f"Blyss creator payouts for {organization.name}"),
                 primary_contact_email=(
                     organization.email or auth_subject.subject.email or None
                 ),
@@ -1064,9 +1049,8 @@ async def reset_mpesa_configuration(
     # the local clear if the deactivation fails — the local DB clear is
     # the source of truth for our flow, and Paystack subaccounts can
     # always be reactivated/recreated. Log + carry on.
-    if (
-        organization.subaccount_code
-        and not organization.subaccount_code.startswith("ACCT_test_")
+    if organization.subaccount_code and not organization.subaccount_code.startswith(
+        "ACCT_test_"
     ):
         try:
             await paystack.update_subaccount(
@@ -1106,7 +1090,9 @@ async def reset_mpesa_configuration(
     return OrganizationSchema.model_validate(organization)
 
 
-@router.post("/organizations/{id}/mpesa", response_model=MPesaInitiateVerificationResponse)
+@router.post(
+    "/organizations/{id}/mpesa", response_model=MPesaInitiateVerificationResponse
+)
 async def configure_mpesa(
     id: UUID,
     request: MPesaConfigurationRequest,
@@ -1151,15 +1137,21 @@ class BankConfigurationRequest(BaseModel):
     """Request schema for bank-account payout configuration."""
 
     bank_code: str = Field(
-        ..., min_length=2, max_length=10,
+        ...,
+        min_length=2,
+        max_length=10,
         description="Paystack KE bank code (from GET /v1/integrations/paystack/banks).",
     )
     account_number: str = Field(
-        ..., min_length=4, max_length=20,
+        ...,
+        min_length=4,
+        max_length=20,
         description="Settlement bank account number.",
     )
     account_name: str = Field(
-        ..., min_length=2, max_length=200,
+        ...,
+        min_length=2,
+        max_length=200,
         description="Account holder's name on the settlement account.",
     )
 
@@ -1215,7 +1207,7 @@ async def configure_bank(
                 business_name=organization.name,
                 settlement_bank=request.bank_code,
                 account_number=request.account_number,
-                percentage_charge=20.0,
+                percentage_charge=settings.PLATFORM_FEE_BASIS_POINTS / 100,
                 session=session,
             )
             update_dict = {
@@ -1361,7 +1353,7 @@ async def refund_order(
     """
     from sqlalchemy import select as _select
 
-    from polar.models import Customer, Order, UserOrganization
+    from polar.models import Customer, UserOrganization
     from polar.models.order import OrderStatus
     from polar.order.repository import OrderRepository
 
@@ -1391,9 +1383,7 @@ async def refund_order(
 
     org_repository = OrganizationRepository.from_session(session)
     organization = await org_repository.get_by_id(org_id)
-    if organization is not None and getattr(
-        organization, "refunds_blocked", False
-    ):
+    if organization is not None and getattr(organization, "refunds_blocked", False):
         raise HTTPException(
             status_code=403,
             detail="Refunds are blocked for this organization.",
@@ -1412,9 +1402,7 @@ async def refund_order(
     already_refunded = order.refunded_amount or 0
     max_refundable = order.total_amount - already_refunded
     if max_refundable <= 0:
-        raise HTTPException(
-            status_code=403, detail="Order is already fully refunded."
-        )
+        raise HTTPException(status_code=403, detail="Order is already fully refunded.")
     refund_amount = body.amount if body.amount is not None else max_refundable
     if refund_amount <= 0 or refund_amount > max_refundable:
         raise HTTPException(
@@ -1429,15 +1417,13 @@ async def refund_order(
             merchant_note=body.reason,
             session=session,
         )
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         log.error(
             "paystack.refund.order_failed",
             order_id=str(order_id),
             error=str(e),
         )
-        raise HTTPException(
-            status_code=422, detail=f"Refund failed: {str(e)}"
-        ) from e
+        raise HTTPException(status_code=422, detail=f"Refund failed: {str(e)}") from e
 
     # Optimistically update the order; the refund.processed webhook will
     # confirm/finalize.

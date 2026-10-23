@@ -22,23 +22,13 @@ interface CreatorsHeroProps {
   categories?: { slug: string; name: string }[];
 }
 
-const FALLBACK_FILTERS: { id: string; label: string }[] = [
-  { id: "all", label: "All" },
-  { id: "designers", label: "Designers" },
-  { id: "writers", label: "Writers" },
-  { id: "musicians", label: "Musicians" },
-  { id: "educators", label: "Educators" },
-  { id: "photographers", label: "Photographers" },
-  { id: "developers", label: "Developers" },
-];
-
 /**
  * CreatorsHero — page intro for /creators.
  *
  * Per plan §6.3: eyebrow "MEET THE MAKERS", headline "Kenya's creative class,
  * online.", filter strip below. The strip is horizontally scrollable on
  * mobile with the active pill in --accent fill. Categories come from the
- * backoffice-managed list; falls back to the built-in set while loading.
+ * backoffice-managed list. When it is empty or unavailable, show only All.
  */
 export const CreatorsHero = ({
   active,
@@ -47,13 +37,10 @@ export const CreatorsHero = ({
   categories,
 }: CreatorsHeroProps) => {
   const filters = useMemo(() => {
-    if (categories && categories.length > 0) {
-      return [
-        { id: "all", label: "All" },
-        ...categories.map((c) => ({ id: c.slug, label: c.name })),
-      ];
-    }
-    return FALLBACK_FILTERS;
+    return [
+      { id: "all", label: "All" },
+      ...(categories ?? []).map((c) => ({ id: c.slug, label: c.name })),
+    ];
   }, [categories]);
 
   const totalLabel = useMemo(() => {

@@ -5,7 +5,8 @@ import { schemas } from '@/lib/api'
 import { usePostHog } from 'posthog-js/react'
 import { useCallback, useMemo } from 'react'
 
-const ONBOARDING_COOKIE_NAME = 'polar_onboarding_session'
+const ONBOARDING_COOKIE_NAME = 'blyss_onboarding_session'
+const LEGACY_ONBOARDING_COOKIE_NAME = 'polar_onboarding_session'
 const SESSION_TIMEOUT_HOURS = 24
 
 export type OnboardingStep =
@@ -47,15 +48,32 @@ export interface OnboardingSessionState {
 const getOnboardingSession = (): OnboardingSessionState | null => {
   if (typeof document === 'undefined') return null
 
-  const cookieValue = document.cookie
-    .split('; ')
-    .find((row) => row.startsWith(`${ONBOARDING_COOKIE_NAME}=`))
-    ?.split('=')[1]
+  const cookies = document.cookie.split('; ')
+  const cookieValue = [
+    ONBOARDING_COOKIE_NAME,
+    LEGACY_ONBOARDING_COOKIE_NAME,
+  ]
+    .map((name) =>
+      cookies
+        .find((row) => row.startsWith(`${name}=`))
+        ?.slice(name.length + 1),
+    )
+    .find(Boolean)
 
   if (!cookieValue) return null
 
   try {
-    return JSON.parse(decodeURIComponent(cookieValue))
+    const session = JSON.parse(
+      decodeURIComponent(cookieValue),
+    ) as OnboardingSessionState
+    if (
+      document.cookie.includes(`${LEGACY_ONBOARDING_COOKIE_NAME}=`) &&
+      !document.cookie.includes(`${ONBOARDING_COOKIE_NAME}=`)
+    ) {
+      setOnboardingSession(session)
+      clearOnboardingSessionCookie(LEGACY_ONBOARDING_COOKIE_NAME)
+    }
+    return session
   } catch {
     return null
   }
@@ -71,7 +89,12 @@ const setOnboardingSession = (session: OnboardingSessionState): void => {
 
 const clearOnboardingSession = (): void => {
   if (typeof document === 'undefined') return
-  document.cookie = `${ONBOARDING_COOKIE_NAME}=; max-age=0; path=/`
+  clearOnboardingSessionCookie(ONBOARDING_COOKIE_NAME)
+  clearOnboardingSessionCookie(LEGACY_ONBOARDING_COOKIE_NAME)
+}
+
+const clearOnboardingSessionCookie = (name: string): void => {
+  document.cookie = `${name}=; max-age=0; path=/; SameSite=Lax`
 }
 
 interface UseOnboardingTrackingReturn {

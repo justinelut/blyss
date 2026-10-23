@@ -1,23 +1,23 @@
-import { ParsedMetricsResponse } from '@/hooks/queries/metrics'
-import { schemas } from '@/lib/api'
-import Button from '@/components/atoms/Button'
+import { ParsedMetricsResponse } from "@/hooks/queries/metrics";
+import { schemas } from "@/lib/api";
+import Button from "@/components/atoms/Button";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from '@/components/ui/tooltip'
-import domtoimage from 'dom-to-image'
-import { useCallback, useRef, useState } from 'react'
-import { twMerge } from 'tailwind-merge'
-import LogoType from '../Brand/logos/LogoType'
-import { toast } from '../Toast/use-toast'
-import MetricChartBox from './MetricChartBox'
+} from "@/components/ui/tooltip";
+import domtoimage from "dom-to-image";
+import { useCallback, useRef, useState } from "react";
+import { twMerge } from "tailwind-merge";
+import LogoType from "../Brand/logos/LogoType";
+import { toast } from "../Toast/use-toast";
+import MetricChartBox from "./MetricChartBox";
 
 interface ShareChartModalProps {
-  metric: keyof schemas['Metrics']
-  interval: schemas['TimeInterval']
-  data: ParsedMetricsResponse
-  previousData?: ParsedMetricsResponse
+  metric: keyof schemas["Metrics"];
+  interval: schemas["TimeInterval"];
+  data: ParsedMetricsResponse;
+  previousData?: ParsedMetricsResponse;
 }
 
 export const ShareChartModal = ({
@@ -26,73 +26,73 @@ export const ShareChartModal = ({
   data,
   previousData,
 }: ShareChartModalProps) => {
-  const chartRef = useRef<HTMLDivElement>(null)
-  const [theme, setTheme] = useState<MetricTheme>('mono')
+  const chartRef = useRef<HTMLDivElement>(null);
+  const [theme, setTheme] = useState<MetricTheme>("mono");
 
   const getParams = useCallback(() => {
-    const scale = 3
+    const scale = 3;
 
-    if (!chartRef.current) return null
+    if (!chartRef.current) return null;
 
     const style = {
-      transform: 'scale(' + scale + ')',
-      transformOrigin: 'top left',
-      width: chartRef.current.offsetWidth + 'px',
-      height: chartRef.current.offsetHeight + 'px',
-      borderRadius: '0px',
-      border: 'none',
-    }
+      transform: "scale(" + scale + ")",
+      transformOrigin: "top left",
+      width: chartRef.current.offsetWidth + "px",
+      height: chartRef.current.offsetHeight + "px",
+      borderRadius: "0px",
+      border: "none",
+    };
 
     const params = {
       height: chartRef.current.offsetHeight * scale,
       width: chartRef.current.offsetWidth * scale,
       quality: 1,
       style,
-    }
+    };
 
-    return params
-  }, [])
+    return params;
+  }, []);
 
   const downloadImage = useCallback(() => {
-    const params = getParams()
+    const params = getParams();
 
-    if (!params || !chartRef.current) return
+    if (!params || !chartRef.current) return;
 
     domtoimage.toBlob(chartRef.current, params).then((blob) => {
-      if (!blob) return
+      if (!blob) return;
 
-      const link = document.createElement('a')
-      link.href = URL.createObjectURL(blob)
-      link.download = 'polar-chart.png'
-      link.click()
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "blyss-chart.png";
+      link.click();
 
       toast({
-        title: 'Downloaded Image',
-        description: 'Chart image downloaded',
-      })
-    })
-  }, [])
+        title: "Downloaded Image",
+        description: "Chart image downloaded",
+      });
+    });
+  }, []);
 
   const copyToClipboard = useCallback(() => {
-    const params = getParams()
+    const params = getParams();
 
-    if (!chartRef.current || !params) return
+    if (!chartRef.current || !params) return;
 
     domtoimage.toBlob(chartRef.current, params).then((blob) => {
-      if (!blob) return
+      if (!blob) return;
 
       navigator.clipboard.write([
         new ClipboardItem({
-          'image/png': blob,
+          "image/png": blob,
         }),
-      ])
+      ]);
 
       toast({
-        title: 'Copied to Clipboard',
-        description: 'Chart image copied to clipboard',
-      })
-    })
-  }, [getParams])
+        title: "Copied to Clipboard",
+        description: "Chart image copied to clipboard",
+      });
+    });
+  }, [getParams]);
 
   return (
     <div className="relative flex w-full max-w-4xl flex-col items-center justify-center overflow-y-auto p-16">
@@ -102,11 +102,11 @@ export const ShareChartModal = ({
           className="dark:bg-polar-950 flex w-full max-w-4xl flex-col items-center justify-center gap-12 rounded-4xl bg-blue-50 p-12"
           style={{
             backgroundImage:
-              theme === 'mono'
-                ? 'url(/assets/share/share_mono.jpg)'
-                : 'url(/assets/share/share.jpg)',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
+              theme === "mono"
+                ? "url(/assets/share/share_mono.jpg)"
+                : "url(/assets/share/share.jpg)",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
           }}
         >
           <MetricChartBox
@@ -121,20 +121,20 @@ export const ShareChartModal = ({
             simple
             chartType="line"
           />
-          <LogoType className="text-white dark:text-white" height={48} />
+          <LogoType className="text-white dark:text-white" size="xl" />
         </div>
         <div className="flex w-full flex-row items-center justify-between gap-6">
           <div className="flex flex-row gap-4">
             <MetricThemeSelector
               name="Monochrome"
               slug="mono"
-              selected={theme === 'mono'}
+              selected={theme === "mono"}
               onClick={setTheme}
             />
             <MetricThemeSelector
               name="Color"
               slug="color"
-              selected={theme === 'color'}
+              selected={theme === "color"}
               onClick={setTheme}
             />
           </div>
@@ -149,16 +149,16 @@ export const ShareChartModal = ({
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-type MetricTheme = 'mono' | 'color'
+type MetricTheme = "mono" | "color";
 
 interface MetricThemeSelectorProps {
-  name: string
-  slug: MetricTheme
-  selected: boolean
-  onClick: (slug: MetricTheme) => void
+  name: string;
+  slug: MetricTheme;
+  selected: boolean;
+  onClick: (slug: MetricTheme) => void;
 }
 
 const MetricThemeSelector = ({
@@ -172,19 +172,19 @@ const MetricThemeSelector = ({
       <TooltipTrigger asChild>
         <div
           onClick={() => {
-            onClick(slug)
+            onClick(slug);
           }}
           className={twMerge(
-            'h-8 w-8 cursor-pointer rounded-full border-2 transition-opacity hover:opacity-50',
-            selected ? 'border-blue-400 dark:border-blue-500' : '',
+            "h-8 w-8 cursor-pointer rounded-full border-2 transition-opacity hover:opacity-50",
+            selected ? "border-blue-400 dark:border-blue-500" : "",
           )}
           style={{
             backgroundImage:
-              slug === 'mono'
-                ? 'url(/assets/share/share_mono.jpg)'
-                : 'url(/assets/share/share.jpg)',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
+              slug === "mono"
+                ? "url(/assets/share/share_mono.jpg)"
+                : "url(/assets/share/share.jpg)",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
           }}
         />
       </TooltipTrigger>
@@ -192,5 +192,5 @@ const MetricThemeSelector = ({
         <span className="text-sm">{name}</span>
       </TooltipContent>
     </Tooltip>
-  )
-}
+  );
+};

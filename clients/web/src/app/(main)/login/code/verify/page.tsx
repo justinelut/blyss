@@ -1,25 +1,26 @@
-import LogoIcon from '@/components/Brand/logos/LogoIcon'
-import { Metadata } from 'next'
-import VerifyPage from './VerifyPage'
+import LogoIcon from "@/components/Brand/logos/LogoIcon";
+import { Metadata } from "next";
+import VerifyPage from "./VerifyPage";
 
 export const metadata: Metadata = {
-  title: 'Enter verification code',
-}
+  title: "Enter verification code",
+  robots: { index: false, follow: false },
+};
 
 export default async function Page(props: {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const searchParams = await props.searchParams
-  const email = searchParams.email as string
-  const return_to = searchParams.return_to as string | undefined
-  const error = searchParams.error as string | undefined
+  const searchParams = await props.searchParams;
+  const email = searchParams.email as string;
+  const return_to = searchParams.return_to as string | undefined;
+  const error = searchParams.error as string | undefined;
 
   return (
     <div className="flex h-screen w-full grow items-center justify-center bg-[var(--background)]">
       <div className="flex w-80 flex-col items-center">
         <LogoIcon size={48} className="mb-6" />
         <div className="mb-2 text-center text-[var(--text-secondary)]">
-          We sent a verification code to{' '}
+          We sent a verification code to{" "}
           <span className="font-medium text-[var(--text-primary)]">
             {email}
           </span>
@@ -30,5 +31,5 @@ export default async function Page(props: {
         <VerifyPage return_to={return_to} error={error} email={email} />
       </div>
     </div>
-  )
+  );
 }

@@ -207,7 +207,7 @@ class BenefitDiscordService(
                 [
                     {
                         "type": "invalid_role_position",
-                        "msg": "This role is above the Polar bot role, so Discord won't let our bot grants it. Please reorder them so the Polar bot is above.",
+                        "msg": "This role is above the integration bot role, so Discord won't let the bot grant it. Reorder the roles so the integration bot is above this role.",
                         "loc": ("role_id",),
                         "input": role_id,
                     }

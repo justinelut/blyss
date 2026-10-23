@@ -8,16 +8,14 @@ export const dynamic = "force-dynamic";
 export const revalidate = 60;
 
 export const metadata: Metadata = {
-  title: "Digital product categories · Templates, ebooks, courses",
+  title: "Browse product categories",
   description:
-    "Browse templates, ebooks, courses, beats, presets, photography, software, design assets, video, and writing from independent creators. Pay with M-Pesa or card.",
-  keywords:
-    "digital product categories, buy notion templates, buy lightroom presets, buy ebooks, buy beats, buy online courses, buy canva templates, buy fonts, buy stock music, buy photography, digital products kenya",
+    "Browse categories with current product listings on Blyss. Product details and checkout options depend on each listing and your selected region.",
   alternates: { canonical: "https://blyss.co.ke/categories" },
   openGraph: {
-    title: "All Blyss categories",
+    title: "Product categories on Blyss",
     description:
-      "Notion templates, Lightroom presets, ebooks, beats, courses, Canva templates, fonts, photography, stock music. M-Pesa or card.",
+      "Browse categories with current product listings on Blyss.",
     type: "website",
     locale: "en_KE",
     url: "https://blyss.co.ke/categories",
@@ -45,7 +43,7 @@ async function fetchCategories(): Promise<CategoryRow[]> {
         is_active: boolean;
       }>
     )
-      .filter((c) => c.is_active !== false)
+      .filter((c) => c.is_active !== false && c.product_count > 0)
       .map((c) => ({
         id: c.id,
         name: c.name,

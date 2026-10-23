@@ -3,13 +3,13 @@ export default {
     footer: {
       poweredBy: 'Powered by',
       merchantOfRecord:
-        'Questo ordine è elaborato dal nostro rivenditore online e Merchant of Record, Polar, che gestisce anche le richieste relative agli ordini e i resi.',
+        'Il pagamento viene elaborato tramite il fornitore indicato al checkout. Per domande sul prodotto, contatta il creator; per assistenza sui pagamenti, contatta il supporto Blyss.',
       mandateSubscriptionTrial:
-        'Cliccando su "{buttonLabel}", autorizzi Blyss, il nostro rivenditore online e merchant of record, ad addebitare sul metodo di pagamento selezionato l\'importo sopra indicato al termine del periodo di prova e a ogni successiva data di fatturazione fino alla disdetta. Puoi annullare in qualsiasi momento prima della fine della prova per evitare l\'addebito.',
+        'Continuando, autorizzi il fornitore di pagamento indicato al checkout ad addebitare l\'importo mostrato al termine del periodo di prova e a ogni successiva data di fatturazione fino alla disdetta.',
       mandateSubscription:
-        'Cliccando su "{buttonLabel}", autorizzi Blyss, il nostro rivenditore online e merchant of record, ad addebitare immediatamente sul metodo di pagamento selezionato l\'importo sopra indicato e ad addebitare lo stesso importo a ogni successiva data di fatturazione fino alla disdetta.',
+        'Continuando, autorizzi il fornitore di pagamento indicato al checkout ad addebitare l\'importo mostrato a ogni data di fatturazione fino alla disdetta.',
       mandateOneTime:
-        'Cliccando su "{buttonLabel}", autorizzi Blyss, il nostro rivenditore online e merchant of record, ad addebitare sul metodo di pagamento selezionato l\'importo sopra indicato. Si tratta di un addebito una tantum.',
+        'Continuando, autorizzi il fornitore di pagamento indicato al checkout a elaborare un pagamento una tantum per l\'importo mostrato.',
     },
     form: {
       email: 'Email',

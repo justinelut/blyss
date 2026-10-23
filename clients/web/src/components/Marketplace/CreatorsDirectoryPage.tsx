@@ -3,6 +3,7 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
+import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { schemas } from "@/lib/api";
 import { CreatorsHero } from "@/components/Marketplace/CreatorsHero";
@@ -144,7 +145,9 @@ export function CreatorsDirectoryPage({
           ) : (
             <div className="flex max-w-[44ch] flex-col items-start py-12">
               <h2 className={cn(typography.h3, "text-[var(--text-primary)]")}>
-                No creators in that craft yet.
+                {active === "all"
+                  ? "No creator storefronts are available yet."
+                  : "No creators are listed in this craft yet."}
               </h2>
               <p
                 className={cn(
@@ -152,16 +155,26 @@ export function CreatorsDirectoryPage({
                   "mt-4 text-[var(--text-secondary)]",
                 )}
               >
-                The roster is growing weekly. Try a different craft above, or
-                browse all makers.
+                {active === "all"
+                  ? "Browse the current product catalogue or open a storefront for your own digital work."
+                  : "Try another craft above, or browse all creator storefronts."}
               </p>
-              <button
-                type="button"
-                onClick={() => setActive("all")}
-                className="mt-8 inline-flex h-11 items-center justify-center rounded-md bg-[var(--accent)] px-6 font-sans text-[14px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)]"
-              >
-                See all makers
-              </button>
+              {active === "all" ? (
+                <Link
+                  href="/start"
+                  className="mt-8 inline-flex h-11 items-center justify-center rounded-md bg-[var(--accent)] px-6 font-sans text-[14px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)]"
+                >
+                  Start selling
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setActive("all")}
+                  className="mt-8 inline-flex h-11 items-center justify-center rounded-md bg-[var(--accent)] px-6 font-sans text-[14px] font-medium text-[var(--accent-foreground)] transition-colors hover:bg-[var(--accent-hover)]"
+                >
+                  See all creators
+                </button>
+              )}
             </div>
           )}
         </div>

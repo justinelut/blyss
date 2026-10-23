@@ -3,7 +3,7 @@ export default {
     footer: {
       poweredBy: 'Drivs av',
       merchantOfRecord:
-        'Denna beställning behandlas av vår online-återförsäljare & Merchant of Record, Polar, som också hanterar beställningsrelaterade frågor och returer.',
+        'Betalningen behandlas av betalningsleverantören som visas i kassan. Kontakta skaparen om produkten och Blyss support om betalningen.',
       mandateSubscriptionTrial:
         'Genom att klicka på "{buttonLabel}" godkänner du att Blyss, vår återförsäljare och registrerade handlare, debiterar din valda betalningsmetod med beloppet som visas ovan vid slutet av din provperiod och vid varje efterföljande faktureringsdatum tills du säger upp prenumerationen. Du kan när som helst säga upp prenumerationen innan provperioden löper ut för att undvika debitering.',
       mandateSubscription:

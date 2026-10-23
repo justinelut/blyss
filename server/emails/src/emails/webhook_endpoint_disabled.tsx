@@ -62,7 +62,7 @@ WebhookEndpointDisabled.PreviewProps = {
     slug: 'acme-inc',
     avatar_url: 'https://avatars.githubusercontent.com/u/105373340?s=200&v=4',
   },
-  webhook_endpoint_url: 'https://api.example.com/webhooks/polar',
+  webhook_endpoint_url: 'https://example.com/webhook',
   dashboard_url: 'https://blyss.co.ke/dashboard/acme-inc/settings/webhooks',
 }
 

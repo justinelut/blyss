@@ -22,33 +22,29 @@ export function OrganizationUnderReview({
       </Intro>
       <Section>
         <BodyText>
-          This is a completely normal step that all organizations go through
-          when joining Blyss. As a Merchant of Record, we need to ensure
-          compliance with our acceptable use policies and verify account
-          information.
+          We review storefront and payout information to check it against
+          Blyss&apos;s marketplace policies. Paystack may request additional
+          identity, business, or account details before it activates a payout
+          destination.
         </BodyText>
         <BodyText>
           <strong>What happens next?</strong>
         </BodyText>
         <BodyText>
-          We&apos;ll review your account and may reach out if we need any
-          additional information. Reviews are typically completed within 3
-          business days, though they can take up to 7 days depending on
-          complexity and timing.
+          We&apos;ll contact you if we need more information and notify you when
+          the review status changes. Review timing can vary.
         </BodyText>
         <BodyText>
-          During this review period, you can continue setting up your products
-          and integrate Blyss. We&apos;ll notify you as soon as the review is
-          complete.
+          You can continue managing your storefront while the review is in
+          progress.
         </BodyText>
         <BodyText>
-          <Button href="https://blyss.co.ke/docs/merchant-of-record/account-reviews">
-            Read more about our review process
+          <Button href="https://blyss.co.ke/help">
+            Visit the Help Center
           </Button>
         </BodyText>
         <BodyText>
-          If you have any questions in the meantime, feel free to reach out to
-          our support team.
+          If you have questions, email support@blyss.co.ke.
         </BodyText>
       </Section>
       <Footer email={email} />

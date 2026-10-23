@@ -35,10 +35,9 @@ const FooterCustomer = ({
         .
       </Text>
       <Text className="text-xs text-gray-400">
-        Merchant of Record services provided to{' '}
+        This email relates to your order with{' '}
         <span className="font-medium text-gray-500">{organization.name}</span>{' '}
-        by{' '}
-        <span className="font-medium text-gray-500">Blyss Software, Inc.</span>
+        on Blyss.
       </Text>
     </Section>
   </>

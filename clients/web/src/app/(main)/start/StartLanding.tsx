@@ -52,63 +52,6 @@ interface Props {
   stats?: StartStats | null;
 }
 
-/** Fallback short list used when the categories endpoint returns
- *  nothing (boot, network blip, or fresh install). Keeps the page
- *  from rendering an empty section. */
-const FALLBACK_PRODUCT_CATEGORIES: ProductCategory[] = [
-  {
-    id: "f-templates",
-    name: "Templates",
-    slug: "templates",
-    description: "Notion, Figma, Airtable workspaces",
-    product_count: 0,
-  },
-  {
-    id: "f-ebooks",
-    name: "Ebooks",
-    slug: "ebooks",
-    description: "PDFs, EPUBs, illustrated stories",
-    product_count: 0,
-  },
-  {
-    id: "f-beats",
-    name: "Beats and music",
-    slug: "beats-music",
-    description: "Drum kits, loops, vocal chops",
-    product_count: 0,
-  },
-  {
-    id: "f-presets",
-    name: "Presets",
-    slug: "presets",
-    description: "Lightroom, Capture One, LUTs",
-    product_count: 0,
-  },
-  {
-    id: "f-courses",
-    name: "Courses",
-    slug: "courses",
-    description: "Self-paced lessons + certificates",
-    product_count: 0,
-  },
-  {
-    id: "f-photography",
-    name: "Photography",
-    slug: "photography",
-    description: "Stock packs, print-ready files",
-    product_count: 0,
-  },
-];
-
-const FALLBACK_CREATOR_CATEGORIES: CreatorCategory[] = [
-  { id: "fc-designers", name: "Designers", slug: "designers" },
-  { id: "fc-musicians", name: "Musicians", slug: "musicians" },
-  { id: "fc-writers", name: "Writers", slug: "writers" },
-  { id: "fc-photographers", name: "Photographers", slug: "photographers" },
-  { id: "fc-educators", name: "Educators", slug: "educators" },
-  { id: "fc-developers", name: "Developers", slug: "developers" },
-];
-
 export const StartLanding = ({
   productCategories,
   creatorCategories,
@@ -116,14 +59,8 @@ export const StartLanding = ({
 }: Props) => {
   const ease = [0.32, 0.72, 0, 1] as const;
 
-  const products =
-    productCategories.length > 0
-      ? productCategories
-      : FALLBACK_PRODUCT_CATEGORIES;
-  const creators =
-    creatorCategories.length > 0
-      ? creatorCategories
-      : FALLBACK_CREATOR_CATEGORIES;
+  const products = productCategories.filter((category) => category.product_count > 0);
+  const creators = creatorCategories;
 
   const fadeUp = (_delay: number) => ({
     initial: false as const,
@@ -215,12 +152,13 @@ export const StartLanding = ({
               Anything you can deliver as a file or a link.
             </h2>
             <p className="mt-4 max-w-[58ch] font-sans text-[16px] leading-[1.6] text-[var(--text-secondary)]">
-              Start with the category closest to your work. Each link shows
-              buyers what is already available on the marketplace.
+              Browse categories with published listings, or see the full
+              marketplace to find what creators are selling now.
             </p>
           </motion.div>
 
-          <ul className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {products.length > 0 ? (
+            <ul className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {products.map((c, i) => (
               <motion.li
                 key={c.id}
@@ -256,7 +194,21 @@ export const StartLanding = ({
                 </Link>
               </motion.li>
             ))}
-          </ul>
+            </ul>
+          ) : (
+            <div className="mt-10 rounded-md bg-[var(--surface-elevated)] p-6">
+              <p className="font-sans text-[15px] leading-[1.6] text-[var(--text-secondary)]">
+                No categories have published products right now. Browse the
+                marketplace to see the current listings.
+              </p>
+              <Link
+                href="/marketplace"
+                className="mt-4 inline-flex items-center gap-2 font-sans text-[14px] font-medium text-[var(--accent)] underline-offset-4 hover:underline"
+              >
+                Browse the marketplace <FiArrowRight size={14} />
+              </Link>
+            </div>
+          )}
         </div>
       </section>
 
@@ -270,14 +222,15 @@ export const StartLanding = ({
               "mt-3 max-w-[20ch] text-[var(--text-primary)]",
             )}
           >
-            Designers, musicians, writers, photographers — and you.
+            Storefronts for independent creators.
           </h2>
           <p className="mt-4 max-w-[58ch] font-sans text-[16px] leading-[1.6] text-[var(--text-secondary)]">
-            Blyss starts with Kenya's independent creative community and is
-            designed to grow across East Africa as country support is verified.
+            Blyss focuses on creators in Kenya. The directory reflects the
+            storefronts and creator categories currently available.
           </p>
         </motion.div>
 
+        {creators.length > 0 ? (
         <ul className="mt-10 flex flex-wrap gap-3">
           {creators.map((c, i) => (
             <motion.li
@@ -296,6 +249,20 @@ export const StartLanding = ({
             </motion.li>
           ))}
         </ul>
+        ) : (
+          <div className="mt-8 rounded-md bg-[var(--surface)] p-6">
+            <p className="font-sans text-[15px] leading-[1.6] text-[var(--text-secondary)]">
+              Creator categories will appear here when they are available.
+              You can browse published storefronts in the directory.
+            </p>
+            <Link
+              href="/creators"
+              className="mt-4 inline-flex items-center gap-2 font-sans text-[14px] font-medium text-[var(--accent)] underline-offset-4 hover:underline"
+            >
+              Browse creators <FiArrowRight size={14} />
+            </Link>
+          </div>
+        )}
       </section>
 
       {/* 4 — How payouts work */}
@@ -322,16 +289,21 @@ export const StartLanding = ({
                 </dt>
                 <dd className="mt-2 font-sans text-[15px] leading-[1.6] text-[var(--text-secondary)]">
                   Add your registered M-Pesa number or Kenyan bank account. Your
-                  dashboard shows the destination and current payout status.
+                  dashboard shows the destination and settlement information
+                  Paystack reports. Dates that are not confirmed are marked as
+                  estimates.
                 </dd>
               </div>
               <div>
                 <dt className="font-display text-[18px] font-semibold text-[var(--text-primary)]">
-                  visible payout status
+                  Payout status
                 </dt>
                 <dd className="mt-2 font-sans text-[15px] leading-[1.6] text-[var(--text-secondary)]">
-                  Once a buyer's payment clears, the order and payout status
-                  remain visible in your dashboard.
+                  Paystack handles settlement to your linked destination.
+                  Paystack publishes a two-working-day schedule for Kenya, but
+                  timing can vary. Your dashboard shows the order and any
+                  settlement information Paystack reports; unconfirmed dates
+                  are marked as estimates.
                 </dd>
               </div>
               <div>
@@ -551,7 +523,7 @@ export const StartLanding = ({
             {[
               {
                 q: "Who sees the money first — Blyss or me?",
-                a: "Paystack processes the payment and Blyss records your creator share. The dashboard shows the order, clearance, and payout status.",
+                a: "Paystack processes the payment and Blyss records your creator share. Your dashboard shows the order and any settlement information Paystack reports; unconfirmed dates are marked as estimates.",
               },
               {
                 q: "What if a buyer asks for a refund?",

@@ -3,13 +3,13 @@ export default {
     footer: {
       poweredBy: 'Desarrollado por',
       merchantOfRecord:
-        'Este pedido es procesado por nuestro revendedor en línea y Comerciante registrado, Polar, quien también gestiona las consultas y devoluciones relacionadas con el pedido.',
+        'El pago se procesa a través del proveedor que aparece en el checkout. Para preguntas sobre el producto, contacta con el creador; para consultas de pago, con el soporte de Blyss.',
       mandateSubscriptionTrial:
-        'Al hacer clic en "{buttonLabel}", autorizas a Blyss, nuestro revendedor en línea y comerciante registrado, a cobrar en tu método de pago seleccionado el importe mostrado arriba al finalizar tu periodo de prueba y en cada fecha de facturación posterior hasta que canceles. Puedes cancelar en cualquier momento antes de que finalice la prueba para evitar el cargo.',
+        'Al continuar, autorizas al proveedor de pago que aparece en el checkout a cobrar el importe indicado al terminar el periodo de prueba y en cada fecha de facturación posterior hasta que canceles.',
       mandateSubscription:
-        'Al hacer clic en "{buttonLabel}", autorizas a Blyss, nuestro revendedor en línea y comerciante registrado, a cobrar inmediatamente en tu método de pago seleccionado el importe mostrado arriba y a cobrar el mismo importe en cada fecha de facturación posterior hasta que canceles.',
+        'Al continuar, autorizas al proveedor de pago que aparece en el checkout a cobrar el importe indicado en cada fecha de facturación hasta que canceles.',
       mandateOneTime:
-        'Al hacer clic en "{buttonLabel}", autorizas a Blyss, nuestro revendedor en línea y comerciante registrado, a cobrar en tu método de pago seleccionado el importe mostrado arriba. Este es un cargo único.',
+        'Al continuar, autorizas al proveedor de pago que aparece en el checkout a procesar un pago único por el importe indicado.',
     },
     form: {
       email: 'Email',

@@ -18,6 +18,7 @@ from polar.models import (
     PaystackSettlement,
     PaystackSettlementStatus,
     Product,
+    ProductVisibility,
 )
 from polar.models.order import OrderStatus
 from polar.openapi import APITag
@@ -57,27 +58,24 @@ async def get_marketplace_stats(
         )
     ).scalar_one() or 0
 
-    # 2. Live products — owned by an active public creator, not archived,
-    # not soft-deleted. Joining on Organization makes "ghost" products
-    # owned by a deactivated creator drop out of the count, which is
-    # the right marketing number (we don't want to advertise products
-    # buyers can't actually purchase).
+    # 2. Public products owned by an active creator. Draft/private products
+    # are not part of the catalogue and must not appear in public metrics.
     products_count = (
         await session.execute(
             select(func.count(Product.id))
             .join(Organization, Organization.id == Product.organization_id)
             .where(
                 Product.is_archived.is_(False),
-                Product.deleted_at.is_(None),
+                Product.is_deleted.is_(False),
+                Product.visibility == ProductVisibility.public,
                 *public_organization_filters(),
             )
         )
     ).scalar_one() or 0
 
-    # 3. Total paid out — sum of successful Paystack settlement events.
-    # Currency is hard-coded to 'kes' for now (same as Blyss's
-    # default_presentment_currency); if multi-currency settlements
-    # become a thing we'll need to FX-normalise here.
+    # 3. Total paid out — only resolved creator settlements in KES.
+    # Exclude unresolved transfers and other currencies rather than adding
+    # incomparable minor units into a KES total.
     paid_total_row = (
         await session.execute(
             select(
@@ -85,6 +83,8 @@ async def get_marketplace_stats(
                 func.count(PaystackSettlement.id),
             ).where(
                 PaystackSettlement.status == PaystackSettlementStatus.success,
+                PaystackSettlement.organization_id.is_not(None),
+                func.lower(PaystackSettlement.currency) == "kes",
                 PaystackSettlement.deleted_at.is_(None),
             )
         )
@@ -92,14 +92,9 @@ async def get_marketplace_stats(
     total_paid_out = int(paid_total_row[0] or 0)
     settlements_count = int(paid_total_row[1] or 0)
 
-    # 4. Total earned — creator-side share across paid orders. The
-    # `Order.platform_fee_amount` column already carries Blyss's cut
-    # at order-create time, so the creator's net is total - fee -
-    # refunded. Aggregated across all paid orders in any time window
-    # (cumulative). Useful as a fallback when total_paid_out is 0
-    # (fresh deploy / no transfer.success webhooks fired yet) — the
-    # money already moved into creators' Paystack subaccounts at
-    # charge time, even if it hasn't settled to bank/M-Pesa yet.
+    # 4. Creator earnings recorded on paid KES orders, before settlement.
+    # Keep this separate from actual transfers and exclude other currencies
+    # rather than summing their minor units into a misleading KES amount.
     earned_row = (
         await session.execute(
             select(
@@ -115,7 +110,10 @@ async def get_marketplace_stats(
                     ),
                     0,
                 )
-            ).where(Order.status == OrderStatus.paid)
+            ).where(
+                Order.status == OrderStatus.paid,
+                func.lower(Order.currency) == "kes",
+            )
         )
     ).scalar_one()
     total_earned = int(earned_row or 0)

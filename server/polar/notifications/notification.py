@@ -53,7 +53,7 @@ class MaintainerAccountUnderReviewNotificationPayload(NotificationPayloadBase):
     account_type: str
 
     def subject(self) -> str:
-        return "Your Polar account is being reviewed"
+        return "Your Blyss account is being reviewed"
 
     @classmethod
     def template_name(cls) -> str:

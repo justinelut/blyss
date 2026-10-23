@@ -10,7 +10,8 @@
  * 3. The token is not sensitive - it only identifies a guest cart
  */
 
-const SESSION_TOKEN_COOKIE_NAME = 'polar_guest_session'
+const SESSION_TOKEN_COOKIE_NAME = 'blyss_guest_session'
+const LEGACY_SESSION_TOKEN_COOKIE_NAME = 'polar_guest_session'
 const SESSION_TOKEN_HEADER_NAME = 'X-Guest-Session-Token'
 const SESSION_TOKEN_MAX_AGE = 7 * 24 * 60 * 60 // 7 days in seconds
 
@@ -39,14 +40,19 @@ export function getSessionToken(): string | null {
   }
 
   const cookies = document.cookie.split(';')
+  const values = new Map<string, string>()
   for (const cookie of cookies) {
-    const [name, value] = cookie.trim().split('=')
-    if (name === SESSION_TOKEN_COOKIE_NAME) {
-      return value
+    const [name, ...valueParts] = cookie.trim().split('=')
+    if (name) {
+      values.set(name, valueParts.join('='))
     }
   }
 
-  return null
+  return (
+    values.get(SESSION_TOKEN_COOKIE_NAME) ??
+    values.get(LEGACY_SESSION_TOKEN_COOKIE_NAME) ??
+    null
+  )
 }
 
 /**
@@ -66,6 +72,7 @@ export function setSessionToken(token: string): void {
   const secure = isProduction ? 'Secure;' : ''
 
   document.cookie = `${SESSION_TOKEN_COOKIE_NAME}=${token}; max-age=${SESSION_TOKEN_MAX_AGE}; path=/; SameSite=Lax; ${secure}`
+  document.cookie = `${LEGACY_SESSION_TOKEN_COOKIE_NAME}=; max-age=0; path=/`
 }
 
 /**
@@ -78,6 +85,7 @@ export function clearSessionToken(): void {
   }
 
   document.cookie = `${SESSION_TOKEN_COOKIE_NAME}=; max-age=0; path=/`
+  document.cookie = `${LEGACY_SESSION_TOKEN_COOKIE_NAME}=; max-age=0; path=/`
 }
 
 /**

@@ -1,5 +1,4 @@
 import type { MetadataRoute } from "next";
-import { getCategoryIntro } from "@/lib/seo/category-copy";
 import { CONFIG } from "@/utils/config";
 
 const SITE = "https://blyss.co.ke";
@@ -109,8 +108,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       (category) =>
         category.slug &&
         category.is_active !== false &&
-        ((category.product_count ?? 0) > 0 ||
-          Boolean(getCategoryIntro(category.slug))),
+        (category.product_count ?? 0) > 0,
     )
     .map((category) => ({
       url: `${SITE}/category/${category.slug}`,

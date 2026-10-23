@@ -13,8 +13,13 @@ import {
 import { resolveGeo } from "./lib/geo/middleware";
 import { createServerSideAPI } from "./utils/client";
 
-const POLAR_AUTH_COOKIE_KEY =
-  process.env.POLAR_AUTH_COOKIE_KEY || "polar_session";
+const LEGACY_AUTH_COOKIE_KEY = "polar_session";
+const configuredAuthCookieKey =
+  process.env.BLYSS_AUTH_COOKIE_KEY || process.env.POLAR_AUTH_COOKIE_KEY;
+const AUTH_COOKIE_KEY =
+  configuredAuthCookieKey && configuredAuthCookieKey !== LEGACY_AUTH_COOKIE_KEY
+    ? configuredAuthCookieKey
+    : "blyss_session";
 
 const IS_SANDBOX =
   (process.env.NEXT_PUBLIC_ENVIRONMENT ||
@@ -55,10 +60,6 @@ const getOrCreateDistinctId = (
 };
 
 const isForwardedRoute = (request: NextRequest): boolean => {
-  if (request.nextUrl.pathname.startsWith("/docs/")) {
-    return true;
-  }
-
   if (request.nextUrl.pathname.startsWith("/mintlify-assets/")) {
     return true;
   }
@@ -115,7 +116,6 @@ const INTERNAL_PATH_PATTERNS: RegExp[] = [
   /^\/checkout(\/|$)/,
   /^\/ingest(\/|$)/,
   /^\/monitoring(\/|$)/,
-  /^\/docs(\/|$)/,
   /^\/_mintlify(\/|$)/,
   /^\/mintlify-assets(\/|$)/,
   /^\/[^/]+\/portal(\/|$)/, // /:org/portal
@@ -139,8 +139,9 @@ const isInternalPath = (pathname: string): boolean => {
 };
 
 /**
- * Look up the authenticated user from the polar_session cookie. Returns
- * undefined when the cookie is missing or the API returns 401. Used by both
+ * Look up the authenticated user from the Blyss session cookie, accepting
+ * the previous cookie name during the session migration. Returns undefined
+ * when no session is present or the API returns 401. Used by both
  * the locale-rewrite branch and the standard auth flow so authenticated
  * visitors on /us/marketplace etc. don't render as logged-out (the layout's
  * `getAuthenticatedUser()` reads the `x-polar-user` request header that this
@@ -149,7 +150,12 @@ const isInternalPath = (pathname: string): boolean => {
 const fetchUserFromCookie = async (
   request: NextRequest,
 ): Promise<schemas["UserRead"] | undefined> => {
-  if (!request.cookies.has(POLAR_AUTH_COOKIE_KEY)) return undefined;
+  if (
+    !request.cookies.has(AUTH_COOKIE_KEY) &&
+    !request.cookies.has(LEGACY_AUTH_COOKIE_KEY)
+  ) {
+    return undefined;
+  }
   try {
     const api = await createServerSideAPI(
       request.headers,
@@ -235,6 +241,19 @@ export async function proxy(request: NextRequest) {
     return new NextResponse("Not Found", { status: 404 });
   }
 
+  // Send inherited public routes to current Blyss destinations, including
+  // country-prefixed URLs that bypass next.config redirects.
+  const legacyPublicPath = pathname.match(
+    /^\/(?:([a-z]{2})\/)?(downloads|docs)(?:\/.*)?\/?$/i,
+  );
+  if (legacyPublicPath) {
+    const [, country, route] = legacyPublicPath;
+    const destination = route.toLowerCase() === "downloads" ? "marketplace" : "help";
+    const url = request.nextUrl.clone();
+    url.pathname = `/${country ? `${country}/` : ""}${destination}`;
+    return NextResponse.redirect(url, { status: 308 });
+  }
+
   // --- Locale URL handling ---
   // Buyers keep region-prefixed URLs so selected currency and regional
   // pricing remain stable. Search crawlers receive the same Kenya content at
@@ -302,7 +321,7 @@ export async function proxy(request: NextRequest) {
     return response;
   }
 
-  // --- Original Polar proxy logic below ---
+  // --- Remaining proxy routing logic below ---
 
   // Do not run middleware for forwarded routes
   // @pieterbeulque added this because the `config.matcher` behavior below
@@ -420,7 +439,10 @@ export async function proxy(request: NextRequest) {
 
   let user: schemas["UserRead"] | undefined = undefined;
 
-  if (request.cookies.has(POLAR_AUTH_COOKIE_KEY)) {
+  if (
+    request.cookies.has(AUTH_COOKIE_KEY) ||
+    request.cookies.has(LEGACY_AUTH_COOKIE_KEY)
+  ) {
     const api = await createServerSideAPI(
       request.headers,
       RequestCookiesAdapter.seal(request.cookies),
@@ -505,11 +527,11 @@ export const config = {
      * - api (API routes)
      * - ingest (Posthog)
      * - monitoring (Sentry)
-     * - docs, _mintlify, mintlify-assets (Mintlify)
+     * - _mintlify, mintlify-assets (documentation assets)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico, sitemap.xml, robots.txt (metadata files)
      */
-    "/((?!api|ingest|monitoring|docs|_mintlify|mintlify-assets|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)",
+    "/((?!api|ingest|monitoring|_mintlify|mintlify-assets|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)",
   ],
 };
