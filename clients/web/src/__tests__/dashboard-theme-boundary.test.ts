@@ -27,6 +27,26 @@ describe("Dashboard theme token boundary", () => {
     expect(shadInput).toContain("placeholder:text-[var(--text-secondary)]");
   });
 
+  test("uses theme tokens for dashboard panels and product selectors", () => {
+    const dashboard = read("src/components/Layout/DashboardLayout.tsx");
+    const select = read("src/components/atoms/Select.tsx");
+    const createProduct = read(
+      "src/app/(main)/dashboard/[organization]/(header)/products/new/page.tsx",
+    );
+    const products = read(
+      "src/app/(main)/dashboard/[organization]/(header)/products/ProductsPage.tsx",
+    );
+
+    expect(dashboard).toContain("bg-[var(--surface)]");
+    expect(dashboard).toContain("text-[var(--text-primary)]");
+    expect(select).toContain("bg-[var(--surface-sunken)]");
+    expect(select).toContain("bg-[var(--surface-elevated)]");
+    expect(createProduct).toContain("export const dynamic = 'force-dynamic'");
+    expect(createProduct).toContain("export const revalidate = 0");
+    expect(createProduct).toContain("    true,");
+    expect(products.match(/prefetch=\{false\}/g)).toHaveLength(2);
+  });
+
   test("defaults to dark and supports the explicit system preference", () => {
     const providers = read("src/app/providers.tsx");
 

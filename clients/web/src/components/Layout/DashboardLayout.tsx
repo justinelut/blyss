@@ -32,7 +32,7 @@ const DashboardLayout = (
 
   return (
     <DashboardProvider organization={organization}>
-      <div className="relative flex h-full w-full flex-col bg-[var(--surface-elevated)] text-[var(--text-primary)] md:flex-row md:bg-[var(--surface)] md:p-2">
+      <div className="relative flex h-full w-full flex-col bg-[var(--background)] text-[var(--text-primary)] md:flex-row md:bg-[var(--surface)] md:p-2">
         <MobileTopbar
           organization={organization}
           organizations={organizations ?? []}
@@ -99,11 +99,11 @@ const MobileTopbar = ({
       : null;
 
   return (
-    <div className="dark:bg-polar-900 sticky top-0 z-30 flex w-full flex-row items-center justify-between bg-[var(--surface)] p-4 md:hidden">
+    <div className="sticky top-0 z-30 flex w-full flex-row items-center justify-between bg-[var(--surface)] p-4 md:hidden">
       {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
       <a
         href="/"
-        className="flex shrink-0 items-center font-semibold text-black dark:text-white"
+        className="flex shrink-0 items-center font-semibold text-[var(--text-primary)]"
       >
         <Logo variant="icon" className="h-10 w-10" size="md" />
       </a>
@@ -119,7 +119,6 @@ const MobileTopbar = ({
               "flex h-10 w-10 items-center justify-center rounded-md",
               "text-[var(--text-secondary)] transition-colors",
               "hover:bg-[var(--surface-sunken)] hover:text-[var(--text-primary)]",
-              "dark:text-polar-300 dark:hover:bg-polar-800 dark:hover:text-white",
             )}
           >
             <StorefrontOutlined fontSize="medium" />
@@ -197,7 +196,7 @@ export const DashboardBody = ({
       animate="animate"
       exit="exit"
     >
-      <div className="dark:bg-polar-900 dark:border-polar-800 relative flex min-w-0 flex-2 flex-col items-center rounded-2xl border-[var(--border)] bg-white px-4 md:overflow-y-auto md:border md:px-8 md:shadow-xs">
+      <div className="relative flex min-w-0 flex-2 flex-col items-center rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 text-[var(--text-primary)] md:overflow-y-auto md:px-8 md:shadow-xs">
         <div
           className={twMerge(
             "flex h-full w-full flex-col gap-8 pt-8",
@@ -209,7 +208,7 @@ export const DashboardBody = ({
             <div className="flex flex-col gap-y-4 md:flex-row md:items-center md:justify-between md:gap-x-4">
               {title !== null &&
                 (!title || typeof parsedTitle === "string" ? (
-                  <h4 className="text-2xl font-medium whitespace-nowrap dark:text-white">
+                  <h4 className="text-2xl font-medium whitespace-nowrap text-[var(--text-primary)]">
                     {title ?? current?.title}
                   </h4>
                 ) : (
@@ -244,7 +243,7 @@ export const DashboardBody = ({
             exit: { opacity: 0, transition: { duration: 0.3 } },
           }}
           className={twMerge(
-            "dark:bg-polar-900 dark:border-polar-800 w-full flex-1 overflow-y-auto rounded-2xl border border-[var(--border)] bg-white md:max-w-[320px] md:shadow-xs xl:max-w-[440px]",
+            "w-full flex-1 overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text-primary)] md:max-w-[320px] md:shadow-xs xl:max-w-[440px]",
             contextViewClassName,
           )}
         >

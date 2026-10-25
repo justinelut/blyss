@@ -194,6 +194,7 @@ export default function ClientPage({
           'active' ? (
             <Link
               href={`/dashboard/${org.slug}/products/new`}
+              prefetch={false}
               className="w-full md:w-fit"
             >
               <Button
@@ -262,7 +263,10 @@ export default function ClientPage({
                   Start selling digital products today
                 </p>
               </div>
-              <Link href={`/dashboard/${org.slug}/products/new`}>
+              <Link
+                href={`/dashboard/${org.slug}/products/new`}
+                prefetch={false}
+              >
                 <Button role="link" variant="secondary">
                   <span>Create Product</span>
                 </Button>
