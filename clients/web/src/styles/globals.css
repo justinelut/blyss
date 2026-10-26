@@ -8,6 +8,7 @@
 @source '../../../../packages/orbit/src';
 
 @plugin '@tailwindcss/forms';
+@plugin '@tailwindcss/typography';
 @plugin 'tailwindcss-radix';
 
 /* @tailwindcss/forms hardcodes a blue (#2563eb) focus ring on form controls.

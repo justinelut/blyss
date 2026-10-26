@@ -1,6 +1,5 @@
 "use client";
 
-import "@/styles/typography.css";
 import { TrialConfigurationForm } from "@/components/TrialConfiguration/TrialConfigurationForm";
 import { isLegacyRecurringPrice, isMeteredPrice } from "@/utils/product";
 import { schemas } from "@/lib/api";

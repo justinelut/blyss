@@ -1,4 +1,3 @@
-import "@/styles/typography.css";
 import { BlogHero } from "@/components/Blog/BlogHero";
 import { StaticImage } from "@/components/Image/StaticImage";
 import ProseWrapper from "@/components/MDX/ProseWrapper";

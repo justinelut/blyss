@@ -1,4 +1,3 @@
-import "@/styles/typography.css";
 import { useCustomerBenefitGrantUpdate } from "@/hooks/queries";
 import { markdownOptions } from "@/utils/markdown";
 import { Client, schemas } from "@/lib/api";

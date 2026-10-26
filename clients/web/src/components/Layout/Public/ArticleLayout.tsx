@@ -1,4 +1,3 @@
-import "@/styles/typography.css";
 import { PropsWithChildren } from "react";
 
 export function ArticleLayout({ children }: PropsWithChildren) {

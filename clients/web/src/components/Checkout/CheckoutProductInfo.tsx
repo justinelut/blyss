@@ -1,6 +1,5 @@
 "use client";
 
-import "@/styles/typography.css";
 import { UploadImage } from "@/components/Image/Image";
 import { getResizedImage } from "@/utils/getResizedImage";
 import { markdownOptions } from "@/utils/markdown";

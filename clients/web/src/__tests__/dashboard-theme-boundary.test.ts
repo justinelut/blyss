@@ -47,6 +47,16 @@ describe("Dashboard theme token boundary", () => {
     expect(products.match(/prefetch=\{false\}/g)).toHaveLength(2);
   });
 
+  test("keeps typography plugin utilities in the single global stylesheet", () => {
+    const globals = read("src/styles/globals.css");
+    const pricing = read(
+      "src/components/Products/ProductForm/ProductPricingSection.tsx",
+    );
+
+    expect(globals).toContain("@plugin '@tailwindcss/typography'");
+    expect(pricing).not.toContain("styles/typography.css");
+  });
+
   test("defaults to dark and supports the explicit system preference", () => {
     const providers = read("src/app/providers.tsx");
 

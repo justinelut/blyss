@@ -1,6 +1,5 @@
 "use client";
 
-import "@/styles/typography.css";
 import { UploadImage } from "@/components/Image/Image";
 import { Modal } from "@/components/Modal";
 import { DISTINCT_ID_COOKIE } from "@/experiments/constants";
