@@ -12,6 +12,7 @@ from polar.models import (
     UserOrganization,
 )
 from polar.models.custom_field import CustomFieldType
+from polar.models.file import FileServiceTypes, ProductMediaFile
 from polar.postgres import AsyncSession
 from tests.fixtures.database import SaveFixture
 from tests.fixtures.random_objects import (
@@ -166,6 +167,7 @@ class TestCreateProduct:
             json={
                 "name": "Product",
                 "organization_id": str(organization.id),
+                "visibility": "private",
                 "prices": [
                     {
                         "amount_type": "fixed",
@@ -326,11 +328,83 @@ class TestCreateProduct:
             json={
                 "name": "Product",
                 "organization_id": str(organization.id),
+                "visibility": "private",
                 **payload,
             },
         )
 
         assert response.status_code == 201
+
+    @pytest.mark.auth
+    async def test_public_product_requires_featured_image(
+        self,
+        client: AsyncClient,
+        organization: Organization,
+        user_organization: UserOrganization,
+    ) -> None:
+        response = await client.post(
+            "/v1/products/",
+            json={
+                "name": "Product",
+                "organization_id": str(organization.id),
+                "visibility": "public",
+                "recurring_interval": None,
+                "prices": [
+                    {
+                        "amount_type": "fixed",
+                        "price_amount": 1000,
+                        "price_currency": "usd",
+                    }
+                ],
+            },
+        )
+
+        assert response.status_code == 422
+        assert any(
+            error["loc"] == ["body", "medias"] and "image" in error["msg"].lower()
+            for error in response.json()["detail"]
+        )
+
+    @pytest.mark.auth
+    async def test_public_product_with_featured_image(
+        self,
+        save_fixture: SaveFixture,
+        client: AsyncClient,
+        organization: Organization,
+        user_organization: UserOrganization,
+    ) -> None:
+        image = ProductMediaFile(
+            organization=organization,
+            name="Product Cover",
+            path="/product-cover.jpg",
+            mime_type="image/jpeg",
+            size=1024,
+            service=FileServiceTypes.product_media,
+            is_enabled=True,
+            is_uploaded=True,
+        )
+        await save_fixture(image)
+
+        response = await client.post(
+            "/v1/products/",
+            json={
+                "name": "Product",
+                "organization_id": str(organization.id),
+                "visibility": "public",
+                "recurring_interval": None,
+                "prices": [
+                    {
+                        "amount_type": "fixed",
+                        "price_amount": 1000,
+                        "price_currency": "usd",
+                    }
+                ],
+                "medias": [str(image.id)],
+            },
+        )
+
+        assert response.status_code == 201
+        assert len(response.json()["medias"]) == 1
 
 
 @pytest.mark.asyncio
@@ -368,6 +442,32 @@ class TestUpdateProduct:
 
         json = response.json()
         assert json["name"] == "Updated Name"
+
+    @pytest.mark.auth
+    async def test_cannot_publish_without_featured_image(
+        self,
+        save_fixture: SaveFixture,
+        client: AsyncClient,
+        organization: Organization,
+        user_organization: UserOrganization,
+    ) -> None:
+        product = await create_product(
+            save_fixture,
+            organization=organization,
+            recurring_interval=None,
+            visibility="private",
+        )
+
+        response = await client.patch(
+            f"/v1/products/{product.id}",
+            json={"visibility": "public"},
+        )
+
+        assert response.status_code == 422
+        assert any(
+            error["loc"] == ["body", "medias"] and "image" in error["msg"].lower()
+            for error in response.json()["detail"]
+        )
 
     @pytest.mark.auth
     async def test_existing_price_with_full_schema(

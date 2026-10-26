@@ -435,7 +435,8 @@ class ProductCreateBase(MetadataInputMixin, Schema):
         description=(
             "List of file IDs. "
             "Each one must be on the same organization as the product, "
-            "of type `product_media` and correctly uploaded."
+            "of type `product_media` and correctly uploaded. Public products "
+            "must include at least one image; the first image is featured."
         ),
     )
     attached_custom_fields: AttachedCustomFieldListCreate = Field(default_factory=list)
@@ -548,7 +549,8 @@ class ProductUpdate(TrialConfigurationInputMixin, MetadataInputMixin, Schema):
         description=(
             "List of file IDs. "
             "Each one must be on the same organization as the product, "
-            "of type `product_media` and correctly uploaded."
+            "of type `product_media` and correctly uploaded. A public product "
+            "must have at least one image; the first image is featured."
         ),
     )
     attached_custom_fields: AttachedCustomFieldListCreate | None = None

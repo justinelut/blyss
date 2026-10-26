@@ -5,7 +5,6 @@ from fastapi import Depends, Query, Request
 from pydantic import UUID4
 
 from polar.auth.dependencies import WebUserOrAnonymous
-from polar.auth.models import Anonymous, AuthSubject, User
 from polar.benefit.schemas import BenefitID
 from polar.exceptions import NotPermitted, PolarRequestValidationError, ResourceNotFound
 from polar.kit.metadata import MetadataQuery, get_metadata_query_openapi_schema
@@ -49,6 +48,19 @@ ProductNotFound = {
     "description": "Product not found.",
     "model": ResourceNotFound.schema(),
 }
+
+
+def _raise_featured_image_required() -> None:
+    raise PolarRequestValidationError(
+        [
+            {
+                "type": "value_error",
+                "loc": ("body", "medias"),
+                "msg": "Add at least one image before making this product public.",
+                "input": [],
+            }
+        ]
+    )
 
 
 ListSorting = Annotated[
@@ -461,6 +473,12 @@ async def create(
     session: AsyncSession = Depends(get_db_session),
 ) -> Product:
     """Create a product."""
+    if (
+        product_create.visibility == ProductVisibility.public
+        and not product_create.medias
+    ):
+        _raise_featured_image_required()
+
     return await product_service.create(session, product_create, auth_subject)
 
 
@@ -488,6 +506,23 @@ async def update(
 
     if product is None:
         raise ResourceNotFound()
+
+    visibility_after_update = (
+        product_update.visibility
+        if product_update.visibility is not None
+        else product.visibility
+    )
+    media_is_being_changed = product_update.medias is not None
+    if visibility_after_update == ProductVisibility.public and (
+        product_update.visibility == ProductVisibility.public or media_is_being_changed
+    ):
+        will_have_media = (
+            bool(product_update.medias)
+            if media_is_being_changed
+            else bool(product.product_medias)
+        )
+        if not will_have_media:
+            _raise_featured_image_required()
 
     return await product_service.update(session, product, product_update, auth_subject)
 
@@ -580,9 +615,10 @@ async def get_product_by_slug(
         getattr(org, "subaccount_status", None) != "active"
         or str(getattr(org, "status", "")) != "active"
     ):
+        from sqlalchemy import select
+
         from polar.auth.models import is_user
         from polar.models.user_organization import UserOrganization
-        from sqlalchemy import select
 
         viewer_owns_org = False
         if auth_subject and is_user(auth_subject):

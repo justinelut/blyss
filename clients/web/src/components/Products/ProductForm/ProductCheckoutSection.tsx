@@ -10,12 +10,14 @@ import {
 import TextArea from '@/components/atoms/TextArea'
 import {
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
 import { useFormContext } from 'react-hook-form'
 import { twMerge } from 'tailwind-merge'
 import ProductMediasField from '../ProductMediasField'
@@ -29,8 +31,20 @@ export const ProductCheckoutSection = ({
   className?: string
   organization: schemas['Organization']
 }) => {
-  const { control, watch } = useFormContext<ProductFormType>()
+  const {
+    control,
+    watch,
+    formState: { errors },
+  } = useFormContext<ProductFormType>()
   const isRecurring = !!watch('is_recurring' as any)
+  const visibility = watch('visibility') ?? 'public'
+  const [openSection, setOpenSection] = useState('')
+
+  useEffect(() => {
+    if (errors.full_medias) {
+      setOpenSection('checkout-page')
+    }
+  }, [errors.full_medias])
 
   return (
     <div
@@ -39,7 +53,12 @@ export const ProductCheckoutSection = ({
         className,
       )}
     >
-      <Accordion type="single" collapsible>
+      <Accordion
+        type="single"
+        collapsible
+        value={openSection}
+        onValueChange={setOpenSection}
+      >
         <AccordionItem value="checkout-page" className="border-none">
           <AccordionTrigger className="cursor-pointer hover:no-underline">
             <div className="flex flex-col items-start gap-y-2 text-left">
@@ -77,11 +96,28 @@ export const ProductCheckoutSection = ({
               <FormField
                 control={control}
                 name="full_medias"
+                rules={{
+                  validate: (medias) =>
+                    visibility !== 'public' ||
+                    (medias?.length ?? 0) > 0 ||
+                    'Add at least one image before making this product public.',
+                }}
                 render={({ field }) => (
                   <FormItem className="flex w-full flex-col gap-2">
                     <div className="flex flex-row items-center justify-between">
-                      <FormLabel>Product images</FormLabel>
+                      <FormLabel>
+                        Product images{' '}
+                        <span className="font-normal text-gray-500 dark:text-polar-500">
+                          (featured image required for public products)
+                        </span>
+                      </FormLabel>
                     </div>
+
+                    <FormDescription>
+                      Add at least one image for a public product. The first
+                      image is shown as its featured image on checkout and
+                      product listings.
+                    </FormDescription>
 
                     <FormControl>
                       <ProductMediasField
