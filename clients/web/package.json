@@ -14,7 +14,7 @@
   },
   "scripts": {
     "dev": "next dev --port 3000",
-    "build": "pnpm build:embed && next build",
+    "build": "pnpm build:embed && next build --webpack",
     "build:embed": "tsup --config tsup.embed.config.ts",
     "start": "next start",
     "format": "prettier --write ./src",
