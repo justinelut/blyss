@@ -62,6 +62,15 @@ export type ProductEditOrCreateForm = Omit<
     metadata: { key: string; value: string | number | boolean }[]
   }
 
+export const FEATURED_IMAGE_REQUIRED_MESSAGE =
+  'Add at least one image before making this product public.'
+
+export const hasFeaturedImageForPublicProduct = (
+  product: Pick<ProductEditOrCreateForm, 'visibility' | 'full_medias'>,
+): boolean =>
+  (product.visibility ?? 'public') !== 'public' ||
+  (product.full_medias?.length ?? 0) > 0
+
 export const productToCreateForm = (
   product: schemas['Product'],
 ): ProductEditOrCreateForm => {

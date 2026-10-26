@@ -6,7 +6,12 @@ import {
 } from '@/hooks/queries'
 import { useAssignProductToCategory } from '@/hooks/queries/categories'
 import { setProductValidationErrors } from '@/utils/api/errors'
-import { ProductEditOrCreateForm, productToCreateForm } from '@/utils/product'
+import {
+  FEATURED_IMAGE_REQUIRED_MESSAGE,
+  hasFeaturedImageForPublicProduct,
+  ProductEditOrCreateForm,
+  productToCreateForm,
+} from '@/utils/product'
 import { schemas } from '@/lib/api'
 import Button from '@/components/atoms/Button'
 import { Form } from '@/components/ui/form'
@@ -220,6 +225,30 @@ export const CreateProductPage = ({
     ],
   )
 
+  const setFeaturedImageError = useCallback(
+    (product: ProductEditOrCreateForm) => {
+      if (!hasFeaturedImageForPublicProduct(product)) {
+        setError('full_medias', {
+          type: 'validate',
+          message: FEATURED_IMAGE_REQUIRED_MESSAGE,
+        })
+      }
+    },
+    [setError],
+  )
+
+  const submitProduct = handleSubmit(
+    async (product) => {
+      if (!hasFeaturedImageForPublicProduct(product)) {
+        setFeaturedImageError(product)
+        return
+      }
+
+      await onSubmit(product)
+    },
+    () => setFeaturedImageError(form.getValues()),
+  )
+
   const onSelectBenefit = useCallback((benefit: schemas['Benefit']) => {
     setEnabledBenefits((benefits) => [...benefits, benefit])
   }, [])
@@ -243,7 +272,7 @@ export const CreateProductPage = ({
       <div className="dark:border-polar-700 dark:divide-polar-700 flex min-w-0 flex-col divide-y divide-gray-200 rounded-4xl border border-gray-200">
         <Form {...form}>
           <form
-            onSubmit={handleSubmit(onSubmit)}
+            onSubmit={submitProduct}
             className="flex min-w-0 flex-col gap-y-6"
           >
             <ProductForm
@@ -266,7 +295,7 @@ export const CreateProductPage = ({
       </div>
       <div className="flex flex-row items-center gap-2 pb-12">
         <Button
-          onClick={handleSubmit(onSubmit)}
+          onClick={submitProduct}
           loading={isSubmitting}
           disabled={isSubmitting}
         >

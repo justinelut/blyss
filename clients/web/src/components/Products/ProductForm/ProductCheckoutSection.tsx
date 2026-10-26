@@ -1,6 +1,7 @@
 'use client'
 
 import { schemas } from '@/lib/api'
+import { FEATURED_IMAGE_REQUIRED_MESSAGE } from '@/utils/product'
 import {
   Accordion,
   AccordionContent,
@@ -34,6 +35,7 @@ export const ProductCheckoutSection = ({
   const {
     control,
     watch,
+    clearErrors,
     formState: { errors },
   } = useFormContext<ProductFormType>()
   const isRecurring = !!watch('is_recurring' as any)
@@ -45,6 +47,12 @@ export const ProductCheckoutSection = ({
       setOpenSection('checkout-page')
     }
   }, [errors.full_medias])
+
+  useEffect(() => {
+    if (visibility !== 'public') {
+      clearErrors('full_medias')
+    }
+  }, [visibility, clearErrors])
 
   return (
     <div
@@ -100,7 +108,7 @@ export const ProductCheckoutSection = ({
                   validate: (medias) =>
                     visibility !== 'public' ||
                     (medias?.length ?? 0) > 0 ||
-                    'Add at least one image before making this product public.',
+                    FEATURED_IMAGE_REQUIRED_MESSAGE,
                 }}
                 render={({ field }) => (
                   <FormItem className="flex w-full flex-col gap-2">
@@ -123,7 +131,12 @@ export const ProductCheckoutSection = ({
                       <ProductMediasField
                         organization={organization}
                         value={field.value}
-                        onChange={field.onChange}
+                        onChange={(medias) => {
+                          field.onChange(medias)
+                          if (medias.length > 0) {
+                            clearErrors('full_medias')
+                          }
+                        }}
                         isRecurring={isRecurring}
                       />
                     </FormControl>

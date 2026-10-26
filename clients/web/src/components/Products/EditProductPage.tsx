@@ -10,7 +10,11 @@ import {
   useUnassignProductFromCategory,
 } from '@/hooks/queries/categories'
 import { setProductValidationErrors } from '@/utils/api/errors'
-import { ProductEditOrCreateForm } from '@/utils/product'
+import {
+  FEATURED_IMAGE_REQUIRED_MESSAGE,
+  hasFeaturedImageForPublicProduct,
+  ProductEditOrCreateForm,
+} from '@/utils/product'
 import { isValidationError, schemas } from '@/lib/api'
 import Button from '@/components/atoms/Button'
 import { Form } from '@/components/ui/form'
@@ -218,6 +222,30 @@ export const EditProductPage = ({
     ],
   )
 
+  const setFeaturedImageError = useCallback(
+    (productUpdate: ProductEditOrCreateForm) => {
+      if (!hasFeaturedImageForPublicProduct(productUpdate)) {
+        setError('full_medias', {
+          type: 'validate',
+          message: FEATURED_IMAGE_REQUIRED_MESSAGE,
+        })
+      }
+    },
+    [setError],
+  )
+
+  const submitProduct = handleSubmit(
+    async (productUpdate) => {
+      if (!hasFeaturedImageForPublicProduct(productUpdate)) {
+        setFeaturedImageError(productUpdate)
+        return
+      }
+
+      await onSubmit(productUpdate)
+    },
+    () => setFeaturedImageError(form.getValues()),
+  )
+
   const onSelectBenefit = useCallback((benefit: schemas['Benefit']) => {
     console.log({ benefit })
     setEnabledBenefits((benefits) => [...benefits, benefit])
@@ -258,7 +286,7 @@ export const EditProductPage = ({
       className="gap-y-16"
       header={
         <Button
-          onClick={handleSubmit(onSubmit)}
+          onClick={submitProduct}
           loading={isLoading}
           disabled={isLoading}
         >
@@ -269,7 +297,7 @@ export const EditProductPage = ({
       <div className="dark:border-polar-700 dark:divide-polar-700 flex flex-col divide-y divide-gray-200 rounded-4xl border border-gray-200">
         <Form {...form}>
           <form
-            onSubmit={handleSubmit(onSubmit)}
+            onSubmit={submitProduct}
             className="flex flex-col gap-y-6"
           >
             <ProductForm
@@ -310,7 +338,7 @@ export const EditProductPage = ({
       )}
       <div className="flex flex-row items-center gap-2 pb-12">
         <Button
-          onClick={handleSubmit(onSubmit)}
+          onClick={submitProduct}
           loading={isLoading}
           disabled={isLoading}
         >
